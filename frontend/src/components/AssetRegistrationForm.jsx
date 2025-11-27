@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const AssetRegistrationForm = ({ onAssetRegistered }) => {
   const [formData, setFormData] = useState({
@@ -12,9 +12,26 @@ const AssetRegistrationForm = ({ onAssetRegistered }) => {
     notes: ''
   });
 
+  const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    fetchCompanies();
+  }, []);
+
+  const fetchCompanies = async () => {
+    try {
+      const response = await fetch('/api/companies');
+      if (response.ok) {
+        const data = await response.json();
+        setCompanies(data);
+      }
+    } catch (err) {
+      console.error('Error fetching companies:', err);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -138,16 +155,26 @@ const AssetRegistrationForm = ({ onAssetRegistered }) => {
         </div>
 
         <div className="form-group">
-          <label htmlFor="client_name">Client Name *</label>
-          <input
-            type="text"
+          <label htmlFor="client_name">Client Company *</label>
+          <select
             id="client_name"
             name="client_name"
             value={formData.client_name}
             onChange={handleChange}
             required
-            placeholder="Acme Corporation"
-          />
+          >
+            <option value="">Select a company...</option>
+            {companies.map((company) => (
+              <option key={company.id} value={company.name}>
+                {company.name}
+              </option>
+            ))}
+          </select>
+          {companies.length === 0 && (
+            <small style={{ color: '#e53e3e', marginTop: '5px', display: 'block' }}>
+              No companies available. Please add companies first in the Company Management section.
+            </small>
+          )}
         </div>
 
         <div className="form-group">

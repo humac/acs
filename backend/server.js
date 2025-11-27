@@ -1,6 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import { assetDb } from './database.js';
+import { assetDb, companyDb } from './database.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -178,6 +178,140 @@ app.delete('/api/assets/:id', (req, res) => {
   } catch (error) {
     console.error('Error deleting asset:', error);
     res.status(500).json({ error: 'Failed to delete asset' });
+  }
+});
+
+// ===== Company Management Endpoints =====
+
+// Get all companies
+app.get('/api/companies', (req, res) => {
+  try {
+    const companies = companyDb.getAll();
+    res.json(companies);
+  } catch (error) {
+    console.error('Error fetching companies:', error);
+    res.status(500).json({ error: 'Failed to fetch companies' });
+  }
+});
+
+// Get single company by ID
+app.get('/api/companies/:id', (req, res) => {
+  try {
+    const company = companyDb.getById(req.params.id);
+    if (!company) {
+      return res.status(404).json({ error: 'Company not found' });
+    }
+    res.json(company);
+  } catch (error) {
+    console.error('Error fetching company:', error);
+    res.status(500).json({ error: 'Failed to fetch company' });
+  }
+});
+
+// Create new company
+app.post('/api/companies', (req, res) => {
+  try {
+    const { name, description } = req.body;
+
+    // Validation
+    if (!name || name.trim() === '') {
+      return res.status(400).json({
+        error: 'Company name is required'
+      });
+    }
+
+    // Check if company already exists
+    const existing = companyDb.getByName(name);
+    if (existing) {
+      return res.status(409).json({
+        error: 'A company with this name already exists'
+      });
+    }
+
+    const result = companyDb.create(req.body);
+    const newCompany = companyDb.getById(result.lastInsertRowid);
+
+    res.status(201).json({
+      message: 'Company registered successfully',
+      company: newCompany
+    });
+  } catch (error) {
+    console.error('Error creating company:', error);
+
+    if (error.message.includes('UNIQUE constraint failed')) {
+      return res.status(409).json({
+        error: 'A company with this name already exists'
+      });
+    }
+
+    res.status(500).json({ error: 'Failed to register company' });
+  }
+});
+
+// Update company
+app.put('/api/companies/:id', (req, res) => {
+  try {
+    const company = companyDb.getById(req.params.id);
+    if (!company) {
+      return res.status(404).json({ error: 'Company not found' });
+    }
+
+    const { name, description } = req.body;
+
+    if (!name || name.trim() === '') {
+      return res.status(400).json({
+        error: 'Company name is required'
+      });
+    }
+
+    // Check if another company has this name
+    const existing = companyDb.getByName(name);
+    if (existing && existing.id !== parseInt(req.params.id)) {
+      return res.status(409).json({
+        error: 'A company with this name already exists'
+      });
+    }
+
+    companyDb.update(req.params.id, req.body);
+    const updatedCompany = companyDb.getById(req.params.id);
+
+    res.json({
+      message: 'Company updated successfully',
+      company: updatedCompany
+    });
+  } catch (error) {
+    console.error('Error updating company:', error);
+
+    if (error.message.includes('UNIQUE constraint failed')) {
+      return res.status(409).json({
+        error: 'A company with this name already exists'
+      });
+    }
+
+    res.status(500).json({ error: 'Failed to update company' });
+  }
+});
+
+// Delete company
+app.delete('/api/companies/:id', (req, res) => {
+  try {
+    const company = companyDb.getById(req.params.id);
+    if (!company) {
+      return res.status(404).json({ error: 'Company not found' });
+    }
+
+    // Check if company has assets
+    if (companyDb.hasAssets(company.name)) {
+      return res.status(409).json({
+        error: 'Cannot delete company with existing assets. Please reassign or delete assets first.'
+      });
+    }
+
+    companyDb.delete(req.params.id);
+    res.json({ message: 'Company deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting company:', error);
+    res.status(500).json({ error: 'Failed to delete company' });
   }
 });
 

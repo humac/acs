@@ -50,11 +50,24 @@ const initDb = () => {
     // Column already exists
   }
 
+  // Create companies table
+  const createCompaniesTableQuery = `
+    CREATE TABLE IF NOT EXISTS companies (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      description TEXT,
+      created_date TEXT NOT NULL
+    )
+  `;
+
+  db.exec(createCompaniesTableQuery);
+
   // Create indexes for faster searching
   db.exec('CREATE INDEX IF NOT EXISTS idx_employee_name ON assets(employee_name)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_manager_name ON assets(manager_name)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_client_name ON assets(client_name)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_status ON assets(status)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_company_name ON companies(name)');
 
   console.log('Database initialized successfully');
 };
@@ -175,6 +188,70 @@ export const assetDb = {
   delete: (id) => {
     const stmt = db.prepare('DELETE FROM assets WHERE id = ?');
     return stmt.run(id);
+  }
+};
+
+// Company CRUD operations
+export const companyDb = {
+  // Create new company
+  create: (company) => {
+    const stmt = db.prepare(`
+      INSERT INTO companies (name, description, created_date)
+      VALUES (?, ?, ?)
+    `);
+
+    const now = new Date().toISOString();
+    return stmt.run(
+      company.name,
+      company.description || '',
+      now
+    );
+  },
+
+  // Get all companies
+  getAll: () => {
+    const stmt = db.prepare('SELECT * FROM companies ORDER BY name ASC');
+    return stmt.all();
+  },
+
+  // Get company by ID
+  getById: (id) => {
+    const stmt = db.prepare('SELECT * FROM companies WHERE id = ?');
+    return stmt.get(id);
+  },
+
+  // Get company by name
+  getByName: (name) => {
+    const stmt = db.prepare('SELECT * FROM companies WHERE name = ?');
+    return stmt.get(name);
+  },
+
+  // Update company
+  update: (id, company) => {
+    const stmt = db.prepare(`
+      UPDATE companies
+      SET name = ?, description = ?
+      WHERE id = ?
+    `);
+
+    return stmt.run(
+      company.name,
+      company.description || '',
+      id
+    );
+  },
+
+  // Delete company
+  delete: (id) => {
+    const stmt = db.prepare('DELETE FROM companies WHERE id = ?');
+    return stmt.run(id);
+  },
+
+  // Check if company has assets
+  hasAssets: (companyName) => {
+    const stmt = db.prepare('SELECT COUNT(*) as count FROM assets WHERE client_name = ?');
+    const result = stmt.get(companyName);
+    return result.count > 0;
   }
 };
 

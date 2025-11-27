@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import AssetRegistrationForm from './components/AssetRegistrationForm';
 import AssetList from './components/AssetList';
+import CompanyManagement from './components/CompanyManagement';
 
 function App() {
   const [refreshKey, setRefreshKey] = useState(0);
+  const [activeTab, setActiveTab] = useState('assets');
 
   const handleAssetRegistered = () => {
     setRefreshKey(prev => prev + 1);
@@ -16,10 +18,29 @@ function App() {
         <p>SOC2 Compliance - Track and manage client laptops assigned to consultants</p>
       </header>
 
-      <div className="main-content">
-        <AssetRegistrationForm onAssetRegistered={handleAssetRegistered} />
-        <AssetList refresh={refreshKey} />
+      <div className="tabs">
+        <button
+          className={`tab ${activeTab === 'assets' ? 'active' : ''}`}
+          onClick={() => setActiveTab('assets')}
+        >
+          Asset Management
+        </button>
+        <button
+          className={`tab ${activeTab === 'companies' ? 'active' : ''}`}
+          onClick={() => setActiveTab('companies')}
+        >
+          Company Management
+        </button>
       </div>
+
+      {activeTab === 'assets' ? (
+        <div className="main-content">
+          <AssetRegistrationForm onAssetRegistered={handleAssetRegistered} />
+          <AssetList refresh={refreshKey} />
+        </div>
+      ) : (
+        <CompanyManagement />
+      )}
     </div>
   );
 }
