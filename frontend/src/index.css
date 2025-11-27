@@ -27,6 +27,10 @@ body {
   border-radius: 10px;
   margin-bottom: 30px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
 }
 
 .header h1 {
@@ -342,4 +346,118 @@ tr:hover {
   height: 80px;
   margin-bottom: 20px;
   opacity: 0.5;
+}
+
+/* Authentication Styles */
+.auth-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px;
+}
+
+.auth-card {
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  max-width: 450px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.auth-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 30px;
+  text-align: center;
+}
+
+.auth-header h1 {
+  font-size: 1.75rem;
+  margin-bottom: 8px;
+}
+
+.auth-header p {
+  opacity: 0.9;
+  font-size: 0.95rem;
+}
+
+.auth-form {
+  padding: 30px;
+}
+
+.auth-form h2 {
+  margin-bottom: 20px;
+  color: #2d3748;
+  font-size: 1.5rem;
+}
+
+.auth-footer {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+  text-align: center;
+}
+
+.auth-footer p {
+  color: #718096;
+  font-size: 0.9rem;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: #667eea;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  padding: 0;
+  font-size: inherit;
+}
+
+.link-button:hover {
+  color: #5568d3;
+  text-decoration: underline;
+}
+
+/* User menu */
+.user-menu {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-left: auto;
+}
+
+.user-info {
+  text-align: right;
+}
+
+.user-name {
+  font-weight: 600;
+  color: white;
+  font-size: 0.95rem;
+}
+
+.user-email {
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.btn-logout {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-logout:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
 }

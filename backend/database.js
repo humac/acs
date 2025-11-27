@@ -78,6 +78,21 @@ const initDb = () => {
 
   db.exec(createAuditLogsTableQuery);
 
+  // Create users table
+  const createUsersTableQuery = `
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      name TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'user',
+      created_at TEXT NOT NULL,
+      last_login TEXT
+    )
+  `;
+
+  db.exec(createUsersTableQuery);
+
   // Create indexes for faster searching
   db.exec('CREATE INDEX IF NOT EXISTS idx_employee_name ON assets(employee_name)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_manager_name ON assets(manager_name)');
@@ -86,6 +101,7 @@ const initDb = () => {
   db.exec('CREATE INDEX IF NOT EXISTS idx_company_name ON companies(name)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_logs(timestamp)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_logs(entity_type, entity_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_user_email ON users(email)');
 
   console.log('Database initialized successfully');
 };
@@ -376,6 +392,63 @@ export const auditDb = {
 
     const stmt = db.prepare(query);
     return stmt.all(...params);
+  }
+};
+
+// User authentication operations
+export const userDb = {
+  // Create new user
+  create: (user) => {
+    const stmt = db.prepare(`
+      INSERT INTO users (email, password_hash, name, role, created_at)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+
+    const now = new Date().toISOString();
+    return stmt.run(
+      user.email,
+      user.password_hash,
+      user.name,
+      user.role || 'user',
+      now
+    );
+  },
+
+  // Get user by email
+  getByEmail: (email) => {
+    const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
+    return stmt.get(email);
+  },
+
+  // Get user by ID
+  getById: (id) => {
+    const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
+    return stmt.get(id);
+  },
+
+  // Update last login
+  updateLastLogin: (id) => {
+    const stmt = db.prepare('UPDATE users SET last_login = ? WHERE id = ?');
+    const now = new Date().toISOString();
+    return stmt.run(now, id);
+  },
+
+  // Get all users (admin only)
+  getAll: () => {
+    const stmt = db.prepare('SELECT id, email, name, role, created_at, last_login FROM users ORDER BY created_at DESC');
+    return stmt.all();
+  },
+
+  // Update user role
+  updateRole: (id, role) => {
+    const stmt = db.prepare('UPDATE users SET role = ? WHERE id = ?');
+    return stmt.run(role, id);
+  },
+
+  // Delete user
+  delete: (id) => {
+    const stmt = db.prepare('DELETE FROM users WHERE id = ?');
+    return stmt.run(id);
   }
 };
 

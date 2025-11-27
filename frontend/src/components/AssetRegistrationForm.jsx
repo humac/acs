@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 const AssetRegistrationForm = ({ onAssetRegistered }) => {
+  const { getAuthHeaders } = useAuth();
   const [formData, setFormData] = useState({
     employee_name: '',
     employee_email: '',
@@ -23,7 +25,11 @@ const AssetRegistrationForm = ({ onAssetRegistered }) => {
 
   const fetchCompanies = async () => {
     try {
-      const response = await fetch('/api/companies');
+      const response = await fetch('/api/companies', {
+        headers: {
+          ...getAuthHeaders()
+        }
+      });
       if (response.ok) {
         const data = await response.json();
         setCompanies(data);
@@ -51,6 +57,7 @@ const AssetRegistrationForm = ({ onAssetRegistered }) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...getAuthHeaders()
         },
         body: JSON.stringify(formData),
       });
