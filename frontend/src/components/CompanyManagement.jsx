@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 const CompanyManagement = () => {
+  const { getAuthHeaders } = useAuth();
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -22,7 +24,11 @@ const CompanyManagement = () => {
     setError(null);
 
     try {
-      const response = await fetch('/api/companies');
+      const response = await fetch('/api/companies', {
+        headers: {
+          ...getAuthHeaders()
+        }
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch companies');
       }
@@ -58,6 +64,7 @@ const CompanyManagement = () => {
         method,
         headers: {
           'Content-Type': 'application/json',
+          ...getAuthHeaders()
         },
         body: JSON.stringify(formData),
       });
@@ -98,6 +105,9 @@ const CompanyManagement = () => {
     try {
       const response = await fetch(`/api/companies/${company.id}`, {
         method: 'DELETE',
+        headers: {
+          ...getAuthHeaders()
+        }
       });
 
       const data = await response.json();

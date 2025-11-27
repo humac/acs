@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 const StatusUpdateModal = ({ asset, onClose, onUpdate }) => {
+  const { getAuthHeaders } = useAuth();
   const [status, setStatus] = useState(asset.status);
   const [notes, setNotes] = useState(asset.notes || '');
   const [loading, setLoading] = useState(false);
@@ -16,6 +18,7 @@ const StatusUpdateModal = ({ asset, onClose, onUpdate }) => {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          ...getAuthHeaders()
         },
         body: JSON.stringify({ status, notes }),
       });

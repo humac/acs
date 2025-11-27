@@ -1,6 +1,8 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { assetDb, companyDb, auditDb } from './database.js';
+import { assetDb, companyDb, auditDb, userDb } from './database.js';
+import { authenticate, authorize, hashPassword, comparePassword, generateToken } from './auth.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -17,8 +19,139 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Asset Registration API is running' });
 });
 
+// ===== Authentication Endpoints =====
+
+// Register new user
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { email, password, name } = req.body;
+
+    // Validation
+    if (!email || !password || !name) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        required: ['email', 'password', 'name']
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = userDb.getByEmail(email);
+    if (existingUser) {
+      return res.status(409).json({ error: 'User with this email already exists' });
+    }
+
+    // Hash password
+    const password_hash = await hashPassword(password);
+
+    // Create user
+    const result = userDb.create({
+      email,
+      password_hash,
+      name,
+      role: 'user'
+    });
+
+    const newUser = userDb.getById(result.lastInsertRowid);
+
+    // Generate token
+    const token = generateToken(newUser);
+
+    // Return user info (without password hash)
+    res.status(201).json({
+      message: 'User registered successfully',
+      token,
+      user: {
+        id: newUser.id,
+        email: newUser.email,
+        name: newUser.name,
+        role: newUser.role
+      }
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Failed to register user' });
+  }
+});
+
+// Login
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Validation
+    if (!email || !password) {
+      return res.status(400).json({
+        error: 'Email and password are required'
+      });
+    }
+
+    // Find user
+    const user = userDb.getByEmail(email);
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Verify password
+    const isValid = await comparePassword(password, user.password_hash);
+    if (!isValid) {
+      return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Update last login
+    userDb.updateLastLogin(user.id);
+
+    // Generate token
+    const token = generateToken(user);
+
+    res.json({
+      message: 'Login successful',
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Failed to login' });
+  }
+});
+
+// Get current user (verify token)
+app.get('/api/auth/me', authenticate, (req, res) => {
+  try {
+    const user = userDb.getById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role
+    });
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({ error: 'Failed to get user info' });
+  }
+});
+
+// Get all users (admin only)
+app.get('/api/auth/users', authenticate, authorize('admin'), (req, res) => {
+  try {
+    const users = userDb.getAll();
+    res.json(users);
+  } catch (error) {
+    console.error('Get users error:', error);
+    res.status(500).json({ error: 'Failed to get users' });
+  }
+});
+
 // Get all assets
-app.get('/api/assets', (req, res) => {
+app.get('/api/assets', authenticate, (req, res) => {
   try {
     const assets = assetDb.getAll();
     res.json(assets);
@@ -61,7 +194,7 @@ app.get('/api/assets/search', (req, res) => {
 });
 
 // Create new asset
-app.post('/api/assets', (req, res) => {
+app.post('/api/assets', authenticate, (req, res) => {
   try {
     const { employee_name, employee_email, manager_name, manager_email, client_name, laptop_serial_number, laptop_asset_tag, notes } = req.body;
 
@@ -215,7 +348,7 @@ app.delete('/api/assets/:id', (req, res) => {
 // ===== Company Management Endpoints =====
 
 // Get all companies
-app.get('/api/companies', (req, res) => {
+app.get('/api/companies', authenticate, (req, res) => {
   try {
     const companies = companyDb.getAll();
     res.json(companies);
@@ -240,7 +373,7 @@ app.get('/api/companies/:id', (req, res) => {
 });
 
 // Create new company
-app.post('/api/companies', (req, res) => {
+app.post('/api/companies', authenticate, (req, res) => {
   try {
     const { name, description } = req.body;
 
@@ -349,7 +482,7 @@ app.delete('/api/companies/:id', (req, res) => {
 // ===== Audit & Reporting Endpoints =====
 
 // Get all audit logs
-app.get('/api/audit/logs', (req, res) => {
+app.get('/api/audit/logs', authenticate, (req, res) => {
   try {
     const options = {
       entityType: req.query.entityType,

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 const AuditReporting = () => {
+  const { getAuthHeaders } = useAuth();
   const [activeView, setActiveView] = useState('logs');
   const [logs, setLogs] = useState([]);
   const [summary, setSummary] = useState(null);
@@ -40,7 +42,11 @@ const AuditReporting = () => {
       if (filters.userEmail) params.append('userEmail', filters.userEmail);
       if (filters.limit) params.append('limit', filters.limit);
 
-      const response = await fetch(`/api/audit/logs?${params}`);
+      const response = await fetch(`/api/audit/logs?${params}`, {
+        headers: {
+          ...getAuthHeaders()
+        }
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch audit logs');
       }
@@ -58,7 +64,11 @@ const AuditReporting = () => {
     setError(null);
 
     try {
-      const response = await fetch('/api/reports/summary');
+      const response = await fetch('/api/reports/summary', {
+        headers: {
+          ...getAuthHeaders()
+        }
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch summary');
       }
@@ -80,7 +90,11 @@ const AuditReporting = () => {
       if (filters.startDate) params.append('startDate', filters.startDate);
       if (filters.endDate) params.append('endDate', filters.endDate);
 
-      const response = await fetch(`/api/audit/stats?${params}`);
+      const response = await fetch(`/api/audit/stats?${params}`, {
+        headers: {
+          ...getAuthHeaders()
+        }
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch stats');
       }
@@ -128,7 +142,11 @@ const AuditReporting = () => {
       if (filters.endDate) params.append('endDate', filters.endDate);
       if (filters.userEmail) params.append('userEmail', filters.userEmail);
 
-      const response = await fetch(`/api/audit/export?${params}`);
+      const response = await fetch(`/api/audit/export?${params}`, {
+        headers: {
+          ...getAuthHeaders()
+        }
+      });
       if (!response.ok) {
         throw new Error('Failed to export data');
       }

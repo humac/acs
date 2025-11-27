@@ -1,9 +1,12 @@
 import { useState } from 'react';
+import { useAuth } from './contexts/AuthContext';
 import AssetList from './components/AssetList';
 import CompanyManagement from './components/CompanyManagement';
 import AuditReporting from './components/AuditReporting';
+import AuthPage from './components/AuthPage';
 
 function App() {
+  const { user, logout, loading, isAuthenticated } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
   const [activeTab, setActiveTab] = useState('assets');
 
@@ -11,11 +14,34 @@ function App() {
     setRefreshKey(prev => prev + 1);
   };
 
+  if (loading) {
+    return (
+      <div className="loading" style={{ marginTop: '100px', fontSize: '1.2rem' }}>
+        Loading...
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <AuthPage />;
+  }
+
   return (
     <div className="app">
       <header className="header">
-        <h1>Client Asset Registration System</h1>
-        <p>SOC2 Compliance - Track and manage client laptops assigned to consultants</p>
+        <div>
+          <h1>Client Asset Registration System</h1>
+          <p>SOC2 Compliance - Track and manage client laptops assigned to consultants</p>
+        </div>
+        <div className="user-menu">
+          <div className="user-info">
+            <div className="user-name">{user.name}</div>
+            <div className="user-email">{user.email}</div>
+          </div>
+          <button onClick={logout} className="btn-logout">
+            Logout
+          </button>
+        </div>
       </header>
 
       <div className="tabs">

@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import StatusUpdateModal from './StatusUpdateModal';
 import AssetRegistrationForm from './AssetRegistrationForm';
 
 const AssetList = ({ refresh, onAssetRegistered }) => {
+  const { getAuthHeaders } = useAuth();
   const [assets, setAssets] = useState([]);
   const [filteredAssets, setFilteredAssets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,7 +33,11 @@ const AssetList = ({ refresh, onAssetRegistered }) => {
     setError(null);
 
     try {
-      const response = await fetch('/api/assets');
+      const response = await fetch('/api/assets', {
+        headers: {
+          ...getAuthHeaders()
+        }
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch assets');
       }
