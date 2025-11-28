@@ -1,232 +1,293 @@
 # Client Asset Registration System
 
-A comprehensive web application for tracking and managing client laptops assigned to consultants, designed for SOC2 compliance and audit requirements.
+[![GitHub Actions](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?logo=github-actions&logoColor=white)](https://github.com/humac/claude_app_poc/actions)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-## Features
+A comprehensive SOC2-compliant web application for tracking and managing client laptops assigned to consultants, with full authentication, role-based access control, and automated deployment.
 
-- **Self-Service Registration**: Consultants can register client laptops with all required information
-- **Asset Tracking**: Complete database of all client assets with detailed information
-- **Status Management**: Update asset status (Active, Returned, Lost, Damaged, Retired)
-- **Advanced Search**: Search and filter assets by employee, manager, client, or status
-- **Audit Trail**: Track registration dates and last update timestamps
-- **Real-time Updates**: Instant synchronization between registration and inventory views
+🌐 **Live Demo:** [https://assets.jvhlabs.com](https://assets.jvhlabs.com)
 
-## Technology Stack
+📖 **Documentation:** [View Wiki](../../wiki)
 
-### Backend
-- **Node.js** with Express.js
-- **SQLite** database (better-sqlite3)
-- RESTful API architecture
-- CORS enabled for development
+---
 
-### Frontend
-- **React 18** with Vite
-- Modern, responsive UI design
-- Client-side filtering and search
-- Real-time form validation
+## ✨ Features
 
-## Required Information
+### 🔐 Authentication & Security
+- **JWT Authentication** - Secure token-based auth with 7-day expiration
+- **Password Security** - bcrypt hashing (10 rounds)
+- **Role-Based Access Control** - Three roles: Employee, Manager, Admin
+- **First Admin Setup** - Automatic admin promotion for first user
+- **Profile Management** - Update first/last name
 
-When registering a client asset, consultants must provide:
-- Employee Name
-- Employee Email
-- Manager Name
-- Manager Email
-- Client Name
-- Laptop Serial Number (must be unique)
-- Laptop Asset Tag (must be unique)
-- Notes (optional)
+### 📦 Asset Management
+- **Self-Service Registration** - Consultants register client laptops
+- **Status Tracking** - Active, Returned, Lost, Damaged, Retired
+- **Advanced Search** - Filter by employee, manager, client, status
+- **Role-Based Visibility**:
+  - Employees: Own assets only
+  - Managers: Own + team assets
+  - Admins: All assets
 
-## Installation
+### 🏢 Company Management (Admin Only)
+- Create, edit, and delete client companies
+- Company dropdown for asset registration
+- Protection against deletion if assets exist
 
-### Prerequisites
-- Node.js (v18 or higher)
-- npm or yarn
+### 📊 Audit & Compliance
+- **Complete Audit Trail** - All actions logged with user attribution
+- **SOC2 Compliance** - Meets audit requirements
+- **Comprehensive Logging** - CREATE, UPDATE, STATUS_CHANGE, DELETE
+- **CSV Export** - Download audit logs for compliance
+- **Summary Reports** - Asset statistics by status, company, manager
 
-### Setup Instructions
+### ⚙️ Admin Features
+- **User Management** - View, edit roles, delete users
+- **System Overview** - User statistics and system info
+- **Application Settings** - Configuration and best practices
+- **Audit Access** - View all system activity
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd claude_app_poc
-   ```
+### 🚀 Deployment & DevOps
+- **Docker Support** - Production-ready containers
+- **GitHub Actions CI/CD** - Automated builds and deployment
+- **Portainer Integration** - Easy container management
+- **Cloudflare Tunnel** - Secure external access with SSL
+- **Health Checks** - Automated container monitoring
+- **Auto-Restart** - Self-healing containers
 
-2. **Install Backend Dependencies**
-   ```bash
-   cd backend
-   npm install
-   ```
+---
 
-3. **Install Frontend Dependencies**
-   ```bash
-   cd ../frontend
-   npm install
-   ```
+## 🎯 Quick Start
 
-## Running with Docker (Recommended)
-
-The easiest way to run the application is using Docker and Docker Compose.
-
-### Prerequisites
-- Docker (v20.10 or higher)
-- Docker Compose (v2.0 or higher)
-
-### Quick Start with Docker
-
-1. **Build and start the containers**
-   ```bash
-   docker-compose up -d
-   ```
-
-   This will:
-   - Build the backend and frontend Docker images
-   - Start both services
-   - The frontend will be available at `http://localhost`
-   - The backend API will be available at `http://localhost:3001`
-
-2. **View logs**
-   ```bash
-   docker-compose logs -f
-   ```
-
-3. **Stop the application**
-   ```bash
-   docker-compose down
-   ```
-
-4. **Rebuild after code changes**
-   ```bash
-   docker-compose up -d --build
-   ```
-
-### Development Mode with Docker
-
-For development with hot-reloading:
+### For Users
 
 ```bash
-docker-compose -f docker-compose.dev.yml up
+# 1. Access the application
+https://assets.jvhlabs.com
+
+# 2. Register (first user becomes admin!)
+Click "Register" → Fill form → Auto-login
+
+# 3. Register an asset
+Asset Management → + New Asset → Fill details → Register
 ```
 
-This will:
-- Mount your local code as volumes
-- Enable hot-reloading for both frontend and backend
-- Frontend: `http://localhost:3000`
-- Backend: `http://localhost:3001`
-
-### Data Persistence
-
-The database is stored in a Docker volume and will persist between container restarts. To reset the database:
+### For Developers
 
 ```bash
-docker-compose down -v  # Remove volumes
-docker-compose up -d     # Recreate containers
-```
+# 1. Clone and setup
+git clone https://github.com/humac/claude_app_poc.git
+cd claude_app_poc
 
-### Docker Commands Reference
-
-```bash
-# Start services
-docker-compose up -d
-
-# Stop services
-docker-compose down
-
-# View logs
-docker-compose logs -f [service_name]
-
-# Rebuild images
-docker-compose build
-
-# Remove all containers, volumes, and images
-docker-compose down -v --rmi all
-
-# Check service status
-docker-compose ps
-
-# Execute commands in running container
-docker-compose exec backend sh
-docker-compose exec frontend sh
-```
-
-## Running the Application (Without Docker)
-
-You need to run both the backend and frontend servers.
-
-### Start Backend Server
-
-```bash
+# 2. Backend
 cd backend
-npm start
-```
-
-The backend API will run on `http://localhost:3001`
-
-For development with auto-reload:
-```bash
+npm install
+cp .env.example .env
 npm run dev
-```
 
-### Start Frontend Development Server
-
-In a new terminal:
-
-```bash
+# 3. Frontend (new terminal)
 cd frontend
+npm install
 npm run dev
+
+# 4. Access: http://localhost:5173
 ```
 
-The frontend will run on `http://localhost:3000`
+### For Production (Portainer)
 
-## Using the Application
+```bash
+# 1. Create stack in Portainer
+# 2. Use docker-compose.portainer.yml
+# 3. Set environment variables
+# 4. Deploy!
 
-1. **Access the Application**: Open your browser and navigate to `http://localhost:3000`
+# See QUICKSTART-PORTAINER.md for details
+```
 
-2. **Register a New Asset**:
-   - Fill out the registration form on the left side
-   - All fields marked with * are required
-   - Serial numbers and asset tags must be unique
-   - Click "Register Asset" to submit
+---
 
-3. **View Asset Inventory**:
-   - The right side displays all registered assets
-   - Assets are sorted by registration date (newest first)
+## 📚 Documentation
 
-4. **Search Assets**:
-   - Use the search filters at the top of the inventory
-   - Search by employee name, manager name, client name, or status
-   - Filters work in real-time as you type
-   - Click "Clear Filters" to reset
+| Document | Description |
+|----------|-------------|
+| **[Wiki Home](../../wiki)** | Complete documentation hub |
+| **[Features](../../wiki/Features)** | Detailed feature list |
+| **[Quick Start](../../wiki/Quick-Start)** | 5-minute setup guide |
+| **[Admin Guide](../../wiki/Admin-Guide)** | Administrator manual |
+| **[API Reference](../../wiki/API-Reference)** | Complete API docs |
+| **[Deployment Guide](../../wiki/Deployment-Guide)** | Production deployment |
+| **[DEPLOYMENT.md](DEPLOYMENT.md)** | Detailed deployment instructions |
+| **[QUICKSTART-PORTAINER.md](QUICKSTART-PORTAINER.md)** | Fast Portainer setup |
 
-5. **Update Asset Status**:
-   - Click "Update Status" button for any asset
-   - Select new status from dropdown
-   - Add optional notes about the status change
-   - Click "Update Status" to save
+---
 
-## API Endpoints
+## 🏗️ Architecture
 
-### Assets
+```
+┌─────────────────────────────────────────────────────────┐
+│                   Cloudflare Tunnel                      │
+│              (SSL/TLS + DDoS Protection)                 │
+└──────────────────────┬───────────────────────────────────┘
+                       │ HTTPS
+                       ▼
+┌─────────────────────────────────────────────────────────┐
+│                   Frontend (React)                       │
+│          Nginx → Port 80 (containerized)                 │
+│     Vite Build + Context API + React Router              │
+└──────────────────────┬───────────────────────────────────┘
+                       │ HTTP/REST
+                       ▼
+┌─────────────────────────────────────────────────────────┐
+│              Backend (Node.js/Express)                   │
+│                    Port 3001                             │
+│      JWT Auth + RBAC + Audit Logging                     │
+└──────────────────────┬───────────────────────────────────┘
+                       │
+                       ▼
+┌─────────────────────────────────────────────────────────┐
+│              Database (SQLite)                           │
+│         Persistent Docker Volume                         │
+│   Users + Assets + Companies + Audit Logs               │
+└─────────────────────────────────────────────────────────┘
+```
 
-- `GET /api/health` - Health check
-- `GET /api/assets` - Get all assets
-- `GET /api/assets/:id` - Get single asset
-- `GET /api/assets/search?employee=...&manager=...&client=...&status=...` - Search assets
-- `POST /api/assets` - Create new asset
-- `PATCH /api/assets/:id/status` - Update asset status
-- `PUT /api/assets/:id` - Update entire asset
-- `DELETE /api/assets/:id` - Delete asset
+---
 
-### Status Values
-- `active` - Asset is currently in use
-- `returned` - Asset has been returned to client
-- `lost` - Asset is lost or missing
-- `damaged` - Asset is damaged
-- `retired` - Asset has been retired from service
+## 🔑 User Roles & Permissions
 
-## Database Schema
+| Feature | Employee | Manager | Admin |
+|---------|----------|---------|-------|
+| View own assets | ✅ | ✅ | ✅ |
+| View team assets | ❌ | ✅ | ✅ |
+| View all assets | ❌ | ❌ | ✅ |
+| Register assets | ✅ | ✅ | ✅ |
+| Update asset status | ✅ | ✅ | ✅ |
+| View own audit logs | ✅ | ✅ | ✅ |
+| View team audit logs | ❌ | ✅ | ✅ |
+| View all audit logs | ❌ | ❌ | ✅ |
+| **Manage companies** | ❌ | ❌ | ✅ |
+| **Manage users** | ❌ | ❌ | ✅ |
+| **System settings** | ❌ | ❌ | ✅ |
 
-The SQLite database contains a single `assets` table:
+---
 
+## 💻 Technology Stack
+
+**Frontend:**
+- React 18 + Vite
+- Context API (state management)
+- Fetch API (HTTP client)
+- Modern CSS (responsive design)
+
+**Backend:**
+- Node.js 18+
+- Express.js 4
+- SQLite3 (better-sqlite3)
+- JWT (jsonwebtoken)
+- bcrypt (password hashing)
+
+**DevOps:**
+- Docker & Docker Compose
+- GitHub Actions (CI/CD)
+- Portainer (container management)
+- Cloudflare Tunnel (secure access)
+- GitHub Container Registry
+
+---
+
+## 🚢 Deployment
+
+### Docker Compose (Local)
+
+```bash
+# Development
+docker-compose -f docker-compose.dev.yml up
+
+# Production
+docker-compose up -d
+```
+
+### Portainer (Production)
+
+1. **Create Stack** in Portainer
+2. **Use** `docker-compose.portainer.yml`
+3. **Set Environment:**
+   ```env
+   GITHUB_REPOSITORY=humac/claude_app_poc
+   JWT_SECRET=your-64-char-random-string
+   ADMIN_EMAIL=admin@jvhlabs.com
+   APP_PORT=8080
+   ```
+4. **Deploy!**
+
+### GitHub Actions (CI/CD)
+
+Automatically deploys on push to `main`:
+1. Builds Docker images
+2. Pushes to GitHub Container Registry
+3. Triggers Portainer webhook
+4. Deploys updated containers
+
+### Cloudflare Tunnel
+
+Secure HTTPS access without open ports:
+```yaml
+# In docker-compose.portainer.yml
+cloudflared:
+  image: cloudflare/cloudflared:latest
+  command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+```
+
+**See:** [Deployment Guide](../../wiki/Deployment-Guide)
+
+---
+
+## 🔧 Environment Variables
+
+### Backend (`backend/.env`)
+
+```bash
+# Required
+JWT_SECRET=your-super-secret-64-char-random-string
+JWT_EXPIRES_IN=7d
+
+# Optional
+ADMIN_EMAIL=admin@yourdomain.com  # Auto-promote this email to admin
+PORT=3001                          # Server port
+DATA_DIR=/app/data                 # Database directory
+NODE_ENV=production                # Environment mode
+```
+
+### Portainer Stack
+
+```bash
+GITHUB_REPOSITORY=humac/claude_app_poc
+APP_PORT=8080
+JWT_SECRET=your-secret-here
+ADMIN_EMAIL=admin@jvhlabs.com
+```
+
+---
+
+## 📊 Database Schema
+
+### Users Table
+```sql
+CREATE TABLE users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  name TEXT NOT NULL,
+  role TEXT NOT NULL DEFAULT 'employee',
+  first_name TEXT,
+  last_name TEXT,
+  created_at TEXT NOT NULL,
+  last_login TEXT
+);
+```
+
+### Assets Table
 ```sql
 CREATE TABLE assets (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -241,169 +302,246 @@ CREATE TABLE assets (
   registration_date TEXT NOT NULL,
   last_updated TEXT NOT NULL,
   notes TEXT
-)
+);
 ```
 
-Indexes are created on:
-- `employee_name`
-- `manager_name`
-- `client_name`
-- `status`
+### Companies & Audit Logs Tables
+- See [Database Schema](../../wiki/Database-Schema) for complete schema
 
-## SOC2 Compliance Features
+---
 
-This system helps meet SOC2 compliance requirements by:
+## 🔐 Security Features
 
-1. **Asset Inventory**: Maintaining a complete, searchable database of all client assets
-2. **Accountability**: Tracking which employee has which asset and their manager
-3. **Audit Trail**: Recording registration dates and last update timestamps
-4. **Status Tracking**: Monitoring asset lifecycle from active use to return/retirement
-5. **Data Integrity**: Enforcing unique serial numbers and asset tags
-6. **Search & Reporting**: Enabling auditors to quickly find assets by multiple criteria
+✅ **Password Security** - bcrypt hashing (10 rounds)
+✅ **JWT Tokens** - Secure authentication with 7-day expiration
+✅ **Role-Based Access** - Granular permission control
+✅ **Audit Trails** - Complete activity logging
+✅ **HTTPS** - Cloudflare SSL/TLS
+✅ **Input Validation** - Backend validation on all endpoints
+✅ **XSS Protection** - React sanitization
+✅ **SQL Injection** - Parameterized queries
 
-## Production Deployment
+---
 
-### Docker Deployment (Recommended)
+## 📈 API Endpoints
 
-The application includes production-ready Docker configurations:
+### Authentication
+```
+POST   /api/auth/register     Register new user
+POST   /api/auth/login        Login and get token
+GET    /api/auth/me           Get current user info
+PUT    /api/auth/profile      Update user profile
+```
 
-1. **Using Docker Compose** (simplest):
-   ```bash
-   # On your production server
-   git clone <repository-url>
-   cd claude_app_poc
-   docker-compose up -d
-   ```
+### Assets (Authenticated)
+```
+GET    /api/assets            List assets (role-filtered)
+POST   /api/assets            Create asset
+PATCH  /api/assets/:id/status Update status
+```
 
-   The application will be available at:
-   - Frontend: `http://your-server` (port 80)
-   - Backend API: `http://your-server:3001`
+### Companies (Admin Only)
+```
+GET    /api/companies         List all companies
+GET    /api/companies/names   Get names (all users)
+POST   /api/companies         Create company
+PUT    /api/companies/:id     Update company
+DELETE /api/companies/:id     Delete company
+```
 
-2. **With Reverse Proxy** (for HTTPS):
-   - Use nginx or Traefik as a reverse proxy
-   - Configure SSL certificates (Let's Encrypt recommended)
-   - Point to the frontend container on port 80
+### Audit & Reports
+```
+GET    /api/audit/logs        Get audit logs (role-filtered)
+GET    /api/audit/export      Export logs to CSV
+GET    /api/audit/stats       Get statistics
+GET    /api/reports/summary   Get asset summary
+```
 
-3. **Environment Configuration**:
-   ```bash
-   # Create .env file
-   cp .env.example .env
-   # Edit as needed
-   ```
+**Full API docs:** [API Reference](../../wiki/API-Reference)
 
-4. **Database Backups**:
-   ```bash
-   # Backup database
-   docker-compose exec backend tar -czf /tmp/backup.tar.gz /app/data
-   docker cp asset-backend:/tmp/backup.tar.gz ./backup-$(date +%Y%m%d).tar.gz
+---
 
-   # Restore database
-   docker cp backup.tar.gz asset-backend:/tmp/
-   docker-compose exec backend tar -xzf /tmp/backup.tar.gz -C /
-   docker-compose restart backend
-   ```
+## 🛠️ Development
 
-5. **Monitoring**:
-   ```bash
-   # Check service health
-   docker-compose ps
+### Prerequisites
+- Node.js 18+
+- npm or yarn
+- Docker (optional)
 
-   # View logs
-   docker-compose logs -f
+### Local Setup
 
-   # Resource usage
-   docker stats
-   ```
+```bash
+# Clone
+git clone https://github.com/humac/claude_app_poc.git
+cd claude_app_poc
 
-### Docker Architecture
+# Backend
+cd backend
+npm install
+cp .env.example .env
+# Edit .env - set JWT_SECRET
+npm run dev
 
-The application uses a multi-container architecture:
+# Frontend (new terminal)
+cd frontend
+npm install
+npm run dev
 
-- **Backend Container**: Node.js/Express API server
-  - Image: Custom (built from `backend/Dockerfile`)
-  - Port: 3001
-  - Volume: `./data` for database persistence
+# Access
+Frontend: http://localhost:5173
+Backend:  http://localhost:3001
+```
 
-- **Frontend Container**: nginx serving built React app
-  - Image: Custom multi-stage build (built from `frontend/Dockerfile`)
-  - Port: 80
-  - Proxies API requests to backend
+### With Docker
 
-### Traditional Deployment (Without Docker)
+```bash
+# Development (hot-reload)
+docker-compose -f docker-compose.dev.yml up
 
-For non-containerized deployment:
+# Production
+docker-compose up -d
 
-1. **Backend**:
-   - Set environment variables for production
-   - Use a process manager (PM2, systemd)
-   - Consider migrating to PostgreSQL or MySQL for larger datasets
-   - Implement proper authentication and authorization
-   - Enable HTTPS
+# Rebuild
+docker-compose up -d --build
+```
 
-2. **Frontend**:
-   - Build the production bundle: `npm run build`
-   - Serve static files through a web server (nginx, Apache)
-   - Update API endpoint to point to production backend
-   - Enable HTTPS
+---
 
-3. **Database**:
-   - Backup the SQLite database regularly
-   - Consider database encryption for sensitive data
-   - Implement database migration strategy
+## 🧪 Testing
 
-## Future Enhancements
+```bash
+# Backend tests (when implemented)
+cd backend
+npm test
 
-Potential improvements for the system:
+# Frontend tests (when implemented)
+cd frontend
+npm test
 
-- User authentication and role-based access control
-- Email notifications for status changes
-- Export functionality (CSV, Excel, PDF)
-- Asset assignment history
-- Dashboard with analytics and charts
-- Bulk import/export capabilities
-- Integration with HR systems
-- Document attachments (purchase orders, agreements)
-- Automated reminders for asset returns
+# E2E tests (when implemented)
+npm run test:e2e
+```
 
-## Security Considerations
+---
 
-- Currently, this is a basic implementation without authentication
-- For production use, implement:
-  - User authentication (JWT, OAuth, etc.)
-  - Role-based access control (admin, manager, employee)
-  - Input validation and sanitization
-  - Rate limiting
-  - HTTPS/TLS encryption
-  - Database encryption for sensitive data
-  - Audit logging
+## 📦 Backup & Restore
 
-## Troubleshooting
+### Backup Database
 
-### Backend won't start
-- Ensure Node.js v18+ is installed
-- Check if port 3001 is available
-- Verify all dependencies are installed: `npm install`
+```bash
+# Manual backup
+docker run --rm \
+  -v asset-data:/data \
+  -v $(pwd):/backup \
+  alpine tar czf /backup/asset-data-$(date +%Y%m%d).tar.gz -C /data .
+```
 
-### Frontend won't start
-- Ensure Node.js v18+ is installed
-- Check if port 3000 is available
-- Verify all dependencies are installed: `npm install`
-- Make sure backend is running first
+### Restore Database
 
-### Can't register asset with duplicate serial number
-- Serial numbers and asset tags must be unique
-- Check if the asset is already registered
-- Update the existing asset instead of creating a new one
+```bash
+# Restore from backup
+docker run --rm \
+  -v asset-data:/data \
+  -v $(pwd):/backup \
+  alpine tar xzf /backup/asset-data-YYYYMMDD.tar.gz -C /data
+```
 
-### Search not working
-- Ensure backend is running
-- Check browser console for errors
-- Try clearing filters and searching again
+**See:** [Backup Guide](../../wiki/Backup-And-Restore)
 
-## License
+---
 
-MIT
+## 🐛 Troubleshooting
 
-## Support
+### Containers Won't Start
+```bash
+# Check logs
+docker logs asset-registration-backend
+docker logs asset-registration-frontend
 
-For issues, questions, or contributions, please contact your system administrator or IT department.
+# Check ports
+netstat -tlnp | grep 8080
+
+# Restart
+docker-compose restart
+```
+
+### Can't Access Application
+- Check containers are running: `docker ps`
+- Verify Cloudflare tunnel status
+- Test locally: `curl http://localhost:8080`
+
+### Database Issues
+```bash
+# View database
+docker exec -it asset-registration-backend sh
+cd /app/data
+ls -la
+
+# Reset (⚠️ deletes all data)
+docker-compose down -v
+docker-compose up -d
+```
+
+**More:** [Troubleshooting Guide](../../wiki/Troubleshooting)
+
+---
+
+## 🤝 Contributing
+
+Contributions welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing`)
+5. Open a Pull Request
+
+See [Contributing Guide](CONTRIBUTING.md) for details.
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- Built for SOC2 compliance requirements
+- Designed for consulting firms managing client assets
+- Automated deployment via GitHub Actions
+- Secure access via Cloudflare Tunnel
+
+---
+
+## 📞 Support
+
+- **Documentation:** [Wiki](../../wiki)
+- **Issues:** [GitHub Issues](https://github.com/humac/claude_app_poc/issues)
+- **Deployment Help:** See [DEPLOYMENT.md](DEPLOYMENT.md)
+- **Quick Start:** See [QUICKSTART-PORTAINER.md](QUICKSTART-PORTAINER.md)
+
+---
+
+## 🗺️ Roadmap
+
+- [x] User Authentication (JWT)
+- [x] Role-Based Access Control
+- [x] Audit Logging
+- [x] Company Management
+- [x] Profile Management
+- [x] Automated Deployment
+- [x] Cloudflare Tunnel Support
+- [ ] Multi-factor Authentication
+- [ ] Email Notifications
+- [ ] Advanced Reporting Dashboard
+- [ ] Mobile App
+- [ ] API Rate Limiting
+- [ ] Database Encryption
+
+---
+
+**Ready to get started?** See the [Quick Start Guide](../../wiki/Quick-Start)!
+
+**Deploying to production?** Check [QUICKSTART-PORTAINER.md](QUICKSTART-PORTAINER.md)!
