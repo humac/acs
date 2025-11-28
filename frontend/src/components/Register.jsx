@@ -4,7 +4,8 @@ import { useAuth } from '../contexts/AuthContext';
 const Register = ({ onSwitchToLogin }) => {
   const { register } = useAuth();
   const [formData, setFormData] = useState({
-    name: '',
+    first_name: '',
+    last_name: '',
     email: '',
     password: '',
     confirmPassword: ''
@@ -38,7 +39,7 @@ const Register = ({ onSwitchToLogin }) => {
       return;
     }
 
-    const result = await register(formData.email, formData.password, formData.name);
+    const result = await register(formData.email, formData.password, formData.first_name, formData.last_name);
 
     if (!result.success) {
       setError(result.error);
@@ -65,16 +66,30 @@ const Register = ({ onSwitchToLogin }) => {
           )}
 
           <div className="form-group">
-            <label htmlFor="name">Full Name</label>
+            <label htmlFor="first_name">First Name</label>
             <input
               type="text"
-              id="name"
-              name="name"
-              value={formData.name}
+              id="first_name"
+              name="first_name"
+              value={formData.first_name}
               onChange={handleChange}
               required
-              placeholder="John Doe"
-              autoComplete="name"
+              placeholder="John"
+              autoComplete="given-name"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="last_name">Last Name</label>
+            <input
+              type="text"
+              id="last_name"
+              name="last_name"
+              value={formData.last_name}
+              onChange={handleChange}
+              required
+              placeholder="Doe"
+              autoComplete="family-name"
             />
           </div>
 

@@ -87,11 +87,26 @@ const initDb = () => {
       name TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'user',
       created_at TEXT NOT NULL,
-      last_login TEXT
+      last_login TEXT,
+      first_name TEXT,
+      last_name TEXT
     )
   `;
 
   db.exec(createUsersTableQuery);
+
+  // Migration: Add first_name and last_name columns if they don't exist
+  try {
+    db.exec('ALTER TABLE users ADD COLUMN first_name TEXT');
+  } catch (e) {
+    // Column already exists
+  }
+
+  try {
+    db.exec('ALTER TABLE users ADD COLUMN last_name TEXT');
+  } catch (e) {
+    // Column already exists
+  }
 
   // Create indexes for faster searching
   db.exec('CREATE INDEX IF NOT EXISTS idx_employee_name ON assets(employee_name)');
@@ -400,17 +415,23 @@ export const userDb = {
   // Create new user
   create: (user) => {
     const stmt = db.prepare(`
-      INSERT INTO users (email, password_hash, name, role, created_at)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO users (email, password_hash, name, role, created_at, first_name, last_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
 
     const now = new Date().toISOString();
+    const fullName = user.first_name && user.last_name
+      ? `${user.first_name} ${user.last_name}`
+      : user.name;
+
     return stmt.run(
       user.email,
       user.password_hash,
-      user.name,
+      fullName,
       user.role || 'user',
-      now
+      now,
+      user.first_name || null,
+      user.last_name || null
     );
   },
 
@@ -443,6 +464,20 @@ export const userDb = {
   updateRole: (id, role) => {
     const stmt = db.prepare('UPDATE users SET role = ? WHERE id = ?');
     return stmt.run(role, id);
+  },
+
+  // Update user profile
+  updateProfile: (id, profile) => {
+    const fullName = profile.first_name && profile.last_name
+      ? `${profile.first_name} ${profile.last_name}`
+      : profile.name;
+
+    const stmt = db.prepare(`
+      UPDATE users
+      SET name = ?, first_name = ?, last_name = ?
+      WHERE id = ?
+    `);
+    return stmt.run(fullName, profile.first_name, profile.last_name, id);
   },
 
   // Delete user

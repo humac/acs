@@ -3,6 +3,7 @@ import { useAuth } from './contexts/AuthContext';
 import AssetList from './components/AssetList';
 import CompanyManagement from './components/CompanyManagement';
 import AuditReporting from './components/AuditReporting';
+import Profile from './components/Profile';
 import AuthPage from './components/AuthPage';
 
 function App() {
@@ -63,6 +64,12 @@ function App() {
         >
           Audit & Reporting
         </button>
+        <button
+          className={`tab ${activeTab === 'profile' ? 'active' : ''}`}
+          onClick={() => setActiveTab('profile')}
+        >
+          Profile
+        </button>
       </div>
 
       {activeTab === 'assets' && (
@@ -72,6 +79,8 @@ function App() {
       {activeTab === 'companies' && <CompanyManagement />}
 
       {activeTab === 'audit' && <AuditReporting />}
+
+      {activeTab === 'profile' && <Profile />}
     </div>
   );
 }

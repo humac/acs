@@ -65,14 +65,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (email, password, name) => {
+  const register = async (email, password, first_name, last_name) => {
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password, name }),
+        body: JSON.stringify({ email, password, first_name, last_name }),
       });
 
       const data = await response.json();
@@ -97,6 +97,10 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
   };
 
+  const updateUser = (userData) => {
+    setUser(userData);
+  };
+
   const getAuthHeaders = () => {
     if (!token) return {};
     return {
@@ -111,6 +115,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    updateUser,
     isAuthenticated: !!user,
     getAuthHeaders
   };

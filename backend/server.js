@@ -24,13 +24,18 @@ app.get('/api/health', (req, res) => {
 // Register new user
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, name, first_name, last_name } = req.body;
 
-    // Validation
-    if (!email || !password || !name) {
+    // Validation - accept either 'name' or 'first_name + last_name'
+    if (!email || !password) {
       return res.status(400).json({
-        error: 'Missing required fields',
-        required: ['email', 'password', 'name']
+        error: 'Email and password are required'
+      });
+    }
+
+    if (!name && (!first_name || !last_name)) {
+      return res.status(400).json({
+        error: 'Either name or both first_name and last_name are required'
       });
     }
 
@@ -47,7 +52,9 @@ app.post('/api/auth/register', async (req, res) => {
     const result = userDb.create({
       email,
       password_hash,
-      name,
+      name: name || `${first_name} ${last_name}`,
+      first_name: first_name || null,
+      last_name: last_name || null,
       role: 'user'
     });
 
@@ -64,7 +71,9 @@ app.post('/api/auth/register', async (req, res) => {
         id: newUser.id,
         email: newUser.email,
         name: newUser.name,
-        role: newUser.role
+        role: newUser.role,
+        first_name: newUser.first_name,
+        last_name: newUser.last_name
       }
     });
   } catch (error) {
@@ -110,7 +119,9 @@ app.post('/api/auth/login', async (req, res) => {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role
+        role: user.role,
+        first_name: user.first_name,
+        last_name: user.last_name
       }
     });
   } catch (error) {
@@ -131,11 +142,51 @@ app.get('/api/auth/me', authenticate, (req, res) => {
       id: user.id,
       email: user.email,
       name: user.name,
-      role: user.role
+      role: user.role,
+      first_name: user.first_name,
+      last_name: user.last_name
     });
   } catch (error) {
     console.error('Get user error:', error);
     res.status(500).json({ error: 'Failed to get user info' });
+  }
+});
+
+// Update user profile
+app.put('/api/auth/profile', authenticate, (req, res) => {
+  try {
+    const { first_name, last_name } = req.body;
+
+    // Validation
+    if (!first_name || !last_name) {
+      return res.status(400).json({
+        error: 'First name and last name are required'
+      });
+    }
+
+    // Update profile
+    userDb.updateProfile(req.user.id, {
+      first_name,
+      last_name
+    });
+
+    // Get updated user
+    const user = userDb.getById(req.user.id);
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        first_name: user.first_name,
+        last_name: user.last_name
+      }
+    });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ error: 'Failed to update profile' });
   }
 });
 
