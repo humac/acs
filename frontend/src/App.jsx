@@ -53,12 +53,14 @@ function App() {
         >
           Asset Management
         </button>
-        <button
-          className={`tab ${activeTab === 'companies' ? 'active' : ''}`}
-          onClick={() => setActiveTab('companies')}
-        >
-          Company Management
-        </button>
+        {user?.role === 'admin' && (
+          <button
+            className={`tab ${activeTab === 'companies' ? 'active' : ''}`}
+            onClick={() => setActiveTab('companies')}
+          >
+            Company Management
+          </button>
+        )}
         <button
           className={`tab ${activeTab === 'audit' ? 'active' : ''}`}
           onClick={() => setActiveTab('audit')}
@@ -86,7 +88,7 @@ function App() {
         <AssetList refresh={refreshKey} onAssetRegistered={handleAssetRegistered} />
       )}
 
-      {activeTab === 'companies' && <CompanyManagement />}
+      {activeTab === 'companies' && user?.role === 'admin' && <CompanyManagement />}
 
       {activeTab === 'audit' && <AuditReporting />}
 

@@ -85,7 +85,7 @@ const initDb = () => {
       email TEXT NOT NULL UNIQUE,
       password_hash TEXT NOT NULL,
       name TEXT NOT NULL,
-      role TEXT NOT NULL DEFAULT 'user',
+      role TEXT NOT NULL DEFAULT 'employee',
       created_at TEXT NOT NULL,
       last_login TEXT,
       first_name TEXT,
@@ -428,7 +428,7 @@ export const userDb = {
       user.email,
       user.password_hash,
       fullName,
-      user.role || 'user',
+      user.role || 'employee',
       now,
       user.first_name || null,
       user.last_name || null

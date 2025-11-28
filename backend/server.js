@@ -48,6 +48,20 @@ app.post('/api/auth/register', async (req, res) => {
     // Hash password
     const password_hash = await hashPassword(password);
 
+    // Determine user role
+    // 1. First user becomes admin
+    // 2. User with email matching ADMIN_EMAIL env var becomes admin
+    // 3. Otherwise, default to 'employee'
+    const allUsers = userDb.getAll();
+    const isFirstUser = allUsers.length === 0;
+    const isAdminEmail = process.env.ADMIN_EMAIL && email.toLowerCase() === process.env.ADMIN_EMAIL.toLowerCase();
+
+    let userRole = 'employee'; // Default role
+    if (isFirstUser || isAdminEmail) {
+      userRole = 'admin';
+      console.log(`Creating admin user: ${email} (${isFirstUser ? 'first user' : 'admin email match'})`);
+    }
+
     // Create user
     const result = userDb.create({
       email,
@@ -55,7 +69,7 @@ app.post('/api/auth/register', async (req, res) => {
       name: name || `${first_name} ${last_name}`,
       first_name: first_name || null,
       last_name: last_name || null,
-      role: 'user'
+      role: userRole
     });
 
     const newUser = userDb.getById(result.lastInsertRowid);
@@ -488,14 +502,27 @@ app.delete('/api/assets/:id', (req, res) => {
 
 // ===== Company Management Endpoints =====
 
-// Get all companies
-app.get('/api/companies', authenticate, (req, res) => {
+// Get all companies (admin only - full details)
+app.get('/api/companies', authenticate, authorize('admin'), (req, res) => {
   try {
     const companies = companyDb.getAll();
     res.json(companies);
   } catch (error) {
     console.error('Error fetching companies:', error);
     res.status(500).json({ error: 'Failed to fetch companies' });
+  }
+});
+
+// Get company names for dropdown (all authenticated users)
+app.get('/api/companies/names', authenticate, (req, res) => {
+  try {
+    const companies = companyDb.getAll();
+    // Return only id and name for dropdown use
+    const companyNames = companies.map(c => ({ id: c.id, name: c.name }));
+    res.json(companyNames);
+  } catch (error) {
+    console.error('Error fetching company names:', error);
+    res.status(500).json({ error: 'Failed to fetch company names' });
   }
 });
 
@@ -513,8 +540,8 @@ app.get('/api/companies/:id', (req, res) => {
   }
 });
 
-// Create new company
-app.post('/api/companies', authenticate, (req, res) => {
+// Create new company (admin only)
+app.post('/api/companies', authenticate, authorize('admin'), (req, res) => {
   try {
     const { name, description } = req.body;
 
@@ -553,8 +580,8 @@ app.post('/api/companies', authenticate, (req, res) => {
   }
 });
 
-// Update company
-app.put('/api/companies/:id', (req, res) => {
+// Update company (admin only)
+app.put('/api/companies/:id', authenticate, authorize('admin'), (req, res) => {
   try {
     const company = companyDb.getById(req.params.id);
     if (!company) {
@@ -597,8 +624,8 @@ app.put('/api/companies/:id', (req, res) => {
   }
 });
 
-// Delete company
-app.delete('/api/companies/:id', (req, res) => {
+// Delete company (admin only)
+app.delete('/api/companies/:id', authenticate, authorize('admin'), (req, res) => {
   try {
     const company = companyDb.getById(req.params.id);
     if (!company) {

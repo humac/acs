@@ -25,7 +25,7 @@ const AssetRegistrationForm = ({ onAssetRegistered }) => {
 
   const fetchCompanies = async () => {
     try {
-      const response = await fetch('/api/companies', {
+      const response = await fetch('/api/companies/names', {
         headers: {
           ...getAuthHeaders()
         }
