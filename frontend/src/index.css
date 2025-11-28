@@ -5,11 +5,13 @@
 }
 
 body {
-  font-family: Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: #F5F8FA;
-  color: #212D3A;
+  background: #F8F9FA;
+  color: #2C3E50;
 }
 
 .app {
@@ -19,10 +21,10 @@ body {
 }
 
 .header {
-  background: #018184;
+  background: #5B8DB8;
   color: white;
   padding: 30px;
-  border-radius: 3px;
+  border-radius: 0;
   margin-bottom: 30px;
   display: flex;
   justify-content: space-between;
@@ -37,14 +39,14 @@ body {
 
 .header p {
   font-size: 1rem;
-  opacity: 0.9;
+  opacity: 0.95;
 }
 
 .tabs {
   display: flex;
   gap: 10px;
   margin-bottom: 30px;
-  border-bottom: 1px solid #959494;
+  border-bottom: 2px solid #E5E7EB;
 }
 
 .tab {
@@ -53,21 +55,21 @@ body {
   border: none;
   border-bottom: 3px solid transparent;
   font-size: 1rem;
-  font-weight: 700;
-  color: #516383;
+  font-weight: 600;
+  color: #6B7280;
   cursor: pointer;
   transition: all 0.2s;
-  margin-bottom: -1px;
+  margin-bottom: -2px;
 }
 
 .tab:hover {
-  color: #018184;
-  background: #F5F8FA;
+  color: #5B8DB8;
+  background: #F8F9FA;
 }
 
 .tab.active {
-  color: #018184;
-  border-bottom-color: #018184;
+  color: #5B8DB8;
+  border-bottom-color: #5B8DB8;
 }
 
 .main-content {
@@ -84,16 +86,16 @@ body {
 
 .card {
   background: white;
-  border-radius: 3px;
+  border-radius: 4px;
   padding: 25px;
-  border: 1px solid #D9D9D9;
+  border: 1px solid #E5E7EB;
 }
 
 .card h2 {
   font-size: 1.5rem;
   margin-bottom: 20px;
-  color: #212D3A;
-  border-bottom: 2px solid #018184;
+  color: #2C3E50;
+  border-bottom: 2px solid #5B8DB8;
   padding-bottom: 10px;
 }
 
@@ -104,35 +106,37 @@ body {
 .form-group label {
   display: block;
   margin-bottom: 8px;
-  font-weight: 700;
-  color: #212D3A;
+  font-weight: 600;
+  color: #2C3E50;
 }
 
 .form-group input,
 .form-group select,
 .form-group textarea {
   width: 100%;
-  padding: 10px;
-  border: 1px solid #959494;
-  border-radius: 3px;
+  padding: 12px;
+  border: 1px solid #D1D5DB;
+  border-radius: 4px;
   font-size: 1rem;
-  font-family: Helvetica, Arial, sans-serif;
-  background-color: #F5F8FA;
-  color: #212D3A;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  background-color: white;
+  color: #2C3E50;
   transition: border-color 0.2s;
 }
 
 .form-group input::placeholder,
 .form-group select::placeholder,
 .form-group textarea::placeholder {
-  color: #253342;
+  color: #9CA3AF;
 }
 
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #018184;
+  border-color: #5B8DB8;
 }
 
 .form-group textarea {
@@ -143,22 +147,24 @@ body {
 .btn {
   padding: 12px 24px;
   border: none;
-  border-radius: 3px;
+  border-radius: 4px;
   font-size: 1rem;
-  font-weight: 700;
-  font-family: Helvetica, Arial, sans-serif;
+  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .btn-primary {
-  background: #FF5C35;
+  background: #2C3E50;
   color: white;
   width: 100%;
 }
 
 .btn-primary:hover {
-  background: #E54D2B;
+  background: #1F2937;
 }
 
 .btn-primary:active {
@@ -166,25 +172,25 @@ body {
 }
 
 .btn-secondary {
-  background: #018184;
+  background: #5B8DB8;
   color: white;
   padding: 8px 16px;
   font-size: 0.875rem;
 }
 
 .btn-secondary:hover {
-  background: #016668;
+  background: #4A7BA7;
 }
 
 .btn-danger {
-  background: #E51520;
+  background: #DC2626;
   color: white;
   padding: 8px 16px;
   font-size: 0.875rem;
 }
 
 .btn-danger:hover {
-  background: #C7111B;
+  background: #B91C1C;
 }
 
 .search-bar {
@@ -194,22 +200,24 @@ body {
   margin-bottom: 25px;
   padding: 20px;
   background: white;
-  border-radius: 3px;
-  border: 1px solid #D9D9D9;
+  border-radius: 4px;
+  border: 1px solid #E5E7EB;
 }
 
 .search-bar input {
-  padding: 10px;
-  border: 1px solid #959494;
-  border-radius: 3px;
+  padding: 10px 12px;
+  border: 1px solid #D1D5DB;
+  border-radius: 4px;
   font-size: 0.95rem;
-  font-family: Helvetica, Arial, sans-serif;
-  background-color: #F5F8FA;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  background-color: white;
 }
 
 .search-bar input:focus {
   outline: none;
-  border-color: #018184;
+  border-color: #5B8DB8;
 }
 
 .asset-table {
@@ -222,58 +230,58 @@ table {
 }
 
 thead {
-  background: #F5F8FA;
+  background: #F8F9FA;
 }
 
 th {
   padding: 12px;
   text-align: left;
-  font-weight: 700;
-  color: #212D3A;
-  border-bottom: 1px solid #959494;
+  font-weight: 600;
+  color: #2C3E50;
+  border-bottom: 2px solid #E5E7EB;
 }
 
 td {
   padding: 12px;
-  border-bottom: 1px solid #D9D9D9;
-  color: #212D3A;
+  border-bottom: 1px solid #E5E7EB;
+  color: #2C3E50;
 }
 
 tr:hover {
-  background: #F5F8FA;
+  background: #F8F9FA;
 }
 
 .status-badge {
   display: inline-block;
   padding: 4px 12px;
-  border-radius: 3px;
+  border-radius: 12px;
   font-size: 0.875rem;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .status-active {
-  background: #c6f6d5;
-  color: #22543d;
+  background: #D1FAE5;
+  color: #065F46;
 }
 
 .status-returned {
-  background: #bee3f8;
-  color: #1a365d;
+  background: #DBEAFE;
+  color: #1E40AF;
 }
 
 .status-lost {
-  background: #fed7d7;
-  color: #742a2a;
+  background: #FEE2E2;
+  color: #991B1B;
 }
 
 .status-damaged {
-  background: #feebc8;
-  color: #7c2d12;
+  background: #FED7AA;
+  color: #92400E;
 }
 
 .status-retired {
-  background: #D9D9D9;
-  color: #212D3A;
+  background: #E5E7EB;
+  color: #374151;
 }
 
 .actions {
@@ -296,18 +304,18 @@ tr:hover {
 
 .modal {
   background: white;
-  border-radius: 3px;
+  border-radius: 8px;
   padding: 30px;
   max-width: 500px;
   width: 90%;
   max-height: 90vh;
   overflow-y: auto;
-  border: 1px solid #959494;
+  border: 1px solid #E5E7EB;
 }
 
 .modal h3 {
   margin-bottom: 20px;
-  color: #212D3A;
+  color: #2C3E50;
 }
 
 .modal-actions {
@@ -322,33 +330,33 @@ tr:hover {
 
 .alert {
   padding: 12px 16px;
-  border-radius: 3px;
+  border-radius: 4px;
   margin-bottom: 20px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .alert-success {
-  background: #c6f6d5;
-  color: #22543d;
-  border-left: 4px solid #018184;
+  background: #D1FAE5;
+  color: #065F46;
+  border-left: 4px solid #10B981;
 }
 
 .alert-error {
-  background: #fed7d7;
-  color: #742a2a;
-  border-left: 4px solid #E51520;
+  background: #FEE2E2;
+  color: #991B1B;
+  border-left: 4px solid #DC2626;
 }
 
 .loading {
   text-align: center;
   padding: 40px;
-  color: #516383;
+  color: #6B7280;
 }
 
 .empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: #516383;
+  color: #6B7280;
 }
 
 .empty-state svg {
@@ -364,21 +372,22 @@ tr:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #F5F8FA;
+  background: #F8F9FA;
   padding: 20px;
 }
 
 .auth-card {
   background: white;
-  border-radius: 3px;
-  border: 1px solid #959494;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
   max-width: 450px;
   width: 100%;
   overflow: hidden;
+  border: 1px solid #E5E7EB;
 }
 
 .auth-header {
-  background: #018184;
+  background: #2C3E50;
   color: white;
   padding: 30px;
   text-align: center;
@@ -400,27 +409,27 @@ tr:hover {
 
 .auth-form h2 {
   margin-bottom: 20px;
-  color: #212D3A;
+  color: #2C3E50;
   font-size: 1.5rem;
 }
 
 .auth-footer {
   margin-top: 20px;
   padding-top: 20px;
-  border-top: 1px solid #D9D9D9;
+  border-top: 1px solid #E5E7EB;
   text-align: center;
 }
 
 .auth-footer p {
-  color: #516383;
+  color: #6B7280;
   font-size: 0.9rem;
 }
 
 .link-button {
   background: none;
   border: none;
-  color: #018184;
-  font-weight: 700;
+  color: #5B8DB8;
+  font-weight: 600;
   cursor: pointer;
   text-decoration: none;
   padding: 0;
@@ -428,7 +437,7 @@ tr:hover {
 }
 
 .link-button:hover {
-  color: #016668;
+  color: #4A7BA7;
   text-decoration: underline;
 }
 
@@ -446,27 +455,27 @@ tr:hover {
 }
 
 .user-name {
-  font-weight: 700;
+  font-weight: 600;
   color: white;
   font-size: 0.95rem;
 }
 
 .user-email {
   font-size: 0.85rem;
-  opacity: 0.85;
+  opacity: 0.9;
 }
 
 .btn-logout {
-  background: rgba(255, 255, 255, 0.2);
+  background: #2C3E50;
   color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: none;
   padding: 8px 16px;
-  border-radius: 3px;
-  font-weight: 700;
+  border-radius: 4px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .btn-logout:hover {
-  background: rgba(255, 255, 255, 0.3);
+  background: #1F2937;
 }
