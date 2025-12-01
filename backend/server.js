@@ -731,8 +731,10 @@ app.get('/api/audit/stats', (req, res) => {
 });
 
 // Generate report (CSV export)
-app.get('/api/audit/export', (req, res) => {
+app.get('/api/audit/export', authenticate, (req, res) => {
   try {
+    const user = userDb.getById(req.user.id);
+
     const options = {
       entityType: req.query.entityType,
       action: req.query.action,
@@ -741,7 +743,30 @@ app.get('/api/audit/export', (req, res) => {
       userEmail: req.query.userEmail
     };
 
-    const logs = auditDb.getAll(options);
+    let logs = auditDb.getAll(options);
+
+    // Role-based filtering
+    if (user.role === 'employee') {
+      // Employees only see their own audit logs
+      logs = logs.filter(log => log.user_email === user.email);
+    } else if (user.role === 'manager') {
+      // Managers see their own logs + their employees' logs
+      // Get all assets where user is manager to find their employees
+      const allAssets = assetDb.getAll();
+      const employeeEmails = new Set();
+      employeeEmails.add(user.email); // Add manager's own email
+
+      allAssets.forEach(asset => {
+        if (asset.manager_email === user.email) {
+          employeeEmails.add(asset.employee_email);
+        }
+      });
+
+      logs = logs.filter(log =>
+        !log.user_email || employeeEmails.has(log.user_email)
+      );
+    }
+    // Admin sees all logs (no filtering)
 
     // Generate CSV
     const headers = ['ID', 'Timestamp', 'Action', 'Entity Type', 'Entity Name', 'Details', 'User Email'];
