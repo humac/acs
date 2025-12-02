@@ -10,7 +10,6 @@ import {
   Grid,
   Chip,
   Paper,
-  Divider,
   CircularProgress,
 } from '@mui/material';
 import { Save, Lock, Person } from '@mui/icons-material';
@@ -155,11 +154,11 @@ const Profile = () => {
   };
 
   return (
-    <Box sx={{ maxWidth: 800, mx: 'auto' }}>
+    <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
       <Grid container spacing={3}>
         {/* Profile Information Card */}
-        <Grid item xs={12}>
-          <Card>
+        <Grid item xs={12} md={6}>
+          <Card sx={{ height: '100%' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                 <Person sx={{ mr: 1 }} color="primary" />
@@ -170,7 +169,7 @@ const Profile = () => {
 
               <Paper variant="outlined" sx={{ p: 2, mb: 3, bgcolor: 'grey.50' }}>
                 <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
+                  <Grid item xs={12}>
                     <Typography variant="body2" color="text.secondary">
                       Email
                     </Typography>
@@ -178,7 +177,7 @@ const Profile = () => {
                       {user?.email}
                     </Typography>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid item xs={12}>
                     <Typography variant="body2" color="text.secondary">
                       Role
                     </Typography>
@@ -214,7 +213,7 @@ const Profile = () => {
 
               <Box component="form" onSubmit={handleSubmit}>
                 <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
+                  <Grid item xs={12}>
                     <TextField
                       fullWidth
                       label="First Name"
@@ -225,7 +224,7 @@ const Profile = () => {
                       placeholder="John"
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid item xs={12}>
                     <TextField
                       fullWidth
                       label="Last Name"
@@ -254,8 +253,8 @@ const Profile = () => {
         </Grid>
 
         {/* Change Password Card */}
-        <Grid item xs={12}>
-          <Card>
+        <Grid item xs={12} md={6}>
+          <Card sx={{ height: '100%' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                 <Lock sx={{ mr: 1 }} color="primary" />

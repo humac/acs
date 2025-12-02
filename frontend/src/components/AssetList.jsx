@@ -321,6 +321,8 @@ const AssetList = ({ refresh, onAssetRegistered }) => {
                   <TableCell><strong>Manager</strong></TableCell>
                   {!isMobile && <TableCell><strong>Manager Email</strong></TableCell>}
                   <TableCell><strong>Client</strong></TableCell>
+                  {!isMobile && <TableCell><strong>Make</strong></TableCell>}
+                  {!isMobile && <TableCell><strong>Model</strong></TableCell>}
                   {!isMobile && <TableCell><strong>Serial Number</strong></TableCell>}
                   {!isMobile && <TableCell><strong>Asset Tag</strong></TableCell>}
                   <TableCell><strong>Status</strong></TableCell>
@@ -336,6 +338,8 @@ const AssetList = ({ refresh, onAssetRegistered }) => {
                     <TableCell>{asset.manager_name}</TableCell>
                     {!isMobile && <TableCell>{asset.manager_email || '-'}</TableCell>}
                     <TableCell>{asset.client_name}</TableCell>
+                    {!isMobile && <TableCell>{asset.laptop_make || '-'}</TableCell>}
+                    {!isMobile && <TableCell>{asset.laptop_model || '-'}</TableCell>}
                     {!isMobile && <TableCell>{asset.laptop_serial_number}</TableCell>}
                     {!isMobile && <TableCell>{asset.laptop_asset_tag}</TableCell>}
                     <TableCell>

@@ -24,6 +24,8 @@ const AssetRegistrationForm = ({ onAssetRegistered }) => {
     manager_name: '',
     manager_email: '',
     client_name: '',
+    laptop_make: '',
+    laptop_model: '',
     laptop_serial_number: '',
     laptop_asset_tag: '',
     notes: ''
@@ -90,6 +92,8 @@ const AssetRegistrationForm = ({ onAssetRegistered }) => {
         manager_name: '',
         manager_email: '',
         client_name: '',
+        laptop_make: '',
+        laptop_model: '',
         laptop_serial_number: '',
         laptop_asset_tag: '',
         notes: ''
@@ -127,6 +131,12 @@ const AssetRegistrationForm = ({ onAssetRegistered }) => {
 
       <Box component="form" onSubmit={handleSubmit}>
         <Grid container spacing={2}>
+          {/* Employee Information */}
+          <Grid item xs={12}>
+            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
+              Employee Information
+            </Typography>
+          </Grid>
           <Grid item xs={12} sm={6}>
             <TextField
               fullWidth
@@ -150,6 +160,13 @@ const AssetRegistrationForm = ({ onAssetRegistered }) => {
               placeholder="john.doe@company.com"
             />
           </Grid>
+
+          {/* Manager Information */}
+          <Grid item xs={12} sx={{ mt: 1 }}>
+            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
+              Manager Information
+            </Typography>
+          </Grid>
           <Grid item xs={12} sm={6}>
             <TextField
               fullWidth
@@ -172,6 +189,13 @@ const AssetRegistrationForm = ({ onAssetRegistered }) => {
               required
               placeholder="jane.smith@company.com"
             />
+          </Grid>
+
+          {/* Client Information */}
+          <Grid item xs={12} sx={{ mt: 1 }}>
+            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
+              Client Information
+            </Typography>
           </Grid>
           <Grid item xs={12}>
             <FormControl fullWidth required error={companies.length === 0}>
@@ -199,10 +223,39 @@ const AssetRegistrationForm = ({ onAssetRegistered }) => {
               )}
             </FormControl>
           </Grid>
-          <Grid item xs={12} sm={6}>
+
+          {/* Asset Information */}
+          <Grid item xs={12} sx={{ mt: 1 }}>
+            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1, fontWeight: 600 }}>
+              Asset Information
+            </Typography>
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
             <TextField
               fullWidth
-              label="Laptop Serial Number"
+              label="Make"
+              name="laptop_make"
+              value={formData.laptop_make}
+              onChange={handleChange}
+              required
+              placeholder="Dell"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <TextField
+              fullWidth
+              label="Model"
+              name="laptop_model"
+              value={formData.laptop_model}
+              onChange={handleChange}
+              required
+              placeholder="Latitude 5420"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <TextField
+              fullWidth
+              label="Serial Number"
               name="laptop_serial_number"
               value={formData.laptop_serial_number}
               onChange={handleChange}
@@ -210,10 +263,10 @@ const AssetRegistrationForm = ({ onAssetRegistered }) => {
               placeholder="SN123456789"
             />
           </Grid>
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12} sm={6} md={3}>
             <TextField
               fullWidth
-              label="Laptop Asset Tag"
+              label="Asset Tag"
               name="laptop_asset_tag"
               value={formData.laptop_asset_tag}
               onChange={handleChange}
@@ -221,7 +274,9 @@ const AssetRegistrationForm = ({ onAssetRegistered }) => {
               placeholder="ASSET-001"
             />
           </Grid>
-          <Grid item xs={12}>
+
+          {/* Notes */}
+          <Grid item xs={12} sx={{ mt: 1 }}>
             <TextField
               fullWidth
               multiline

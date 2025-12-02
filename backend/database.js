@@ -50,6 +50,19 @@ const initDb = () => {
     // Column already exists
   }
 
+  // Migration: Add laptop_make and laptop_model columns if they don't exist
+  try {
+    db.exec('ALTER TABLE assets ADD COLUMN laptop_make TEXT');
+  } catch (e) {
+    // Column already exists
+  }
+
+  try {
+    db.exec('ALTER TABLE assets ADD COLUMN laptop_model TEXT');
+  } catch (e) {
+    // Column already exists
+  }
+
   // Create companies table
   const createCompaniesTableQuery = `
     CREATE TABLE IF NOT EXISTS companies (
@@ -131,9 +144,9 @@ export const assetDb = {
     const stmt = db.prepare(`
       INSERT INTO assets (
         employee_name, employee_email, manager_name, manager_email,
-        client_name, laptop_serial_number, laptop_asset_tag,
+        client_name, laptop_make, laptop_model, laptop_serial_number, laptop_asset_tag,
         status, registration_date, last_updated, notes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const now = new Date().toISOString();
@@ -143,6 +156,8 @@ export const assetDb = {
       asset.manager_name,
       asset.manager_email,
       asset.client_name,
+      asset.laptop_make || '',
+      asset.laptop_model || '',
       asset.laptop_serial_number,
       asset.laptop_asset_tag,
       asset.status || 'active',
