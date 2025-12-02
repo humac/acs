@@ -1,4 +1,40 @@
 import { useState, useEffect } from 'react';
+import {
+  Box,
+  Card,
+  Typography,
+  Button,
+  Select,
+  MenuItem,
+  FormControl,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  CircularProgress,
+  Alert,
+  Grid,
+  Chip,
+  Tabs,
+  Tab,
+  useTheme,
+  useMediaQuery,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+} from '@mui/material';
+import {
+  Settings,
+  People,
+  Dashboard,
+  SettingsApplications,
+  Delete,
+  Warning,
+} from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
 const AdminSettings = () => {
@@ -8,6 +44,9 @@ const AdminSettings = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, user: null });
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   useEffect(() => {
     if (activeView === 'users') {
@@ -67,16 +106,18 @@ const AdminSettings = () => {
     }
   };
 
-  const handleDeleteUser = async (userId, userName) => {
-    if (!window.confirm(`Are you sure you want to delete user "${userName}"? This action cannot be undone.`)) {
-      return;
-    }
+  const handleDeleteClick = (userToDelete) => {
+    setDeleteDialog({ open: true, user: userToDelete });
+  };
 
+  const handleDeleteConfirm = async () => {
+    const userToDelete = deleteDialog.user;
+    setDeleteDialog({ open: false, user: null });
     setError(null);
     setSuccess(null);
 
     try {
-      const response = await fetch(`/api/auth/users/${userId}`, {
+      const response = await fetch(`/api/auth/users/${userToDelete.id}`, {
         method: 'DELETE',
         headers: {
           ...getAuthHeaders()
@@ -97,21 +138,17 @@ const AdminSettings = () => {
     }
   };
 
-  const getRoleBadgeStyle = (role) => {
+  const handleDeleteCancel = () => {
+    setDeleteDialog({ open: false, user: null });
+  };
+
+  const getRoleColor = (role) => {
     const colors = {
-      admin: '#667eea',
-      manager: '#48bb78',
-      employee: '#4299e1'
+      admin: 'error',
+      manager: 'success',
+      employee: 'primary'
     };
-    return {
-      padding: '4px 12px',
-      borderRadius: '4px',
-      background: colors[role] || '#718096',
-      color: 'white',
-      fontWeight: 'bold',
-      fontSize: '0.85rem',
-      textTransform: 'capitalize'
-    };
+    return colors[role] || 'default';
   };
 
   const formatDate = (dateString) => {
@@ -125,265 +162,441 @@ const AdminSettings = () => {
     });
   };
 
+  const handleTabChange = (event, newValue) => {
+    setActiveView(newValue);
+  };
+
   if (user?.role !== 'admin') {
     return (
-      <div className="card">
-        <h2>Access Denied</h2>
-        <p>You do not have permission to access this page. Admin access required.</p>
-      </div>
+      <Card sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <Warning color="error" />
+          <Typography variant="h5" fontWeight={600}>
+            Access Denied
+          </Typography>
+        </Box>
+        <Typography variant="body1" color="text.secondary">
+          You do not have permission to access this page. Admin access required.
+        </Typography>
+      </Card>
     );
   }
 
   return (
-    <div className="card">
-      <h2>Admin Settings</h2>
+    <>
+      <Card sx={{ p: 3 }}>
+        {/* Header */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+          <Settings color="primary" />
+          <Typography variant="h5" fontWeight={600}>
+            Admin Settings
+          </Typography>
+        </Box>
 
-      <div className="tabs" style={{ marginTop: '20px', marginBottom: '20px' }}>
-        <button
-          className={`tab ${activeView === 'users' ? 'active' : ''}`}
-          onClick={() => setActiveView('users')}
-        >
-          User Management
-        </button>
-        <button
-          className={`tab ${activeView === 'overview' ? 'active' : ''}`}
-          onClick={() => setActiveView('overview')}
-        >
-          System Overview
-        </button>
-        <button
-          className={`tab ${activeView === 'settings' ? 'active' : ''}`}
-          onClick={() => setActiveView('settings')}
-        >
-          Application Settings
-        </button>
-      </div>
+        {/* Tabs */}
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+          <Tabs value={activeView} onChange={handleTabChange}>
+            <Tab
+              icon={<People />}
+              iconPosition="start"
+              label="User Management"
+              value="users"
+            />
+            <Tab
+              icon={<Dashboard />}
+              iconPosition="start"
+              label="System Overview"
+              value="overview"
+            />
+            <Tab
+              icon={<SettingsApplications />}
+              iconPosition="start"
+              label="Application Settings"
+              value="settings"
+            />
+          </Tabs>
+        </Box>
 
-      {error && (
-        <div className="alert alert-error" style={{ marginBottom: '20px' }}>
-          {error}
-        </div>
-      )}
+        {/* Error Message */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+          </Alert>
+        )}
 
-      {success && (
-        <div className="alert alert-success" style={{ marginBottom: '20px' }}>
-          {success}
-        </div>
-      )}
+        {/* Success Message */}
+        {success && (
+          <Alert severity="success" sx={{ mb: 3 }}>
+            {success}
+          </Alert>
+        )}
 
-      {/* User Management View */}
-      {activeView === 'users' && (
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h3>Manage Users & Roles</h3>
-            <p style={{ color: '#718096', margin: 0 }}>Total Users: {users.length}</p>
-          </div>
+        {/* User Management View */}
+        {activeView === 'users' && (
+          <Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+              <Typography variant="h6">
+                Manage Users & Roles
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Total Users: {users.length}
+              </Typography>
+            </Box>
 
-          {loading ? (
-            <div className="loading">Loading users...</div>
-          ) : (
-            <div className="asset-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>Created</th>
-                    <th>Last Login</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((u) => (
-                    <tr key={u.id}>
-                      <td>{u.name}</td>
-                      <td>{u.email}</td>
-                      <td>
-                        <select
-                          value={u.role}
-                          onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                          disabled={u.id === user.id}
-                          style={{
-                            padding: '6px 10px',
-                            borderRadius: '4px',
-                            border: '1px solid #cbd5e0',
-                            background: 'white',
-                            cursor: u.id === user.id ? 'not-allowed' : 'pointer'
-                          }}
-                        >
-                          <option value="employee">Employee</option>
-                          <option value="manager">Manager</option>
-                          <option value="admin">Admin</option>
-                        </select>
-                      </td>
-                      <td>{formatDate(u.created_at)}</td>
-                      <td>{formatDate(u.last_login)}</td>
-                      <td>
-                        <button
-                          onClick={() => handleDeleteUser(u.id, u.name)}
-                          disabled={u.id === user.id}
-                          className="btn btn-secondary"
-                          style={{
-                            background: u.id === user.id ? '#e2e8f0' : '#e53e3e',
-                            color: u.id === user.id ? '#a0aec0' : 'white',
-                            cursor: u.id === user.id ? 'not-allowed' : 'pointer',
-                            padding: '6px 12px'
-                          }}
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+            {loading ? (
+              <Box display="flex" justifyContent="center" alignItems="center" py={5}>
+                <CircularProgress />
+                <Typography variant="body1" sx={{ ml: 2 }}>
+                  Loading users...
+                </Typography>
+              </Box>
+            ) : (
+              <TableContainer component={Paper} variant="outlined" sx={{ maxWidth: '100%', mb: 4 }}>
+                <Table size={isMobile ? 'small' : 'medium'}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell><strong>Name</strong></TableCell>
+                      {!isMobile && <TableCell><strong>Email</strong></TableCell>}
+                      <TableCell><strong>Role</strong></TableCell>
+                      {!isMobile && <TableCell><strong>Created</strong></TableCell>}
+                      {!isMobile && <TableCell><strong>Last Login</strong></TableCell>}
+                      <TableCell><strong>Actions</strong></TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {users.map((u) => (
+                      <TableRow key={u.id} hover>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight={600}>
+                            {u.name}
+                          </Typography>
+                          {isMobile && (
+                            <Typography variant="caption" color="text.secondary">
+                              {u.email}
+                            </Typography>
+                          )}
+                        </TableCell>
+                        {!isMobile && <TableCell>{u.email}</TableCell>}
+                        <TableCell>
+                          <FormControl size="small" disabled={u.id === user.id}>
+                            <Select
+                              value={u.role}
+                              onChange={(e) => handleRoleChange(u.id, e.target.value)}
+                              sx={{ minWidth: 120 }}
+                            >
+                              <MenuItem value="employee">Employee</MenuItem>
+                              <MenuItem value="manager">Manager</MenuItem>
+                              <MenuItem value="admin">Admin</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </TableCell>
+                        {!isMobile && <TableCell>{formatDate(u.created_at)}</TableCell>}
+                        {!isMobile && <TableCell>{formatDate(u.last_login)}</TableCell>}
+                        <TableCell>
+                          <Button
+                            onClick={() => handleDeleteClick(u)}
+                            disabled={u.id === user.id}
+                            variant="contained"
+                            color="error"
+                            size="small"
+                            startIcon={<Delete />}
+                            sx={{ minWidth: isMobile ? 'auto' : 'auto' }}
+                          >
+                            {!isMobile && 'Delete'}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
 
-          <div style={{ marginTop: '30px', padding: '20px', background: '#f7fafc', borderRadius: '8px' }}>
-            <h4 style={{ marginTop: 0 }}>Role Descriptions</h4>
-            <div style={{ display: 'grid', gap: '15px' }}>
-              <div>
-                <span style={getRoleBadgeStyle('admin')}>Admin</span>
-                <p style={{ margin: '10px 0 0 0', color: '#4a5568' }}>
-                  Full system access. Can manage all users, view all assets and reports, configure system settings.
-                </p>
-              </div>
-              <div>
-                <span style={getRoleBadgeStyle('manager')}>Manager</span>
-                <p style={{ margin: '10px 0 0 0', color: '#4a5568' }}>
-                  Can view their own assets plus assets of employees they manage. Access to audit reports for their team.
-                </p>
-              </div>
-              <div>
-                <span style={getRoleBadgeStyle('employee')}>Employee</span>
-                <p style={{ margin: '10px 0 0 0', color: '#4a5568' }}>
-                  Can only view and manage their own asset registrations.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+            {/* Role Descriptions */}
+            <Card sx={{ p: 3, bgcolor: 'background.default' }}>
+              <Typography variant="h6" gutterBottom>
+                Role Descriptions
+              </Typography>
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={4}>
+                  <Box>
+                    <Chip
+                      label="Admin"
+                      color={getRoleColor('admin')}
+                      sx={{ mb: 1 }}
+                    />
+                    <Typography variant="body2" color="text.secondary">
+                      Full system access. Can manage all users, view all assets and reports, configure system settings.
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <Box>
+                    <Chip
+                      label="Manager"
+                      color={getRoleColor('manager')}
+                      sx={{ mb: 1 }}
+                    />
+                    <Typography variant="body2" color="text.secondary">
+                      Can view their own assets plus assets of employees they manage. Access to audit reports for their team.
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <Box>
+                    <Chip
+                      label="Employee"
+                      color={getRoleColor('employee')}
+                      sx={{ mb: 1 }}
+                    />
+                    <Typography variant="body2" color="text.secondary">
+                      Can only view and manage their own asset registrations.
+                    </Typography>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Card>
+          </Box>
+        )}
 
-      {/* System Overview */}
-      {activeView === 'overview' && (
-        <div>
-          <h3>System Overview</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginTop: '20px' }}>
-            <div style={{ padding: '20px', background: '#f7fafc', borderRadius: '8px', border: '2px solid #667eea' }}>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#667eea' }}>
-                {users.length}
-              </div>
-              <div style={{ color: '#4a5568', marginTop: '5px' }}>Total Users</div>
-            </div>
+        {/* System Overview */}
+        {activeView === 'overview' && (
+          <Box>
+            <Typography variant="h6" gutterBottom>
+              System Overview
+            </Typography>
+            <Grid container spacing={3} sx={{ mt: 1 }}>
+              <Grid item xs={12} sm={6} md={3}>
+                <Card sx={{ p: 3, bgcolor: 'primary.main', color: 'primary.contrastText' }}>
+                  <Typography variant="h3" fontWeight={700}>
+                    {users.length}
+                  </Typography>
+                  <Typography variant="body1" sx={{ mt: 1 }}>
+                    Total Users
+                  </Typography>
+                </Card>
+              </Grid>
 
-            <div style={{ padding: '20px', background: '#f7fafc', borderRadius: '8px', border: '2px solid #48bb78' }}>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#48bb78' }}>
-                {users.filter(u => u.role === 'admin').length}
-              </div>
-              <div style={{ color: '#4a5568', marginTop: '5px' }}>Administrators</div>
-            </div>
+              <Grid item xs={12} sm={6} md={3}>
+                <Card sx={{ p: 3, bgcolor: 'success.main', color: 'success.contrastText' }}>
+                  <Typography variant="h3" fontWeight={700}>
+                    {users.filter(u => u.role === 'admin').length}
+                  </Typography>
+                  <Typography variant="body1" sx={{ mt: 1 }}>
+                    Administrators
+                  </Typography>
+                </Card>
+              </Grid>
 
-            <div style={{ padding: '20px', background: '#f7fafc', borderRadius: '8px', border: '2px solid #4299e1' }}>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#4299e1' }}>
-                {users.filter(u => u.role === 'manager').length}
-              </div>
-              <div style={{ color: '#4a5568', marginTop: '5px' }}>Managers</div>
-            </div>
+              <Grid item xs={12} sm={6} md={3}>
+                <Card sx={{ p: 3, bgcolor: 'info.main', color: 'info.contrastText' }}>
+                  <Typography variant="h3" fontWeight={700}>
+                    {users.filter(u => u.role === 'manager').length}
+                  </Typography>
+                  <Typography variant="body1" sx={{ mt: 1 }}>
+                    Managers
+                  </Typography>
+                </Card>
+              </Grid>
 
-            <div style={{ padding: '20px', background: '#f7fafc', borderRadius: '8px', border: '2px solid #ed8936' }}>
-              <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#ed8936' }}>
-                {users.filter(u => u.role === 'employee').length}
-              </div>
-              <div style={{ color: '#4a5568', marginTop: '5px' }}>Employees</div>
-            </div>
-          </div>
+              <Grid item xs={12} sm={6} md={3}>
+                <Card sx={{ p: 3, bgcolor: 'warning.main', color: 'warning.contrastText' }}>
+                  <Typography variant="h3" fontWeight={700}>
+                    {users.filter(u => u.role === 'employee').length}
+                  </Typography>
+                  <Typography variant="body1" sx={{ mt: 1 }}>
+                    Employees
+                  </Typography>
+                </Card>
+              </Grid>
+            </Grid>
 
-          <div style={{ marginTop: '30px', padding: '20px', background: '#f7fafc', borderRadius: '8px' }}>
-            <h4 style={{ marginTop: 0 }}>System Information</h4>
-            <p><strong>Application:</strong> ARS - Asset Registration System</p>
-            <p><strong>Purpose:</strong> SOC2 Compliance - Track and manage client assets</p>
-            <p><strong>Features:</strong></p>
-            <ul style={{ color: '#4a5568' }}>
-              <li>Role-based access control (Admin, Manager, Employee)</li>
-              <li>Asset registration and tracking</li>
-              <li>Company management</li>
-              <li>Comprehensive audit logging</li>
-              <li>Customizable reporting and exports</li>
-            </ul>
-          </div>
-        </div>
-      )}
+            <Card sx={{ p: 3, bgcolor: 'background.default', mt: 3 }}>
+              <Typography variant="h6" gutterBottom>
+                System Information
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Application:</strong> ARS - Asset Registration System
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="body2" color="text.secondary">
+                    <strong>Purpose:</strong> SOC2 Compliance - Track and manage client assets
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    <strong>Features:</strong>
+                  </Typography>
+                  <Box component="ul" sx={{ m: 0, pl: 3 }}>
+                    <Typography component="li" variant="body2" color="text.secondary">
+                      Role-based access control (Admin, Manager, Employee)
+                    </Typography>
+                    <Typography component="li" variant="body2" color="text.secondary">
+                      Asset registration and tracking
+                    </Typography>
+                    <Typography component="li" variant="body2" color="text.secondary">
+                      Company management
+                    </Typography>
+                    <Typography component="li" variant="body2" color="text.secondary">
+                      Comprehensive audit logging
+                    </Typography>
+                    <Typography component="li" variant="body2" color="text.secondary">
+                      Customizable reporting and exports
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </Card>
+          </Box>
+        )}
 
-      {/* Application Settings */}
-      {activeView === 'settings' && (
-        <div>
-          <h3>Application Settings</h3>
+        {/* Application Settings */}
+        {activeView === 'settings' && (
+          <Box>
+            <Typography variant="h6" gutterBottom>
+              Application Settings
+            </Typography>
 
-          <div style={{ marginTop: '20px' }}>
-            <div style={{ padding: '20px', background: '#f7fafc', borderRadius: '8px', marginBottom: '20px' }}>
-              <h4 style={{ marginTop: 0 }}>Company Management</h4>
-              <p style={{ color: '#4a5568' }}>
-                Manage registered companies through the Company Management tab. Companies can be created, edited, and deleted as needed.
-              </p>
-              <button
-                onClick={() => window.location.hash = '#companies'}
-                className="btn btn-primary"
-                style={{ marginTop: '10px' }}
-              >
-                Go to Company Management
-              </button>
-            </div>
+            <Grid container spacing={3} sx={{ mt: 1 }}>
+              {/* Company Management */}
+              <Grid item xs={12} md={6}>
+                <Card sx={{ p: 3, bgcolor: 'background.default', height: '100%' }}>
+                  <Typography variant="h6" gutterBottom>
+                    Company Management
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Manage registered companies through the Company Management tab. Companies can be created, edited, and deleted as needed.
+                  </Typography>
+                  <Button
+                    onClick={() => window.location.hash = '#companies'}
+                    variant="contained"
+                    size="small"
+                  >
+                    Go to Company Management
+                  </Button>
+                </Card>
+              </Grid>
 
-            <div style={{ padding: '20px', background: '#f7fafc', borderRadius: '8px', marginBottom: '20px' }}>
-              <h4 style={{ marginTop: 0 }}>Audit & Compliance</h4>
-              <p style={{ color: '#4a5568' }}>
-                All asset operations are automatically logged for SOC2 compliance. View detailed audit trails and generate reports through the Audit & Reporting tab.
-              </p>
-              <p style={{ color: '#4a5568', marginTop: '10px' }}>
-                <strong>Audit Features:</strong>
-              </p>
-              <ul style={{ color: '#4a5568' }}>
-                <li>Comprehensive activity logging</li>
-                <li>User attribution for all actions</li>
-                <li>Timestamp tracking</li>
-                <li>CSV export capabilities</li>
-                <li>Role-based audit visibility</li>
-              </ul>
-            </div>
+              {/* Audit & Compliance */}
+              <Grid item xs={12} md={6}>
+                <Card sx={{ p: 3, bgcolor: 'background.default', height: '100%' }}>
+                  <Typography variant="h6" gutterBottom>
+                    Audit & Compliance
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    All asset operations are automatically logged for SOC2 compliance. View detailed audit trails and generate reports through the Audit & Reporting tab.
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mt: 2 }}>
+                    <strong>Audit Features:</strong>
+                  </Typography>
+                  <Box component="ul" sx={{ m: 0, pl: 3 }}>
+                    <Typography component="li" variant="body2" color="text.secondary">
+                      Comprehensive activity logging
+                    </Typography>
+                    <Typography component="li" variant="body2" color="text.secondary">
+                      User attribution for all actions
+                    </Typography>
+                    <Typography component="li" variant="body2" color="text.secondary">
+                      Timestamp tracking
+                    </Typography>
+                    <Typography component="li" variant="body2" color="text.secondary">
+                      CSV export capabilities
+                    </Typography>
+                    <Typography component="li" variant="body2" color="text.secondary">
+                      Role-based audit visibility
+                    </Typography>
+                  </Box>
+                </Card>
+              </Grid>
 
-            <div style={{ padding: '20px', background: '#f7fafc', borderRadius: '8px', marginBottom: '20px' }}>
-              <h4 style={{ marginTop: 0 }}>Data Management</h4>
-              <p style={{ color: '#4a5568' }}>
-                The system uses SQLite for data storage. Database backups are recommended for production deployments.
-              </p>
-              <p style={{ color: '#4a5568', marginTop: '10px' }}>
-                <strong>Recommended Practices:</strong>
-              </p>
-              <ul style={{ color: '#4a5568' }}>
-                <li>Regular database backups</li>
-                <li>Periodic audit log reviews</li>
-                <li>User access reviews (quarterly)</li>
-                <li>Asset verification (monthly)</li>
-              </ul>
-            </div>
+              {/* Data Management */}
+              <Grid item xs={12} md={6}>
+                <Card sx={{ p: 3, bgcolor: 'background.default', height: '100%' }}>
+                  <Typography variant="h6" gutterBottom>
+                    Data Management
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    The system uses SQLite for data storage. Database backups are recommended for production deployments.
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mt: 2 }}>
+                    <strong>Recommended Practices:</strong>
+                  </Typography>
+                  <Box component="ul" sx={{ m: 0, pl: 3 }}>
+                    <Typography component="li" variant="body2" color="text.secondary">
+                      Regular database backups
+                    </Typography>
+                    <Typography component="li" variant="body2" color="text.secondary">
+                      Periodic audit log reviews
+                    </Typography>
+                    <Typography component="li" variant="body2" color="text.secondary">
+                      User access reviews (quarterly)
+                    </Typography>
+                    <Typography component="li" variant="body2" color="text.secondary">
+                      Asset verification (monthly)
+                    </Typography>
+                  </Box>
+                </Card>
+              </Grid>
 
-            <div style={{ padding: '20px', background: '#fff3cd', borderRadius: '8px', border: '1px solid #ffc107' }}>
-              <h4 style={{ marginTop: 0, color: '#856404' }}>⚠️ Security Best Practices</h4>
-              <ul style={{ color: '#856404', marginBottom: 0 }}>
-                <li>Regularly review user roles and permissions</li>
-                <li>Remove inactive user accounts</li>
-                <li>Enforce strong password policies</li>
-                <li>Monitor audit logs for suspicious activity</li>
-                <li>Keep the application updated</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+              {/* Security Best Practices */}
+              <Grid item xs={12} md={6}>
+                <Card sx={{ p: 3, bgcolor: 'warning.light', border: 2, borderColor: 'warning.main', height: '100%' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                    <Warning color="warning" />
+                    <Typography variant="h6">
+                      Security Best Practices
+                    </Typography>
+                  </Box>
+                  <Box component="ul" sx={{ m: 0, pl: 3 }}>
+                    <Typography component="li" variant="body2">
+                      Regularly review user roles and permissions
+                    </Typography>
+                    <Typography component="li" variant="body2">
+                      Remove inactive user accounts
+                    </Typography>
+                    <Typography component="li" variant="body2">
+                      Enforce strong password policies
+                    </Typography>
+                    <Typography component="li" variant="body2">
+                      Monitor audit logs for suspicious activity
+                    </Typography>
+                    <Typography component="li" variant="body2">
+                      Keep the application updated
+                    </Typography>
+                  </Box>
+                </Card>
+              </Grid>
+            </Grid>
+          </Box>
+        )}
+      </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialog.open}
+        onClose={handleDeleteCancel}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Confirm Delete User</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete user "{deleteDialog.user?.name}"? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDeleteCancel} variant="outlined">
+            Cancel
+          </Button>
+          <Button onClick={handleDeleteConfirm} variant="contained" color="error">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 };
 

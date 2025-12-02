@@ -1,4 +1,38 @@
 import { useState, useEffect } from 'react';
+import {
+  Box,
+  Card,
+  Typography,
+  Button,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  CircularProgress,
+  Alert,
+  Grid,
+  Chip,
+  Tabs,
+  Tab,
+  useTheme,
+  useMediaQuery,
+} from '@mui/material';
+import {
+  FilterList,
+  Clear,
+  Download,
+  Assessment,
+  Description,
+  BarChart,
+} from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
 const AuditReporting = () => {
@@ -9,6 +43,8 @@ const AuditReporting = () => {
   const [stats, setStats] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const [filters, setFilters] = useState({
     action: '',
@@ -161,7 +197,7 @@ const AuditReporting = () => {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (err) {
-      alert('Error exporting data: ' + err.message);
+      setError('Error exporting data: ' + err.message);
     }
   };
 
@@ -175,152 +211,248 @@ const AuditReporting = () => {
     });
   };
 
-  const getActionBadgeClass = (action) => {
+  const getActionColor = (action) => {
     switch (action) {
       case 'CREATE':
-        return 'status-badge status-active';
+        return 'success';
       case 'STATUS_CHANGE':
-        return 'status-badge status-returned';
+        return 'info';
       case 'UPDATE':
-        return 'status-badge status-damaged';
+        return 'warning';
       case 'DELETE':
-        return 'status-badge status-lost';
+        return 'error';
       default:
-        return 'status-badge status-retired';
+        return 'default';
     }
   };
 
+  const handleTabChange = (event, newValue) => {
+    setActiveView(newValue);
+  };
+
   return (
-    <div className="card">
-      <h2>Audit & Reporting</h2>
+    <Card sx={{ p: 3 }}>
+      {/* Header */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+        <Assessment color="primary" />
+        <Typography variant="h5" fontWeight={600}>
+          Audit & Reporting
+        </Typography>
+      </Box>
 
-      <div className="tabs" style={{ marginTop: '20px', marginBottom: '20px' }}>
-        <button
-          className={`tab ${activeView === 'logs' ? 'active' : ''}`}
-          onClick={() => setActiveView('logs')}
-        >
-          Audit Logs
-        </button>
-        <button
-          className={`tab ${activeView === 'summary' ? 'active' : ''}`}
-          onClick={() => setActiveView('summary')}
-        >
-          Summary Report
-        </button>
-        <button
-          className={`tab ${activeView === 'stats' ? 'active' : ''}`}
-          onClick={() => setActiveView('stats')}
-        >
-          Statistics
-        </button>
-      </div>
+      {/* Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs value={activeView} onChange={handleTabChange}>
+          <Tab
+            icon={<Description />}
+            iconPosition="start"
+            label="Audit Logs"
+            value="logs"
+          />
+          <Tab
+            icon={<BarChart />}
+            iconPosition="start"
+            label="Summary Report"
+            value="summary"
+          />
+          <Tab
+            icon={<Assessment />}
+            iconPosition="start"
+            label="Statistics"
+            value="stats"
+          />
+        </Tabs>
+      </Box>
 
+      {/* Error Message */}
       {error && (
-        <div className="alert alert-error">{error}</div>
+        <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>
       )}
 
       {/* Audit Logs View */}
       {activeView === 'logs' && (
         <>
-          <div className="search-bar">
-            <select name="action" value={filters.action} onChange={handleFilterChange}>
-              <option value="">All Actions</option>
-              <option value="CREATE">Create</option>
-              <option value="STATUS_CHANGE">Status Change</option>
-              <option value="UPDATE">Update</option>
-              <option value="DELETE">Delete</option>
-            </select>
+          <Box sx={{ mb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <FilterList sx={{ mr: 1 }} color="action" />
+              <Typography variant="subtitle1" fontWeight={600}>
+                Filters
+              </Typography>
+            </Box>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6} md={4} lg={2}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Action</InputLabel>
+                  <Select
+                    name="action"
+                    value={filters.action}
+                    onChange={handleFilterChange}
+                    label="Action"
+                  >
+                    <MenuItem value="">All Actions</MenuItem>
+                    <MenuItem value="CREATE">Create</MenuItem>
+                    <MenuItem value="STATUS_CHANGE">Status Change</MenuItem>
+                    <MenuItem value="UPDATE">Update</MenuItem>
+                    <MenuItem value="DELETE">Delete</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
 
-            <select name="entityType" value={filters.entityType} onChange={handleFilterChange}>
-              <option value="">All Types</option>
-              <option value="asset">Asset</option>
-              <option value="company">Company</option>
-            </select>
+              <Grid item xs={12} sm={6} md={4} lg={2}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Entity Type</InputLabel>
+                  <Select
+                    name="entityType"
+                    value={filters.entityType}
+                    onChange={handleFilterChange}
+                    label="Entity Type"
+                  >
+                    <MenuItem value="">All Types</MenuItem>
+                    <MenuItem value="asset">Asset</MenuItem>
+                    <MenuItem value="company">Company</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
 
-            <input
-              type="date"
-              name="startDate"
-              value={filters.startDate}
-              onChange={handleFilterChange}
-              placeholder="Start Date"
-            />
+              <Grid item xs={12} sm={6} md={4} lg={2}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  type="date"
+                  name="startDate"
+                  label="Start Date"
+                  value={filters.startDate}
+                  onChange={handleFilterChange}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
 
-            <input
-              type="date"
-              name="endDate"
-              value={filters.endDate}
-              onChange={handleFilterChange}
-              placeholder="End Date"
-            />
+              <Grid item xs={12} sm={6} md={4} lg={2}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  type="date"
+                  name="endDate"
+                  label="End Date"
+                  value={filters.endDate}
+                  onChange={handleFilterChange}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Grid>
 
-            <input
-              type="email"
-              name="userEmail"
-              value={filters.userEmail}
-              onChange={handleFilterChange}
-              placeholder="User Email"
-            />
+              <Grid item xs={12} sm={6} md={4} lg={2}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  type="email"
+                  name="userEmail"
+                  label="User Email"
+                  placeholder="user@example.com"
+                  value={filters.userEmail}
+                  onChange={handleFilterChange}
+                />
+              </Grid>
 
-            <select name="limit" value={filters.limit} onChange={handleFilterChange}>
-              <option value="50">50 records</option>
-              <option value="100">100 records</option>
-              <option value="250">250 records</option>
-              <option value="500">500 records</option>
-              <option value="">All records</option>
-            </select>
-          </div>
+              <Grid item xs={12} sm={6} md={4} lg={2}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Limit</InputLabel>
+                  <Select
+                    name="limit"
+                    value={filters.limit}
+                    onChange={handleFilterChange}
+                    label="Limit"
+                  >
+                    <MenuItem value="50">50 records</MenuItem>
+                    <MenuItem value="100">100 records</MenuItem>
+                    <MenuItem value="250">250 records</MenuItem>
+                    <MenuItem value="500">500 records</MenuItem>
+                    <MenuItem value="">All records</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
+          </Box>
 
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-            <button onClick={handleApplyFilters} className="btn btn-primary" style={{ width: 'auto', padding: '10px 20px' }}>
+          <Box sx={{ display: 'flex', gap: 1, mb: 3, flexWrap: 'wrap' }}>
+            <Button
+              variant="contained"
+              onClick={handleApplyFilters}
+              startIcon={<FilterList />}
+            >
               Apply Filters
-            </button>
-            <button onClick={handleClearFilters} className="btn btn-secondary" style={{ width: 'auto', padding: '10px 20px' }}>
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={handleClearFilters}
+              startIcon={<Clear />}
+            >
               Clear Filters
-            </button>
-            <button onClick={handleExport} className="btn btn-secondary" style={{ width: 'auto', padding: '10px 20px', marginLeft: 'auto' }}>
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={handleExport}
+              startIcon={<Download />}
+              sx={{ ml: 'auto' }}
+            >
               Export to CSV
-            </button>
-          </div>
+            </Button>
+          </Box>
 
           {loading ? (
-            <div className="loading">Loading audit logs...</div>
+            <Box display="flex" justifyContent="center" alignItems="center" py={5}>
+              <CircularProgress />
+              <Typography variant="body1" sx={{ ml: 2 }}>
+                Loading audit logs...
+              </Typography>
+            </Box>
           ) : logs.length === 0 ? (
-            <div className="empty-state">
-              <p>No audit logs found matching your criteria.</p>
-            </div>
+            <Box sx={{ textAlign: 'center', py: 5 }}>
+              <Description sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
+              <Typography variant="body1" color="text.secondary">
+                No audit logs found matching your criteria.
+              </Typography>
+            </Box>
           ) : (
-            <div className="asset-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Timestamp</th>
-                    <th>Action</th>
-                    <th>Entity Type</th>
-                    <th>Entity Name</th>
-                    <th>Details</th>
-                    <th>User</th>
-                  </tr>
-                </thead>
-                <tbody>
+            <TableContainer component={Paper} variant="outlined" sx={{ maxWidth: '100%' }}>
+              <Table size={isMobile ? 'small' : 'medium'}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell><strong>Timestamp</strong></TableCell>
+                    <TableCell><strong>Action</strong></TableCell>
+                    {!isMobile && <TableCell><strong>Entity Type</strong></TableCell>}
+                    <TableCell><strong>Entity Name</strong></TableCell>
+                    {!isMobile && <TableCell><strong>Details</strong></TableCell>}
+                    {!isMobile && <TableCell><strong>User</strong></TableCell>}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
                   {logs.map((log) => (
-                    <tr key={log.id}>
-                      <td>{formatDate(log.timestamp)}</td>
-                      <td>
-                        <span className={getActionBadgeClass(log.action)}>
-                          {log.action}
-                        </span>
-                      </td>
-                      <td>{log.entity_type}</td>
-                      <td>{log.entity_name || '-'}</td>
-                      <td style={{ maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {log.details}
-                      </td>
-                      <td>{log.user_email || '-'}</td>
-                    </tr>
+                    <TableRow key={log.id} hover>
+                      <TableCell>{formatDate(log.timestamp)}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={log.action}
+                          color={getActionColor(log.action)}
+                          size="small"
+                        />
+                      </TableCell>
+                      {!isMobile && (
+                        <TableCell sx={{ textTransform: 'capitalize' }}>
+                          {log.entity_type}
+                        </TableCell>
+                      )}
+                      <TableCell>{log.entity_name || '-'}</TableCell>
+                      {!isMobile && (
+                        <TableCell sx={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {log.details}
+                        </TableCell>
+                      )}
+                      {!isMobile && <TableCell>{log.user_email || '-'}</TableCell>}
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </TableBody>
+              </Table>
+            </TableContainer>
           )}
         </>
       )}
@@ -329,51 +461,94 @@ const AuditReporting = () => {
       {activeView === 'summary' && (
         <>
           {loading ? (
-            <div className="loading">Loading summary...</div>
+            <Box display="flex" justifyContent="center" alignItems="center" py={5}>
+              <CircularProgress />
+              <Typography variant="body1" sx={{ ml: 2 }}>
+                Loading summary...
+              </Typography>
+            </Box>
           ) : summary ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
-              <div style={{ padding: '20px', background: '#f7fafc', borderRadius: '8px' }}>
-                <h3 style={{ marginBottom: '15px', fontSize: '1.2rem' }}>Total Assets</h3>
-                <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#667eea' }}>
-                  {summary.total}
-                </div>
-              </div>
+            <Grid container spacing={3}>
+              {/* Total Assets */}
+              <Grid item xs={12} sm={6} md={3}>
+                <Card sx={{ p: 3, bgcolor: 'primary.light', color: 'primary.contrastText' }}>
+                  <Typography variant="h6" gutterBottom>
+                    Total Assets
+                  </Typography>
+                  <Typography variant="h3" fontWeight={700}>
+                    {summary.total}
+                  </Typography>
+                </Card>
+              </Grid>
 
-              <div style={{ padding: '20px', background: '#f7fafc', borderRadius: '8px' }}>
-                <h3 style={{ marginBottom: '15px', fontSize: '1.2rem' }}>By Status</h3>
-                {Object.entries(summary.by_status).map(([status, count]) => (
-                  <div key={status} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span style={{ textTransform: 'capitalize' }}>{status}</span>
-                    <strong>{count}</strong>
-                  </div>
-                ))}
-              </div>
+              {/* By Status */}
+              <Grid item xs={12} sm={6} md={3}>
+                <Card sx={{ p: 3, bgcolor: 'background.default' }}>
+                  <Typography variant="h6" gutterBottom>
+                    By Status
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {Object.entries(summary.by_status).map(([status, count]) => (
+                      <Box key={status} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography sx={{ textTransform: 'capitalize' }} variant="body2">
+                          {status}
+                        </Typography>
+                        <Typography variant="body2" fontWeight={600}>
+                          {count}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                </Card>
+              </Grid>
 
-              <div style={{ padding: '20px', background: '#f7fafc', borderRadius: '8px' }}>
-                <h3 style={{ marginBottom: '15px', fontSize: '1.2rem' }}>By Company</h3>
-                {Object.entries(summary.by_company).map(([company, count]) => (
-                  <div key={company} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span>{company}</span>
-                    <strong>{count}</strong>
-                  </div>
-                ))}
-              </div>
+              {/* By Company */}
+              <Grid item xs={12} sm={6} md={3}>
+                <Card sx={{ p: 3, bgcolor: 'background.default' }}>
+                  <Typography variant="h6" gutterBottom>
+                    By Company
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {Object.entries(summary.by_company).map(([company, count]) => (
+                      <Box key={company} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" noWrap sx={{ maxWidth: '70%' }}>
+                          {company}
+                        </Typography>
+                        <Typography variant="body2" fontWeight={600}>
+                          {count}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                </Card>
+              </Grid>
 
-              <div style={{ padding: '20px', background: '#f7fafc', borderRadius: '8px' }}>
-                <h3 style={{ marginBottom: '15px', fontSize: '1.2rem' }}>By Manager</h3>
-                {Object.entries(summary.by_manager).slice(0, 10).map(([manager, count]) => (
-                  <div key={manager} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <span>{manager}</span>
-                    <strong>{count}</strong>
-                  </div>
-                ))}
-                {Object.keys(summary.by_manager).length > 10 && (
-                  <div style={{ marginTop: '10px', fontSize: '0.9rem', color: '#718096' }}>
-                    ...and {Object.keys(summary.by_manager).length - 10} more
-                  </div>
-                )}
-              </div>
-            </div>
+              {/* By Manager */}
+              <Grid item xs={12} sm={6} md={3}>
+                <Card sx={{ p: 3, bgcolor: 'background.default' }}>
+                  <Typography variant="h6" gutterBottom>
+                    By Manager
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {Object.entries(summary.by_manager).slice(0, 10).map(([manager, count]) => (
+                      <Box key={manager} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" noWrap sx={{ maxWidth: '70%' }}>
+                          {manager}
+                        </Typography>
+                        <Typography variant="body2" fontWeight={600}>
+                          {count}
+                        </Typography>
+                      </Box>
+                    ))}
+                    {Object.keys(summary.by_manager).length > 10 && (
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                        ...and {Object.keys(summary.by_manager).length - 10} more
+                      </Typography>
+                    )}
+                  </Box>
+                </Card>
+              </Grid>
+            </Grid>
           ) : null}
         </>
       )}
@@ -381,61 +556,85 @@ const AuditReporting = () => {
       {/* Statistics View */}
       {activeView === 'stats' && (
         <>
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-            <input
+          <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+            <TextField
+              size="small"
               type="date"
               name="startDate"
+              label="Start Date"
               value={filters.startDate}
               onChange={handleFilterChange}
-              placeholder="Start Date"
+              InputLabelProps={{ shrink: true }}
             />
-            <input
+            <TextField
+              size="small"
               type="date"
               name="endDate"
+              label="End Date"
               value={filters.endDate}
               onChange={handleFilterChange}
-              placeholder="End Date"
+              InputLabelProps={{ shrink: true }}
             />
-            <button onClick={handleApplyFilters} className="btn btn-primary" style={{ width: 'auto', padding: '10px 20px' }}>
+            <Button
+              variant="contained"
+              onClick={handleApplyFilters}
+              startIcon={<FilterList />}
+            >
               Apply Filters
-            </button>
-          </div>
+            </Button>
+          </Box>
 
           {loading ? (
-            <div className="loading">Loading statistics...</div>
+            <Box display="flex" justifyContent="center" alignItems="center" py={5}>
+              <CircularProgress />
+              <Typography variant="body1" sx={{ ml: 2 }}>
+                Loading statistics...
+              </Typography>
+            </Box>
           ) : stats.length === 0 ? (
-            <div className="empty-state">
-              <p>No statistics available for the selected period.</p>
-            </div>
+            <Box sx={{ textAlign: 'center', py: 5 }}>
+              <BarChart sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
+              <Typography variant="body1" color="text.secondary">
+                No statistics available for the selected period.
+              </Typography>
+            </Box>
           ) : (
-            <div className="asset-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Action</th>
-                    <th>Entity Type</th>
-                    <th>Count</th>
-                  </tr>
-                </thead>
-                <tbody>
+            <TableContainer component={Paper} variant="outlined" sx={{ maxWidth: '100%' }}>
+              <Table size={isMobile ? 'small' : 'medium'}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell><strong>Action</strong></TableCell>
+                    <TableCell><strong>Entity Type</strong></TableCell>
+                    <TableCell><strong>Count</strong></TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
                   {stats.map((stat, index) => (
-                    <tr key={index}>
-                      <td>
-                        <span className={getActionBadgeClass(stat.action)}>
-                          {stat.action}
-                        </span>
-                      </td>
-                      <td style={{ textTransform: 'capitalize' }}>{stat.entity_type}</td>
-                      <td><strong>{stat.count}</strong></td>
-                    </tr>
+                    <TableRow key={index} hover>
+                      <TableCell>
+                        <Chip
+                          label={stat.action}
+                          color={getActionColor(stat.action)}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell sx={{ textTransform: 'capitalize' }}>
+                        {stat.entity_type}
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body1" fontWeight={600}>
+                          {stat.count}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </TableBody>
+              </Table>
+            </TableContainer>
           )}
         </>
       )}
-    </div>
+    </Card>
   );
 };
 

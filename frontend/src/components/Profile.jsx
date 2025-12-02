@@ -1,4 +1,19 @@
 import { useState, useEffect } from 'react';
+import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  TextField,
+  Button,
+  Alert,
+  Grid,
+  Chip,
+  Paper,
+  Divider,
+  CircularProgress,
+} from '@mui/material';
+import { Save, Lock, Person } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
 const Profile = () => {
@@ -130,140 +145,191 @@ const Profile = () => {
     }
   };
 
+  const getRoleColor = (role) => {
+    const colors = {
+      admin: 'error',
+      manager: 'warning',
+      employee: 'info',
+    };
+    return colors[role] || 'default';
+  };
+
   return (
-    <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-      <div className="card" style={{ marginBottom: '30px' }}>
-        <h2>Profile Information</h2>
+    <Box sx={{ maxWidth: 800, mx: 'auto' }}>
+      <Grid container spacing={3}>
+        {/* Profile Information Card */}
+        <Grid item xs={12}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                <Person sx={{ mr: 1 }} color="primary" />
+                <Typography variant="h5" fontWeight={600}>
+                  Profile Information
+                </Typography>
+              </Box>
 
-        <div style={{ marginBottom: '30px', padding: '15px', background: '#f7fafc', borderRadius: '6px' }}>
-          <p><strong>Email:</strong> {user?.email}</p>
-          <p>
-            <strong>Role:</strong>{' '}
-            <span
-              style={{
-                textTransform: 'capitalize',
-                padding: '4px 12px',
-                borderRadius: '4px',
-                background: user?.role === 'admin' ? '#2b75a7' : user?.role === 'manager' ? '#184a7b' : '#172b51',
-                color: 'white',
-                fontWeight: 'bold',
-                fontSize: '0.9rem'
-              }}
-            >
-              {user?.role}
-            </span>
-          </p>
-          <p><strong>Current Name:</strong> {user?.name || 'Not set'}</p>
-        </div>
+              <Paper variant="outlined" sx={{ p: 2, mb: 3, bgcolor: 'grey.50' }}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">
+                      Email
+                    </Typography>
+                    <Typography variant="body1" fontWeight={600}>
+                      {user?.email}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">
+                      Role
+                    </Typography>
+                    <Chip
+                      label={user?.role?.toUpperCase()}
+                      color={getRoleColor(user?.role)}
+                      size="small"
+                      sx={{ mt: 0.5, fontWeight: 600 }}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Typography variant="body2" color="text.secondary">
+                      Current Name
+                    </Typography>
+                    <Typography variant="body1" fontWeight={600}>
+                      {user?.name || 'Not set'}
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </Paper>
 
-        {success && (
-          <div className="alert alert-success">
-            Profile updated successfully!
-          </div>
-        )}
+              {success && (
+                <Alert severity="success" sx={{ mb: 2 }}>
+                  Profile updated successfully!
+                </Alert>
+              )}
 
-        {error && (
-          <div className="alert alert-error">
-            {error}
-          </div>
-        )}
+              {error && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {error}
+                </Alert>
+              )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label htmlFor="first_name">First Name *</label>
-            <input
-              type="text"
-              id="first_name"
-              name="first_name"
-              value={formData.first_name}
-              onChange={handleChange}
-              required
-              placeholder="John"
-            />
-          </div>
+              <Box component="form" onSubmit={handleSubmit}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="First Name"
+                      name="first_name"
+                      value={formData.first_name}
+                      onChange={handleChange}
+                      required
+                      placeholder="John"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Last Name"
+                      name="last_name"
+                      value={formData.last_name}
+                      onChange={handleChange}
+                      required
+                      placeholder="Doe"
+                    />
+                  </Grid>
+                </Grid>
 
-          <div className="form-group">
-            <label htmlFor="last_name">Last Name *</label>
-            <input
-              type="text"
-              id="last_name"
-              name="last_name"
-              value={formData.last_name}
-              onChange={handleChange}
-              required
-              placeholder="Doe"
-            />
-          </div>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  fullWidth
+                  disabled={loading}
+                  startIcon={loading ? <CircularProgress size={20} /> : <Save />}
+                  sx={{ mt: 3 }}
+                >
+                  {loading ? 'Updating...' : 'Update Profile'}
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
 
-          <button type="submit" className="btn btn-primary" disabled={loading}>
-            {loading ? 'Updating...' : 'Update Profile'}
-          </button>
-        </form>
-      </div>
+        {/* Change Password Card */}
+        <Grid item xs={12}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                <Lock sx={{ mr: 1 }} color="primary" />
+                <Typography variant="h5" fontWeight={600}>
+                  Change Password
+                </Typography>
+              </Box>
 
-      <div className="card">
-        <h2>Change Password</h2>
+              {passwordSuccess && (
+                <Alert severity="success" sx={{ mb: 2 }}>
+                  Password changed successfully!
+                </Alert>
+              )}
 
-        {passwordSuccess && (
-          <div className="alert alert-success">
-            Password changed successfully!
-          </div>
-        )}
+              {passwordError && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {passwordError}
+                </Alert>
+              )}
 
-        {passwordError && (
-          <div className="alert alert-error">
-            {passwordError}
-          </div>
-        )}
+              <Box component="form" onSubmit={handlePasswordSubmit}>
+                <TextField
+                  fullWidth
+                  type="password"
+                  label="Current Password"
+                  name="currentPassword"
+                  value={passwordData.currentPassword}
+                  onChange={handlePasswordChange}
+                  required
+                  placeholder="Enter current password"
+                  sx={{ mb: 2 }}
+                />
 
-        <form onSubmit={handlePasswordSubmit}>
-          <div className="form-group">
-            <label htmlFor="currentPassword">Current Password *</label>
-            <input
-              type="password"
-              id="currentPassword"
-              name="currentPassword"
-              value={passwordData.currentPassword}
-              onChange={handlePasswordChange}
-              required
-              placeholder="Enter current password"
-            />
-          </div>
+                <TextField
+                  fullWidth
+                  type="password"
+                  label="New Password"
+                  name="newPassword"
+                  value={passwordData.newPassword}
+                  onChange={handlePasswordChange}
+                  required
+                  placeholder="Enter new password (min 6 characters)"
+                  inputProps={{ minLength: 6 }}
+                  sx={{ mb: 2 }}
+                />
 
-          <div className="form-group">
-            <label htmlFor="newPassword">New Password *</label>
-            <input
-              type="password"
-              id="newPassword"
-              name="newPassword"
-              value={passwordData.newPassword}
-              onChange={handlePasswordChange}
-              required
-              placeholder="Enter new password (min 6 characters)"
-              minLength={6}
-            />
-          </div>
+                <TextField
+                  fullWidth
+                  type="password"
+                  label="Confirm New Password"
+                  name="confirmPassword"
+                  value={passwordData.confirmPassword}
+                  onChange={handlePasswordChange}
+                  required
+                  placeholder="Confirm new password"
+                  inputProps={{ minLength: 6 }}
+                  sx={{ mb: 3 }}
+                />
 
-          <div className="form-group">
-            <label htmlFor="confirmPassword">Confirm New Password *</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              value={passwordData.confirmPassword}
-              onChange={handlePasswordChange}
-              required
-              placeholder="Confirm new password"
-              minLength={6}
-            />
-          </div>
-
-          <button type="submit" className="btn btn-primary" disabled={passwordLoading}>
-            {passwordLoading ? 'Changing Password...' : 'Change Password'}
-          </button>
-        </form>
-      </div>
-    </div>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  fullWidth
+                  disabled={passwordLoading}
+                  startIcon={passwordLoading ? <CircularProgress size={20} /> : <Lock />}
+                >
+                  {passwordLoading ? 'Changing Password...' : 'Change Password'}
+                </Button>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Box>
   );
 };
 
