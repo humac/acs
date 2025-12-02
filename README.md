@@ -1,10 +1,10 @@
-# Client Asset Registration System
+# ARS (Asset Registration System)
 
 [![GitHub Actions](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?logo=github-actions&logoColor=white)](https://github.com/humac/claude_app_poc/actions)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-A comprehensive SOC2-compliant web application for tracking and managing client laptops assigned to consultants, with full authentication, role-based access control, and automated deployment.
+A comprehensive SOC2-compliant web application for tracking and managing client assets assigned to consultants, with full authentication, role-based access control, and automated deployment.
 
 🌐 **Live Demo:** [https://assets.jvhlabs.com](https://assets.jvhlabs.com)
 

@@ -303,8 +303,8 @@ const AdminSettings = () => {
 
           <div style={{ marginTop: '30px', padding: '20px', background: '#f7fafc', borderRadius: '8px' }}>
             <h4 style={{ marginTop: 0 }}>System Information</h4>
-            <p><strong>Application:</strong> Client Asset Registration System</p>
-            <p><strong>Purpose:</strong> SOC2 Compliance - Track and manage client laptops</p>
+            <p><strong>Application:</strong> ARS - Asset Registration System</p>
+            <p><strong>Purpose:</strong> SOC2 Compliance - Track and manage client assets</p>
             <p><strong>Features:</strong></p>
             <ul style={{ color: '#4a5568' }}>
               <li>Role-based access control (Admin, Manager, Employee)</li>

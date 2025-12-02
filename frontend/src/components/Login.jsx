@@ -35,7 +35,7 @@ const Login = ({ onSwitchToRegister }) => {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <h1>Asset Registration System</h1>
+          <h1>ARS - Asset Registration System</h1>
           <p>Sign in to manage client assets</p>
         </div>
 

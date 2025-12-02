@@ -52,7 +52,7 @@ const Register = ({ onSwitchToLogin }) => {
     <div className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <h1>Asset Registration System</h1>
+          <h1>ARS - Asset Registration System</h1>
           <p>Create an account to get started</p>
         </div>
 

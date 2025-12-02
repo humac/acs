@@ -32,8 +32,8 @@ function App() {
     <div className="app">
       <header className="header">
         <div>
-          <h1>Client Asset Registration System</h1>
-          <p>SOC2 Compliance - Track and manage client laptops assigned to consultants</p>
+          <h1>ARS - Asset Registration System</h1>
+          <p>SOC2 Compliance - Track and manage client assets assigned to consultants</p>
         </div>
         <div className="user-menu">
           <div className="user-info">

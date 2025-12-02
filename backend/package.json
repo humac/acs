@@ -1,7 +1,7 @@
 {
-  "name": "asset-registration-backend",
+  "name": "ars-backend",
   "version": "1.0.0",
-  "description": "Backend API for client asset registration and management",
+  "description": "Backend API for ARS - Asset Registration System",
   "main": "server.js",
   "type": "module",
   "scripts": {

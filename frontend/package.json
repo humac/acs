@@ -1,6 +1,7 @@
 {
-  "name": "asset-registration-frontend",
+  "name": "ars-frontend",
   "version": "1.0.0",
+  "description": "Frontend for ARS - Asset Registration System",
   "type": "module",
   "scripts": {
     "dev": "vite",
