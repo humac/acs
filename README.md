@@ -17,9 +17,10 @@ A comprehensive SOC2-compliant web application for tracking and managing client 
 ### 🔐 Authentication & Security
 - **JWT Authentication** - Secure token-based auth with 7-day expiration
 - **Password Security** - bcrypt hashing (10 rounds)
+- **Password Management** - Change password from profile settings
 - **Role-Based Access Control** - Three roles: Employee, Manager, Admin
 - **First Admin Setup** - Automatic admin promotion for first user
-- **Profile Management** - Update first/last name
+- **Profile Management** - Update first/last name and password
 
 ### 📦 Asset Management
 - **Self-Service Registration** - Consultants register client laptops
@@ -39,8 +40,9 @@ A comprehensive SOC2-compliant web application for tracking and managing client 
 - **Complete Audit Trail** - All actions logged with user attribution
 - **SOC2 Compliance** - Meets audit requirements
 - **Comprehensive Logging** - CREATE, UPDATE, STATUS_CHANGE, DELETE
-- **CSV Export** - Download audit logs for compliance
+- **CSV Export** - Role-filtered audit log downloads for compliance
 - **Summary Reports** - Asset statistics by status, company, manager
+- **Secure Exports** - Role-based access control on all exports
 
 ### ⚙️ Admin Features
 - **User Management** - View, edit roles, delete users
@@ -49,12 +51,23 @@ A comprehensive SOC2-compliant web application for tracking and managing client 
 - **Audit Access** - View all system activity
 
 ### 🚀 Deployment & DevOps
-- **Docker Support** - Production-ready containers
+- **Multi-Platform Docker Support** - ARM64 and AMD64 containers
 - **GitHub Actions CI/CD** - Automated builds and deployment
-- **Portainer Integration** - Easy container management
+- **Portainer Integration** - Webhook-based deployment with auto-pull
 - **Cloudflare Tunnel** - Secure external access with SSL
 - **Health Checks** - Automated container monitoring
 - **Auto-Restart** - Self-healing containers
+- **Modern UI** - KeyData Cyber branded interface
+
+---
+
+## 🖥️ Platform Support
+
+This application supports multiple architectures:
+- **x86_64/AMD64** - Intel/AMD processors (standard servers, desktop)
+- **ARM64** - ARM processors (Raspberry Pi, AWS Graviton, Apple Silicon)
+
+Docker images are automatically built for both platforms during CI/CD.
 
 ---
 
@@ -188,11 +201,11 @@ npm run dev
 - bcrypt (password hashing)
 
 **DevOps:**
-- Docker & Docker Compose
+- Docker & Docker Compose (ARM64 + AMD64)
 - GitHub Actions (CI/CD)
-- Portainer (container management)
+- Portainer (container management with webhooks)
 - Cloudflare Tunnel (secure access)
-- GitHub Container Registry
+- GitHub Container Registry (multi-platform)
 
 ---
 
@@ -224,10 +237,10 @@ docker-compose up -d
 ### GitHub Actions (CI/CD)
 
 Automatically deploys on push to `main`:
-1. Builds Docker images
+1. Builds multi-platform Docker images (ARM64 + AMD64)
 2. Pushes to GitHub Container Registry
-3. Triggers Portainer webhook
-4. Deploys updated containers
+3. Triggers Portainer webhook with auto-pull
+4. Deploys updated containers with latest images
 
 ### Cloudflare Tunnel
 
@@ -327,10 +340,11 @@ CREATE TABLE assets (
 
 ### Authentication
 ```
-POST   /api/auth/register     Register new user
-POST   /api/auth/login        Login and get token
-GET    /api/auth/me           Get current user info
-PUT    /api/auth/profile      Update user profile
+POST   /api/auth/register        Register new user
+POST   /api/auth/login           Login and get token
+GET    /api/auth/me              Get current user info
+PUT    /api/auth/profile         Update user profile (name)
+PUT    /api/auth/change-password Change user password
 ```
 
 ### Assets (Authenticated)
@@ -531,7 +545,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [x] Audit Logging
 - [x] Company Management
 - [x] Profile Management
+- [x] Password Change Functionality
 - [x] Automated Deployment
+- [x] Multi-Platform Support (ARM64 + AMD64)
+- [x] Portainer Webhook Auto-Pull
+- [x] Modern UI with KeyData Cyber Branding
 - [x] Cloudflare Tunnel Support
 - [ ] Multi-factor Authentication
 - [ ] Email Notifications
