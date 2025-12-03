@@ -132,6 +132,21 @@ app.post('/api/auth/register', async (req, res) => {
     // Generate token
     const token = generateToken(newUser);
 
+    // Log audit
+    await auditDb.log(
+      'create',
+      'user',
+      newUser.id,
+      newUser.email,
+      {
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        registration_method: 'local'
+      },
+      newUser.email
+    );
+
     // Return user info (without password hash)
     res.status(201).json({
       message: 'User registered successfully',
@@ -251,6 +266,9 @@ app.put('/api/auth/profile', authenticate, async (req, res) => {
       });
     }
 
+    // Get old profile data for audit
+    const oldUser = await userDb.getById(req.user.id);
+
     // Update profile
     await userDb.updateProfile(req.user.id, {
       first_name,
@@ -259,6 +277,21 @@ app.put('/api/auth/profile', authenticate, async (req, res) => {
 
     // Get updated user
     const user = await userDb.getById(req.user.id);
+
+    // Log audit
+    await auditDb.log(
+      'update_profile',
+      'user',
+      user.id,
+      user.email,
+      {
+        old_first_name: oldUser.first_name,
+        old_last_name: oldUser.last_name,
+        new_first_name: first_name,
+        new_last_name: last_name
+      },
+      user.email
+    );
 
     res.json({
       message: 'Profile updated successfully',
@@ -575,8 +608,23 @@ app.put('/api/auth/users/:id/role', authenticate, authorize('admin'), async (req
       });
     }
 
+    const oldRole = user.role;
     await userDb.updateRole(userId, role);
     const updatedUser = await userDb.getById(userId);
+
+    // Log audit
+    await auditDb.log(
+      'update_role',
+      'user',
+      updatedUser.id,
+      updatedUser.email,
+      {
+        old_role: oldRole,
+        new_role: role,
+        changed_by: req.user.email
+      },
+      req.user.email
+    );
 
     res.json({
       message: 'User role updated successfully',
@@ -611,6 +659,21 @@ app.delete('/api/auth/users/:id', authenticate, authorize('admin'), async (req, 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
+
+    // Log audit before deletion
+    await auditDb.log(
+      'delete',
+      'user',
+      user.id,
+      user.email,
+      {
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        deleted_by: req.user.email
+      },
+      req.user.email
+    );
 
     await userDb.delete(userId);
     res.json({ message: 'User deleted successfully' });
