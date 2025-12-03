@@ -20,7 +20,8 @@ describe('MFA Module', () => {
       expect(result.qrCode).toMatch(/^data:image\/png;base64,/);
       expect(result.otpauthUrl).toBeDefined();
       expect(result.otpauthUrl).toContain('otpauth://totp/');
-      expect(result.otpauthUrl).toContain(userEmail);
+      // Email is URL-encoded in the otpauth URL
+      expect(decodeURIComponent(result.otpauthUrl)).toContain(userEmail);
     });
 
     it('should include custom issuer in otpauth URL', async () => {

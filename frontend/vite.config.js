@@ -24,5 +24,11 @@ export default defineConfig({
         'src/test/',
       ],
     },
+    // Suppress console warnings during tests
+    onConsoleLog(log, type) {
+      if (type === 'stderr' && log.includes('Warning: An update to')) {
+        return false;
+      }
+    },
   },
 });

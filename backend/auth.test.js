@@ -1,10 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from '@jest/globals';
+import { describe, it, expect } from '@jest/globals';
 import { generateToken, verifyToken, hashPassword, comparePassword } from './auth.js';
-
-// Mock the database module
-vi.mock('./database.js', () => ({
-  userDb: {},
-}));
 
 describe('Auth Module', () => {
   describe('generateToken', () => {
