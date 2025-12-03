@@ -82,15 +82,8 @@ jobs:
 
     steps:
       - name: Deploy Stack via Portainer Webhook
-        run: |
-          # Call webhook with pullImage parameter to force pull latest images
-          WEBHOOK_URL="${{ secrets.PORTAINER_WEBHOOK_URL }}"
-          if [[ "$WEBHOOK_URL" == *"?"* ]]; then
-            curl -X POST "${WEBHOOK_URL}&pullImage=true"
-          else
-            curl -X POST "${WEBHOOK_URL}?pullImage=true"
-          fi
-
+        run: curl -X POST "${{ secrets.PORTAINER_WEBHOOK_URL }}"
+        
       - name: Wait for deployment
         run: sleep 15
 
