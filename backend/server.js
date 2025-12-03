@@ -7,12 +7,35 @@ import { initializeOIDC, getAuthorizationUrl, handleCallback, getUserInfo, extra
 import { generateMFASecret, verifyTOTP, generateBackupCodes, formatBackupCode } from './mfa.js';
 import { randomBytes } from 'crypto';
 import multer from 'multer';
-import { unlink } from 'fs/promises';
+import { readFile, unlink } from 'fs/promises';
 import os from 'os';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 const upload = multer({ dest: os.tmpdir(), limits: { fileSize: 25 * 1024 * 1024 } });
+
+const parseCSVFile = async (filePath) => {
+  const content = await readFile(filePath, 'utf8');
+  const lines = content
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) return [];
+
+  const headers = lines[0].split(',').map((header) => header.trim());
+
+  return lines.slice(1).map((line) => {
+    const values = line.split(',').map((value) => value.trim());
+    const record = {};
+
+    headers.forEach((header, index) => {
+      record[header] = values[index] || '';
+    });
+
+    return record;
+  });
+};
 
 // Middleware
 app.use(cors());
@@ -942,6 +965,106 @@ app.get('/api/assets/search', async (req, res) => {
   }
 });
 
+// Bulk import assets via CSV
+app.post('/api/assets/import', authenticate, upload.single('file'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'CSV file is required' });
+  }
+
+  try {
+    const records = await parseCSVFile(req.file.path);
+    const requiredFields = [
+      'employee_name',
+      'employee_email',
+      'manager_name',
+      'manager_email',
+      'client_name',
+      'laptop_serial_number',
+      'laptop_asset_tag'
+    ];
+    const validStatuses = ['active', 'returned', 'lost', 'damaged', 'retired'];
+
+    let imported = 0;
+    const errors = [];
+
+    for (let index = 0; index < records.length; index++) {
+      const row = records[index];
+      const normalizedRow = Object.fromEntries(
+        Object.entries(row).map(([key, value]) => [key.trim(), (value || '').trim()])
+      );
+
+      const missingFields = requiredFields.filter((field) => !normalizedRow[field]);
+      if (missingFields.length > 0) {
+        errors.push(`Row ${index + 2}: Missing required fields: ${missingFields.join(', ')}`);
+        continue;
+      }
+
+      const status = normalizedRow.status ? normalizedRow.status.toLowerCase() : 'active';
+      if (normalizedRow.status && !validStatuses.includes(status)) {
+        errors.push(`Row ${index + 2}: Invalid status '${normalizedRow.status}'. Valid statuses: ${validStatuses.join(', ')}`);
+        continue;
+      }
+
+      const assetData = {
+        employee_name: normalizedRow.employee_name,
+        employee_email: normalizedRow.employee_email,
+        manager_name: normalizedRow.manager_name,
+        manager_email: normalizedRow.manager_email,
+        client_name: normalizedRow.client_name,
+        laptop_make: normalizedRow.laptop_make || '',
+        laptop_model: normalizedRow.laptop_model || '',
+        laptop_serial_number: normalizedRow.laptop_serial_number,
+        laptop_asset_tag: normalizedRow.laptop_asset_tag,
+        status,
+        notes: normalizedRow.notes || ''
+      };
+
+      try {
+        const result = await assetDb.create(assetData);
+        const newAsset = await assetDb.getById(result.id);
+
+        await auditDb.log(
+          'CREATE',
+          'asset',
+          newAsset.id,
+          `${assetData.laptop_serial_number} - ${assetData.employee_name}`,
+          {
+            employee_name: assetData.employee_name,
+            employee_email: assetData.employee_email,
+            client_name: assetData.client_name,
+            laptop_serial_number: assetData.laptop_serial_number,
+            laptop_asset_tag: assetData.laptop_asset_tag,
+            imported: true
+          },
+          assetData.employee_email
+        );
+
+        imported += 1;
+      } catch (error) {
+        const duplicateError = error.message.includes('UNIQUE constraint failed');
+        const postgresDuplicate = error.message.includes('duplicate key value violates unique constraint');
+        if (duplicateError || postgresDuplicate) {
+          errors.push(`Row ${index + 2}: Asset with this serial number or asset tag already exists`);
+        } else {
+          errors.push(`Row ${index + 2}: ${error.message}`);
+        }
+      }
+    }
+
+    res.json({
+      message: `Imported ${imported} assets${errors.length ? ` with ${errors.length} issues` : ''}`,
+      imported,
+      failed: errors.length,
+      errors
+    });
+  } catch (error) {
+    console.error('Error importing assets:', error);
+    res.status(500).json({ error: 'Failed to import assets' });
+  } finally {
+    await unlink(req.file.path);
+  }
+});
+
 // Create new asset
 app.post('/api/assets', authenticate, async (req, res) => {
   try {
@@ -1117,6 +1240,66 @@ app.get('/api/companies/names', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Error fetching company names:', error);
     res.status(500).json({ error: 'Failed to fetch company names' });
+  }
+});
+
+// Bulk import companies via CSV (admin only)
+app.post('/api/companies/import', authenticate, authorize('admin'), upload.single('file'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'CSV file is required' });
+  }
+
+  try {
+    const records = await parseCSVFile(req.file.path);
+    let imported = 0;
+    const errors = [];
+
+    for (let index = 0; index < records.length; index++) {
+      const row = records[index];
+      const name = (row.name || '').trim();
+      const description = (row.description || '').trim();
+
+      if (!name) {
+        errors.push(`Row ${index + 2}: Company name is required`);
+        continue;
+      }
+
+      try {
+        const existing = await companyDb.getByName(name);
+        if (existing) {
+          errors.push(`Row ${index + 2}: A company with the name "${name}" already exists`);
+          continue;
+        }
+
+        const result = await companyDb.create({ name, description });
+        const newCompany = await companyDb.getById(result.id);
+
+        await auditDb.log(
+          'CREATE',
+          'company',
+          newCompany.id,
+          name,
+          { description: newCompany.description, imported: true },
+          req.user.email
+        );
+
+        imported += 1;
+      } catch (error) {
+        errors.push(`Row ${index + 2}: ${error.message}`);
+      }
+    }
+
+    res.json({
+      message: `Imported ${imported} companies${errors.length ? ` with ${errors.length} issues` : ''}`,
+      imported,
+      failed: errors.length,
+      errors
+    });
+  } catch (error) {
+    console.error('Error importing companies:', error);
+    res.status(500).json({ error: 'Failed to import companies' });
+  } finally {
+    await unlink(req.file.path);
   }
 });
 

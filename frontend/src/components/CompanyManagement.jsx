@@ -22,12 +22,18 @@ import {
   IconButton,
   useTheme,
   useMediaQuery,
+  Stack,
+  Link,
+  List,
+  ListItem,
+  ListItemText,
 } from '@mui/material';
 import {
   Add,
   Edit,
   Delete,
   Business,
+  UploadFile,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -45,6 +51,11 @@ const CompanyManagement = () => {
   const [formError, setFormError] = useState(null);
   const [formSuccess, setFormSuccess] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, company: null });
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importResult, setImportResult] = useState(null);
+  const [importError, setImportError] = useState(null);
+  const [importing, setImporting] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -169,6 +180,53 @@ const CompanyManagement = () => {
     setFormError(null);
   };
 
+  const handleImportCompanies = async (e) => {
+    e.preventDefault();
+    setImportError(null);
+    setImportResult(null);
+
+    if (!importFile) {
+      setImportError('Please select a CSV file to import.');
+      return;
+    }
+
+    setImporting(true);
+
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append('file', importFile);
+
+      const response = await fetch('/api/companies/import', {
+        method: 'POST',
+        headers: {
+          ...getAuthHeaders()
+        },
+        body: formDataUpload
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to import companies');
+      }
+
+      setImportResult(data);
+      setImportFile(null);
+      fetchCompanies();
+    } catch (err) {
+      setImportError(err.message);
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleImportModalClose = () => {
+    setShowImportModal(false);
+    setImportFile(null);
+    setImportError(null);
+    setImportResult(null);
+  };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -201,13 +259,22 @@ const CompanyManagement = () => {
               Company Management ({companies.length} companies)
             </Typography>
           </Box>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => setShowForm(true)}
-          >
-            Add Company
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <Button
+              variant="outlined"
+              startIcon={<UploadFile />}
+              onClick={() => setShowImportModal(true)}
+            >
+              Bulk Import
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => setShowForm(true)}
+            >
+              Add Company
+            </Button>
+          </Stack>
         </Box>
 
         {/* Success Message */}
@@ -284,6 +351,90 @@ const CompanyManagement = () => {
           </TableContainer>
         )}
       </Card>
+
+      {/* Bulk Import Dialog */}
+      <Dialog
+        open={showImportModal}
+        onClose={handleImportModalClose}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Import Companies from CSV</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Upload a CSV file with company names and optional descriptions. Use the example file to see the expected columns.
+          </Typography>
+
+          <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+            <Button
+              component="label"
+              variant="outlined"
+              startIcon={<UploadFile />}
+            >
+              {importFile ? 'Change File' : 'Choose CSV File'}
+              <input
+                type="file"
+                accept=".csv"
+                hidden
+                onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+              />
+            </Button>
+            <Button
+              component={Link}
+              href="/import_companies.csv"
+              download
+              variant="text"
+            >
+              Download example CSV
+            </Button>
+          </Stack>
+
+          {importFile && (
+            <Typography variant="body2" sx={{ mb: 2 }}>
+              Selected file: {importFile.name}
+            </Typography>
+          )}
+
+          {importError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {importError}
+            </Alert>
+          )}
+
+          {importResult && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              {importResult.message}
+            </Alert>
+          )}
+
+          {importResult?.errors?.length > 0 && (
+            <Paper variant="outlined" sx={{ p: 1, maxHeight: 200, overflow: 'auto' }}>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Issues
+              </Typography>
+              <List dense>
+                {importResult.errors.map((err, idx) => (
+                  <ListItem key={idx} disablePadding>
+                    <ListItemText primary={err} />
+                  </ListItem>
+                ))}
+              </List>
+            </Paper>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleImportModalClose} variant="outlined">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleImportCompanies}
+            variant="contained"
+            disabled={importing}
+          >
+            {importing ? 'Importing...' : 'Import Companies'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Add/Edit Company Dialog */}
       <Dialog

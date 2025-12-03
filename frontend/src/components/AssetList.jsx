@@ -26,12 +26,19 @@ import {
   IconButton,
   useTheme,
   useMediaQuery,
+  DialogTitle,
+  Stack,
+  Link,
+  List,
+  ListItem,
+  ListItemText,
 } from '@mui/material';
 import {
   Add,
   FilterList,
   Clear,
   Edit,
+  UploadFile,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import StatusUpdateModal from './StatusUpdateModal';
@@ -46,6 +53,11 @@ const AssetList = ({ refresh, onAssetRegistered }) => {
   const [selectedAsset, setSelectedAsset] = useState(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState(null);
+  const [importResult, setImportResult] = useState(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -166,6 +178,53 @@ const AssetList = ({ refresh, onAssetRegistered }) => {
     }
   };
 
+  const handleImportAssets = async (e) => {
+    e.preventDefault();
+    setImportError(null);
+    setImportResult(null);
+
+    if (!importFile) {
+      setImportError('Please select a CSV file to import.');
+      return;
+    }
+
+    setImporting(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', importFile);
+
+      const response = await fetch('/api/assets/import', {
+        method: 'POST',
+        headers: {
+          ...getAuthHeaders()
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to import assets');
+      }
+
+      setImportResult(data);
+      setImportFile(null);
+      fetchAssets();
+    } catch (err) {
+      setImportError(err.message);
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleImportModalClose = () => {
+    setShowImportModal(false);
+    setImportFile(null);
+    setImportError(null);
+    setImportResult(null);
+  };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -219,13 +278,22 @@ const AssetList = ({ refresh, onAssetRegistered }) => {
           <Typography variant="h5" fontWeight={600}>
             Asset Inventory ({filteredAssets.length} assets)
           </Typography>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={handleNewAssetClick}
-          >
-            New Asset
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <Button
+              variant="outlined"
+              startIcon={<UploadFile />}
+              onClick={() => setShowImportModal(true)}
+            >
+              Bulk Import
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={handleNewAssetClick}
+            >
+              New Asset
+            </Button>
+          </Stack>
         </Box>
 
         {/* Filters */}
@@ -376,6 +444,88 @@ const AssetList = ({ refresh, onAssetRegistered }) => {
           onUpdate={handleStatusUpdated}
         />
       )}
+
+      {/* Bulk Import Modal */}
+      <Dialog
+        open={showImportModal}
+        onClose={handleImportModalClose}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Import Assets from CSV</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Upload a CSV file with your asset details. Download the example file to see the required columns and formatting.
+          </Typography>
+
+          <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+            <Button
+              component="label"
+              variant="outlined"
+              startIcon={<UploadFile />}
+            >
+              {importFile ? 'Change File' : 'Choose CSV File'}
+              <input
+                type="file"
+                accept=".csv"
+                hidden
+                onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+              />
+            </Button>
+            <Button
+              component={Link}
+              href="/import_assets.csv"
+              download
+              variant="text"
+            >
+              Download example CSV
+            </Button>
+          </Stack>
+
+          {importFile && (
+            <Typography variant="body2" sx={{ mb: 2 }}>
+              Selected file: {importFile.name}
+            </Typography>
+          )}
+
+          {importError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {importError}
+            </Alert>
+          )}
+
+          {importResult && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              {importResult.message}
+            </Alert>
+          )}
+
+          {importResult?.errors?.length > 0 && (
+            <Paper variant="outlined" sx={{ p: 1, maxHeight: 200, overflow: 'auto' }}>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Issues
+              </Typography>
+              <List dense>
+                {importResult.errors.map((err, idx) => (
+                  <ListItem key={idx} disablePadding>
+                    <ListItemText primary={err} />
+                  </ListItem>
+                ))}
+              </List>
+            </Paper>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleImportModalClose}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={handleImportAssets}
+            disabled={importing}
+          >
+            {importing ? 'Importing...' : 'Import Assets'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Asset Registration Modal */}
       <Dialog
