@@ -114,6 +114,43 @@ const ensureSQLite = () => {
   databaseEngine = 'sqlite';
 };
 
+const columnExistsSQLite = (table, column) => {
+  const result = sqliteDb.prepare(`PRAGMA table_info(${table})`).all();
+  return result.some((col) => col.name === column);
+};
+
+const runMigrations = async () => {
+  if (isPostgres) {
+    // Align legacy Postgres databases with the current schema
+    await dbRun(`ALTER TABLE assets ADD COLUMN IF NOT EXISTS laptop_make TEXT DEFAULT ''`);
+    await dbRun(`ALTER TABLE assets ADD COLUMN IF NOT EXISTS laptop_model TEXT DEFAULT ''`);
+    await dbRun('ALTER TABLE users ADD COLUMN IF NOT EXISTS oidc_sub TEXT');
+    await dbRun('ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_enabled INTEGER DEFAULT 0');
+    await dbRun('ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_secret TEXT');
+    await dbRun('ALTER TABLE users ADD COLUMN IF NOT EXISTS mfa_backup_codes TEXT');
+    return;
+  }
+
+  // SQLite migrations (idempotent)
+  const addColumnIfMissing = (table, column, definition) => {
+    if (!columnExistsSQLite(table, column)) {
+      try {
+        sqliteDb.prepare(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`).run();
+        console.log(`Added column ${column} to ${table}`);
+      } catch (err) {
+        console.error(`Failed to add column ${column} to ${table}:`, err.message);
+      }
+    }
+  };
+
+  addColumnIfMissing('assets', 'laptop_make', 'TEXT DEFAULT ""');
+  addColumnIfMissing('assets', 'laptop_model', 'TEXT DEFAULT ""');
+  addColumnIfMissing('users', 'oidc_sub', 'TEXT');
+  addColumnIfMissing('users', 'mfa_enabled', 'INTEGER DEFAULT 0');
+  addColumnIfMissing('users', 'mfa_secret', 'TEXT');
+  addColumnIfMissing('users', 'mfa_backup_codes', 'TEXT');
+};
+
 const initDb = async () => {
   // Attempt PostgreSQL first if requested
   if (selectedEngine === 'postgres') {
@@ -294,6 +331,9 @@ const initDb = async () => {
   await dbRun(usersTable);
   await dbRun(oidcSettingsTable);
 
+  // Backfill legacy databases before creating indexes
+  await runMigrations();
+
   // Insert default OIDC settings if not exists
   const checkSettings = await dbGet('SELECT id FROM oidc_settings WHERE id = 1');
   if (!checkSettings) {
@@ -313,7 +353,7 @@ const initDb = async () => {
   await dbRun('CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_logs(timestamp)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_logs(entity_type, entity_id)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_user_email ON users(email)');
-  await dbRun('CREATE UNIQUE INDEX IF NOT EXISTS idx_user_oidc_sub ON users(oidc_sub)');
+  await dbRun('CREATE UNIQUE INDEX IF NOT EXISTS idx_user_oidc_sub ON users(oidc_sub) WHERE oidc_sub IS NOT NULL');
 
   console.log(`Database initialized using ${isPostgres ? 'PostgreSQL' : 'SQLite'}`);
 };
