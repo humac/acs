@@ -22,7 +22,9 @@ const Profile = () => {
   const { user, getAuthHeaders, updateUser } = useAuth();
   const [formData, setFormData] = useState({
     first_name: '',
-    last_name: ''
+    last_name: '',
+    manager_name: '',
+    manager_email: ''
   });
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -50,7 +52,9 @@ const Profile = () => {
     if (user) {
       setFormData({
         first_name: user.first_name || '',
-        last_name: user.last_name || ''
+        last_name: user.last_name || '',
+        manager_name: user.manager_name || '',
+        manager_email: user.manager_email || ''
       });
     }
   }, [user]);
@@ -293,6 +297,22 @@ const Profile = () => {
                     {user?.name || 'Not set'}
                   </Typography>
                 </Box>
+                <Box>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    Manager Name
+                  </Typography>
+                  <Typography variant="body1" fontWeight={600}>
+                    {user?.manager_name || 'Not set'}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    Manager Email
+                  </Typography>
+                  <Typography variant="body1" fontWeight={600}>
+                    {user?.manager_email || 'Not set'}
+                  </Typography>
+                </Box>
               </Box>
             </Card>
           </Grid>
@@ -304,7 +324,7 @@ const Profile = () => {
                 Update Profile
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Update your first and last name. Your email address cannot be changed.
+                Update your personal information and manager details. Your email address cannot be changed.
               </Typography>
 
               {error && (
@@ -332,6 +352,27 @@ const Profile = () => {
                   onChange={handleChange}
                   required
                   placeholder="Doe"
+                  sx={{ mb: 2 }}
+                />
+                <TextField
+                  fullWidth
+                  label="Manager Name"
+                  name="manager_name"
+                  value={formData.manager_name}
+                  onChange={handleChange}
+                  required
+                  placeholder="Jane Smith"
+                  sx={{ mb: 2 }}
+                />
+                <TextField
+                  fullWidth
+                  label="Manager Email"
+                  name="manager_email"
+                  type="email"
+                  value={formData.manager_email}
+                  onChange={handleChange}
+                  required
+                  placeholder="manager@company.com"
                   sx={{ mb: 2 }}
                 />
 

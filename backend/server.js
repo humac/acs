@@ -94,6 +94,12 @@ app.post('/api/auth/register', async (req, res) => {
       });
     }
 
+    if (!manager_name || !manager_email) {
+      return res.status(400).json({
+        error: 'Manager name and manager email are required'
+      });
+    }
+
     // Check if user already exists
     const existingUser = await userDb.getByEmail(email);
     if (existingUser) {
@@ -124,8 +130,8 @@ app.post('/api/auth/register', async (req, res) => {
       name: name || `${first_name} ${last_name}`,
       first_name: first_name || null,
       last_name: last_name || null,
-      manager_name: manager_name || null,
-      manager_email: manager_email || null,
+      manager_name,
+      manager_email,
       role: userRole
     });
 
@@ -276,6 +282,12 @@ app.put('/api/auth/profile', authenticate, async (req, res) => {
       });
     }
 
+    if (!manager_name || !manager_email) {
+      return res.status(400).json({
+        error: 'Manager name and manager email are required'
+      });
+    }
+
     // Get old profile data for audit
     const oldUser = await userDb.getById(req.user.id);
 
@@ -287,8 +299,8 @@ app.put('/api/auth/profile', authenticate, async (req, res) => {
       name,
       first_name,
       last_name,
-      manager_name: manager_name || null,
-      manager_email: manager_email || null
+      manager_name,
+      manager_email
     });
 
     // Get updated user

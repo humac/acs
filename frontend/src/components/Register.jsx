@@ -151,6 +151,7 @@ const Register = ({ onSwitchToLogin }) => {
                   name="manager_name"
                   value={formData.manager_name}
                   onChange={handleChange}
+                  required
                   placeholder="Jane Smith"
                 />
               </Grid>
@@ -162,6 +163,7 @@ const Register = ({ onSwitchToLogin }) => {
                   type="email"
                   value={formData.manager_email}
                   onChange={handleChange}
+                  required
                   placeholder="manager@company.com"
                 />
               </Grid>
