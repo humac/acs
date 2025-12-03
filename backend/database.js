@@ -47,23 +47,34 @@ const envEngine = (process.env.DB_CLIENT || '').toLowerCase();
 const envPostgresUrl = process.env.POSTGRES_URL || '';
 const configFile = loadConfig();
 
-const selectedEngine = envEngine || configFile.engine || 'sqlite';
-const selectedPostgresUrl = envPostgresUrl || configFile.postgresUrl || '';
-const isPostgres = selectedEngine === 'postgres';
+const configuredEngine = (configFile.engine || defaultConfig.engine).toLowerCase();
+const configuredPostgresUrl = configFile.postgresUrl || '';
+const wantsPostgres = (envEngine || configuredEngine) === 'postgres';
+const postgresUrl = envPostgresUrl || configuredPostgresUrl || '';
 
 let sqliteDb = null;
 let pgPool = null;
+let selectedEngine = 'sqlite';
+let selectedPostgresUrl = '';
 
-if (isPostgres) {
-  if (!selectedPostgresUrl) {
-    throw new Error('POSTGRES_URL must be set when DB_CLIENT=postgres');
+if (wantsPostgres && postgresUrl) {
+  try {
+    pgPool = new Pool({
+      connectionString: postgresUrl,
+      ssl: process.env.POSTGRES_SSL === 'true' ? { rejectUnauthorized: false } : undefined
+    });
+    selectedEngine = 'postgres';
+    selectedPostgresUrl = postgresUrl;
+  } catch (err) {
+    console.warn('Failed to initialize PostgreSQL, falling back to SQLite:', err.message);
   }
+} else if (wantsPostgres && !postgresUrl) {
+  console.warn('DB_CLIENT=postgres requested but no POSTGRES_URL provided; falling back to SQLite');
+}
 
-  pgPool = new Pool({
-    connectionString: selectedPostgresUrl,
-    ssl: process.env.POSTGRES_SSL === 'true' ? { rejectUnauthorized: false } : undefined
-  });
-} else {
+const isPostgres = selectedEngine === 'postgres';
+
+if (!isPostgres) {
   sqliteDb = new Database(join(dataDir, 'assets.db'));
 }
 
@@ -110,8 +121,8 @@ const ensureConfigSync = () => {
   const persisted = loadConfig();
   const merged = {
     ...persisted,
-    engine: envEngine || persisted.engine || defaultConfig.engine,
-    postgresUrl: envPostgresUrl || persisted.postgresUrl || defaultConfig.postgresUrl
+    engine: envEngine || selectedEngine || persisted.engine || defaultConfig.engine,
+    postgresUrl: envPostgresUrl || persisted.postgresUrl || selectedPostgresUrl || defaultConfig.postgresUrl
   };
   saveConfig(merged);
 };
