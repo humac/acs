@@ -12,6 +12,7 @@ import {
   Grid,
   CircularProgress,
   FormHelperText,
+  Divider,
 } from '@mui/material';
 import { Save } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
@@ -130,166 +131,172 @@ const AssetRegistrationForm = ({ onAssetRegistered }) => {
       )}
 
       <Box component="form" onSubmit={handleSubmit}>
-        <Grid container spacing={3}>
-          {/* Employee Information */}
-          <Grid item xs={12}>
-            <Typography variant="subtitle1" color="primary" sx={{ fontWeight: 600, mb: -1 }}>
-              Employee Information
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Employee Name"
-              name="employee_name"
-              value={formData.employee_name}
-              onChange={handleChange}
-              required
-              placeholder="John Doe"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              type="email"
-              label="Employee Email"
-              name="employee_email"
-              value={formData.employee_email}
-              onChange={handleChange}
-              required
-              placeholder="john.doe@company.com"
-            />
-          </Grid>
-
-          {/* Manager Information */}
-          <Grid item xs={12} sx={{ mt: 2 }}>
-            <Typography variant="subtitle1" color="primary" sx={{ fontWeight: 600, mb: -1 }}>
-              Manager Information
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Manager Name"
-              name="manager_name"
-              value={formData.manager_name}
-              onChange={handleChange}
-              required
-              placeholder="Jane Smith"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              type="email"
-              label="Manager Email"
-              name="manager_email"
-              value={formData.manager_email}
-              onChange={handleChange}
-              required
-              placeholder="jane.smith@company.com"
-            />
-          </Grid>
-
-          {/* Client Information */}
-          <Grid item xs={12} sx={{ mt: 2 }}>
-            <Typography variant="subtitle1" color="primary" sx={{ fontWeight: 600, mb: -1 }}>
-              Client Information
-            </Typography>
-          </Grid>
-          <Grid item xs={12}>
-            <FormControl fullWidth required error={companies.length === 0}>
-              <InputLabel id="client-company-label">Client Company</InputLabel>
-              <Select
-                labelId="client-company-label"
-                name="client_name"
-                value={formData.client_name}
+        {/* Employee Information Section */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" color="primary" sx={{ fontWeight: 600, mb: 2 }}>
+            Employee Information
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Employee Name"
+                name="employee_name"
+                value={formData.employee_name}
                 onChange={handleChange}
-                label="Client Company"
                 required
-              >
-                <MenuItem value="">
-                  <em>Select a company...</em>
+                placeholder="John Doe"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                type="email"
+                label="Employee Email"
+                name="employee_email"
+                value={formData.employee_email}
+                onChange={handleChange}
+                required
+                placeholder="john.doe@company.com"
+              />
+            </Grid>
+          </Grid>
+        </Box>
+
+        {/* Manager Information Section */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" color="primary" sx={{ fontWeight: 600, mb: 2 }}>
+            Manager Information
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                label="Manager Name"
+                name="manager_name"
+                value={formData.manager_name}
+                onChange={handleChange}
+                required
+                placeholder="Jane Smith"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                fullWidth
+                type="email"
+                label="Manager Email"
+                name="manager_email"
+                value={formData.manager_email}
+                onChange={handleChange}
+                required
+                placeholder="jane.smith@company.com"
+              />
+            </Grid>
+          </Grid>
+        </Box>
+
+        {/* Client Information Section */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" color="primary" sx={{ fontWeight: 600, mb: 2 }}>
+            Client Information
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
+          <FormControl fullWidth required error={companies.length === 0}>
+            <InputLabel id="client-company-label">Client Company</InputLabel>
+            <Select
+              labelId="client-company-label"
+              name="client_name"
+              value={formData.client_name}
+              onChange={handleChange}
+              label="Client Company"
+              required
+            >
+              <MenuItem value="">
+                <em>Select a company...</em>
+              </MenuItem>
+              {companies.map((company) => (
+                <MenuItem key={company.id} value={company.name}>
+                  {company.name}
                 </MenuItem>
-                {companies.map((company) => (
-                  <MenuItem key={company.id} value={company.name}>
-                    {company.name}
-                  </MenuItem>
-                ))}
-              </Select>
-              {companies.length === 0 && (
-                <FormHelperText>
-                  No companies available. Please add companies first in the Company Management section.
-                </FormHelperText>
-              )}
-            </FormControl>
-          </Grid>
+              ))}
+            </Select>
+            {companies.length === 0 && (
+              <FormHelperText>
+                No companies available. Please add companies first in the Company Management section.
+              </FormHelperText>
+            )}
+          </FormControl>
+        </Box>
 
-          {/* Asset Information */}
-          <Grid item xs={12} sx={{ mt: 2 }}>
-            <Typography variant="subtitle1" color="primary" sx={{ fontWeight: 600, mb: -1 }}>
-              Asset Information
-            </Typography>
+        {/* Asset Information Section */}
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="h6" color="primary" sx={{ fontWeight: 600, mb: 2 }}>
+            Asset Information
+          </Typography>
+          <Divider sx={{ mb: 2 }} />
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6} md={3}>
+              <TextField
+                fullWidth
+                label="Make"
+                name="laptop_make"
+                value={formData.laptop_make}
+                onChange={handleChange}
+                required
+                placeholder="Dell"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <TextField
+                fullWidth
+                label="Model"
+                name="laptop_model"
+                value={formData.laptop_model}
+                onChange={handleChange}
+                required
+                placeholder="Latitude 5420"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <TextField
+                fullWidth
+                label="Serial Number"
+                name="laptop_serial_number"
+                value={formData.laptop_serial_number}
+                onChange={handleChange}
+                required
+                placeholder="SN123456789"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <TextField
+                fullWidth
+                label="Asset Tag"
+                name="laptop_asset_tag"
+                value={formData.laptop_asset_tag}
+                onChange={handleChange}
+                required
+                placeholder="ASSET-001"
+              />
+            </Grid>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              fullWidth
-              label="Make"
-              name="laptop_make"
-              value={formData.laptop_make}
-              onChange={handleChange}
-              required
-              placeholder="Dell"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              fullWidth
-              label="Model"
-              name="laptop_model"
-              value={formData.laptop_model}
-              onChange={handleChange}
-              required
-              placeholder="Latitude 5420"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              fullWidth
-              label="Serial Number"
-              name="laptop_serial_number"
-              value={formData.laptop_serial_number}
-              onChange={handleChange}
-              required
-              placeholder="SN123456789"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <TextField
-              fullWidth
-              label="Asset Tag"
-              name="laptop_asset_tag"
-              value={formData.laptop_asset_tag}
-              onChange={handleChange}
-              required
-              placeholder="ASSET-001"
-            />
-          </Grid>
+        </Box>
 
-          {/* Notes */}
-          <Grid item xs={12} sx={{ mt: 2 }}>
-            <TextField
-              fullWidth
-              multiline
-              rows={3}
-              label="Notes (Optional)"
-              name="notes"
-              value={formData.notes}
-              onChange={handleChange}
-              placeholder="Additional information..."
-            />
-          </Grid>
-        </Grid>
+        {/* Notes Section */}
+        <Box sx={{ mb: 3 }}>
+          <TextField
+            fullWidth
+            multiline
+            rows={3}
+            label="Notes (Optional)"
+            name="notes"
+            value={formData.notes}
+            onChange={handleChange}
+            placeholder="Additional information..."
+          />
+        </Box>
 
         <Button
           type="submit"
