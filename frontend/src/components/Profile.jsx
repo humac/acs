@@ -233,7 +233,7 @@ const Profile = () => {
   };
 
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
+    <Card sx={{ p: 3 }}>
       <Grid container spacing={3}>
         {/* Profile Information Card */}
         <Grid item xs={12} md={6}>
@@ -541,7 +541,7 @@ const Profile = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </Box>
+    </Card>
   );
 };
 
