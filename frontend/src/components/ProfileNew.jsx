@@ -25,6 +25,7 @@ const ProfileNew = () => {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('account');
   const [profileImage, setProfileImage] = useState(null);
+  const [profileImageName, setProfileImageName] = useState('');
 
   // MFA state
   const [mfaEnabled, setMfaEnabled] = useState(false);
@@ -49,6 +50,7 @@ const ProfileNew = () => {
         manager_email: user.manager_email || ''
       });
       setProfileImage(user.profile_image || null);
+      setProfileImageName(user.profile_image ? 'Current profile image' : '');
     }
   }, [user]);
 
@@ -237,10 +239,12 @@ const ProfileNew = () => {
     const reader = new FileReader();
     reader.onloadend = () => setProfileImage(reader.result);
     reader.readAsDataURL(file);
+    setProfileImageName(file.name);
   };
 
   const handleRemoveImage = () => {
     setProfileImage(null);
+    setProfileImageName('');
   };
 
   return (
@@ -282,12 +286,15 @@ const ProfileNew = () => {
                   <div className="space-y-2">
                     <div className="space-y-1">
                       <Label htmlFor="profile-image">Profile Picture</Label>
-                      <Input id="profile-image" type="file" accept="image/*" onChange={handleImageChange} />
+                      <Input id="profile-image" type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-3">
                       <Button type="button" variant="secondary" onClick={() => document.getElementById('profile-image')?.click()}>
-                        Upload
+                        Choose Image
                       </Button>
+                      <span className="text-sm text-muted-foreground">
+                        {profileImageName || 'No file selected'}
+                      </span>
                       {profileImage && (
                         <Button type="button" variant="outline" onClick={handleRemoveImage}>
                           Remove
