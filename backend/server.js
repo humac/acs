@@ -834,6 +834,13 @@ app.post('/api/auth/passkeys/verify-registration', authenticate, async (req, res
     const { credential, name } = req.body;
     const expectedChallenge = pendingPasskeyRegistrations.get(req.user.id);
 
+    console.log('[Passkey Registration] Starting verification for user:', req.user.email);
+    console.log('[Passkey Registration] Credential received:', {
+      id: credential?.id?.substring(0, 20) + '...',
+      type: credential?.type,
+      hasResponse: !!credential?.response
+    });
+
     if (!expectedChallenge) {
       return res.status(400).json({ error: 'No passkey registration in progress' });
     }
@@ -845,23 +852,59 @@ app.post('/api/auth/passkeys/verify-registration', authenticate, async (req, res
       expectedRPID: rpID
     });
 
+    console.log('[Passkey Registration] Verification result:', {
+      verified: verification?.verified,
+      hasRegistrationInfo: !!verification?.registrationInfo
+    });
+
     if (!verification?.verified || !verification.registrationInfo) {
       return res.status(400).json({ error: 'Passkey registration verification failed' });
     }
 
-    const { credentialPublicKey, credentialID, counter } = verification.registrationInfo;
+    // In SimpleWebAuthn v10+, the structure changed
+    // registrationInfo now has a 'credential' object containing id and publicKey
+    const { credential, credentialDeviceType, credentialBackedUp } = verification.registrationInfo;
+    const credentialID = credential.id;
+    const credentialPublicKey = credential.publicKey;
+    const counter = credential.counter;
+
+    console.log('[Passkey Registration] Extracted data:', {
+      credentialIDLength: credentialID?.length || 0,
+      credentialIDType: typeof credentialID,
+      credentialPublicKeyLength: credentialPublicKey?.length || 0,
+      credentialPublicKeyType: typeof credentialPublicKey,
+      counter,
+      credentialDeviceType,
+      credentialBackedUp
+    });
+
+    const credentialIdBase64 = isoBase64URL.fromBuffer(credentialID);
+    const publicKeyBase64 = isoBase64URL.fromBuffer(credentialPublicKey);
+
+    console.log('[Passkey Registration] Converted to base64:', {
+      credentialIdBase64Length: credentialIdBase64?.length || 0,
+      publicKeyBase64Length: publicKeyBase64?.length || 0
+    });
 
     const record = await passkeyDb.create({
       userId: req.user.id,
       name: name || 'Passkey',
-      credentialId: isoBase64URL.fromBuffer(credentialID),
-      publicKey: isoBase64URL.fromBuffer(credentialPublicKey),
+      credentialId: credentialIdBase64,
+      publicKey: publicKeyBase64,
       counter,
       transports: credential?.response?.transports || []
     });
 
+    console.log('[Passkey Registration] Created record with ID:', record.id);
+
     pendingPasskeyRegistrations.delete(req.user.id);
     const savedPasskey = await passkeyDb.getById(record.id);
+
+    console.log('[Passkey Registration] Retrieved saved passkey:', {
+      id: savedPasskey?.id,
+      credentialIdLength: savedPasskey?.credential_id?.length || 0,
+      publicKeyLength: savedPasskey?.public_key?.length || 0
+    });
 
     res.json({ passkey: serializePasskey(savedPasskey) });
   } catch (error) {
