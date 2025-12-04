@@ -148,14 +148,9 @@ const Login = ({ onSwitchToRegister }) => {
     }
   };
 
-  const handlePasskeyLogin = async () => {
+  const handlePasskeyLogin = async (useConditionalUI = false) => {
     if (!window.PublicKeyCredential) {
       setError('Passkeys are not supported in this browser.');
-      return;
-    }
-
-    if (!formData.email) {
-      setError('Enter your email to continue with a passkey.');
       return;
     }
 
@@ -163,10 +158,11 @@ const Login = ({ onSwitchToRegister }) => {
     setError(null);
 
     try {
+      // Request authentication options (with or without email)
       const optionsResponse = await fetch('/api/auth/passkeys/auth-options', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email })
+        body: JSON.stringify({ email: formData.email || undefined })
       });
 
       const optionsData = await optionsResponse.json();
@@ -175,14 +171,27 @@ const Login = ({ onSwitchToRegister }) => {
       }
 
       const publicKeyOptions = prepareRequestOptions(optionsData.options);
-      const assertion = await navigator.credentials.get({ publicKey: publicKeyOptions });
+
+      // Use conditional mediation for passwordless login if supported
+      const credentialRequestOptions = {
+        publicKey: publicKeyOptions
+      };
+
+      if (useConditionalUI && window.PublicKeyCredential.isConditionalMediationAvailable) {
+        const available = await window.PublicKeyCredential.isConditionalMediationAvailable();
+        if (available) {
+          credentialRequestOptions.mediation = 'conditional';
+        }
+      }
+
+      const assertion = await navigator.credentials.get(credentialRequestOptions);
 
       if (!assertion) {
         throw new Error('No credential was provided by the authenticator');
       }
 
       const verificationPayload = {
-        email: formData.email,
+        email: formData.email || undefined,
         credential: {
           id: assertion.id,
           type: assertion.type,
@@ -211,7 +220,10 @@ const Login = ({ onSwitchToRegister }) => {
 
       setAuthData(verifyData.token, verifyData.user);
     } catch (err) {
-      setError(err.message);
+      // Ignore AbortError (user cancelled the passkey prompt)
+      if (err.name !== 'AbortError' && err.name !== 'NotAllowedError') {
+        setError(err.message);
+      }
     } finally {
       setPasskeyLoading(false);
     }
@@ -267,8 +279,8 @@ const Login = ({ onSwitchToRegister }) => {
               type="email"
               value={formData.email}
               onChange={handleChange}
-              required
-              autoComplete="email"
+              required={!formData.password}
+              autoComplete="email webauthn"
               placeholder="you@company.com"
               sx={{ mb: 2 }}
             />
@@ -280,8 +292,8 @@ const Login = ({ onSwitchToRegister }) => {
               type="password"
               value={formData.password}
               onChange={handleChange}
-              required
-              autoComplete="current-password"
+              required={!!formData.email}
+              autoComplete="current-password webauthn"
               placeholder="Enter your password"
               sx={{ mb: 3 }}
             />
@@ -301,13 +313,17 @@ const Login = ({ onSwitchToRegister }) => {
               fullWidth
               variant="outlined"
               size="large"
-              onClick={handlePasskeyLogin}
+              onClick={() => handlePasskeyLogin()}
               disabled={loading || oidcLoading || passkeyLoading}
               startIcon={passkeyLoading ? <CircularProgress size={20} /> : <VpnKey />}
               sx={{ mt: 2 }}
             >
-              {passkeyLoading ? 'Waiting for passkey...' : 'Use Passkey'}
+              {passkeyLoading ? 'Waiting for passkey...' : 'Sign In with Passkey'}
             </Button>
+
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', mt: 1 }}>
+              No password needed
+            </Typography>
 
             {oidcEnabled && (
               <>
