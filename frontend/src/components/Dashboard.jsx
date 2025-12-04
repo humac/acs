@@ -32,17 +32,17 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Laptop,
-  CheckCircle,
-  UserCheck,
   Search,
   Plus,
   Upload,
   Edit,
   Trash2,
-  X,
   Loader2,
   AlertTriangle,
   Download,
+  Users,
+  Building2,
+  Package,
 } from 'lucide-react';
 
 const Dashboard = () => {
@@ -54,6 +54,11 @@ const Dashboard = () => {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [dashboardStats, setDashboardStats] = useState({
+    assetsCount: 0,
+    employeesCount: 0,
+    companiesCount: 0
+  });
   
   // Modal states
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
@@ -90,6 +95,7 @@ const Dashboard = () => {
   useEffect(() => {
     fetchAssets();
     fetchCompanies();
+    fetchDashboardStats();
   }, []);
 
   useEffect(() => {
@@ -139,6 +145,20 @@ const Dashboard = () => {
     }
   };
 
+  const fetchDashboardStats = async () => {
+    try {
+      const response = await fetch('/api/stats', {
+        headers: { ...getAuthHeaders() }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setDashboardStats(data);
+      }
+    } catch (err) {
+      console.error('Error fetching dashboard stats:', err);
+    }
+  };
+
   const applyFilters = () => {
     let filtered = [...assets];
     
@@ -159,13 +179,6 @@ const Dashboard = () => {
     }
     
     setFilteredAssets(filtered);
-  };
-
-  const getStats = () => {
-    const total = assets.length;
-    const active = assets.filter(a => a.status === 'active').length;
-    const returned = assets.filter(a => a.status === 'returned').length;
-    return { total, active, returned };
   };
 
   const getStatusBadge = (status) => {
@@ -394,8 +407,6 @@ const Dashboard = () => {
     }
   };
 
-  const stats = getStats();
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -424,37 +435,37 @@ const Dashboard = () => {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Laptops</CardTitle>
-            <Laptop className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Assets</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
+            <div className="text-2xl font-bold">{dashboardStats.assetsCount}</div>
             <p className="text-xs text-muted-foreground">
-              All registered devices
+              Total registered assets
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Laptops Assigned</CardTitle>
-            <UserCheck className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Employees</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.active}</div>
+            <div className="text-2xl font-bold">{dashboardStats.employeesCount}</div>
             <p className="text-xs text-muted-foreground">
-              Currently in use
+              Total registered users
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Laptops Available</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Companies</CardTitle>
+            <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.returned}</div>
+            <div className="text-2xl font-bold">{dashboardStats.companiesCount}</div>
             <p className="text-xs text-muted-foreground">
-              Returned to inventory
+              Client organizations
             </p>
           </CardContent>
         </Card>

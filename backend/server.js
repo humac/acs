@@ -1365,6 +1365,24 @@ app.get('/api/auth/oidc/callback', async (req, res) => {
   }
 });
 
+// Get dashboard stats (counts for assets, employees, companies)
+app.get('/api/stats', authenticate, async (req, res) => {
+  try {
+    const assets = await assetDb.getAll();
+    const users = await userDb.getAll();
+    const companies = await companyDb.getAll();
+
+    res.json({
+      assetsCount: assets.length,
+      employeesCount: users.length,
+      companiesCount: companies.length
+    });
+  } catch (error) {
+    console.error('Error fetching stats:', error);
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
 // Get all assets (with role-based filtering)
 app.get('/api/assets', authenticate, async (req, res) => {
   try {
