@@ -32,7 +32,7 @@ describe('Login Component', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('ARS - Asset Registration System')).toBeInTheDocument();
+      expect(screen.getByText('KARS - KeyData Asset Registration System')).toBeInTheDocument();
     });
 
     expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();

@@ -26,7 +26,7 @@ if (!globalThis.crypto) {
 }
 
 const rpID = process.env.PASSKEY_RP_ID || 'localhost';
-const rpName = process.env.PASSKEY_RP_NAME || 'Asset Registration System';
+const rpName = process.env.PASSKEY_RP_NAME || 'KARS - KeyData Asset Registration System';
 const defaultOrigin = process.env.PASSKEY_ORIGIN || 'http://localhost:5173';
 
 const parseCSVFile = async (filePath) => {
@@ -90,7 +90,7 @@ setInterval(() => {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Asset Registration API is running' });
+  res.json({ status: 'ok', message: 'KARS API is running' });
 });
 
 // ===== Helper Functions =====
@@ -297,7 +297,8 @@ app.post('/api/auth/register', async (req, res) => {
         first_name: newUser.first_name,
         last_name: newUser.last_name,
         manager_name: newUser.manager_name,
-        manager_email: newUser.manager_email
+        manager_email: newUser.manager_email,
+        profile_image: newUser.profile_image
       }
     });
   } catch (error) {
@@ -365,7 +366,8 @@ app.post('/api/auth/login', async (req, res) => {
         first_name: user.first_name,
         last_name: user.last_name,
         manager_name: user.manager_name,
-        manager_email: user.manager_email
+        manager_email: user.manager_email,
+        profile_image: user.profile_image
       }
     });
   } catch (error) {
@@ -390,7 +392,8 @@ app.get('/api/auth/me', authenticate, async (req, res) => {
       first_name: user.first_name,
       last_name: user.last_name,
       manager_name: user.manager_name,
-      manager_email: user.manager_email
+      manager_email: user.manager_email,
+      profile_image: user.profile_image
     });
   } catch (error) {
     console.error('Get user error:', error);
@@ -401,7 +404,7 @@ app.get('/api/auth/me', authenticate, async (req, res) => {
 // Update user profile
 app.put('/api/auth/profile', authenticate, async (req, res) => {
   try {
-    const { first_name, last_name, manager_name, manager_email } = req.body;
+    const { first_name, last_name, manager_name, manager_email, profile_image } = req.body;
 
     // Validation
     if (!first_name || !last_name) {
@@ -419,6 +422,23 @@ app.put('/api/auth/profile', authenticate, async (req, res) => {
     // Get old profile data for audit
     const oldUser = await userDb.getById(req.user.id);
 
+    // Normalize and validate profile image if provided
+    let normalizedProfileImage = oldUser.profile_image;
+    if (Object.prototype.hasOwnProperty.call(req.body, 'profile_image')) {
+      if (!profile_image) {
+        normalizedProfileImage = null;
+      } else if (typeof profile_image !== 'string' || !profile_image.startsWith('data:image/')) {
+        return res.status(400).json({ error: 'Profile image must be a base64-encoded image data URL' });
+      } else {
+        const base64Payload = profile_image.split(',')[1] || '';
+        const buffer = Buffer.from(base64Payload, 'base64');
+        if (buffer.length > 5 * 1024 * 1024) { // 5MB limit
+          return res.status(400).json({ error: 'Profile image must be 5MB or smaller' });
+        }
+        normalizedProfileImage = profile_image;
+      }
+    }
+
     // Calculate name from first_name and last_name
     const name = `${first_name} ${last_name}`;
 
@@ -428,7 +448,8 @@ app.put('/api/auth/profile', authenticate, async (req, res) => {
       first_name,
       last_name,
       manager_name,
-      manager_email
+      manager_email,
+      profile_image: normalizedProfileImage
     });
 
     // Get updated user
@@ -445,10 +466,12 @@ app.put('/api/auth/profile', authenticate, async (req, res) => {
         old_last_name: oldUser.last_name,
         old_manager_name: oldUser.manager_name,
         old_manager_email: oldUser.manager_email,
+        old_profile_image_set: !!oldUser.profile_image,
         new_first_name: first_name,
         new_last_name: last_name,
         new_manager_name: manager_name,
-        new_manager_email: manager_email
+        new_manager_email: manager_email,
+        new_profile_image_set: !!normalizedProfileImage
       },
       user.email
     );
@@ -505,13 +528,14 @@ app.put('/api/auth/profile', authenticate, async (req, res) => {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        manager_name: user.manager_name,
-        manager_email: user.manager_email
-      }
-    });
+      role: user.role,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      manager_name: user.manager_name,
+      manager_email: user.manager_email,
+      profile_image: user.profile_image
+    }
+  });
   } catch (error) {
     console.error('Update profile error:', error);
     res.status(500).json({ error: 'Failed to update profile' });
@@ -2402,7 +2426,7 @@ const startServer = async () => {
     console.log(`Using ${databaseEngine.toUpperCase()} database backend`);
 
     app.listen(PORT, () => {
-      console.log(`Asset Registration API running on http://localhost:${PORT}`);
+    console.log(`KARS API running on http://localhost:${PORT}`);
       console.log(`Health check: http://localhost:${PORT}/api/health`);
     });
   } catch (error) {

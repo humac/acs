@@ -1,6 +1,6 @@
-# Asset Registration System Wiki
+# KARS (KeyData Asset Registration System) Wiki
 
-Welcome to the comprehensive documentation for the **Client Asset Registration System** - a SOC2-compliant application for tracking and managing client laptops assigned to consultants.
+Welcome to the comprehensive documentation for the **KeyData Asset Registration System (KARS)** - a SOC2-compliant application for tracking and managing client laptops assigned to consultants.
 
 ## 🎯 Overview
 

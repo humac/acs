@@ -219,6 +219,7 @@ const initDb = async () => {
       last_name TEXT,
       manager_name TEXT,
       manager_email TEXT,
+      profile_image TEXT,
       oidc_sub TEXT UNIQUE,
       mfa_enabled INTEGER DEFAULT 0,
       mfa_secret TEXT,
@@ -237,6 +238,7 @@ const initDb = async () => {
       last_name TEXT,
       manager_name TEXT,
       manager_email TEXT,
+      profile_image TEXT,
       oidc_sub TEXT,
       mfa_enabled INTEGER DEFAULT 0,
       mfa_secret TEXT,
@@ -334,11 +336,13 @@ const initDb = async () => {
     if (isPostgres) {
       await dbRun('ALTER TABLE users ADD COLUMN IF NOT EXISTS manager_name TEXT');
       await dbRun('ALTER TABLE users ADD COLUMN IF NOT EXISTS manager_email TEXT');
+      await dbRun('ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_image TEXT');
     } else {
       // SQLite doesn't support IF NOT EXISTS for ALTER TABLE, so check first
       const columns = await dbAll("PRAGMA table_info(users)");
       const hasManagerName = columns.some(col => col.name === 'manager_name');
       const hasManagerEmail = columns.some(col => col.name === 'manager_email');
+      const hasProfileImage = columns.some(col => col.name === 'profile_image');
 
       if (!hasManagerName) {
         await dbRun('ALTER TABLE users ADD COLUMN manager_name TEXT');
@@ -346,9 +350,12 @@ const initDb = async () => {
       if (!hasManagerEmail) {
         await dbRun('ALTER TABLE users ADD COLUMN manager_email TEXT');
       }
+      if (!hasProfileImage) {
+        await dbRun('ALTER TABLE users ADD COLUMN profile_image TEXT');
+      }
     }
   } catch (err) {
-    console.log('Manager columns may already exist in users table:', err.message);
+    console.log('Profile/manager columns may already exist in users table:', err.message);
   }
 
   // Migrate existing assets table to make manager fields nullable
@@ -797,9 +804,17 @@ export const userDb = {
   delete: async (id) => dbRun('DELETE FROM users WHERE id = ?', [id]),
   updateProfile: async (id, profile) => dbRun(`
     UPDATE users
-    SET name = ?, first_name = ?, last_name = ?, manager_name = ?, manager_email = ?
+    SET name = ?, first_name = ?, last_name = ?, manager_name = ?, manager_email = ?, profile_image = ?
     WHERE id = ?
-  `, [profile.name, profile.first_name || null, profile.last_name || null, profile.manager_name || null, profile.manager_email || null, id]),
+  `, [
+    profile.name,
+    profile.first_name || null,
+    profile.last_name || null,
+    profile.manager_name || null,
+    profile.manager_email || null,
+    profile.profile_image ?? null,
+    id
+  ]),
   updatePassword: async (id, passwordHash) => dbRun('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, id]),
   getByOIDCSub: async (oidcSub) => dbGet('SELECT * FROM users WHERE oidc_sub = ?', [oidcSub]),
   createFromOIDC: async (userData) => {

@@ -88,7 +88,7 @@ const Register = ({ onSwitchToLogin }) => {
           }}
         >
           <Typography variant="h5" fontWeight={600} gutterBottom>
-            ARS - Asset Registration System
+            KARS - KeyData Asset Registration System
           </Typography>
           <Typography variant="body2" sx={{ opacity: 0.9 }}>
             Create an account to get started

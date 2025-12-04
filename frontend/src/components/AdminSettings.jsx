@@ -546,7 +546,7 @@ const AdminSettings = () => {
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
                 <Box>
                   <Typography variant="body2" color="text.secondary">
-                    <strong>Application:</strong> ARS - Asset Registration System
+                    <strong>Application:</strong> KARS - KeyData Asset Registration System
                   </Typography>
                 </Box>
                 <Box>

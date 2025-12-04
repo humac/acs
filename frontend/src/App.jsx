@@ -125,7 +125,7 @@ function App() {
         <Toolbar>
           <Box sx={{ flexGrow: 1 }}>
             <Typography variant="h6" component="div" fontWeight={600}>
-              ARS - Asset Registration System
+              KARS - KeyData Asset Registration System
             </Typography>
             <Typography variant="body2" sx={{ opacity: 0.9 }}>
               SOC2 Compliance - Track and manage client assets

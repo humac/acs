@@ -1,4 +1,4 @@
-# ARS (Asset Registration System)
+# KARS (KeyData Asset Registration System)
 
 [![GitHub Actions](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?logo=github-actions&logoColor=white)](https://github.com/humac/claude_app_poc/actions)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
@@ -6,7 +6,7 @@
 
 A comprehensive SOC2-compliant web application for tracking and managing client assets assigned to consultants, with full authentication, role-based access control, and automated deployment.
 
-🌐 **Live Demo:** [https://ars.jvhlabs.com](https://ars.jvhlabs.com)
+🌐 **Live Demo:** [https://kars.jvhlabs.com](https://kars.jvhlabs.com)
 
 📖 **Documentation:** [View Wiki](../../wiki)
 
@@ -30,7 +30,7 @@ A comprehensive SOC2-compliant web application for tracking and managing client 
 - **Role-Based Access Control** - Three roles: Employee, Manager, Admin
 - **Automatic Manager Promotion** - Users listed as a manager are auto-promoted to manager with audit logging
 - **First Admin Setup** - Automatic admin promotion for first user
-- **Profile Management** - Update first/last name, password, and MFA settings
+- **Profile Management** - Update first/last name, password, MFA settings, and profile photos
 
 ### 📦 Asset Management
 - **Self-Service Registration** - Consultants register client laptops
@@ -88,7 +88,7 @@ Docker images are automatically built for both platforms during CI/CD.
 
 ```bash
 # 1. Access the application
-https://ars.jvhlabs.com
+https://kars.jvhlabs.com
 
 # 2. Register (first user becomes admin!)
 Click "Register" → Fill form → Auto-login

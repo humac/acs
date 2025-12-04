@@ -72,8 +72,8 @@ const RegisterNew = ({ onSwitchToLogin }) => {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-primary mb-4">
             <Laptop className="h-8 w-8 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">ARS</h1>
-          <p className="text-muted-foreground">Asset Registration System</p>
+          <h1 className="text-2xl font-bold text-foreground">KARS</h1>
+          <p className="text-muted-foreground">KeyData Asset Registration System</p>
         </div>
 
         <Card className="shadow-lg">
