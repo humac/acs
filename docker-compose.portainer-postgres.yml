@@ -1,21 +1,6 @@
 version: '3.8'
 
 services:
-  # Portainer - Container Management UI
-  portainer:
-    image: portainer/portainer-ce:latest
-    container_name: portainer
-    restart: unless-stopped
-    ports:
-      - "9000:9000"
-      - "9443:9443"
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - portainer-data:/data
-    networks:
-      - asset-network
-    command: --admin-password='${PORTAINER_ADMIN_PASSWORD}'
-
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
