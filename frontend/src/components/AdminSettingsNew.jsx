@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { Settings, Users, LayoutDashboard, Database, Key, Trash2, Loader2, AlertTriangle, Shield, Image } from 'lucide-react';
 import OIDCSettings from './OIDCSettings';
-import SecuritySettings from './SecuritySettings';
+import SecuritySettingsNew from './SecuritySettingsNew';
 
 const AdminSettingsNew = () => {
   const { getAuthHeaders, user } = useAuth();
@@ -219,7 +219,6 @@ const AdminSettingsNew = () => {
               <TabsTrigger value="settings" className="gap-2"><Database className="h-4 w-4" />Database</TabsTrigger>
               <TabsTrigger value="branding" className="gap-2"><Image className="h-4 w-4" />Branding</TabsTrigger>
               <TabsTrigger value="security" className="gap-2"><Shield className="h-4 w-4" />Security</TabsTrigger>
-              <TabsTrigger value="oidc" className="gap-2"><Key className="h-4 w-4" />OIDC/SSO</TabsTrigger>
             </TabsList>
 
             <TabsContent value="users" className="space-y-4">
@@ -391,11 +390,7 @@ const AdminSettingsNew = () => {
             </TabsContent>
 
             <TabsContent value="security">
-              <SecuritySettings />
-            </TabsContent>
-
-            <TabsContent value="oidc">
-              <OIDCSettings />
+              <SecuritySettingsNew />
             </TabsContent>
           </Tabs>
         </CardContent>
