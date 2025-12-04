@@ -797,6 +797,12 @@ app.get('/api/auth/passkeys', authenticate, async (req, res) => {
 app.post('/api/auth/passkeys/registration-options', authenticate, async (req, res) => {
   try {
     const userPasskeys = await passkeyDb.listByUser(req.user.id);
+
+    // Filter out passkeys with invalid credential_id before converting
+    const validPasskeys = userPasskeys.filter(pk =>
+      pk.credential_id && typeof pk.credential_id === 'string'
+    );
+
     const options = await generateRegistrationOptions({
       rpName,
       rpID,
@@ -809,7 +815,7 @@ app.post('/api/auth/passkeys/registration-options', authenticate, async (req, re
         residentKey: 'preferred',
         userVerification: 'preferred'
       },
-      excludeCredentials: userPasskeys.map((pk) => ({
+      excludeCredentials: validPasskeys.map((pk) => ({
         id: isoBase64URL.toBuffer(pk.credential_id),
         type: 'public-key'
       }))
@@ -867,31 +873,58 @@ app.post('/api/auth/passkeys/verify-registration', authenticate, async (req, res
 app.post('/api/auth/passkeys/auth-options', async (req, res) => {
   try {
     const { email } = req.body;
-    if (!email) {
-      return res.status(400).json({ error: 'Email is required to use a passkey' });
-    }
 
-    const user = await userDb.getByEmail(email);
-    if (!user) {
-      return res.status(404).json({ error: 'No account found for this email' });
-    }
+    // Support both email-based and passwordless (discoverable credential) flows
+    let allowCredentials = undefined;
+    let userId = null;
 
-    const userPasskeys = await passkeyDb.listByUser(user.id);
-    if (!userPasskeys.length) {
-      return res.status(400).json({ error: 'No passkeys registered for this account' });
-    }
+    if (email) {
+      // Email-based flow: fetch user's passkeys
+      const user = await userDb.getByEmail(email);
+      if (!user) {
+        return res.status(404).json({ error: 'No account found for this email' });
+      }
 
-    const options = await generateAuthenticationOptions({
-      rpID,
-      userVerification: 'preferred',
-      allowCredentials: userPasskeys.map((pk) => ({
+      const userPasskeys = await passkeyDb.listByUser(user.id);
+      if (!userPasskeys.length) {
+        return res.status(400).json({ error: 'No passkeys registered for this account' });
+      }
+
+      // Filter out passkeys with invalid credential_id and convert to buffer
+      const validPasskeys = userPasskeys.filter(pk =>
+        pk.credential_id && typeof pk.credential_id === 'string'
+      );
+
+      if (validPasskeys.length === 0) {
+        return res.status(400).json({ error: 'No valid passkeys found for this account' });
+      }
+
+      allowCredentials = validPasskeys.map((pk) => ({
         id: isoBase64URL.toBuffer(pk.credential_id),
         type: 'public-key',
         transports: pk.transports ? JSON.parse(pk.transports) : undefined
-      }))
+      }));
+
+      userId = user.id;
+    }
+
+    // Generate authentication options
+    const options = await generateAuthenticationOptions({
+      rpID,
+      userVerification: 'preferred',
+      // If allowCredentials is undefined, this enables conditional mediation (passwordless)
+      allowCredentials
     });
 
-    pendingPasskeyLogins.set(user.id, { challenge: options.challenge, email: user.email });
+    // Store challenge for verification
+    // Use challenge as key for passwordless flow, user.id for email-based flow
+    const challengeKey = userId || options.challenge;
+    pendingPasskeyLogins.set(challengeKey, {
+      challenge: options.challenge,
+      email: email || null,
+      userId
+    });
+
     res.json({ options });
   } catch (error) {
     console.error('Failed to generate passkey authentication options:', error);
@@ -903,25 +936,54 @@ app.post('/api/auth/passkeys/verify-authentication', async (req, res) => {
   try {
     const { email, credential } = req.body;
 
-    if (!email || !credential) {
-      return res.status(400).json({ error: 'Email and credential response are required' });
+    if (!credential) {
+      return res.status(400).json({ error: 'Credential response is required' });
     }
 
-    const user = await userDb.getByEmail(email);
+    // Look up passkey by credential ID
+    const dbPasskey = await passkeyDb.getByCredentialId(credential.id);
+    if (!dbPasskey) {
+      return res.status(404).json({ error: 'Passkey not recognized' });
+    }
+
+    // Validate credential_id is a string before using it
+    if (!dbPasskey.credential_id || typeof dbPasskey.credential_id !== 'string') {
+      return res.status(500).json({ error: 'Invalid passkey data in database' });
+    }
+
+    // Get user info
+    const user = email
+      ? await userDb.getByEmail(email)
+      : await userDb.getById(dbPasskey.user_id);
+
     if (!user) {
-      return res.status(404).json({ error: 'No account found for this email' });
+      return res.status(404).json({ error: 'User account not found' });
     }
 
-    const pending = pendingPasskeyLogins.get(user.id);
-    if (!pending || pending.email !== email) {
+    // Verify passkey belongs to the user
+    if (dbPasskey.user_id !== user.id) {
+      return res.status(403).json({ error: 'Passkey does not belong to this account' });
+    }
+
+    // Find the pending authentication challenge
+    // For email-based flow, it's keyed by user.id; for passwordless, we need to search
+    let pending = pendingPasskeyLogins.get(user.id);
+
+    if (!pending) {
+      // Search for challenge in passwordless flow storage
+      for (const [key, value] of pendingPasskeyLogins.entries()) {
+        if (value.userId === null || value.userId === user.id) {
+          pending = value;
+          break;
+        }
+      }
+    }
+
+    if (!pending) {
       return res.status(400).json({ error: 'No pending passkey authentication found' });
     }
 
-    const dbPasskey = await passkeyDb.getByCredentialId(credential.id);
-    if (!dbPasskey || dbPasskey.user_id !== user.id) {
-      return res.status(404).json({ error: 'Passkey not recognized for this account' });
-    }
-
+    // Verify the authentication response
     const verification = await verifyAuthenticationResponse({
       response: credential,
       expectedChallenge: pending.challenge,
@@ -939,11 +1001,15 @@ app.post('/api/auth/passkeys/verify-authentication', async (req, res) => {
       return res.status(400).json({ error: 'Passkey authentication failed' });
     }
 
+    // Update counter and last login
     await passkeyDb.updateCounter(dbPasskey.id, verification.authenticationInfo.newCounter ?? dbPasskey.counter);
     await userDb.updateLastLogin(user.id);
 
-    const token = generateToken(user);
+    // Clean up pending authentication(s)
     pendingPasskeyLogins.delete(user.id);
+    pendingPasskeyLogins.delete(pending.challenge);
+
+    const token = generateToken(user);
 
     res.json({ token, user });
   } catch (error) {
