@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Fingerprint, Key, Loader2, AlertTriangle, Info, ExternalLink } from 'lucide-react';
-import OIDCSettings from './OIDCSettings';
+import OIDCSettingsNew from './OIDCSettingsNew';
 
 const SecuritySettingsNew = () => {
   const { getAuthHeaders } = useAuth();
@@ -216,7 +216,7 @@ const SecuritySettingsNew = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <OIDCSettings />
+          <OIDCSettingsNew />
         </CardContent>
       </Card>
     </div>
