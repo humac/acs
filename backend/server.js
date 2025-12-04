@@ -821,12 +821,23 @@ app.get('/api/auth/passkeys', authenticate, async (req, res) => {
 
 app.post('/api/auth/passkeys/registration-options', authenticate, async (req, res) => {
   try {
+    const origin = getExpectedOrigin(req);
+    console.log('[Passkey Registration] Configuration:', {
+      rpID,
+      rpName,
+      expectedOrigin: origin,
+      requestOrigin: req.get('origin'),
+      userEmail: req.user.email
+    });
+
     const userPasskeys = await passkeyDb.listByUser(req.user.id);
 
     // Filter out passkeys with invalid credential_id before converting
     const validPasskeys = userPasskeys.filter(pk =>
       pk.credential_id && typeof pk.credential_id === 'string'
     );
+
+    console.log('[Passkey Registration] User has', validPasskeys.length, 'existing passkeys');
 
     const options = await generateRegistrationOptions({
       rpName,
@@ -851,6 +862,10 @@ app.post('/api/auth/passkeys/registration-options', authenticate, async (req, re
     res.json({ options });
   } catch (error) {
     console.error('Failed to generate passkey registration options:', error);
+    console.error('[Passkey Registration] RP ID:', rpID);
+    console.error('[Passkey Registration] Expected Origin:', getExpectedOrigin(req));
+    console.error('[Passkey Registration] Request Origin:', req.get('origin'));
+    console.error('[Passkey Registration] Hint: Ensure PASSKEY_RP_ID matches your domain and you\'re accessing via the correct hostname (use localhost, not 127.0.0.1 for local development)');
     res.status(500).json({ error: 'Unable to start passkey registration' });
   }
 });
