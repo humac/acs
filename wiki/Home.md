@@ -104,6 +104,7 @@ This system enables consulting firms to maintain compliance with SOC2 requiremen
 ✅ **Audit Logging** - Complete compliance trail
 ✅ **Reporting & Export** - CSV exports and summary reports
 ✅ **Profile Management** - User profile with first/last name
+✅ **Automatic Manager Promotion** - Auto-upgrade managers when employees list them during registration/profile updates
 ✅ **Admin Settings** - Complete system management interface
 
 ## 🎭 User Roles

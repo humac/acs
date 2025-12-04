@@ -118,6 +118,11 @@ Complete feature overview of the Asset Registration System.
 - Access admin settings panel
 - System configuration and monitoring
 
+**Automatic Manager Role Assignment**
+- When a user registers with a **manager email** that matches an existing account, that person is automatically promoted to **Manager** (unless already Manager/Admin).
+- If a newly registered user already has employees pointing to their email as manager, their role is auto-promoted to **Manager**.
+- Manager role auto-promotions are logged for auditability.
+
 ### Company Management
 
 **Admin-Only Features:**

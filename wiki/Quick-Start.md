@@ -16,9 +16,12 @@ Get the Asset Registration System running in 5 minutes!
      - First Name
      - Last Name
      - Email Address
+     - Manager Name (required)
+     - Manager Email (required)
      - Password (minimum 6 characters)
      - Confirm Password
    - Click "Create Account"
+   - Managers you list are automatically promoted to the **Manager** role (unless already Manager/Admin)
 
 3. **Login**
    - You're automatically logged in after registration

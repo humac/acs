@@ -28,6 +28,7 @@ A comprehensive SOC2-compliant web application for tracking and managing client 
 - **Password Security** - bcrypt hashing (10 rounds)
 - **Password Management** - Change password from profile settings
 - **Role-Based Access Control** - Three roles: Employee, Manager, Admin
+- **Automatic Manager Promotion** - Users listed as a manager are auto-promoted to manager with audit logging
 - **First Admin Setup** - Automatic admin promotion for first user
 - **Profile Management** - Update first/last name, password, and MFA settings
 

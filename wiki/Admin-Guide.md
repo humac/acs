@@ -123,6 +123,12 @@ Total user count displayed at top right.
 - All assets and audit logs visible
 - System settings access
 
+### Automatic Manager Role Assignment
+
+- When users register or update their profile with a **manager email** matching an existing account, that person is automatically promoted to **Manager** (unless already Manager/Admin).
+- If a newly registered user already has employees pointing to their email as manager, their role is automatically promoted to **Manager**.
+- All auto-promotions are logged in the audit trail so admins can review and adjust roles if needed.
+
 ### Deleting Users
 
 **To delete a user:**
