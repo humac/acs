@@ -891,17 +891,31 @@ app.post('/api/auth/passkeys/verify-registration', authenticate, async (req, res
     const { credentialID, credentialPublicKey, counter, credentialDeviceType, credentialBackedUp } = verification.registrationInfo;
 
     console.log('[Passkey Registration] Extracted data:', {
-      credentialIDLength: credentialID?.length || 0,
+      credentialIDLength: credentialID?.length || credentialID?.byteLength || 0,
       credentialIDType: typeof credentialID,
-      credentialPublicKeyLength: credentialPublicKey?.length || 0,
+      credentialPublicKeyLength: credentialPublicKey?.length || credentialPublicKey?.byteLength || 0,
       credentialPublicKeyType: typeof credentialPublicKey,
       counter,
       credentialDeviceType,
       credentialBackedUp
     });
 
-    const credentialIdBase64 = isoBase64URL.fromBuffer(credentialID);
-    const publicKeyBase64 = isoBase64URL.fromBuffer(credentialPublicKey);
+    const credentialIdBase64 = credentialID ? isoBase64URL.fromBuffer(credentialID) : credential?.rawId;
+    const publicKeyBase64 = credentialPublicKey ? isoBase64URL.fromBuffer(credentialPublicKey) : undefined;
+
+    if (!credentialIdBase64 || !publicKeyBase64) {
+      console.error('[Passkey Registration] Missing credential data after verification:', {
+        credentialIDPresent: !!credentialID,
+        credentialPublicKeyPresent: !!credentialPublicKey,
+        credentialIdBase64Length: credentialIdBase64?.length || 0,
+        publicKeyBase64Length: publicKeyBase64?.length || 0
+      });
+
+      pendingPasskeyRegistrations.delete(req.user.id);
+      return res.status(400).json({
+        error: 'Passkey registration data was incomplete. Please try creating the passkey again.'
+      });
+    }
 
     console.log('[Passkey Registration] Converted to base64:', {
       credentialIdBase64Length: credentialIdBase64?.length || 0,
