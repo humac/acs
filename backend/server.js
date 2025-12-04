@@ -886,9 +886,43 @@ app.post('/api/auth/passkeys/verify-registration', authenticate, async (req, res
       return res.status(400).json({ error: 'Passkey registration verification failed' });
     }
 
-    // In SimpleWebAuthn v10+, the structure changed
-    // Properties are directly on registrationInfo, not nested under 'credential'
-    const { credentialID, credentialPublicKey, counter, credentialDeviceType, credentialBackedUp } = verification.registrationInfo;
+    const registrationInfo = verification.registrationInfo;
+
+    const normalizeBuffer = (value) => {
+      if (!value) return undefined;
+
+      if (typeof value === 'string') {
+        try {
+          return isoBase64URL.toBuffer(value);
+        } catch (err) {
+          console.error('[Passkey Registration] Failed to normalize string buffer:', err);
+          return undefined;
+        }
+      }
+
+      if (Buffer.isBuffer(value)) return value;
+      if (value instanceof ArrayBuffer) return Buffer.from(value);
+      if (ArrayBuffer.isView(value)) return Buffer.from(value.buffer, value.byteOffset, value.byteLength);
+
+      console.error('[Passkey Registration] Unsupported buffer type:', typeof value);
+      return undefined;
+    };
+
+    // Handle both modern and legacy shapes of SimpleWebAuthn registrationInfo
+    const credentialID =
+      normalizeBuffer(registrationInfo.credentialID) ||
+      normalizeBuffer(registrationInfo.credential?.credentialID || registrationInfo.credential?.id);
+
+    const credentialPublicKey =
+      normalizeBuffer(registrationInfo.credentialPublicKey) ||
+      normalizeBuffer(registrationInfo.credential?.credentialPublicKey || registrationInfo.credential?.publicKey);
+
+    const counter =
+      registrationInfo.counter ??
+      registrationInfo.credential?.counter ??
+      0;
+
+    const { credentialDeviceType, credentialBackedUp } = registrationInfo;
 
     console.log('[Passkey Registration] Extracted data:', {
       credentialIDLength: credentialID?.length || credentialID?.byteLength || 0,
