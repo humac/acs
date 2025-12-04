@@ -1042,8 +1042,9 @@ app.post('/api/auth/passkeys/auth-options', async (req, res) => {
         });
       }
 
+      // simplewebauthn expects allowCredentials IDs to be base64url strings, not Buffers
       allowCredentials = validPasskeys.map((pk) => ({
-        id: isoBase64URL.toBuffer(pk.credential_id),
+        id: pk.credential_id,
         type: 'public-key',
         transports: pk.transports ? JSON.parse(pk.transports) : undefined
       }));
@@ -1126,16 +1127,18 @@ app.post('/api/auth/passkeys/verify-authentication', async (req, res) => {
       return res.status(400).json({ error: 'No pending passkey authentication found' });
     }
 
-    // Verify the authentication response
+    // Verify the authentication response using the credential format expected by simplewebauthn
     const verification = await verifyAuthenticationResponse({
       response: credential,
       expectedChallenge: pending.challenge,
       expectedOrigin: getExpectedOrigin(req),
       expectedRPID: rpID,
-      authenticator: {
-        credentialID: isoBase64URL.toBuffer(dbPasskey.credential_id),
-        credentialPublicKey: isoBase64URL.toBuffer(dbPasskey.public_key),
-        counter: dbPasskey.counter,
+      credential: {
+        id: dbPasskey.credential_id,
+        publicKey: isoBase64URL.toBuffer(dbPasskey.public_key),
+        counter: typeof dbPasskey.counter === 'number' && Number.isFinite(dbPasskey.counter)
+          ? dbPasskey.counter
+          : 0,
         transports: dbPasskey.transports ? JSON.parse(dbPasskey.transports) : []
       }
     });
