@@ -278,7 +278,7 @@ const Login = ({ onSwitchToRegister }) => {
           ) : (
             <>
               <Typography variant="h5" fontWeight={600} gutterBottom>
-                ARS - Asset Registration System
+                KARS - KeyData Asset Registration System
               </Typography>
               <Typography variant="body2" sx={{ opacity: 0.9 }}>
                 Sign in to manage client assets

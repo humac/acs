@@ -3,7 +3,7 @@ import QRCode from 'qrcode';
 import crypto from 'crypto';
 
 // Generate MFA secret and QR code
-export async function generateMFASecret(userEmail, issuer = 'ARS') {
+export async function generateMFASecret(userEmail, issuer = 'KARS') {
   const secret = speakeasy.generateSecret({
     name: `${issuer} (${userEmail})`,
     issuer: issuer,

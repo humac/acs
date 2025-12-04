@@ -1,11 +1,11 @@
 # API Reference
 
-Complete REST API documentation for the Asset Registration System.
+Complete REST API documentation for the KeyData Asset Registration System (KARS).
 
 ## Base URL
 
 - **Development:** `http://localhost:3001/api`
-- **Production:** `https://assets.jvhlabs.com/api`
+- **Production:** `https://kars.jvhlabs.com/api`
 
 ## Authentication
 

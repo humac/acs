@@ -1,11 +1,11 @@
 # Quick Start - Portainer Deployment
 
-Get your Asset Registration System running on Portainer in minutes!
+Get your KeyData Asset Registration System (KARS) running on Portainer in minutes!
 
 ## Prerequisites
 - Portainer instance running
 - GitHub account
-- Cloudflare account (for assets.jvhlabs.com)
+- Cloudflare account (for kars.jvhlabs.com)
 
 ## 5-Minute Setup
 

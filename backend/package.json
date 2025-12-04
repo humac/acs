@@ -1,7 +1,7 @@
 {
   "name": "ars-backend",
   "version": "1.0.0",
-  "description": "Backend API for ARS - Asset Registration System",
+  "description": "Backend API for KARS - KeyData Asset Registration System",
   "main": "server.js",
   "type": "module",
   "scripts": {

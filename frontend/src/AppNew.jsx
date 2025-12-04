@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
@@ -96,7 +96,7 @@ function AppNew() {
               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary">
                 <Laptop className="h-4 w-4 text-primary-foreground" />
               </div>
-              <span className="font-semibold text-lg hidden sm:block">ARS</span>
+              <span className="font-semibold text-lg hidden sm:block">KARS</span>
             </div>
 
             {/* Desktop Navigation */}
@@ -129,6 +129,9 @@ function AppNew() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <Avatar className="h-8 w-8">
+                    {user?.profile_image && (
+                      <AvatarImage src={user.profile_image} alt="Profile" />
+                    )}
                     <AvatarFallback className="bg-primary text-primary-foreground">
                       {user?.first_name?.charAt(0)}
                     </AvatarFallback>
@@ -168,17 +171,20 @@ function AppNew() {
         </div>
 
         {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t bg-background">
-            <div className="container mx-auto py-4 space-y-4">
-              {/* User Info */}
-              <div className="flex items-center gap-3 pb-4 border-b">
-                <Avatar className="h-10 w-10">
-                  <AvatarFallback className="bg-primary text-primary-foreground">
-                    {user?.first_name?.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
+            {mobileMenuOpen && (
+              <div className="md:hidden border-t bg-background">
+                <div className="container mx-auto py-4 space-y-4">
+                  {/* User Info */}
+                  <div className="flex items-center gap-3 pb-4 border-b">
+                    <Avatar className="h-10 w-10">
+                      {user?.profile_image && (
+                        <AvatarImage src={user.profile_image} alt="Profile" />
+                      )}
+                      <AvatarFallback className="bg-primary text-primary-foreground">
+                        {user?.first_name?.charAt(0)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
                   <p className="font-medium">{user?.first_name} {user?.last_name}</p>
                   <p className="text-sm text-muted-foreground">{user?.email}</p>
                 </div>
@@ -242,7 +248,7 @@ function AppNew() {
       {/* Footer */}
       <footer className="border-t py-4 mt-auto">
         <div className="container mx-auto text-center text-sm text-muted-foreground">
-          SOC2 Compliance - Asset Registration System
+          SOC2 Compliance - KeyData Asset Registration System
         </div>
       </footer>
     </div>

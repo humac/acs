@@ -1,13 +1,13 @@
 # Quick Start Guide
 
-Get the Asset Registration System running in 5 minutes!
+Get the KeyData Asset Registration System (KARS) running in 5 minutes!
 
 ## For Users
 
 ### First Time Setup
 
 1. **Access the Application**
-   - Navigate to: `https://assets.jvhlabs.com`
+   - Navigate to: `https://kars.jvhlabs.com`
    - Or your deployed URL
 
 2. **Register Your Account**

@@ -1,6 +1,6 @@
 # Features
 
-Complete feature overview of the Asset Registration System.
+Complete feature overview of the KeyData Asset Registration System (KARS).
 
 ## 🎯 Core Features
 
@@ -84,6 +84,7 @@ Complete feature overview of the Asset Registration System.
 **Profile Management**
 - Update first name and last name
 - View current role and email
+- Upload and manage a personal profile photo for the header avatar
 - Change password with current password verification
 - Color-coded role badge display
 - MFA enrollment status display

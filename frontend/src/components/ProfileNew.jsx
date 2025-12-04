@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -23,6 +24,7 @@ const ProfileNew = () => {
   const [loading, setLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('account');
+  const [profileImage, setProfileImage] = useState(null);
 
   // MFA state
   const [mfaEnabled, setMfaEnabled] = useState(false);
@@ -46,6 +48,7 @@ const ProfileNew = () => {
         manager_last_name: managerParts.slice(1).join(' ') || '',
         manager_email: user.manager_email || ''
       });
+      setProfileImage(user.profile_image || null);
     }
   }, [user]);
 
@@ -79,7 +82,11 @@ const ProfileNew = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const submitData = { ...formData, manager_name: `${formData.manager_first_name} ${formData.manager_last_name}`.trim() };
+      const submitData = {
+        ...formData,
+        manager_name: `${formData.manager_first_name} ${formData.manager_last_name}`.trim(),
+        profile_image: profileImage ?? null
+      };
       delete submitData.manager_first_name;
       delete submitData.manager_last_name;
       const response = await fetch('/api/auth/profile', {
@@ -213,6 +220,29 @@ const ProfileNew = () => {
   const formatDate = (d) => d ? new Date(d).toLocaleString() : 'Never';
   const getRoleColor = (role) => ({ admin: 'destructive', manager: 'success', employee: 'default' }[role] || 'secondary');
 
+  const handleImageChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Invalid file type', description: 'Please upload an image file.', variant: 'destructive' });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: 'File too large', description: 'Profile images must be 5MB or smaller.', variant: 'destructive' });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => setProfileImage(reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setProfileImage(null);
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -242,6 +272,32 @@ const ProfileNew = () => {
 
             <TabsContent value="update">
               <form onSubmit={handleSubmit} className="space-y-4 max-w-xl">
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-16 w-16">
+                    {profileImage && <AvatarImage src={profileImage} alt="Profile" />}
+                    <AvatarFallback className="bg-primary text-primary-foreground text-lg">
+                      {user?.first_name?.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-2">
+                    <div className="space-y-1">
+                      <Label htmlFor="profile-image">Profile Picture</Label>
+                      <Input id="profile-image" type="file" accept="image/*" onChange={handleImageChange} />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="button" variant="secondary" onClick={() => document.getElementById('profile-image')?.click()}>
+                        Upload
+                      </Button>
+                      {profileImage && (
+                        <Button type="button" variant="outline" onClick={handleRemoveImage}>
+                          Remove
+                        </Button>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">JPG, PNG, or SVG up to 5MB.</p>
+                  </div>
+                </div>
+                <Separator />
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2"><Label>First Name</Label><Input value={formData.first_name} onChange={(e) => setFormData({ ...formData, first_name: e.target.value })} required /></div>
                   <div className="space-y-2"><Label>Last Name</Label><Input value={formData.last_name} onChange={(e) => setFormData({ ...formData, last_name: e.target.value })} required /></div>

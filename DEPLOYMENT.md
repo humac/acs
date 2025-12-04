@@ -1,6 +1,6 @@
-# Deployment Guide - Asset Registration System
+# Deployment Guide - KeyData Asset Registration System (KARS)
 
-This guide explains how to deploy the Asset Registration System to Portainer using GitHub Actions with Cloudflare tunnel support for hosting at `assets.jvhlabs.com`.
+This guide explains how to deploy KARS to Portainer using GitHub Actions with Cloudflare tunnel support for hosting at `kars.jvhlabs.com`.
 
 ## Table of Contents
 1. [Prerequisites](#prerequisites)
