@@ -1042,8 +1042,9 @@ app.post('/api/auth/passkeys/auth-options', async (req, res) => {
         });
       }
 
+      // simplewebauthn expects allowCredentials IDs to be base64url strings, not Buffers
       allowCredentials = validPasskeys.map((pk) => ({
-        id: isoBase64URL.toBuffer(pk.credential_id),
+        id: pk.credential_id,
         type: 'public-key',
         transports: pk.transports ? JSON.parse(pk.transports) : undefined
       }));
