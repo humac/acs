@@ -522,17 +522,23 @@ const Dashboard = () => {
               <p>No assets found matching your criteria.</p>
             </div>
           ) : (
-            <div className="rounded-md border">
+            <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Employee</TableHead>
-                    <TableHead className="hidden md:table-cell">Manager</TableHead>
-                    <TableHead className="hidden lg:table-cell">Client</TableHead>
-                    <TableHead className="hidden xl:table-cell">Serial Number</TableHead>
-                    <TableHead className="hidden xl:table-cell">Asset Tag</TableHead>
+                    <TableHead>Employee Email</TableHead>
+                    <TableHead>Manager</TableHead>
+                    <TableHead>Manager Email</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead>Make</TableHead>
+                    <TableHead>Model</TableHead>
+                    <TableHead>Serial Number</TableHead>
+                    <TableHead>Asset Tag</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="hidden md:table-cell">Registered</TableHead>
+                    <TableHead>Registered</TableHead>
+                    <TableHead>Last Updated</TableHead>
+                    <TableHead>Notes</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -541,16 +547,23 @@ const Dashboard = () => {
                     <TableRow key={asset.id}>
                       <TableCell>
                         <div className="font-medium">{asset.employee_name}</div>
-                        <div className="text-sm text-muted-foreground md:hidden">
-                          {asset.client_name}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm">{asset.employee_email}</TableCell>
+                      <TableCell>{asset.manager_name || '—'}</TableCell>
+                      <TableCell className="font-mono text-sm">{asset.manager_email || '—'}</TableCell>
+                      <TableCell>{asset.client_name}</TableCell>
+                      <TableCell>{asset.laptop_make || '—'}</TableCell>
+                      <TableCell>{asset.laptop_model || '—'}</TableCell>
+                      <TableCell className="font-mono text-sm">{asset.laptop_serial_number}</TableCell>
+                      <TableCell className="font-mono text-sm">{asset.laptop_asset_tag}</TableCell>
+                      <TableCell>{getStatusBadge(asset.status)}</TableCell>
+                      <TableCell>{formatDate(asset.registration_date)}</TableCell>
+                      <TableCell>{formatDate(asset.last_updated)}</TableCell>
+                      <TableCell className="max-w-[200px]">
+                        <div className="line-clamp-2 text-sm text-muted-foreground">
+                          {asset.notes || '—'}
                         </div>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">{asset.manager_name}</TableCell>
-                      <TableCell className="hidden lg:table-cell">{asset.client_name}</TableCell>
-                      <TableCell className="hidden xl:table-cell font-mono text-sm">{asset.laptop_serial_number}</TableCell>
-                      <TableCell className="hidden xl:table-cell font-mono text-sm">{asset.laptop_asset_tag}</TableCell>
-                      <TableCell>{getStatusBadge(asset.status)}</TableCell>
-                      <TableCell className="hidden md:table-cell">{formatDate(asset.registration_date)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
                           <Button
@@ -839,6 +852,16 @@ const Dashboard = () => {
           </DialogHeader>
           <form onSubmit={handleImportSubmit} className="space-y-4">
             <div className="space-y-4">
+              <div className="rounded-md bg-muted/50 p-4 text-sm space-y-1">
+                <p className="font-medium text-foreground">Required columns</p>
+                <p className="text-muted-foreground">
+                  employee_name, employee_email, client_name, laptop_serial_number, laptop_asset_tag
+                </p>
+                <p className="font-medium text-foreground pt-2">Optional columns</p>
+                <p className="text-muted-foreground">
+                  manager_name, manager_email, laptop_make, laptop_model, status, notes
+                </p>
+              </div>
               <div className="flex gap-2">
                 <Button type="button" variant="outline" asChild>
                   <label className="cursor-pointer">

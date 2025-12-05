@@ -2015,13 +2015,15 @@ app.post('/api/assets/import', authenticate, upload.single('file'), async (req, 
 
       // Get manager data from employee's user record if they exist
       const employeeUser = await userDb.getByEmail(normalizedRow.employee_email);
-      let manager_name = null;
-      let manager_email = null;
+      let manager_name = normalizedRow.manager_name || null;
+      let manager_email = normalizedRow.manager_email || null;
 
-      if (employeeUser && employeeUser.manager_name && employeeUser.manager_email) {
-        // User exists with manager info - use it
-        manager_name = employeeUser.manager_name;
-        manager_email = employeeUser.manager_email;
+      if (!manager_name || !manager_email) {
+        if (employeeUser && employeeUser.manager_name && employeeUser.manager_email) {
+          // User exists with manager info - use it
+          manager_name = employeeUser.manager_name;
+          manager_email = employeeUser.manager_email;
+        }
       }
       // If user doesn't exist or has no manager info, allow asset creation with null manager fields
       // These will be populated when the employee registers
