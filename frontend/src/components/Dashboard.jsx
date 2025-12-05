@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -28,6 +30,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -44,6 +52,9 @@ import {
   Users,
   Building2,
   Package,
+  MoreHorizontal,
+  RefreshCw,
+  X,
 } from 'lucide-react';
 
 const Dashboard = () => {
@@ -60,24 +71,46 @@ const Dashboard = () => {
     employeesCount: 0,
     companiesCount: 0
   });
-  
+
+  // Selection state for bulk operations
+  const [selectedIds, setSelectedIds] = useState(new Set());
+
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // Modal states
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
+  const [showBulkStatusModal, setShowBulkStatusModal] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState(null);
   const [assetDetailsForm, setAssetDetailsForm] = useState(null);
   const [detailsEditMode, setDetailsEditMode] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
-  
+
   // Form states
   const [formLoading, setFormLoading] = useState(false);
   const [companies, setCompanies] = useState([]);
   const [importFile, setImportFile] = useState(null);
   const [importResult, setImportResult] = useState(null);
-  
+
+  // Bulk operation states
+  const [bulkStatus, setBulkStatus] = useState('');
+  const [bulkNote, setBulkNote] = useState('');
+  const [bulkOperating, setBulkOperating] = useState(false);
+  const [bulkError, setBulkError] = useState(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+
   // Registration form data
   const [regFormData, setRegFormData] = useState({
     employee_first_name: '',
@@ -90,7 +123,7 @@ const Dashboard = () => {
     laptop_asset_tag: '',
     notes: ''
   });
-  
+
   // Status update form data
   const [statusFormData, setStatusFormData] = useState({
     status: '',
@@ -129,6 +162,7 @@ const Dashboard = () => {
       const data = await response.json();
       setAssets(data);
       setFilteredAssets(data);
+      setSelectedIds(new Set());
     } catch (err) {
       setError(err.message);
     } finally {
@@ -166,7 +200,7 @@ const Dashboard = () => {
 
   const applyFilters = () => {
     let filtered = [...assets];
-    
+
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(asset =>
@@ -178,13 +212,43 @@ const Dashboard = () => {
         asset.laptop_asset_tag?.toLowerCase().includes(query)
       );
     }
-    
+
     if (statusFilter && statusFilter !== 'all') {
       filtered = filtered.filter(asset => asset.status === statusFilter);
     }
-    
+
     setFilteredAssets(filtered);
   };
+
+  // Selection handlers
+  const isAllSelected = filteredAssets.length > 0 &&
+    filteredAssets.every(asset => selectedIds.has(asset.id));
+
+  const isSomeSelected = filteredAssets.some(asset => selectedIds.has(asset.id)) &&
+    !isAllSelected;
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredAssets.map(a => a.id)));
+    }
+  };
+
+  const toggleSelect = (id) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const selectedAssets = useMemo(() =>
+    filteredAssets.filter(a => selectedIds.has(a.id)),
+    [filteredAssets, selectedIds]
+  );
 
   const getStatusBadge = (status) => {
     const variants = {
@@ -526,6 +590,116 @@ const Dashboard = () => {
     }
   };
 
+  // Bulk status update
+  const handleBulkStatusUpdate = async () => {
+    if (!bulkStatus || selectedIds.size === 0) return;
+
+    setBulkOperating(true);
+    setBulkError(null);
+
+    try {
+      const response = await fetch('/api/assets/bulk/status', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({
+          ids: Array.from(selectedIds),
+          status: bulkStatus,
+          notes: bulkNote || undefined,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to update assets');
+
+      toast({
+        title: "Success",
+        description: data.message,
+        variant: "success",
+      });
+
+      setShowBulkStatusModal(false);
+      setBulkStatus('');
+      setBulkNote('');
+      setSelectedIds(new Set());
+      fetchAssets();
+    } catch (err) {
+      setBulkError(err.message);
+    } finally {
+      setBulkOperating(false);
+    }
+  };
+
+  // Bulk delete
+  const handleBulkDelete = async () => {
+    if (deleteConfirmText !== 'DELETE' || selectedIds.size === 0) return;
+
+    setBulkOperating(true);
+    setBulkError(null);
+
+    try {
+      const response = await fetch('/api/assets/bulk/delete', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to delete assets');
+
+      toast({
+        title: "Success",
+        description: data.message,
+        variant: "success",
+      });
+
+      setShowBulkDeleteModal(false);
+      setDeleteConfirmText('');
+      setSelectedIds(new Set());
+      fetchAssets();
+    } catch (err) {
+      setBulkError(err.message);
+    } finally {
+      setBulkOperating(false);
+    }
+  };
+
+  // Export selected
+  const handleExportSelected = () => {
+    const headers = [
+      'employee_name',
+      'employee_email',
+      'manager_name',
+      'manager_email',
+      'company_name',
+      'laptop_serial_number',
+      'laptop_asset_tag',
+      'laptop_make',
+      'laptop_model',
+      'status',
+      'registration_date',
+      'notes',
+    ];
+
+    const csvContent = [
+      headers.join(','),
+      ...selectedAssets.map(asset =>
+        headers.map(h => `"${(asset[h] || '').toString().replace(/"/g, '""')}"`).join(',')
+      ),
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `assets_export_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -632,6 +806,63 @@ const Dashboard = () => {
         </CardContent>
       </Card>
 
+      {/* Bulk Action Bar */}
+      {selectedIds.size > 0 && (
+        <div className="sticky top-16 z-40 flex flex-wrap items-center gap-2 p-3 bg-primary/10 border border-primary/20 rounded-lg backdrop-blur-sm">
+          <span className="text-sm font-medium">
+            {selectedIds.size} selected
+          </span>
+
+          <div className="flex-1" />
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setBulkStatus('');
+              setBulkNote('');
+              setBulkError(null);
+              setShowBulkStatusModal(true);
+            }}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Update Status
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportSelected}
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+
+          {user?.role === 'admin' && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => {
+                setDeleteConfirmText('');
+                setBulkError(null);
+                setShowBulkDeleteModal(true);
+              }}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </Button>
+          )}
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSelectedIds(new Set())}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
       {/* Data Table */}
       <Card>
         <CardContent className="pt-6">
@@ -640,11 +871,92 @@ const Dashboard = () => {
               <Laptop className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No assets found matching your criteria.</p>
             </div>
+          ) : isMobile ? (
+            /* Mobile Card View */
+            <div className="space-y-3">
+              {filteredAssets.map((asset) => (
+                <div
+                  key={asset.id}
+                  className={cn(
+                    "border rounded-lg p-4 transition-colors",
+                    selectedIds.has(asset.id) && "bg-primary/5 border-primary/30"
+                  )}
+                >
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      checked={selectedIds.has(asset.id)}
+                      onCheckedChange={() => toggleSelect(asset.id)}
+                      className="mt-1"
+                    />
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <h4 className="font-medium truncate">{asset.employee_name}</h4>
+                        {getStatusBadge(asset.status)}
+                      </div>
+
+                      <p className="text-sm text-muted-foreground truncate">
+                        {asset.employee_email}
+                      </p>
+
+                      <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Tag:</span>{' '}
+                          <span className="font-mono">{asset.laptop_asset_tag}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Serial:</span>{' '}
+                          <span className="font-mono text-xs">{asset.laptop_serial_number}</span>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="text-muted-foreground">Client:</span>{' '}
+                          {asset.company_name}
+                        </div>
+                      </div>
+                    </div>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => openAssetDetails(asset)}>
+                          <Info className="h-4 w-4 mr-2" />
+                          Details
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleStatusUpdate(asset)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Update Status
+                        </DropdownMenuItem>
+                        {user?.role === 'admin' && (
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleDelete(asset)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
+            /* Desktop Table View */
             <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={isAllSelected ? true : isSomeSelected ? "indeterminate" : false}
+                        onCheckedChange={toggleSelectAll}
+                      />
+                    </TableHead>
                     <TableHead>Employee</TableHead>
                     <TableHead>Employee Email</TableHead>
                     <TableHead>Manager Email</TableHead>
@@ -657,7 +969,19 @@ const Dashboard = () => {
                 </TableHeader>
                 <TableBody>
                   {filteredAssets.map((asset) => (
-                    <TableRow key={asset.id}>
+                    <TableRow
+                      key={asset.id}
+                      data-state={selectedIds.has(asset.id) ? "selected" : undefined}
+                      className={cn(
+                        selectedIds.has(asset.id) && "bg-primary/5"
+                      )}
+                    >
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedIds.has(asset.id)}
+                          onCheckedChange={() => toggleSelect(asset.id)}
+                        />
+                      </TableCell>
                       <TableCell>
                         <div className="font-medium">{asset.employee_name}</div>
                       </TableCell>
@@ -706,6 +1030,122 @@ const Dashboard = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Bulk Status Update Modal */}
+      <Dialog open={showBulkStatusModal} onOpenChange={setShowBulkStatusModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Update Status for {selectedIds.size} Assets</DialogTitle>
+            <DialogDescription>
+              Select a new status to apply to all selected assets.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>New Status</Label>
+              <Select value={bulkStatus} onValueChange={setBulkStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="returned">Returned</SelectItem>
+                  <SelectItem value="lost">Lost</SelectItem>
+                  <SelectItem value="damaged">Damaged</SelectItem>
+                  <SelectItem value="retired">Retired</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Note (optional)</Label>
+              <Textarea
+                placeholder="Add a note for this bulk update..."
+                value={bulkNote}
+                onChange={(e) => setBulkNote(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            {bulkError && (
+              <div className="rounded-md bg-destructive/10 text-destructive p-3 text-sm">
+                {bulkError}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkStatusModal(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleBulkStatusUpdate} disabled={bulkOperating || !bulkStatus}>
+              {bulkOperating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {bulkOperating ? 'Updating...' : `Update ${selectedIds.size} Assets`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Delete Modal */}
+      <Dialog open={showBulkDeleteModal} onOpenChange={setShowBulkDeleteModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Delete {selectedIds.size} Assets?
+            </DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. All selected assets will be permanently deleted.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="border rounded-lg p-3 max-h-40 overflow-auto">
+              <p className="text-sm font-medium mb-2">Assets to be deleted:</p>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                {selectedAssets.slice(0, 10).map(asset => (
+                  <li key={asset.id}>
+                    {asset.laptop_asset_tag} ({asset.employee_name})
+                  </li>
+                ))}
+                {selectedAssets.length > 10 && (
+                  <li className="italic">...and {selectedAssets.length - 10} more</li>
+                )}
+              </ul>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Type "DELETE" to confirm:</Label>
+              <Input
+                placeholder="DELETE"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+              />
+            </div>
+
+            {bulkError && (
+              <div className="rounded-md bg-destructive/10 text-destructive p-3 text-sm">
+                {bulkError}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkDeleteModal(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleBulkDelete}
+              disabled={bulkOperating || deleteConfirmText !== 'DELETE'}
+            >
+              {bulkOperating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {bulkOperating ? 'Deleting...' : `Delete ${selectedIds.size} Assets`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Asset Details Modal */}
       <Dialog open={showInfoModal} onOpenChange={handleDetailsClose}>
