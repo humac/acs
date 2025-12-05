@@ -2156,6 +2156,150 @@ app.post('/api/assets', authenticate, async (req, res) => {
   }
 });
 
+// ===== Bulk Asset Operations =====
+// NOTE: Bulk routes MUST be defined BEFORE routes with :id parameters
+// to prevent Express from matching "bulk" as an asset ID
+
+// Bulk update asset status
+app.patch('/api/assets/bulk/status', authenticate, async (req, res) => {
+  try {
+    const { ids, status, notes } = req.body;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'Asset IDs array is required' });
+    }
+
+    if (!status) {
+      return res.status(400).json({ error: 'Status is required' });
+    }
+
+    const validStatuses = ['active', 'returned', 'lost', 'damaged', 'retired'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        error: 'Invalid status',
+        validStatuses
+      });
+    }
+
+    const user = await userDb.getById(req.user.id);
+    const results = { updated: [], failed: [] };
+
+    for (const id of ids) {
+      try {
+        const asset = await assetDb.getById(id);
+        if (!asset) {
+          results.failed.push({ id, reason: 'Asset not found' });
+          continue;
+        }
+
+        // Check permissions: admin can update any, others can only update their own
+        if (user.role !== 'admin' && asset.employee_email !== user.email) {
+          results.failed.push({ id, reason: 'Permission denied' });
+          continue;
+        }
+
+        const oldStatus = asset.status;
+        await assetDb.updateStatus(id, status, notes);
+
+        // Log audit
+        await auditDb.log(
+          'BULK_STATUS_CHANGE',
+          'asset',
+          asset.id,
+          `${asset.laptop_serial_number} - ${asset.employee_name}`,
+          {
+            old_status: oldStatus,
+            new_status: status,
+            notes: notes || '',
+            bulk_operation: true
+          },
+          req.user.email
+        );
+
+        results.updated.push({
+          id,
+          serial: asset.laptop_serial_number,
+          employee: asset.employee_name
+        });
+      } catch (err) {
+        results.failed.push({ id, reason: err.message });
+      }
+    }
+
+    res.json({
+      message: `Updated ${results.updated.length} of ${ids.length} assets`,
+      updated: results.updated,
+      failed: results.failed
+    });
+  } catch (error) {
+    console.error('Error bulk updating asset status:', error);
+    res.status(500).json({ error: 'Failed to bulk update asset status' });
+  }
+});
+
+// Bulk delete assets (admin only)
+app.delete('/api/assets/bulk/delete', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { ids } = req.body;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'Asset IDs array is required' });
+    }
+
+    const results = { deleted: [], failed: [] };
+
+    for (const id of ids) {
+      try {
+        const asset = await assetDb.getById(id);
+        if (!asset) {
+          results.failed.push({ id, reason: 'Asset not found' });
+          continue;
+        }
+
+        // Log audit before deletion
+        await auditDb.log(
+          'BULK_DELETE',
+          'asset',
+          asset.id,
+          `${asset.laptop_serial_number} - ${asset.employee_name}`,
+          {
+            employee_name: asset.employee_name,
+            employee_email: asset.employee_email,
+            manager_name: asset.manager_name,
+            manager_email: asset.manager_email,
+            company_name: asset.company_name,
+            laptop_serial_number: asset.laptop_serial_number,
+            laptop_asset_tag: asset.laptop_asset_tag,
+            status: asset.status,
+            deleted_by: req.user.email,
+            bulk_operation: true
+          },
+          req.user.email
+        );
+
+        await assetDb.delete(id);
+
+        results.deleted.push({
+          id,
+          serial: asset.laptop_serial_number,
+          employee: asset.employee_name
+        });
+      } catch (err) {
+        results.failed.push({ id, reason: err.message });
+      }
+    }
+
+    res.json({
+      message: `Deleted ${results.deleted.length} of ${ids.length} assets`,
+      deleted: results.deleted,
+      failed: results.failed
+    });
+  } catch (error) {
+    console.error('Error bulk deleting assets:', error);
+    res.status(500).json({ error: 'Failed to bulk delete assets' });
+  }
+});
+
 // Update asset status
 app.patch('/api/assets/:id/status', async (req, res) => {
   try {
@@ -2330,148 +2474,6 @@ app.delete('/api/assets/:id', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Error deleting asset:', error);
     res.status(500).json({ error: 'Failed to delete asset' });
-  }
-});
-
-// ===== Bulk Asset Operations =====
-
-// Bulk update asset status
-app.patch('/api/assets/bulk/status', authenticate, async (req, res) => {
-  try {
-    const { ids, status, notes } = req.body;
-
-    if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({ error: 'Asset IDs array is required' });
-    }
-
-    if (!status) {
-      return res.status(400).json({ error: 'Status is required' });
-    }
-
-    const validStatuses = ['active', 'returned', 'lost', 'damaged', 'retired'];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({
-        error: 'Invalid status',
-        validStatuses
-      });
-    }
-
-    const user = await userDb.getById(req.user.id);
-    const results = { updated: [], failed: [] };
-
-    for (const id of ids) {
-      try {
-        const asset = await assetDb.getById(id);
-        if (!asset) {
-          results.failed.push({ id, reason: 'Asset not found' });
-          continue;
-        }
-
-        // Check permissions: admin can update any, others can only update their own
-        if (user.role !== 'admin' && asset.employee_email !== user.email) {
-          results.failed.push({ id, reason: 'Permission denied' });
-          continue;
-        }
-
-        const oldStatus = asset.status;
-        await assetDb.updateStatus(id, status, notes);
-
-        // Log audit
-        await auditDb.log(
-          'BULK_STATUS_CHANGE',
-          'asset',
-          asset.id,
-          `${asset.laptop_serial_number} - ${asset.employee_name}`,
-          {
-            old_status: oldStatus,
-            new_status: status,
-            notes: notes || '',
-            bulk_operation: true
-          },
-          req.user.email
-        );
-
-        results.updated.push({
-          id,
-          serial: asset.laptop_serial_number,
-          employee: asset.employee_name
-        });
-      } catch (err) {
-        results.failed.push({ id, reason: err.message });
-      }
-    }
-
-    res.json({
-      message: `Updated ${results.updated.length} of ${ids.length} assets`,
-      updated: results.updated,
-      failed: results.failed
-    });
-  } catch (error) {
-    console.error('Error bulk updating asset status:', error);
-    res.status(500).json({ error: 'Failed to bulk update asset status' });
-  }
-});
-
-// Bulk delete assets (admin only)
-app.delete('/api/assets/bulk/delete', authenticate, authorize('admin'), async (req, res) => {
-  try {
-    const { ids } = req.body;
-
-    if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({ error: 'Asset IDs array is required' });
-    }
-
-    const results = { deleted: [], failed: [] };
-
-    for (const id of ids) {
-      try {
-        const asset = await assetDb.getById(id);
-        if (!asset) {
-          results.failed.push({ id, reason: 'Asset not found' });
-          continue;
-        }
-
-        // Log audit before deletion
-        await auditDb.log(
-          'BULK_DELETE',
-          'asset',
-          asset.id,
-          `${asset.laptop_serial_number} - ${asset.employee_name}`,
-          {
-            employee_name: asset.employee_name,
-            employee_email: asset.employee_email,
-            manager_name: asset.manager_name,
-            manager_email: asset.manager_email,
-            company_name: asset.company_name,
-            laptop_serial_number: asset.laptop_serial_number,
-            laptop_asset_tag: asset.laptop_asset_tag,
-            status: asset.status,
-            deleted_by: req.user.email,
-            bulk_operation: true
-          },
-          req.user.email
-        );
-
-        await assetDb.delete(id);
-
-        results.deleted.push({
-          id,
-          serial: asset.laptop_serial_number,
-          employee: asset.employee_name
-        });
-      } catch (err) {
-        results.failed.push({ id, reason: err.message });
-      }
-    }
-
-    res.json({
-      message: `Deleted ${results.deleted.length} of ${ids.length} assets`,
-      deleted: results.deleted,
-      failed: results.failed
-    });
-  } catch (error) {
-    console.error('Error bulk deleting assets:', error);
-    res.status(500).json({ error: 'Failed to bulk delete assets' });
   }
 });
 
