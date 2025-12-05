@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +12,9 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import { Building2, Plus, Edit, Trash2, Upload, Download, Loader2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { cn } from '@/lib/utils';
+import { Building2, Plus, Edit, Trash2, Upload, Download, Loader2, Search, Sparkles } from 'lucide-react';
 
 const CompanyManagementNew = () => {
   const { getAuthHeaders } = useAuth();
@@ -27,6 +29,10 @@ const CompanyManagementNew = () => {
   const [showImportModal, setShowImportModal] = useState(false);
   const [importFile, setImportFile] = useState(null);
   const [importResult, setImportResult] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [bulkDescription, setBulkDescription] = useState('');
 
   useEffect(() => { fetchCompanies(); }, []);
 
@@ -115,6 +121,82 @@ const CompanyManagementNew = () => {
     setShowForm(true);
   };
 
+  const filteredCompanies = useMemo(() => {
+    const term = searchTerm.toLowerCase();
+    return companies.filter((c) =>
+      c.name?.toLowerCase().includes(term) ||
+      c.description?.toLowerCase().includes(term)
+    );
+  }, [companies, searchTerm]);
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) => {
+      if (prev.size === filteredCompanies.length) return new Set();
+      return new Set(filteredCompanies.map((c) => c.id));
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+    setFormLoading(true);
+    try {
+      for (const id of ids) {
+        const response = await fetch(`/api/companies/${id}`, { method: 'DELETE', headers: { ...getAuthHeaders() } });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to delete company');
+      }
+      toast({ title: "Success", description: `Deleted ${ids.length} compan${ids.length === 1 ? 'y' : 'ies'}`, variant: "success" });
+      clearSelection();
+      fetchCompanies();
+    } catch (err) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleBulkDescriptionUpdate = async () => {
+    const ids = Array.from(selectedIds);
+    if (!ids.length || !bulkDescription.trim()) return;
+    setFormLoading(true);
+    try {
+      for (const id of ids) {
+        const company = companies.find((c) => c.id === id);
+        if (!company) continue;
+        const response = await fetch(`/api/companies/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+          body: JSON.stringify({ name: company.name, description: bulkDescription })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to update company');
+      }
+      toast({ title: "Updated", description: `Applied description to ${ids.length} compan${ids.length === 1 ? 'y' : 'ies'}`, variant: "success" });
+      setBulkDialogOpen(false);
+      setBulkDescription('');
+      clearSelection();
+      fetchCompanies();
+    } catch (err) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const isAllSelected = filteredCompanies.length > 0 && selectedIds.size === filteredCompanies.length;
+  const isSomeSelected = selectedIds.size > 0 && selectedIds.size < filteredCompanies.length;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -127,57 +209,155 @@ const CompanyManagementNew = () => {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <div className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-primary" />
-            <CardTitle>Company Management ({companies.length})</CardTitle>
+        <CardHeader className="space-y-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-primary" />
+              <CardTitle>Company Management ({companies.length})</CardTitle>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              {selectedIds.size > 0 && (
+                <div className="flex items-center gap-2 rounded-lg border px-3 py-1 bg-muted/50">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">{selectedIds.size} selected</span>
+                  <Button variant="ghost" size="sm" onClick={() => setBulkDialogOpen(true)}>Bulk edit</Button>
+                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={handleBulkDelete}>Delete</Button>
+                  <Button variant="ghost" size="sm" onClick={clearSelection}>Clear</Button>
+                </div>
+              )}
+              <Button variant="outline" onClick={() => setShowImportModal(true)}>
+                <Upload className="h-4 w-4 mr-2" />Bulk Import
+              </Button>
+              <Button onClick={handleAddClick}>
+                <Plus className="h-4 w-4 mr-2" />Add Company
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowImportModal(true)}>
-              <Upload className="h-4 w-4 mr-2" />Import
-            </Button>
-            <Button onClick={handleAddClick}>
-              <Plus className="h-4 w-4 mr-2" />Add Company
-            </Button>
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div className="relative max-w-md w-full">
+              <Search className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
+              <Input
+                placeholder="Search companies by name or description"
+                className="pl-9"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
           </div>
         </CardHeader>
         <CardContent>
-          {companies.length === 0 ? (
+          {filteredCompanies.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No companies registered yet.</p>
             </div>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Company Name</TableHead>
-                    <TableHead className="hidden md:table-cell">Description</TableHead>
-                    <TableHead className="hidden md:table-cell">Created</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {companies.map((company) => (
-                    <TableRow key={company.id}>
-                      <TableCell className="font-medium">{company.name}</TableCell>
-                      <TableCell className="hidden md:table-cell text-muted-foreground">{company.description || '-'}</TableCell>
-                      <TableCell className="hidden md:table-cell">{formatDate(company.created_date)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => handleEdit(company)}><Edit className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setDeleteDialog({ open: true, company })}><Trash2 className="h-4 w-4" /></Button>
+            <div className="space-y-3">
+              <div className="md:hidden space-y-3">
+                {filteredCompanies.map((company) => (
+                  <div
+                    key={company.id}
+                    className={cn(
+                      "border rounded-lg p-4 flex gap-3",
+                      selectedIds.has(company.id) && "bg-primary/5 border-primary/30"
+                    )}
+                  >
+                    <Checkbox
+                      checked={selectedIds.has(company.id)}
+                      onCheckedChange={() => toggleSelect(company.id)}
+                      className="mt-1"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h4 className="font-medium truncate">{company.name}</h4>
+                          <p className="text-sm text-muted-foreground line-clamp-2">{company.description || '—'}</p>
                         </div>
-                      </TableCell>
+                        <div className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(company.created_date)}</div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(company)}><Edit className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setDeleteDialog({ open: true, company })}><Trash2 className="h-4 w-4" /></Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="rounded-md border hidden md:block overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead className="w-12">
+                        <Checkbox
+                          checked={isAllSelected ? true : isSomeSelected ? "indeterminate" : false}
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      </TableHead>
+                      <TableHead>Company Name</TableHead>
+                      <TableHead className="hidden md:table-cell">Description</TableHead>
+                      <TableHead className="hidden md:table-cell">Created</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredCompanies.map((company) => (
+                      <TableRow
+                        key={company.id}
+                        data-state={selectedIds.has(company.id) ? "selected" : undefined}
+                        className={cn(selectedIds.has(company.id) && "bg-primary/5")}
+                      >
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedIds.has(company.id)}
+                            onCheckedChange={() => toggleSelect(company.id)}
+                          />
+                        </TableCell>
+                        <TableCell className="font-medium">{company.name}</TableCell>
+                        <TableCell className="hidden md:table-cell text-muted-foreground">{company.description || '-'}</TableCell>
+                        <TableCell className="hidden md:table-cell">{formatDate(company.created_date)}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => handleEdit(company)}><Edit className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setDeleteDialog({ open: true, company })}><Trash2 className="h-4 w-4" /></Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Bulk edit selected companies</DialogTitle>
+            <DialogDescription>Apply a shared description to keep the portfolio organized.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="bulk-description">Description</Label>
+              <Textarea
+                id="bulk-description"
+                placeholder="What do these companies have in common?"
+                value={bulkDescription}
+                onChange={(e) => setBulkDescription(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">This will replace existing descriptions for {selectedIds.size} compan{selectedIds.size === 1 ? 'y' : 'ies'}.</p>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setBulkDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleBulkDescriptionUpdate} disabled={formLoading || !bulkDescription.trim()}>
+                {formLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Apply description
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent>

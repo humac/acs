@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -15,7 +15,9 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import { Settings, Users, LayoutDashboard, Database, Trash2, Loader2, AlertTriangle, Shield, Image, Edit } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { cn } from '@/lib/utils';
+import { Settings, Users, LayoutDashboard, Database, Trash2, Loader2, AlertTriangle, Shield, Image, Edit, Search, Sparkles } from 'lucide-react';
 import OIDCSettings from './OIDCSettings';
 import SecuritySettingsNew from './SecuritySettingsNew';
 
@@ -30,6 +32,9 @@ const AdminSettingsNew = () => {
   const [editForm, setEditForm] = useState({ first_name: '', last_name: '', manager_name: '', manager_email: '' });
   const [savingEdit, setSavingEdit] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, user: null });
+  const [selectedUserIds, setSelectedUserIds] = useState(new Set());
+  const [bulkRole, setBulkRole] = useState('');
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const [dbSettings, setDbSettings] = useState({ engine: 'sqlite', postgresUrl: '', managedByEnv: false, effectiveEngine: 'sqlite' });
   const [dbLoading, setDbLoading] = useState(false);
   const [brandingSettings, setBrandingSettings] = useState({ logo_data: null, logo_filename: null });
@@ -141,6 +146,68 @@ const AdminSettingsNew = () => {
     }
   };
 
+  const toggleUserSelect = (id) => {
+    setSelectedUserIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllUsers = (list) => {
+    setSelectedUserIds((prev) => {
+      if (prev.size === list.length) return new Set();
+      return new Set(list.map((u) => u.id));
+    });
+  };
+
+  const clearUserSelection = () => setSelectedUserIds(new Set());
+
+  const handleBulkRoleUpdate = async () => {
+    const ids = Array.from(selectedUserIds).filter((id) => id !== user?.id);
+    if (!ids.length || !bulkRole) return;
+    setSavingEdit(true);
+    try {
+      for (const id of ids) {
+        const response = await fetch(`/api/auth/users/${id}/role`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+          body: JSON.stringify({ role: bulkRole })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to update role');
+      }
+      toast({ title: "Success", description: `Updated ${ids.length} user roles`, variant: "success" });
+      setBulkRole('');
+      clearUserSelection();
+      fetchUsers();
+    } catch (err) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleBulkDeleteUsers = async () => {
+    const ids = Array.from(selectedUserIds).filter((id) => id !== user?.id);
+    if (!ids.length) return;
+    setBulkDeleting(true);
+    try {
+      for (const id of ids) {
+        const response = await fetch(`/api/auth/users/${id}`, { method: 'DELETE', headers: { ...getAuthHeaders() } });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to delete user');
+      }
+      toast({ title: "Success", description: `Deleted ${ids.length} user${ids.length === 1 ? '' : 's'}`, variant: "success" });
+      clearUserSelection();
+      fetchUsers();
+    } catch (err) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   const handleDatabaseSave = async () => {
     setDbLoading(true);
     try {
@@ -238,15 +305,18 @@ const AdminSettingsNew = () => {
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Never';
   const getRoleColor = (role) => ({ admin: 'destructive', manager: 'success', employee: 'default' }[role] || 'secondary');
 
-  const filteredUsers = users.filter((u) => {
+  const filteredUsers = useMemo(() => {
     const term = searchTerm.toLowerCase();
-    return (
+    return users.filter((u) =>
       u.name?.toLowerCase().includes(term) ||
       u.email?.toLowerCase().includes(term) ||
       u.manager_name?.toLowerCase().includes(term) ||
       u.manager_email?.toLowerCase().includes(term)
     );
-  });
+  }, [users, searchTerm]);
+
+  const isAllUsersSelected = filteredUsers.length > 0 && selectedUserIds.size === filteredUsers.length;
+  const isSomeUsersSelected = selectedUserIds.size > 0 && selectedUserIds.size < filteredUsers.length;
 
   if (user?.role !== 'admin') {
     return (
@@ -285,72 +355,168 @@ const AdminSettingsNew = () => {
                 <h3 className="text-lg font-semibold">User Management</h3>
                 <span className="text-sm text-muted-foreground">Total: {users.length}</span>
               </div>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <Input
-                  placeholder="Search by name, email, or manager"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="max-w-md"
-                />
+              <div className="space-y-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="relative w-full sm:max-w-md">
+                    <Search className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by name, email, or manager"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                  {selectedUserIds.size > 0 && (
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 rounded-lg border px-3 py-2 bg-muted/50">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-medium">{selectedUserIds.size} selected</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Select value={bulkRole} onValueChange={setBulkRole}>
+                          <SelectTrigger className="w-36"><SelectValue placeholder="Bulk role" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="employee">Employee</SelectItem>
+                            <SelectItem value="manager">Manager</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button size="sm" onClick={handleBulkRoleUpdate} disabled={!bulkRole || savingEdit}>
+                          {savingEdit && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Apply role
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive hover:text-destructive"
+                          onClick={handleBulkDeleteUsers}
+                          disabled={bulkDeleting}
+                        >
+                          {bulkDeleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Delete
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={clearUserSelection}>Clear</Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
               {loading ? (
                 <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
               ) : (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead className="hidden md:table-cell">Email</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead className="hidden lg:table-cell">Manager</TableHead>
-                        <TableHead className="hidden lg:table-cell">Last Login</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredUsers.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={6} className="text-center text-muted-foreground">
-                            No users match your search.
-                          </TableCell>
-                        </TableRow>
-                      )}
-                      {filteredUsers.map((u) => (
-                        <TableRow key={u.id}>
-                          <TableCell className="font-medium">{u.name}</TableCell>
-                          <TableCell className="hidden md:table-cell">{u.email}</TableCell>
-                          <TableCell>
-                            <Select value={u.role} onValueChange={(v) => handleRoleChange(u.id, v)} disabled={u.id === user.id}>
-                              <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="employee">Employee</SelectItem>
-                                <SelectItem value="manager">Manager</SelectItem>
-                                <SelectItem value="admin">Admin</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell className="hidden lg:table-cell">
-                            <div className="flex flex-col">
-                              <span className="font-medium">{u.manager_name || '—'}</span>
-                              <span className="text-xs text-muted-foreground">{u.manager_email || '—'}</span>
+                <div className="space-y-3">
+                  <div className="md:hidden space-y-3">
+                    {filteredUsers.length === 0 && (
+                      <div className="text-center text-muted-foreground border rounded-md py-6">No users match your search.</div>
+                    )}
+                    {filteredUsers.map((u) => (
+                      <div
+                        key={u.id}
+                        className={cn(
+                          "border rounded-lg p-4 flex gap-3",
+                          selectedUserIds.has(u.id) && "bg-primary/5 border-primary/30"
+                        )}
+                      >
+                        <Checkbox
+                          checked={selectedUserIds.has(u.id)}
+                          onCheckedChange={() => toggleUserSelect(u.id)}
+                          className="mt-1"
+                          disabled={u.id === user.id}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <h4 className="font-medium truncate">{u.name}</h4>
+                              <p className="text-sm text-muted-foreground truncate">{u.email}</p>
                             </div>
-                          </TableCell>
-                          <TableCell className="hidden lg:table-cell">{formatDate(u.last_login)}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-1">
-                              <Button variant="ghost" size="icon" onClick={() => openEditDialog(u)}>
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setDeleteDialog({ open: true, user: u })} disabled={u.id === user.id}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                            <Badge variant={getRoleColor(u.role)} className="uppercase">{u.role}</Badge>
+                          </div>
+                          <div className="mt-2 grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                            <div>
+                              <span className="font-medium text-foreground">Manager</span>
+                              <div className="text-xs">{u.manager_name || '—'}</div>
+                              <div className="text-xs">{u.manager_email || '—'}</div>
                             </div>
-                          </TableCell>
+                            <div className="text-right text-xs">Last login<br />{formatDate(u.last_login)}</div>
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Button variant="ghost" size="icon" onClick={() => openEditDialog(u)}><Edit className="h-4 w-4" /></Button>
+                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setDeleteDialog({ open: true, user: u })} disabled={u.id === user.id}><Trash2 className="h-4 w-4" /></Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="rounded-md border hidden md:block overflow-hidden">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead className="w-12">
+                            <Checkbox
+                              checked={isAllUsersSelected ? true : isSomeUsersSelected ? "indeterminate" : false}
+                              onCheckedChange={() => toggleSelectAllUsers(filteredUsers)}
+                            />
+                          </TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead className="hidden md:table-cell">Email</TableHead>
+                          <TableHead>Role</TableHead>
+                          <TableHead className="hidden lg:table-cell">Manager</TableHead>
+                          <TableHead className="hidden lg:table-cell">Last Login</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredUsers.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={7} className="text-center text-muted-foreground">No users match your search.</TableCell>
+                          </TableRow>
+                        )}
+                        {filteredUsers.map((u) => (
+                          <TableRow
+                            key={u.id}
+                            data-state={selectedUserIds.has(u.id) ? "selected" : undefined}
+                            className={cn(selectedUserIds.has(u.id) && "bg-primary/5")}
+                          >
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedUserIds.has(u.id)}
+                                onCheckedChange={() => toggleUserSelect(u.id)}
+                                disabled={u.id === user.id}
+                              />
+                            </TableCell>
+                            <TableCell className="font-medium">{u.name}</TableCell>
+                            <TableCell className="hidden md:table-cell">{u.email}</TableCell>
+                            <TableCell>
+                              <Select value={u.role} onValueChange={(v) => handleRoleChange(u.id, v)} disabled={u.id === user.id}>
+                                <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="employee">Employee</SelectItem>
+                                  <SelectItem value="manager">Manager</SelectItem>
+                                  <SelectItem value="admin">Admin</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell className="hidden lg:table-cell">
+                              <div className="flex flex-col">
+                                <span className="font-medium">{u.manager_name || '—'}</span>
+                                <span className="text-xs text-muted-foreground">{u.manager_email || '—'}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="hidden lg:table-cell">{formatDate(u.last_login)}</TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-1">
+                                <Button variant="ghost" size="icon" onClick={() => openEditDialog(u)}>
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setDeleteDialog({ open: true, user: u })} disabled={u.id === user.id}>
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               )}
               <Card className="bg-muted/50">
