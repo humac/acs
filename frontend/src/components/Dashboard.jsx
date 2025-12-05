@@ -93,6 +93,7 @@ const Dashboard = () => {
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [showBulkStatusModal, setShowBulkStatusModal] = useState(false);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [showBulkManagerModal, setShowBulkManagerModal] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState(null);
   const [assetDetailsForm, setAssetDetailsForm] = useState(null);
   const [detailsEditMode, setDetailsEditMode] = useState(false);
@@ -110,6 +111,8 @@ const Dashboard = () => {
   const [bulkOperating, setBulkOperating] = useState(false);
   const [bulkError, setBulkError] = useState(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [bulkManagerName, setBulkManagerName] = useState('');
+  const [bulkManagerEmail, setBulkManagerEmail] = useState('');
 
   // Registration form data
   const [regFormData, setRegFormData] = useState({
@@ -669,6 +672,48 @@ const Dashboard = () => {
     }
   };
 
+  // Bulk manager assignment
+  const handleBulkManagerAssign = async () => {
+    if (!bulkManagerName || !bulkManagerEmail || selectedIds.size === 0) return;
+
+    setBulkOperating(true);
+    setBulkError(null);
+
+    try {
+      const response = await fetch('/api/assets/bulk/manager', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({
+          ids: Array.from(selectedIds),
+          manager_name: bulkManagerName,
+          manager_email: bulkManagerEmail,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to assign manager');
+
+      toast({
+        title: "Success",
+        description: data.message,
+        variant: "success",
+      });
+
+      setShowBulkManagerModal(false);
+      setBulkManagerName('');
+      setBulkManagerEmail('');
+      setSelectedIds(new Set());
+      fetchAssets();
+    } catch (err) {
+      setBulkError(err.message);
+    } finally {
+      setBulkOperating(false);
+    }
+  };
+
   // Export selected
   const handleExportSelected = () => {
     const headers = [
@@ -828,6 +873,22 @@ const Dashboard = () => {
             <RefreshCw className="h-4 w-4 mr-2" />
             Update Status
           </Button>
+
+          {user?.role === 'admin' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setBulkManagerName('');
+                setBulkManagerEmail('');
+                setBulkError(null);
+                setShowBulkManagerModal(true);
+              }}
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Assign Manager
+            </Button>
+          )}
 
           <Button
             variant="outline"
@@ -1142,6 +1203,58 @@ const Dashboard = () => {
             >
               {bulkOperating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               {bulkOperating ? 'Deleting...' : `Delete ${selectedIds.size} Assets`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Manager Assignment Modal */}
+      <Dialog open={showBulkManagerModal} onOpenChange={setShowBulkManagerModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assign Manager to {selectedIds.size} Assets</DialogTitle>
+            <DialogDescription>
+              Enter the manager details to assign to all selected assets.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Manager Name</Label>
+              <Input
+                placeholder="Enter manager name..."
+                value={bulkManagerName}
+                onChange={(e) => setBulkManagerName(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Manager Email</Label>
+              <Input
+                type="email"
+                placeholder="Enter manager email..."
+                value={bulkManagerEmail}
+                onChange={(e) => setBulkManagerEmail(e.target.value)}
+              />
+            </div>
+
+            {bulkError && (
+              <div className="rounded-md bg-destructive/10 text-destructive p-3 text-sm">
+                {bulkError}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkManagerModal(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleBulkManagerAssign}
+              disabled={bulkOperating || !bulkManagerName || !bulkManagerEmail}
+            >
+              {bulkOperating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {bulkOperating ? 'Assigning...' : `Assign to ${selectedIds.size} Assets`}
             </Button>
           </DialogFooter>
         </DialogContent>
