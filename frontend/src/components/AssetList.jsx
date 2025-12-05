@@ -1,183 +1,265 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { cn } from '@/lib/utils';
+
+// Shadcn/UI Components
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
-  Box,
-  Card,
-  Typography,
-  Button,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
   Table,
   TableBody,
   TableCell,
-  TableContainer,
   TableHead,
+  TableHeader,
   TableRow,
-  Paper,
-  Chip,
-  CircularProgress,
-  Alert,
-  Grid,
+} from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Dialog,
   DialogContent,
-  DialogActions,
-  IconButton,
-  useTheme,
-  useMediaQuery,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  Stack,
-  Link,
-  List,
-  ListItem,
-  ListItemText,
-  Checkbox,
-  FormControlLabel,
-  FormGroup,
-} from '@mui/material';
+} from '@/components/ui/dialog';
 import {
-  Add,
-  FilterList,
-  Clear,
-  Edit,
-  UploadFile,
-  Delete,
-  ViewColumn,
-} from '@mui/icons-material';
-import { useAuth } from '../contexts/AuthContext';
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+
+// Lucide Icons
+import {
+  Plus,
+  Upload,
+  Filter,
+  X,
+  Columns3,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  Download,
+  RefreshCw,
+  Search,
+  AlertTriangle,
+  CheckCircle2,
+  Loader2,
+  UserCog,
+} from 'lucide-react';
+
 import AssetEditModal from './AssetEditModal';
 import AssetRegistrationForm from './AssetRegistrationForm';
 
+const STATUS_OPTIONS = [
+  { value: 'active', label: 'Active' },
+  { value: 'returned', label: 'Returned' },
+  { value: 'lost', label: 'Lost' },
+  { value: 'damaged', label: 'Damaged' },
+  { value: 'retired', label: 'Retired' },
+];
+
+const getStatusVariant = (status) => {
+  const variants = {
+    active: 'success',
+    returned: 'info',
+    lost: 'destructive',
+    damaged: 'warning',
+    retired: 'secondary',
+  };
+  return variants[status] || 'secondary';
+};
+
+const formatDate = (dateString) => {
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+};
+
 const AssetList = ({ refresh, onAssetRegistered }) => {
   const { getAuthHeaders, user } = useAuth();
+
+  // Data state
   const [assets, setAssets] = useState([]);
   const [filteredAssets, setFilteredAssets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Selection state
+  const [selectedIds, setSelectedIds] = useState(new Set());
+
+  // Modal state
   const [selectedAsset, setSelectedAsset] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showBulkStatusModal, setShowBulkStatusModal] = useState(false);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [showColumnSelector, setShowColumnSelector] = useState(false);
+
+  // Import state
   const [importFile, setImportFile] = useState(null);
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState(null);
   const [importResult, setImportResult] = useState(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // Delete state
   const [assetToDelete, setAssetToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState(null);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
+  // Bulk operations state
+  const [bulkStatus, setBulkStatus] = useState('');
+  const [bulkNote, setBulkNote] = useState('');
+  const [bulkOperating, setBulkOperating] = useState(false);
+  const [bulkError, setBulkError] = useState(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+
+  // Filter state
   const [filters, setFilters] = useState({
-    employee: '',
-    manager: '',
+    search: '',
+    status: '',
     company: '',
-    status: ''
   });
 
-  // Column visibility state - optional columns that can be shown/hidden
+  // Column visibility state
   const [optionalColumns, setOptionalColumns] = useState(() => {
     const saved = localStorage.getItem('assetTableColumns');
     return saved ? JSON.parse(saved) : {
       make: true,
       model: true,
       registered: true,
-      manager: true,
-      notes: false
+      manager: false,
+      managerEmail: false,
+      notes: false,
     };
   });
-  const [showColumnSelector, setShowColumnSelector] = useState(false);
+
+  // Detect mobile view
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    fetchAssets();
-  }, [refresh]);
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
-  useEffect(() => {
-    applyFilters();
-  }, [assets, filters]);
-
-  const fetchAssets = async () => {
+  // Fetch assets
+  const fetchAssets = useCallback(async () => {
     setLoading(true);
     setError(null);
-
     try {
       const response = await fetch('/api/assets', {
-        headers: {
-          ...getAuthHeaders()
-        }
+        headers: { ...getAuthHeaders() },
       });
-      if (!response.ok) {
-        throw new Error('Failed to fetch assets');
-      }
+      if (!response.ok) throw new Error('Failed to fetch assets');
       const data = await response.json();
       setAssets(data);
       setFilteredAssets(data);
+      setSelectedIds(new Set());
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [getAuthHeaders]);
 
-  const applyFilters = () => {
+  useEffect(() => {
+    fetchAssets();
+  }, [refresh, fetchAssets]);
+
+  // Apply filters
+  useEffect(() => {
     let filtered = [...assets];
 
-    if (filters.employee) {
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
       filtered = filtered.filter(asset =>
-        asset.employee_name.toLowerCase().includes(filters.employee.toLowerCase()) ||
-        (asset.employee_email && asset.employee_email.toLowerCase().includes(filters.employee.toLowerCase()))
-      );
-    }
-
-    if (filters.manager) {
-      filtered = filtered.filter(asset =>
-        asset.manager_name.toLowerCase().includes(filters.manager.toLowerCase()) ||
-        (asset.manager_email && asset.manager_email.toLowerCase().includes(filters.manager.toLowerCase()))
-      );
-    }
-
-    if (filters.company) {
-      filtered = filtered.filter(asset =>
-        asset.company_name.toLowerCase().includes(filters.company.toLowerCase())
+        asset.employee_name?.toLowerCase().includes(searchLower) ||
+        asset.employee_email?.toLowerCase().includes(searchLower) ||
+        asset.laptop_serial_number?.toLowerCase().includes(searchLower) ||
+        asset.laptop_asset_tag?.toLowerCase().includes(searchLower) ||
+        asset.company_name?.toLowerCase().includes(searchLower)
       );
     }
 
     if (filters.status) {
+      filtered = filtered.filter(asset => asset.status === filters.status);
+    }
+
+    if (filters.company) {
       filtered = filtered.filter(asset =>
-        asset.status === filters.status
+        asset.company_name?.toLowerCase().includes(filters.company.toLowerCase())
       );
     }
 
     setFilteredAssets(filtered);
+  }, [assets, filters]);
+
+  // Selection handlers
+  const isAllSelected = filteredAssets.length > 0 &&
+    filteredAssets.every(asset => selectedIds.has(asset.id));
+
+  const isSomeSelected = filteredAssets.some(asset => selectedIds.has(asset.id)) &&
+    !isAllSelected;
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredAssets.map(a => a.id)));
+    }
   };
 
-  const handleFilterChange = (e) => {
-    setFilters({
-      ...filters,
-      [e.target.name]: e.target.value
-    });
+  const toggleSelect = (id) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
   };
 
-  const clearFilters = () => {
-    setFilters({
-      employee: '',
-      manager: '',
-      company: '',
-      status: ''
-    });
-  };
+  const selectedAssets = useMemo(() =>
+    filteredAssets.filter(a => selectedIds.has(a.id)),
+    [filteredAssets, selectedIds]
+  );
 
+  // Column toggle
   const toggleColumn = (columnName) => {
-    const newColumns = {
-      ...optionalColumns,
-      [columnName]: !optionalColumns[columnName]
-    };
+    const newColumns = { ...optionalColumns, [columnName]: !optionalColumns[columnName] };
     setOptionalColumns(newColumns);
     localStorage.setItem('assetTableColumns', JSON.stringify(newColumns));
   };
 
+  // Clear filters
+  const clearFilters = () => {
+    setFilters({ search: '', status: '', company: '' });
+  };
+
+  const hasActiveFilters = filters.search || filters.status || filters.company;
+
+  // Edit handlers
   const handleEditAsset = (asset) => {
     setSelectedAsset(asset);
     setShowEditModal(true);
@@ -193,22 +275,17 @@ const AssetList = ({ refresh, onAssetRegistered }) => {
     handleEditModalClose();
   };
 
-  const handleNewAssetClick = () => {
-    setShowRegistrationModal(true);
-  };
-
-  const handleRegistrationModalClose = () => {
-    setShowRegistrationModal(false);
-  };
+  // Registration handlers
+  const handleNewAssetClick = () => setShowRegistrationModal(true);
+  const handleRegistrationModalClose = () => setShowRegistrationModal(false);
 
   const handleAssetRegistered = (asset) => {
     setShowRegistrationModal(false);
     fetchAssets();
-    if (onAssetRegistered) {
-      onAssetRegistered(asset);
-    }
+    if (onAssetRegistered) onAssetRegistered(asset);
   };
 
+  // Import handlers
   const handleImportAssets = async (e) => {
     e.preventDefault();
     setImportError(null);
@@ -220,24 +297,18 @@ const AssetList = ({ refresh, onAssetRegistered }) => {
     }
 
     setImporting(true);
-
     try {
       const formData = new FormData();
       formData.append('file', importFile);
 
       const response = await fetch('/api/assets/import', {
         method: 'POST',
-        headers: {
-          ...getAuthHeaders()
-        },
-        body: formData
+        headers: { ...getAuthHeaders() },
+        body: formData,
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to import assets');
-      }
+      if (!response.ok) throw new Error(data.error || 'Failed to import assets');
 
       setImportResult(data);
       setImportFile(null);
@@ -256,6 +327,7 @@ const AssetList = ({ refresh, onAssetRegistered }) => {
     setImportResult(null);
   };
 
+  // Single delete handlers
   const handleDeleteClick = (asset) => {
     setAssetToDelete(asset);
     setShowDeleteConfirm(true);
@@ -270,25 +342,18 @@ const AssetList = ({ refresh, onAssetRegistered }) => {
 
   const handleDeleteAsset = async () => {
     if (!assetToDelete) return;
-
     setDeleting(true);
     setDeleteError(null);
 
     try {
       const response = await fetch(`/api/assets/${assetToDelete.id}`, {
         method: 'DELETE',
-        headers: {
-          ...getAuthHeaders()
-        }
+        headers: { ...getAuthHeaders() },
       });
 
       const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to delete asset');
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to delete asset');
-      }
-
-      // Close the dialog and refresh the asset list
       handleDeleteConfirmClose();
       fetchAssets();
     } catch (err) {
@@ -298,303 +363,738 @@ const AssetList = ({ refresh, onAssetRegistered }) => {
     }
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+  // Bulk status update
+  const handleBulkStatusUpdate = async () => {
+    if (!bulkStatus || selectedIds.size === 0) return;
+
+    setBulkOperating(true);
+    setBulkError(null);
+
+    try {
+      const response = await fetch('/api/assets/bulk/status', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({
+          ids: Array.from(selectedIds),
+          status: bulkStatus,
+          notes: bulkNote || undefined,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to update assets');
+
+      setShowBulkStatusModal(false);
+      setBulkStatus('');
+      setBulkNote('');
+      setSelectedIds(new Set());
+      fetchAssets();
+    } catch (err) {
+      setBulkError(err.message);
+    } finally {
+      setBulkOperating(false);
+    }
   };
 
-  const getStatusColor = (status) => {
-    const colors = {
-      active: 'success',
-      returned: 'info',
-      lost: 'error',
-      damaged: 'warning',
-      retired: 'default',
-    };
-    return colors[status] || 'default';
+  // Bulk delete
+  const handleBulkDelete = async () => {
+    if (deleteConfirmText !== 'DELETE' || selectedIds.size === 0) return;
+
+    setBulkOperating(true);
+    setBulkError(null);
+
+    try {
+      const response = await fetch('/api/assets/bulk/delete', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify({ ids: Array.from(selectedIds) }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to delete assets');
+
+      setShowBulkDeleteModal(false);
+      setDeleteConfirmText('');
+      setSelectedIds(new Set());
+      fetchAssets();
+    } catch (err) {
+      setBulkError(err.message);
+    } finally {
+      setBulkOperating(false);
+    }
   };
 
-  const hasActiveFilters = filters.employee || filters.manager || filters.company || filters.status;
+  // Export selected
+  const handleExportSelected = () => {
+    const headers = [
+      'employee_name',
+      'employee_email',
+      'manager_name',
+      'manager_email',
+      'company_name',
+      'laptop_serial_number',
+      'laptop_asset_tag',
+      'laptop_make',
+      'laptop_model',
+      'status',
+      'registration_date',
+      'notes',
+    ];
 
+    const csvContent = [
+      headers.join(','),
+      ...selectedAssets.map(asset =>
+        headers.map(h => `"${(asset[h] || '').toString().replace(/"/g, '""')}"`).join(',')
+      ),
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `assets_export_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
+
+  // Loading state
   if (loading) {
     return (
-      <Card sx={{ p: 3 }}>
-        <Box display="flex" justifyContent="center" alignItems="center" py={5}>
-          <CircularProgress />
-          <Typography variant="body1" sx={{ ml: 2 }}>
-            Loading assets...
-          </Typography>
-        </Box>
+      <Card>
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+          <span className="text-muted-foreground">Loading assets...</span>
+        </CardContent>
       </Card>
     );
   }
 
+  // Error state
   if (error) {
     return (
-      <Card sx={{ p: 3 }}>
-        <Typography variant="h5" gutterBottom>
-          Asset Inventory
-        </Typography>
-        <Alert severity="error">{error}</Alert>
+      <Card>
+        <CardHeader>
+          <CardTitle>Asset Inventory</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        </CardContent>
       </Card>
     );
   }
 
   return (
     <>
-      <Card sx={{ p: 3 }}>
-        {/* Header */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
-          <Typography variant="h5" fontWeight={600}>
-            Asset Inventory ({filteredAssets.length} assets)
-          </Typography>
-          <Stack direction="row" spacing={1}>
-            <Button
-              variant="outlined"
-              startIcon={<ViewColumn />}
-              onClick={() => setShowColumnSelector(true)}
-            >
-              Columns
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<UploadFile />}
-              onClick={() => setShowImportModal(true)}
-            >
-              Bulk Import
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={handleNewAssetClick}
-            >
-              New Asset
-            </Button>
-          </Stack>
-        </Box>
+      <Card>
+        <CardHeader className="pb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <CardTitle className="text-xl font-semibold">
+              Asset Inventory
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                ({filteredAssets.length} assets)
+              </span>
+            </CardTitle>
 
-        {/* Filters */}
-        <Box sx={{ mb: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <FilterList sx={{ mr: 1 }} color="action" />
-            <Typography variant="subtitle1" fontWeight={600}>
-              Filters
-            </Typography>
-          </Box>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={3}>
-              <TextField
-                fullWidth
-                size="small"
-                name="employee"
-                label="Employee"
-                placeholder="Search by employee..."
-                value={filters.employee}
-                onChange={handleFilterChange}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <TextField
-                fullWidth
-                size="small"
-                name="manager"
-                label="Manager"
-                placeholder="Search by manager..."
-                value={filters.manager}
-                onChange={handleFilterChange}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <TextField
-                fullWidth
-                size="small"
-                name="company"
-                label="Company"
-                placeholder="Search by company..."
-                value={filters.company}
-                onChange={handleFilterChange}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth size="small" sx={{ minWidth: 180 }}>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  name="status"
-                  value={filters.status}
-                  onChange={handleFilterChange}
-                  label="Status"
-                >
-                  <MenuItem value="">All Statuses</MenuItem>
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="returned">Returned</MenuItem>
-                  <MenuItem value="lost">Lost</MenuItem>
-                  <MenuItem value="damaged">Damaged</MenuItem>
-                  <MenuItem value="retired">Retired</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
+            <div className="flex flex-wrap gap-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Columns3 className="h-4 w-4 mr-2" />
+                    Columns
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuLabel>Toggle Columns</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuCheckboxItem
+                    checked={optionalColumns.manager}
+                    onCheckedChange={() => toggleColumn('manager')}
+                  >
+                    Manager Name
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={optionalColumns.managerEmail}
+                    onCheckedChange={() => toggleColumn('managerEmail')}
+                  >
+                    Manager Email
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={optionalColumns.make}
+                    onCheckedChange={() => toggleColumn('make')}
+                  >
+                    Make
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={optionalColumns.model}
+                    onCheckedChange={() => toggleColumn('model')}
+                  >
+                    Model
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={optionalColumns.registered}
+                    onCheckedChange={() => toggleColumn('registered')}
+                  >
+                    Registered Date
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={optionalColumns.notes}
+                    onCheckedChange={() => toggleColumn('notes')}
+                  >
+                    Notes
+                  </DropdownMenuCheckboxItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
-          {hasActiveFilters && (
-            <Box sx={{ mt: 2 }}>
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<Clear />}
-                onClick={clearFilters}
-              >
-                Clear Filters
+              <Button variant="outline" size="sm" onClick={() => setShowImportModal(true)}>
+                <Upload className="h-4 w-4 mr-2" />
+                Import
               </Button>
-            </Box>
-          )}
-        </Box>
 
-        {/* Assets Table */}
-        {filteredAssets.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 5 }}>
-            <Typography variant="body1" color="text.secondary">
-              No assets found matching your search criteria.
-            </Typography>
-          </Box>
-        ) : (
-          <TableContainer component={Paper} variant="outlined" sx={{ maxWidth: '100%' }}>
-            <Table size={isMobile ? 'small' : 'medium'} sx={{ minWidth: 900 }}>
-              <TableHead>
-                <TableRow>
-                  {/* Fixed columns */}
-                  <TableCell><strong>Employee</strong></TableCell>
-                  <TableCell><strong>Employee Email</strong></TableCell>
-                  <TableCell><strong>Manager Email</strong></TableCell>
-                  <TableCell><strong>Company</strong></TableCell>
-                  <TableCell><strong>Serial Number</strong></TableCell>
-                  <TableCell><strong>Asset Tag</strong></TableCell>
-                  <TableCell><strong>Status</strong></TableCell>
-                  {/* Optional columns */}
-                  {optionalColumns.manager && <TableCell><strong>Manager</strong></TableCell>}
-                  {optionalColumns.make && <TableCell><strong>Make</strong></TableCell>}
-                  {optionalColumns.model && <TableCell><strong>Model</strong></TableCell>}
-                  {optionalColumns.registered && <TableCell><strong>Registered</strong></TableCell>}
-                  {optionalColumns.notes && <TableCell><strong>Notes</strong></TableCell>}
-                  <TableCell><strong>Actions</strong></TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredAssets.map((asset) => (
-                  <TableRow key={asset.id} hover>
-                    {/* Fixed columns */}
-                    <TableCell>{asset.employee_name}</TableCell>
-                    <TableCell>{asset.employee_email || '-'}</TableCell>
-                    <TableCell>{asset.manager_email || '-'}</TableCell>
-                    <TableCell>{asset.company_name}</TableCell>
-                    <TableCell>{asset.laptop_serial_number}</TableCell>
-                    <TableCell>{asset.laptop_asset_tag}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={asset.status.toUpperCase()}
-                        color={getStatusColor(asset.status)}
-                        size="small"
-                      />
-                    </TableCell>
-                    {/* Optional columns */}
-                    {optionalColumns.manager && <TableCell>{asset.manager_name || '-'}</TableCell>}
-                    {optionalColumns.make && <TableCell>{asset.laptop_make || '-'}</TableCell>}
-                    {optionalColumns.model && <TableCell>{asset.laptop_model || '-'}</TableCell>}
-                    {optionalColumns.registered && <TableCell>{formatDate(asset.registration_date)}</TableCell>}
-                    {optionalColumns.notes && <TableCell>{asset.notes || '-'}</TableCell>}
-                    <TableCell>
-                      <IconButton
-                        size="small"
-                        color="primary"
-                        onClick={() => handleEditAsset(asset)}
-                        title="Edit Asset"
-                      >
-                        <Edit fontSize="small" />
-                      </IconButton>
-                      {(user?.role === 'admin' || asset.employee_email === user?.email) && (
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => handleDeleteClick(asset)}
-                          title="Delete Asset"
-                        >
-                          <Delete fontSize="small" />
-                        </IconButton>
-                      )}
-                    </TableCell>
-                  </TableRow>
+              <Button size="sm" onClick={handleNewAssetClick}>
+                <Plus className="h-4 w-4 mr-2" />
+                New Asset
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by employee, email, serial, asset tag..."
+                value={filters.search}
+                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                className="pl-9"
+              />
+            </div>
+
+            <Select
+              value={filters.status}
+              onValueChange={(value) => setFilters({ ...filters, status: value })}
+            >
+              <SelectTrigger className="w-full sm:w-40">
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Statuses</SelectItem>
+                {STATUS_OPTIONS.map(opt => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
                 ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
+              </SelectContent>
+            </Select>
+
+            <Input
+              placeholder="Filter by company..."
+              value={filters.company}
+              onChange={(e) => setFilters({ ...filters, company: e.target.value })}
+              className="w-full sm:w-48"
+            />
+
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
+                <X className="h-4 w-4 mr-1" />
+                Clear
+              </Button>
+            )}
+          </div>
+
+          {/* Bulk Action Bar */}
+          {selectedIds.size > 0 && (
+            <div className="sticky top-0 z-10 flex flex-wrap items-center gap-2 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+              <span className="text-sm font-medium">
+                {selectedIds.size} selected
+              </span>
+
+              <div className="flex-1" />
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setBulkStatus('');
+                  setBulkNote('');
+                  setBulkError(null);
+                  setShowBulkStatusModal(true);
+                }}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Update Status
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportSelected}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+
+              {user?.role === 'admin' && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => {
+                    setDeleteConfirmText('');
+                    setBulkError(null);
+                    setShowBulkDeleteModal(true);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </Button>
+              )}
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedIds(new Set())}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          {/* Assets Display */}
+          {filteredAssets.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              No assets found matching your search criteria.
+            </div>
+          ) : isMobile ? (
+            /* Mobile Card View */
+            <div className="space-y-3">
+              {filteredAssets.map((asset) => (
+                <div
+                  key={asset.id}
+                  className={cn(
+                    "border rounded-lg p-4 transition-colors",
+                    selectedIds.has(asset.id) && "bg-primary/5 border-primary/30"
+                  )}
+                >
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      checked={selectedIds.has(asset.id)}
+                      onCheckedChange={() => toggleSelect(asset.id)}
+                      className="mt-1"
+                    />
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <h4 className="font-medium truncate">{asset.employee_name}</h4>
+                        <Badge variant={getStatusVariant(asset.status)}>
+                          {asset.status.toUpperCase()}
+                        </Badge>
+                      </div>
+
+                      <p className="text-sm text-muted-foreground truncate">
+                        {asset.employee_email}
+                      </p>
+
+                      <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Asset Tag:</span>{' '}
+                          <span className="font-mono">{asset.laptop_asset_tag}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Serial:</span>{' '}
+                          <span className="font-mono">{asset.laptop_serial_number}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Company:</span>{' '}
+                          {asset.company_name}
+                        </div>
+                        {optionalColumns.make && asset.laptop_make && (
+                          <div>
+                            <span className="text-muted-foreground">Make:</span>{' '}
+                            {asset.laptop_make}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleEditAsset(asset)}>
+                          <Pencil className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        {(user?.role === 'admin' || asset.employee_email === user?.email) && (
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleDeleteClick(asset)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            /* Desktop Table View */
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={isAllSelected ? true : isSomeSelected ? "indeterminate" : false}
+                        onCheckedChange={toggleSelectAll}
+                      />
+                    </TableHead>
+                    <TableHead>Employee</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Company</TableHead>
+                    <TableHead>Serial Number</TableHead>
+                    <TableHead>Asset Tag</TableHead>
+                    <TableHead>Status</TableHead>
+                    {optionalColumns.manager && <TableHead>Manager</TableHead>}
+                    {optionalColumns.managerEmail && <TableHead>Manager Email</TableHead>}
+                    {optionalColumns.make && <TableHead>Make</TableHead>}
+                    {optionalColumns.model && <TableHead>Model</TableHead>}
+                    {optionalColumns.registered && <TableHead>Registered</TableHead>}
+                    {optionalColumns.notes && <TableHead>Notes</TableHead>}
+                    <TableHead className="w-12"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredAssets.map((asset) => (
+                    <TableRow
+                      key={asset.id}
+                      data-state={selectedIds.has(asset.id) ? "selected" : undefined}
+                      className={cn(
+                        selectedIds.has(asset.id) && "bg-primary/5"
+                      )}
+                    >
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedIds.has(asset.id)}
+                          onCheckedChange={() => toggleSelect(asset.id)}
+                        />
+                      </TableCell>
+                      <TableCell className="font-medium">{asset.employee_name}</TableCell>
+                      <TableCell className="text-muted-foreground">{asset.employee_email || '-'}</TableCell>
+                      <TableCell>{asset.company_name}</TableCell>
+                      <TableCell className="font-mono text-sm">{asset.laptop_serial_number}</TableCell>
+                      <TableCell className="font-mono text-sm">{asset.laptop_asset_tag}</TableCell>
+                      <TableCell>
+                        <Badge variant={getStatusVariant(asset.status)}>
+                          {asset.status.toUpperCase()}
+                        </Badge>
+                      </TableCell>
+                      {optionalColumns.manager && (
+                        <TableCell>{asset.manager_name || '-'}</TableCell>
+                      )}
+                      {optionalColumns.managerEmail && (
+                        <TableCell className="text-muted-foreground">{asset.manager_email || '-'}</TableCell>
+                      )}
+                      {optionalColumns.make && (
+                        <TableCell>{asset.laptop_make || '-'}</TableCell>
+                      )}
+                      {optionalColumns.model && (
+                        <TableCell>{asset.laptop_model || '-'}</TableCell>
+                      )}
+                      {optionalColumns.registered && (
+                        <TableCell>{formatDate(asset.registration_date)}</TableCell>
+                      )}
+                      {optionalColumns.notes && (
+                        <TableCell className="max-w-[200px] truncate" title={asset.notes}>
+                          {asset.notes || '-'}
+                        </TableCell>
+                      )}
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleEditAsset(asset)}>
+                              <Pencil className="h-4 w-4 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            {(user?.role === 'admin' || asset.employee_email === user?.email) && (
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => handleDeleteClick(asset)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
       </Card>
 
-      {/* Column Selector Modal */}
-      <Dialog
-        open={showColumnSelector}
-        onClose={() => setShowColumnSelector(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Customize Table Columns</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Select which optional columns to display in the asset table. Fixed columns (Employee, Employee Email, Manager Email, Company, Serial Number, Asset Tag, Status) are always visible.
-          </Typography>
-          <FormGroup>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={optionalColumns.manager}
-                  onChange={() => toggleColumn('manager')}
-                />
-              }
-              label="Manager Name"
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={optionalColumns.make}
-                  onChange={() => toggleColumn('make')}
-                />
-              }
-              label="Make"
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={optionalColumns.model}
-                  onChange={() => toggleColumn('model')}
-                />
-              }
-              label="Model"
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={optionalColumns.registered}
-                  onChange={() => toggleColumn('registered')}
-                />
-              }
-              label="Registered Date"
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={optionalColumns.notes}
-                  onChange={() => toggleColumn('notes')}
-                />
-              }
-              label="Notes"
-            />
-          </FormGroup>
+      {/* Bulk Import Modal */}
+      <Dialog open={showImportModal} onOpenChange={handleImportModalClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Import Assets from CSV</DialogTitle>
+            <DialogDescription>
+              Upload a CSV file with your asset details. Download the example file to see the required columns.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                asChild
+                className="flex-1"
+              >
+                <label className="cursor-pointer">
+                  <Upload className="h-4 w-4 mr-2" />
+                  {importFile ? 'Change File' : 'Choose CSV File'}
+                  <input
+                    type="file"
+                    accept=".csv"
+                    className="hidden"
+                    onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+                  />
+                </label>
+              </Button>
+              <Button variant="ghost" asChild>
+                <a href="/import_assets.csv" download>
+                  <Download className="h-4 w-4 mr-2" />
+                  Example
+                </a>
+              </Button>
+            </div>
+
+            {importFile && (
+              <p className="text-sm text-muted-foreground">
+                Selected: {importFile.name}
+              </p>
+            )}
+
+            {importError && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>{importError}</AlertDescription>
+              </Alert>
+            )}
+
+            {importResult && (
+              <Alert>
+                <CheckCircle2 className="h-4 w-4" />
+                <AlertDescription>{importResult.message}</AlertDescription>
+              </Alert>
+            )}
+
+            {importResult?.errors?.length > 0 && (
+              <div className="border rounded-lg p-3 max-h-40 overflow-auto">
+                <p className="text-sm font-medium mb-2">Issues:</p>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  {importResult.errors.map((err, idx) => (
+                    <li key={idx}>{err}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={handleImportModalClose}>
+              Cancel
+            </Button>
+            <Button onClick={handleImportAssets} disabled={importing || !importFile}>
+              {importing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {importing ? 'Importing...' : 'Import Assets'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowColumnSelector(false)}>Close</Button>
-        </DialogActions>
+      </Dialog>
+
+      {/* Asset Registration Modal */}
+      <Dialog open={showRegistrationModal} onOpenChange={handleRegistrationModalClose}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <AssetRegistrationForm onAssetRegistered={handleAssetRegistered} />
+        </DialogContent>
+      </Dialog>
+
+      {/* Single Delete Confirmation Modal */}
+      <Dialog open={showDeleteConfirm} onOpenChange={handleDeleteConfirmClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirm Delete</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this asset? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          {assetToDelete && (
+            <div className="bg-muted p-3 rounded-lg space-y-1 text-sm">
+              <p><span className="font-medium">Employee:</span> {assetToDelete.employee_name}</p>
+              <p><span className="font-medium">Serial Number:</span> {assetToDelete.laptop_serial_number}</p>
+              <p><span className="font-medium">Asset Tag:</span> {assetToDelete.laptop_asset_tag}</p>
+            </div>
+          )}
+
+          {deleteError && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{deleteError}</AlertDescription>
+            </Alert>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={handleDeleteConfirmClose} disabled={deleting}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteAsset} disabled={deleting}>
+              {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {deleting ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Status Update Modal */}
+      <Dialog open={showBulkStatusModal} onOpenChange={setShowBulkStatusModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Update Status for {selectedIds.size} Assets</DialogTitle>
+            <DialogDescription>
+              Select a new status to apply to all selected assets.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>New Status</Label>
+              <Select value={bulkStatus} onValueChange={setBulkStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Note (optional)</Label>
+              <Textarea
+                placeholder="Add a note for this bulk update..."
+                value={bulkNote}
+                onChange={(e) => setBulkNote(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            {bulkError && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>{bulkError}</AlertDescription>
+              </Alert>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkStatusModal(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleBulkStatusUpdate} disabled={bulkOperating || !bulkStatus}>
+              {bulkOperating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {bulkOperating ? 'Updating...' : `Update ${selectedIds.size} Assets`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Delete Modal */}
+      <Dialog open={showBulkDeleteModal} onOpenChange={setShowBulkDeleteModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Delete {selectedIds.size} Assets?
+            </DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. All selected assets will be permanently deleted.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="border rounded-lg p-3 max-h-40 overflow-auto">
+              <p className="text-sm font-medium mb-2">Assets to be deleted:</p>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                {selectedAssets.slice(0, 10).map(asset => (
+                  <li key={asset.id}>
+                    {asset.laptop_asset_tag} ({asset.employee_name})
+                  </li>
+                ))}
+                {selectedAssets.length > 10 && (
+                  <li className="italic">...and {selectedAssets.length - 10} more</li>
+                )}
+              </ul>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Type "DELETE" to confirm:</Label>
+              <Input
+                placeholder="DELETE"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+              />
+            </div>
+
+            {bulkError && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>{bulkError}</AlertDescription>
+              </Alert>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowBulkDeleteModal(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleBulkDelete}
+              disabled={bulkOperating || deleteConfirmText !== 'DELETE'}
+            >
+              {bulkOperating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {bulkOperating ? 'Deleting...' : `Delete ${selectedIds.size} Assets`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
       </Dialog>
 
       {/* Asset Edit Modal */}
@@ -605,145 +1105,6 @@ const AssetList = ({ refresh, onAssetRegistered }) => {
           onUpdate={handleAssetUpdated}
         />
       )}
-
-      {/* Bulk Import Modal */}
-      <Dialog
-        open={showImportModal}
-        onClose={handleImportModalClose}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Import Assets from CSV</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Upload a CSV file with your asset details. Download the example file to see the required columns and formatting.
-          </Typography>
-
-          <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
-            <Button
-              component="label"
-              variant="outlined"
-              startIcon={<UploadFile />}
-            >
-              {importFile ? 'Change File' : 'Choose CSV File'}
-              <input
-                type="file"
-                accept=".csv"
-                hidden
-                onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-              />
-            </Button>
-            <Button
-              component={Link}
-              href="/import_assets.csv"
-              download
-              variant="text"
-            >
-              Download example CSV
-            </Button>
-          </Stack>
-
-          {importFile && (
-            <Typography variant="body2" sx={{ mb: 2 }}>
-              Selected file: {importFile.name}
-            </Typography>
-          )}
-
-          {importError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {importError}
-            </Alert>
-          )}
-
-          {importResult && (
-            <Alert severity="success" sx={{ mb: 2 }}>
-              {importResult.message}
-            </Alert>
-          )}
-
-          {importResult?.errors?.length > 0 && (
-            <Paper variant="outlined" sx={{ p: 1, maxHeight: 200, overflow: 'auto' }}>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Issues
-              </Typography>
-              <List dense>
-                {importResult.errors.map((err, idx) => (
-                  <ListItem key={idx} disablePadding>
-                    <ListItemText primary={err} />
-                  </ListItem>
-                ))}
-              </List>
-            </Paper>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleImportModalClose}>Cancel</Button>
-          <Button
-            variant="contained"
-            onClick={handleImportAssets}
-            disabled={importing}
-          >
-            {importing ? 'Importing...' : 'Import Assets'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Asset Registration Modal */}
-      <Dialog
-        open={showRegistrationModal}
-        onClose={handleRegistrationModalClose}
-        maxWidth="md"
-        fullWidth
-        fullScreen={isMobile}
-      >
-        <DialogContent>
-          <AssetRegistrationForm onAssetRegistered={handleAssetRegistered} />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleRegistrationModalClose}>
-            Cancel
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Delete Confirmation Modal */}
-      <Dialog
-        open={showDeleteConfirm}
-        onClose={handleDeleteConfirmClose}
-        maxWidth="sm"
-      >
-        <DialogTitle>Confirm Delete</DialogTitle>
-        <DialogContent>
-          <Typography variant="body1" sx={{ mb: 2 }}>
-            Are you sure you want to delete this asset?
-          </Typography>
-          {assetToDelete && (
-            <Box sx={{ p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
-              <Typography variant="body2"><strong>Employee:</strong> {assetToDelete.employee_name}</Typography>
-              <Typography variant="body2"><strong>Serial Number:</strong> {assetToDelete.laptop_serial_number}</Typography>
-              <Typography variant="body2"><strong>Asset Tag:</strong> {assetToDelete.laptop_asset_tag}</Typography>
-            </Box>
-          )}
-          {deleteError && (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {deleteError}
-            </Alert>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDeleteConfirmClose} disabled={deleting}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={handleDeleteAsset}
-            disabled={deleting}
-          >
-            {deleting ? 'Deleting...' : 'Delete'}
-          </Button>
-        </DialogActions>
-      </Dialog>
     </>
   );
 };
