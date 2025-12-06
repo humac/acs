@@ -472,7 +472,8 @@ const AdminSettingsNew = () => {
                     ))}
                   </div>
 
-                  <Table wrapperClassName="hidden md:block">
+                  <div className="hidden md:block">
+                    <Table>
                       <TableHeader>
                         <TableRow className="bg-muted/50">
                           <TableHead className="w-12">
@@ -532,13 +533,13 @@ const AdminSettingsNew = () => {
                                 <Button variant="ghost" size="icon" onClick={() => openEditDialog(u)}>
                                   <Edit className="h-4 w-4" />
                                 </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="text-destructive hover:text-destructive"
-                                    onClick={() => setDeleteDialog({ open: true, user: u })}
-                                    disabled={u.id === user.id}
-                                  >
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => setDeleteDialog({ open: true, user: u })}
+                                  disabled={u.id === user.id}
+                                >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>
@@ -547,17 +548,18 @@ const AdminSettingsNew = () => {
                         ))}
                       </TableBody>
                     </Table>
+
+                    {filteredUsers.length > 0 && (
+                      <TablePaginationControls
+                        className="mt-4"
+                        page={usersPage}
+                        pageSize={usersPageSize}
+                        totalItems={filteredUsers.length}
+                        onPageChange={setUsersPage}
+                        onPageSizeChange={setUsersPageSize}
+                      />
+                    )}
                   </div>
-                  {filteredUsers.length > 0 && (
-                    <TablePaginationControls
-                      className="mt-4"
-                      page={usersPage}
-                      pageSize={usersPageSize}
-                      totalItems={filteredUsers.length}
-                      onPageChange={setUsersPage}
-                      onPageSizeChange={setUsersPageSize}
-                    />
-                  )}
                 </div>
               )}
               <Card className="bg-muted/50">
