@@ -298,10 +298,10 @@ const Dashboard = () => {
   };
 
   const DetailItem = ({ label, value, helper, mono = false }) => (
-    <div className="space-y-1">
-      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className={cn('text-sm font-semibold', mono && 'font-mono')}>{value || '—'}</p>
-      {helper && <p className="text-sm text-muted-foreground">{helper}</p>}
+    <div className="space-y-0.5">
+      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className={cn('text-sm font-semibold leading-tight', mono && 'font-mono')}>{value || '—'}</p>
+      {helper && <p className="text-xs text-muted-foreground">{helper}</p>}
     </div>
   );
 
@@ -694,7 +694,7 @@ const Dashboard = () => {
 
   return (
     <>
-      <Card className="border shadow-sm">
+      <Card className="border shadow-sm overflow-hidden">
         <CardHeader className="space-y-1 border-b bg-muted/30">
           <div className="flex items-center justify-between">
             <CardTitle className="text-2xl">Asset Inventory</CardTitle>
@@ -706,43 +706,45 @@ const Dashboard = () => {
             Search, filter, and review hardware at a glance.
           </p>
         </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Stats Cards */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Assets</CardTitle>
-                <Package className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{dashboardStats.assetsCount}</div>
-                <p className="text-xs text-muted-foreground">Total registered assets</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Employees</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{dashboardStats.employeesCount}</div>
-                <p className="text-xs text-muted-foreground">Total registered users</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Companies</CardTitle>
-                <Building2 className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{dashboardStats.companiesCount}</div>
-                <p className="text-xs text-muted-foreground">Partner organizations</p>
-              </CardContent>
-            </Card>
-          </div>
+        <CardContent className="p-0">
+          <div className="p-6 space-y-6">
+            {/* Stats Cards */}
+            <div className="grid gap-4 md:grid-cols-3">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Assets</CardTitle>
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{dashboardStats.assetsCount}</div>
+                  <p className="text-xs text-muted-foreground">Total registered assets</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Employees</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{dashboardStats.employeesCount}</div>
+                  <p className="text-xs text-muted-foreground">Total registered users</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Companies</CardTitle>
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{dashboardStats.companiesCount}</div>
+                  <p className="text-xs text-muted-foreground">Partner organizations</p>
+                </CardContent>
+              </Card>
+            </div>
 
-          {/* Filters and Actions */}
-          <div className="rounded-xl border bg-card/60 p-4">
+            <Separator />
+
+            {/* Filters and Actions */}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="flex flex-col gap-4 md:flex-row md:items-center flex-1">
                 <div className="relative flex-1">
@@ -779,218 +781,222 @@ const Dashboard = () => {
                 </Button>
               </div>
             </div>
-          </div>
 
-          {/* Bulk Action Bar */}
-          {selectedIds.size > 0 && (
-            <div className="sticky top-16 z-40 flex flex-wrap items-center gap-2 p-3 bg-primary/10 border border-primary/20 rounded-lg backdrop-blur-sm">
-              <span className="text-sm font-medium">{selectedIds.size} selected</span>
+            {/* Bulk Action Bar */}
+            {selectedIds.size > 0 && (
+              <div className="sticky top-16 z-40 flex flex-wrap items-center gap-2 p-3 bg-primary/10 border border-primary/20 rounded-lg backdrop-blur-sm">
+                <span className="text-sm font-medium">{selectedIds.size} selected</span>
 
-              <div className="flex-1" />
+                <div className="flex-1" />
 
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setBulkStatus('');
-                  setBulkNote('');
-                  setBulkError(null);
-                  setShowBulkStatusModal(true);
-                }}
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Update Status
-              </Button>
-
-              {user?.role === 'admin' && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    setBulkManagerName('');
-                    setBulkManagerEmail('');
+                    setBulkStatus('');
+                    setBulkNote('');
                     setBulkError(null);
-                    setShowBulkManagerModal(true);
+                    setShowBulkStatusModal(true);
                   }}
                 >
-                  <Users className="h-4 w-4 mr-2" />
-                  Assign Manager
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Update Status
                 </Button>
-              )}
 
-              <Button variant="outline" size="sm" onClick={handleExportSelected}>
-                <Download className="h-4 w-4 mr-2" />
-                Export
-              </Button>
+                {user?.role === 'admin' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setBulkManagerName('');
+                      setBulkManagerEmail('');
+                      setBulkError(null);
+                      setShowBulkManagerModal(true);
+                    }}
+                  >
+                    <Users className="h-4 w-4 mr-2" />
+                    Assign Manager
+                  </Button>
+                )}
 
-              {user?.role === 'admin' && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => {
-                    setDeleteConfirmText('');
-                    setBulkError(null);
-                    setShowBulkDeleteModal(true);
-                  }}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
+                <Button variant="outline" size="sm" onClick={handleExportSelected}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
                 </Button>
-              )}
 
-              <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
+                {user?.role === 'admin' && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => {
+                      setDeleteConfirmText('');
+                      setBulkError(null);
+                      setShowBulkDeleteModal(true);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                )}
 
-          {/* Data Table */}
-          <div className="rounded-xl bg-card/60 p-4 shadow-sm">
-          {filteredAssets.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Laptop className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No assets found matching your criteria.</p>
-            </div>
-          ) : isMobile ? (
-            /* Mobile Card View */
-            <div className="space-y-3">
-              {paginatedAssets.map((asset) => (
-                <div
-                  key={asset.id}
-                  className={cn(
-                    "border rounded-lg p-4 transition-colors",
-                    selectedIds.has(asset.id) &&
-                      "bg-primary/5 border-primary/50 shadow-[0_0_0_1px_hsl(var(--primary))]"
-                  )}
-                >
-                  <div className="flex items-start gap-3">
-                    <Checkbox
-                      checked={selectedIds.has(asset.id)}
-                      onCheckedChange={() => toggleSelect(asset.id)}
-                      className="mt-1"
-                    />
+                <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
 
-                    <div className="flex-1 min-w-0 space-y-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <h4 className="font-medium truncate">{asset.employee_name}</h4>
-                        {getStatusBadge(asset.status)}
-                      </div>
+            <Separator />
 
-                      <p className="text-sm text-muted-foreground truncate">
-                        {asset.employee_email}
-                      </p>
-
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">Tag:</span>{' '}
-                          <span className="font-mono">{asset.laptop_asset_tag}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Serial:</span>{' '}
-                          <span className="font-mono text-xs">{asset.laptop_serial_number}</span>
-                        </div>
-                        <div className="col-span-2">
-                          <span className="text-muted-foreground">Company:</span>{' '}
-                          {asset.company_name}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openAssetDetails(asset)}
-                        >
-                          <Info className="h-4 w-4 mr-2" />
-                          More Info
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            /* Desktop Table View */
-            <Table>
-              <TableHeader className="bg-muted/60">
-                <TableRow>
-                  <TableHead className="w-12">
-                    <Checkbox
-                      checked={
-                        isAllSelected ? true : isSomeSelected ? "indeterminate" : false
-                      }
-                      onCheckedChange={toggleSelectAll}
-                    />
-                  </TableHead>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Employee Email</TableHead>
-                  <TableHead>Manager Email</TableHead>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Serial Number</TableHead>
-                  <TableHead>Asset Tag</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            {/* Data Table */}
+            <div className="rounded-lg border bg-card/70 shadow-sm">
+            {filteredAssets.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Laptop className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No assets found matching your criteria.</p>
+              </div>
+            ) : isMobile ? (
+              /* Mobile Card View */
+              <div className="space-y-3 p-4">
                 {paginatedAssets.map((asset) => (
-                  <TableRow
+                  <div
                     key={asset.id}
-                    data-state={selectedIds.has(asset.id) ? "selected" : undefined}
                     className={cn(
-                      selectedIds.has(asset.id) && "bg-primary/5 border-primary/40"
+                      "border rounded-lg p-4 transition-colors",
+                      selectedIds.has(asset.id) &&
+                        "bg-primary/5 border-primary/50 shadow-[0_0_0_1px_hsl(var(--primary))]"
                     )}
                   >
-                    <TableCell>
+                    <div className="flex items-start gap-3">
                       <Checkbox
                         checked={selectedIds.has(asset.id)}
                         onCheckedChange={() => toggleSelect(asset.id)}
+                        className="mt-1"
                       />
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium">{asset.employee_name}</div>
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {asset.employee_email}
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {asset.manager_email || '—'}
-                    </TableCell>
-                    <TableCell>{asset.company_name}</TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {asset.laptop_serial_number}
-                    </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {asset.laptop_asset_tag}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(asset.status)}</TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openAssetDetails(asset)}
-                        title="More Info"
-                      >
-                        <Info className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
 
-          {filteredAssets.length > 0 && (
-            <TablePaginationControls
-              className="mt-4"
-              page={assetPage}
-              pageSize={assetPageSize}
-              totalItems={filteredAssets.length}
-              onPageChange={setAssetPage}
-              onPageSizeChange={setAssetPageSize}
-            />
-          )}
+                      <div className="flex-1 min-w-0 space-y-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <h4 className="font-medium truncate">{asset.employee_name}</h4>
+                          {getStatusBadge(asset.status)}
+                        </div>
+
+                        <p className="text-sm text-muted-foreground truncate">
+                          {asset.employee_email}
+                        </p>
+
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Tag:</span>{' '}
+                            <span className="font-mono">{asset.laptop_asset_tag}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Serial:</span>{' '}
+                            <span className="font-mono text-xs">{asset.laptop_serial_number}</span>
+                          </div>
+                          <div className="col-span-2">
+                            <span className="text-muted-foreground">Company:</span>{' '}
+                            {asset.company_name}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openAssetDetails(asset)}
+                          >
+                            <Info className="h-4 w-4 mr-2" />
+                            More Info
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              /* Desktop Table View */
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/70 hover:bg-muted/70">
+                      <TableHead className="w-12">
+                        <Checkbox
+                          checked={
+                            isAllSelected ? true : isSomeSelected ? "indeterminate" : false
+                          }
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      </TableHead>
+                      <TableHead>Employee</TableHead>
+                      <TableHead>Employee Email</TableHead>
+                      <TableHead>Manager Email</TableHead>
+                      <TableHead>Company</TableHead>
+                      <TableHead>Serial Number</TableHead>
+                      <TableHead>Asset Tag</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedAssets.map((asset) => (
+                      <TableRow
+                        key={asset.id}
+                        data-state={selectedIds.has(asset.id) ? "selected" : undefined}
+                        className={cn(
+                          selectedIds.has(asset.id) && "bg-primary/5 border-primary/40"
+                        )}
+                      >
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedIds.has(asset.id)}
+                            onCheckedChange={() => toggleSelect(asset.id)}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-medium">{asset.employee_name}</div>
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {asset.employee_email}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {asset.manager_email || '—'}
+                        </TableCell>
+                        <TableCell>{asset.company_name}</TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {asset.laptop_serial_number}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">
+                          {asset.laptop_asset_tag}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(asset.status)}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openAssetDetails(asset)}
+                            title="More Info"
+                          >
+                            <Info className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            {filteredAssets.length > 0 && (
+              <TablePaginationControls
+                className="px-4 py-3 border-t"
+                page={assetPage}
+                pageSize={assetPageSize}
+                totalItems={filteredAssets.length}
+                onPageChange={setAssetPage}
+                onPageSizeChange={setAssetPageSize}
+              />
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
@@ -1174,8 +1180,8 @@ const Dashboard = () => {
           </DialogHeader>
 
           {selectedAsset && (
-            <div className="space-y-4">
-              <div className="rounded-lg border bg-muted/30 p-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="space-y-3">
+              <div className="rounded-lg border bg-muted/30 p-3 flex flex-wrap items-start justify-between gap-3">
                 <div className="space-y-1">
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">Employee</p>
                   <p className="text-base font-semibold leading-tight">{selectedAsset.employee_name || '—'}</p>
@@ -1189,7 +1195,7 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              <div className="grid gap-3 md:grid-cols-3">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 <DetailItem
                   label="Manager"
                   value={selectedAsset.manager_name || '—'}
@@ -1197,15 +1203,9 @@ const Dashboard = () => {
                 />
                 <DetailItem label="Company" value={selectedAsset.company_name || '—'} />
                 <DetailItem label="Status" value={selectedAsset.status?.toUpperCase()} />
-              </div>
-
-              <div className="grid gap-3 md:grid-cols-3">
                 <DetailItem label="Serial Number" value={selectedAsset.laptop_serial_number} mono />
                 <DetailItem label="Asset Tag" value={selectedAsset.laptop_asset_tag} mono />
                 <DetailItem label="Registered" value={formatDateTime(selectedAsset.registration_date)} />
-              </div>
-
-              <div className="grid gap-3 md:grid-cols-3">
                 <DetailItem label="Laptop Make" value={selectedAsset.laptop_make} />
                 <DetailItem label="Laptop Model" value={selectedAsset.laptop_model} />
                 <DetailItem label="Last Updated" value={formatDateTime(selectedAsset.last_updated)} />
