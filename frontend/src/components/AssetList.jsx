@@ -66,6 +66,7 @@ import {
 } from 'lucide-react';
 
 import AssetEditModal from './AssetEditModal';
+import AssetViewModal from './AssetViewModal';
 import AssetRegistrationForm from './AssetRegistrationForm';
 
 const STATUS_OPTIONS = [
@@ -110,6 +111,7 @@ const AssetList = ({ refresh, onAssetRegistered }) => {
   // Modal state
   const [selectedAsset, setSelectedAsset] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -268,6 +270,11 @@ const AssetList = ({ refresh, onAssetRegistered }) => {
   const handleEditAsset = (asset) => {
     setSelectedAsset(asset);
     setShowEditModal(true);
+  };
+
+  const handleViewAsset = (asset) => {
+    setSelectedAsset(asset);
+    setShowViewModal(true);
   };
 
   const handleEditModalClose = () => {
@@ -606,7 +613,9 @@ const AssetList = ({ refresh, onAssetRegistered }) => {
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+          <CardContent className="space-y-4">
+            {/* Main bordered container to match other pages */}
+            <div className="border rounded-lg p-4 space-y-4">
           {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
@@ -653,7 +662,7 @@ const AssetList = ({ refresh, onAssetRegistered }) => {
 
           {/* Bulk Action Bar */}
           {selectedIds.size > 0 && (
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-lg border px-3 py-2 bg-muted/50">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between rounded-lg px-3 py-2 bg-muted/50">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium">{selectedIds.size} selected</span>
@@ -737,8 +746,8 @@ const AssetList = ({ refresh, onAssetRegistered }) => {
                 <div
                   key={asset.id}
                   className={cn(
-                    "border rounded-lg p-4 transition-colors",
-                    selectedIds.has(asset.id) && "bg-primary/5 border-primary/30"
+                    "rounded-lg p-3 transition-colors",
+                    selectedIds.has(asset.id) && "bg-primary/5"
                   )}
                 >
                   <div className="flex items-start gap-3">
@@ -789,6 +798,11 @@ const AssetList = ({ refresh, onAssetRegistered }) => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleViewAsset(asset)}>
+                          <MoreHorizontal className="h-4 w-4 mr-2" />
+                          View
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => handleEditAsset(asset)}>
                           <Pencil className="h-4 w-4 mr-2" />
                           Edit
@@ -810,7 +824,7 @@ const AssetList = ({ refresh, onAssetRegistered }) => {
             </div>
           ) : (
             /* Desktop Table View */
-            <div className="border rounded-lg overflow-hidden">
+            <div>
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
@@ -858,30 +872,35 @@ const AssetList = ({ refresh, onAssetRegistered }) => {
                       <TableCell>
                         <Badge variant={getStatusVariant(asset.status)}>
                           {asset.status.toUpperCase()}
-                        </Badge>
-                      </TableCell>
-                      {optionalColumns.manager && (
-                        <TableCell>{asset.manager_name || '-'}</TableCell>
-                      )}
-                      {optionalColumns.managerEmail && (
-                        <TableCell className="text-muted-foreground">{asset.manager_email || '-'}</TableCell>
-                      )}
-                      {optionalColumns.make && (
-                        <TableCell>{asset.laptop_make || '-'}</TableCell>
-                      )}
-                      {optionalColumns.model && (
-                        <TableCell>{asset.laptop_model || '-'}</TableCell>
-                      )}
-                      {optionalColumns.registered && (
-                        <TableCell>{formatDate(asset.registration_date)}</TableCell>
-                      )}
-                      {optionalColumns.notes && (
-                        <TableCell className="max-w-[200px] truncate" title={asset.notes}>
-                          {asset.notes || '-'}
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleViewAsset(asset)}>
+                                <MoreHorizontal className="h-4 w-4 mr-2" />
+                                View
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleEditAsset(asset)}>
+                                <Pencil className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              {(user?.role === 'admin' || asset.employee_email === user?.email) && (
+                                <DropdownMenuItem
+                                  className="text-destructive"
+                                  onClick={() => handleDeleteClick(asset)}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
-                      )}
-                      <TableCell>
-                        <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8">
                               <MoreHorizontal className="h-4 w-4" />
