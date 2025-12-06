@@ -19,6 +19,7 @@ import {
   FileBarChart,
   Settings,
   User,
+  Users,
   LogOut,
   Menu,
   X,
@@ -33,6 +34,7 @@ import AdminSettingsNew from '@/components/AdminSettingsNew';
 import ProfileNew from '@/components/ProfileNew';
 import AuthPageNew from '@/components/AuthPageNew';
 import OIDCCallback from '@/components/OIDCCallback';
+import TeamManagement from '@/components/TeamManagement';
 
 function AppNew() {
   const { user, logout, loading, isAuthenticated } = useAuth();
@@ -95,13 +97,14 @@ function AppNew() {
   }
 
   const navItems = [
-    { label: 'Assets', icon: Laptop, path: '/assets', role: null },
-    { label: 'Companies', icon: Building2, path: '/companies', role: 'admin' },
-    { label: 'Audit & Reports', icon: FileBarChart, path: '/audit', role: null },
-    { label: 'Admin Settings', icon: Settings, path: '/admin', role: 'admin' },
+    { label: 'Assets', icon: Laptop, path: '/assets' },
+    { label: 'Team', icon: Users, path: '/team', roles: ['admin', 'manager'] },
+    { label: 'Companies', icon: Building2, path: '/companies', roles: ['admin'] },
+    { label: 'Audit & Reports', icon: FileBarChart, path: '/audit' },
+    { label: 'Admin Settings', icon: Settings, path: '/admin', roles: ['admin'] },
   ];
 
-  const visibleNavItems = navItems.filter(item => !item.role || user?.role === item.role);
+  const visibleNavItems = navItems.filter(item => !item.roles || item.roles.includes(user?.role));
 
   const isActive = (path) => {
     if (path === '/assets') {
@@ -318,6 +321,7 @@ function AppNew() {
         <Routes>
           <Route path="/" element={<Navigate to="/assets" replace />} />
           <Route path="/assets" element={<Dashboard />} />
+          <Route path="/team" element={<TeamManagement />} />
           {user?.role === 'admin' && (
             <Route path="/companies" element={<CompanyManagementNew />} />
           )}
