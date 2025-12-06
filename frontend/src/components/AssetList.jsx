@@ -872,41 +872,21 @@ const AssetList = ({ refresh, onAssetRegistered }) => {
                       <TableCell>
                         <Badge variant={getStatusVariant(asset.status)}>
                           {asset.status.toUpperCase()}
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleViewAsset(asset)}>
-                                <MoreHorizontal className="h-4 w-4 mr-2" />
-                                View
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleEditAsset(asset)}>
-                                <Pencil className="h-4 w-4 mr-2" />
-                                Edit
-                              </DropdownMenuItem>
-                              {(user?.role === 'admin' || asset.employee_email === user?.email) && (
-                                <DropdownMenuItem
-                                  className="text-destructive"
-                                  onClick={() => handleDeleteClick(asset)}
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Delete
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8">
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => handleViewAsset(asset)}>
+                              <MoreHorizontal className="h-4 w-4 mr-2" />
+                              View
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => handleEditAsset(asset)}>
                               <Pencil className="h-4 w-4 mr-2" />
                               Edit

@@ -468,13 +468,40 @@ const initDb = async () => {
           `);
 
           // Copy data from old table to new table
-          await dbRun(`
-            INSERT INTO assets_new
+          // Avoid referencing columns that may not exist (older schemas used `client_name`).
+          // Detect which column exists and build the SELECT expression accordingly.
+          const existingCols = await dbAll("PRAGMA table_info(assets)");
+          const hasCompanyName = existingCols.some(col => col.name === 'company_name');
+          const hasClientName = existingCols.some(col => col.name === 'client_name');
+          const hasLaptopMake = existingCols.some(col => col.name === 'laptop_make');
+          const hasLaptopModel = existingCols.some(col => col.name === 'laptop_model');
+          const hasNotes = existingCols.some(col => col.name === 'notes');
+
+          let companyExpr;
+          if (hasCompanyName) {
+            companyExpr = 'company_name AS company_name';
+          } else if (hasClientName) {
+            companyExpr = 'client_name AS company_name';
+          } else {
+            companyExpr = "'' AS company_name";
+          }
+
+          const laptopMakeExpr = hasLaptopMake ? 'laptop_make' : "''";
+          const laptopModelExpr = hasLaptopModel ? 'laptop_model' : "''";
+          const notesExpr = hasNotes ? 'notes' : "''";
+
+          const copySql = `
+            INSERT INTO assets_new (id, employee_name, employee_email, manager_name, manager_email,
+                                     company_name, laptop_serial_number, laptop_asset_tag,
+                                     laptop_make, laptop_model, status, registration_date, last_updated, notes)
             SELECT id, employee_name, employee_email, manager_name, manager_email,
-                   company_name, laptop_serial_number, laptop_asset_tag,
-                   laptop_make, laptop_model, status, registration_date, last_updated, notes
+                   ${companyExpr},
+                   laptop_serial_number, laptop_asset_tag,
+                   ${laptopMakeExpr}, ${laptopModelExpr}, status, registration_date, last_updated, ${notesExpr}
             FROM assets
-          `);
+          `;
+
+          await dbRun(copySql);
 
           // Drop old table
           await dbRun('DROP TABLE assets');
@@ -560,13 +587,23 @@ const initDb = async () => {
           `);
 
           // Copy data, renaming client_name to company_name
+          // Detect optional columns so older schemas without laptop_make/model/notes don't cause errors
+          const srcCols = await dbAll("PRAGMA table_info(assets)");
+          const srcHasLaptopMake = srcCols.some(col => col.name === 'laptop_make');
+          const srcHasLaptopModel = srcCols.some(col => col.name === 'laptop_model');
+          const srcHasNotes = srcCols.some(col => col.name === 'notes');
+
+          const laptopMakeSrc = srcHasLaptopMake ? 'laptop_make' : "''";
+          const laptopModelSrc = srcHasLaptopModel ? 'laptop_model' : "''";
+          const notesSrc = srcHasNotes ? 'notes' : "''";
+
           await dbRun(`
             INSERT INTO assets_temp (id, employee_name, employee_email, manager_name, manager_email,
                                      company_name, laptop_serial_number, laptop_asset_tag,
                                      laptop_make, laptop_model, status, registration_date, last_updated, notes)
             SELECT id, employee_name, employee_email, manager_name, manager_email,
                    client_name, laptop_serial_number, laptop_asset_tag,
-                   laptop_make, laptop_model, status, registration_date, last_updated, notes
+                   ${laptopMakeSrc}, ${laptopModelSrc}, status, registration_date, last_updated, ${notesSrc}
             FROM assets
           `);
 
@@ -627,7 +664,16 @@ const initDb = async () => {
   await dbRun('CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_logs(timestamp)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_logs(entity_type, entity_id)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_user_email ON users(email)');
-  await dbRun('CREATE UNIQUE INDEX IF NOT EXISTS idx_user_oidc_sub ON users(oidc_sub)');
+  // Only create oidc_sub index if the column exists (older DBs may not have oidc_sub)
+  try {
+    const userCols = await dbAll("PRAGMA table_info(users)");
+    const hasOidcSub = userCols.some(col => col.name === 'oidc_sub');
+    if (hasOidcSub) {
+      await dbRun('CREATE UNIQUE INDEX IF NOT EXISTS idx_user_oidc_sub ON users(oidc_sub)');
+    }
+  } catch (err) {
+    console.warn('Could not create idx_user_oidc_sub index:', err.message);
+  }
 
   console.log(`Database initialized using ${isPostgres ? 'PostgreSQL' : 'SQLite'}`);
 };

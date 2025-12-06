@@ -18,6 +18,23 @@ This guide explains how to deploy KARS to Portainer using GitHub Actions with Cl
 - Cloudflare account with domain (jvhlabs.com)
 - Docker host accessible by Portainer
 
+### Node.js for local development
+
+- The backend depends on native modules (e.g., `better-sqlite3`) which must be built against a compatible Node.js ABI. To avoid native build failures, use Node 18 (LTS) for local development and CI when building the backend image.
+
+- Recommended: use `nvm` to install and switch Node versions:
+
+```bash
+# Install nvm (if not present)
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.6/install.sh | bash
+source ~/.nvm/nvm.sh
+# Install and use Node 18
+nvm install 18
+nvm use 18
+```
+
+- You can also pin Node 18 for the backend by adding `"engines": { "node": ">=18 <19" }` to `backend/package.json`. The repo maintainer has added this pin to reduce surprises when building native modules.
+
 ## GitHub Container Registry Setup
 
 ### 1. Enable GitHub Packages
