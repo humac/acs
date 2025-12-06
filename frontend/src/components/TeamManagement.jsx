@@ -14,14 +14,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -29,29 +21,37 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Checkbox } from '@/components/ui/checkbox';
-import TablePaginationControls from '@/components/TablePaginationControls';
-import { cn } from '@/lib/utils';
-import { Users, Shield, Edit, Search, Sparkles, Trash2, Loader2, AlertTriangle } from 'lucide-react';
+import {
+  Users,
+  Shield,
+  Edit,
+  Search,
+  Trash2,
+  Loader2,
+  AlertTriangle,
+  Building2,
+  Laptop,
+  Activity,
+} from 'lucide-react';
 
 const TeamManagement = () => {
   const { getAuthHeaders, user } = useAuth();
   const { toast } = useToast();
   const [users, setUsers] = useState([]);
+  const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [assetsLoading, setAssetsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedManager, setSelectedManager] = useState('all');
+  const [view, setView] = useState('employees');
   const [editingUser, setEditingUser] = useState(null);
   const [editForm, setEditForm] = useState({ first_name: '', last_name: '', manager_name: '', manager_email: '' });
   const [savingEdit, setSavingEdit] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, user: null });
-  const [selectedUserIds, setSelectedUserIds] = useState(new Set());
-  const [usersPage, setUsersPage] = useState(1);
-  const [usersPageSize, setUsersPageSize] = useState(10);
-  const [bulkRole, setBulkRole] = useState('');
-  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   useEffect(() => {
     fetchUsers();
+    fetchAssets();
   }, []);
 
   const fetchUsers = async () => {
@@ -62,7 +62,22 @@ const TeamManagement = () => {
       setUsers(await response.json());
     } catch (err) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAssets = async () => {
+    setAssetsLoading(true);
+    try {
+      const response = await fetch('/api/assets', { headers: { ...getAuthHeaders() } });
+      if (!response.ok) throw new Error('Failed to load assets');
+      setAssets(await response.json());
+    } catch (err) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setAssetsLoading(false);
+    }
   };
 
   const handleRoleChange = async (userId, newRole) => {
@@ -81,13 +96,13 @@ const TeamManagement = () => {
     }
   };
 
-  const openEditDialog = (user) => {
-    setEditingUser(user);
+  const openEditDialog = (selectedUser) => {
+    setEditingUser(selectedUser);
     setEditForm({
-      first_name: user.first_name || '',
-      last_name: user.last_name || '',
-      manager_name: user.manager_name || '',
-      manager_email: user.manager_email || '',
+      first_name: selectedUser.first_name || '',
+      last_name: selectedUser.last_name || '',
+      manager_name: selectedUser.manager_name || '',
+      manager_email: selectedUser.manager_email || '',
     });
   };
 
@@ -131,7 +146,8 @@ const TeamManagement = () => {
     setDeleteDialog({ open: false, user: null });
     try {
       const response = await fetch(`/api/auth/users/${userToDelete.id}`, {
-        method: 'DELETE', headers: { ...getAuthHeaders() },
+        method: 'DELETE',
+        headers: { ...getAuthHeaders() },
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to delete user');
@@ -142,106 +158,118 @@ const TeamManagement = () => {
     }
   };
 
-  const toggleUserSelect = (id) => {
-    setSelectedUserIds((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
+  const formatDisplayName = (u) => u?.name || [u?.first_name, u?.last_name].filter(Boolean).join(' ') || u?.email || 'Unknown user';
 
-  const toggleSelectAllUsers = () => {
-    setSelectedUserIds((prev) => {
-      const pageIds = paginatedUsers.map((u) => u.id);
-      const hasAll = pageIds.every((id) => prev.has(id));
-      const next = new Set(prev);
-      pageIds.forEach((id) => {
-        if (hasAll) next.delete(id);
-        else next.add(id);
-      });
-      return next;
-    });
-  };
-
-  const clearUserSelection = () => setSelectedUserIds(new Set());
-
-  const handleBulkRoleUpdate = async () => {
-    const ids = Array.from(selectedUserIds).filter((id) => id !== user?.id);
-    if (!ids.length || !bulkRole) return;
-    setSavingEdit(true);
-    try {
-      for (const id of ids) {
-        const response = await fetch(`/api/auth/users/${id}/role`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-          body: JSON.stringify({ role: bulkRole }),
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Failed to update role');
-      }
-      toast({ title: 'Success', description: `Updated ${ids.length} user roles`, variant: 'success' });
-      setBulkRole('');
-      clearUserSelection();
-      fetchUsers();
-    } catch (err) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
-    } finally {
-      setSavingEdit(false);
-    }
-  };
-
-  const handleBulkDeleteUsers = async () => {
-    const ids = Array.from(selectedUserIds).filter((id) => id !== user?.id);
-    if (!ids.length) return;
-    setBulkDeleting(true);
-    try {
-      for (const id of ids) {
-        const response = await fetch(`/api/auth/users/${id}`, { method: 'DELETE', headers: { ...getAuthHeaders() } });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Failed to delete user');
-      }
-      toast({ title: 'Success', description: `Deleted ${ids.length} user${ids.length === 1 ? '' : 's'}`, variant: 'success' });
-      clearUserSelection();
-      fetchUsers();
-    } catch (err) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
-    } finally {
-      setBulkDeleting(false);
-    }
-  };
-
-  const filteredUsers = useMemo(() => {
-    const term = searchTerm.toLowerCase();
-    return users.filter((u) =>
-      u.name?.toLowerCase().includes(term) ||
-      u.email?.toLowerCase().includes(term) ||
-      u.manager_name?.toLowerCase().includes(term) ||
-      u.manager_email?.toLowerCase().includes(term)
+  const matchesSearch = (emp, term) => {
+    if (!term) return true;
+    const normalized = term.toLowerCase();
+    return (
+      formatDisplayName(emp).toLowerCase().includes(normalized) ||
+      emp.email?.toLowerCase().includes(normalized) ||
+      emp.manager_name?.toLowerCase().includes(normalized) ||
+      emp.manager_email?.toLowerCase().includes(normalized) ||
+      emp.companies.some((company) => company?.toLowerCase().includes(normalized)) ||
+      emp.assets.some(
+        (asset) =>
+          asset.laptop_asset_tag?.toLowerCase().includes(normalized) ||
+          asset.laptop_serial_number?.toLowerCase().includes(normalized) ||
+          asset.company_name?.toLowerCase().includes(normalized)
+      )
     );
-  }, [users, searchTerm]);
+  };
 
-  const totalUserPages = Math.max(1, Math.ceil(filteredUsers.length / usersPageSize) || 1);
+  const enrichedEmployees = useMemo(
+    () =>
+      users
+        .map((u) => {
+          const relatedAssets = assets.filter(
+            (asset) => asset.employee_email && asset.employee_email.toLowerCase() === u.email?.toLowerCase()
+          );
+          const companies = Array.from(new Set(relatedAssets.map((a) => a.company_name).filter(Boolean)));
+          return { ...u, assets: relatedAssets, companies };
+        })
+        .sort((a, b) => formatDisplayName(a).localeCompare(formatDisplayName(b))),
+    [users, assets]
+  );
 
-  useEffect(() => {
-    setUsersPage(1);
-  }, [usersPageSize, filteredUsers.length]);
+  const managerGroups = useMemo(() => {
+    const groups = new Map();
 
-  useEffect(() => {
-    if (usersPage > totalUserPages) {
-      setUsersPage(totalUserPages);
-    }
-  }, [usersPage, totalUserPages]);
+    enrichedEmployees.forEach((emp) => {
+      const key = emp.manager_email || emp.manager_name || 'Unassigned';
+      if (!groups.has(key)) {
+        groups.set(key, {
+          managerEmail: emp.manager_email || 'Not provided',
+          managerName: emp.manager_name || 'Unassigned manager',
+          team: [],
+        });
+      }
+      groups.get(key).team.push(emp);
+    });
 
-  const paginatedUsers = useMemo(() => {
-    const start = (usersPage - 1) * usersPageSize;
-    return filteredUsers.slice(start, start + usersPageSize);
-  }, [filteredUsers, usersPage, usersPageSize]);
+    return Array.from(groups.values()).sort((a, b) => a.managerName.localeCompare(b.managerName));
+  }, [enrichedEmployees]);
 
-  const isAllUsersSelected = paginatedUsers.length > 0 && paginatedUsers.every((u) => selectedUserIds.has(u.id));
-  const isSomeUsersSelected = paginatedUsers.some((u) => selectedUserIds.has(u.id)) && !isAllUsersSelected;
+  const companyGroups = useMemo(() => {
+    const map = new Map();
 
-  const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Never';
-  const getRoleColor = (role) => ({ admin: 'destructive', manager: 'success', employee: 'default' }[role] || 'secondary');
+    enrichedEmployees.forEach((emp) => {
+      const companies = emp.companies.length ? emp.companies : ['Unassigned company'];
+      companies.forEach((companyName) => {
+        if (!map.has(companyName)) {
+          map.set(companyName, { name: companyName, employees: [], assets: [], managers: new Set() });
+        }
+        const entry = map.get(companyName);
+        if (!entry.employees.some((e) => e.id === emp.id)) {
+          entry.employees.push(emp);
+        }
+        entry.assets.push(...emp.assets);
+        if (emp.manager_name) {
+          entry.managers.add(emp.manager_name);
+        }
+      });
+    });
+
+    return Array.from(map.values())
+      .map((entry) => ({ ...entry, managers: Array.from(entry.managers) }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [enrichedEmployees]);
+
+  const managerOptions = useMemo(
+    () => managerGroups.map((group) => ({ value: group.managerEmail, label: group.managerName })),
+    [managerGroups]
+  );
+
+  const filteredManagerGroups = useMemo(() => {
+    const term = searchTerm.toLowerCase();
+    return managerGroups
+      .map((group) => ({
+        ...group,
+        team: group.team.filter((member) => matchesSearch(member, term)),
+      }))
+      .filter((group) => group.team.length > 0)
+      .filter((group) => (selectedManager === 'all' ? true : group.managerEmail === selectedManager));
+  }, [managerGroups, searchTerm, selectedManager]);
+
+  const filteredCompanies = useMemo(() => {
+    const term = searchTerm.toLowerCase();
+    return companyGroups.filter(
+      (company) =>
+        !term ||
+        company.name.toLowerCase().includes(term) ||
+        company.employees.some((emp) => matchesSearch(emp, term))
+    );
+  }, [companyGroups, searchTerm]);
+
+  const stats = useMemo(
+    () => ({
+      employees: users.length,
+      managers: managerGroups.filter((group) => group.managerEmail !== 'Not provided').length,
+      companies: companyGroups.length,
+      assets: assets.length,
+    }),
+    [users.length, managerGroups, companyGroups, assets.length]
+  );
 
   if (!['admin', 'manager'].includes(user?.role)) {
     return (
@@ -256,6 +284,8 @@ const TeamManagement = () => {
     );
   }
 
+  const activeLoading = loading || assetsLoading;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
@@ -264,217 +294,272 @@ const TeamManagement = () => {
             <Users className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-semibold leading-tight">Team</h1>
-            <p className="text-sm text-muted-foreground">Manage teammates, roles, and manager details.</p>
+            <h1 className="text-2xl font-semibold leading-tight">Team intelligence</h1>
+            <p className="text-sm text-muted-foreground">Stay on top of managers, employees, and their device footprints.</p>
           </div>
         </div>
       </div>
 
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border-primary/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground">Employees</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <div className="text-3xl font-bold">{stats.employees}</div>
+            <div className="rounded-full bg-primary/10 p-2 text-primary"><Users className="h-5 w-5" /></div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-background border-emerald-500/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground">Managers</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <div className="text-3xl font-bold">{stats.managers}</div>
+            <div className="rounded-full bg-emerald-500/10 p-2 text-emerald-600"><Shield className="h-5 w-5" /></div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-blue-500/10 via-blue-500/5 to-background border-blue-500/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground">Companies</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <div className="text-3xl font-bold">{stats.companies}</div>
+            <div className="rounded-full bg-blue-500/10 p-2 text-blue-600"><Building2 className="h-5 w-5" /></div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-background border-amber-500/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground">Tracked assets</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center justify-between">
+            <div className="text-3xl font-bold">{stats.assets}</div>
+            <div className="rounded-full bg-amber-500/10 p-2 text-amber-600"><Laptop className="h-5 w-5" /></div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card>
         <CardHeader className="flex flex-col gap-1">
-          <CardTitle className="text-lg">Team overview</CardTitle>
+          <CardTitle className="text-lg">Team relationship hub</CardTitle>
+          <p className="text-sm text-muted-foreground">Explore your organization by managers, employees, companies, and devices.</p>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="users">
-            <TabsList className="mb-6">
-              <TabsTrigger value="users" className="gap-2"><Users className="h-4 w-4" />People</TabsTrigger>
-              <TabsTrigger value="policies" className="gap-2"><Shield className="h-4 w-4" />Guidance</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="users" className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold">User Management</h3>
-                <span className="text-sm text-muted-foreground">Total: {users.length}</span>
+          <Tabs value={view} onValueChange={setView} className="space-y-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-1 items-center gap-3">
+                <div className="relative w-full md:max-w-md">
+                  <Search className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by employee, company, or asset"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                {view === 'employees' && (
+                  <Select value={selectedManager} onValueChange={setSelectedManager}>
+                    <SelectTrigger className="w-[220px]">
+                      <SelectValue placeholder="Filter by manager" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All managers</SelectItem>
+                      {managerOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
-              <div className="space-y-3">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="relative w-full sm:max-w-md">
-                    <Search className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
-                    <Input
-                      placeholder="Search by name, email, or manager"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-9"
-                    />
-                  </div>
-                  {selectedUserIds.size > 0 && (
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 rounded-lg border px-3 py-2 bg-muted/50">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-primary" />
-                        <span className="text-sm font-medium">{selectedUserIds.size} selected</span>
+              <TabsList className="self-start md:self-auto">
+                <TabsTrigger value="employees" className="gap-2"><Users className="h-4 w-4" />Employee view</TabsTrigger>
+                <TabsTrigger value="companies" className="gap-2"><Building2 className="h-4 w-4" />Company view</TabsTrigger>
+                <TabsTrigger value="guidance" className="gap-2"><Shield className="h-4 w-4" />Guidance</TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value="employees" className="space-y-4">
+              {activeLoading ? (
+                <div className="flex items-center justify-center py-12 text-muted-foreground">
+                  <Loader2 className="h-6 w-6 mr-2 animate-spin" /> Loading team data
+                </div>
+              ) : filteredManagerGroups.length === 0 ? (
+                <div className="text-center text-muted-foreground border rounded-md py-10">No employees match the current filters.</div>
+              ) : (
+                <div className="space-y-4">
+                  {filteredManagerGroups.map((group) => (
+                    <div
+                      key={group.managerEmail}
+                      className="rounded-xl border bg-gradient-to-br from-muted/60 via-background to-background p-4"
+                    >
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="space-y-1">
+                          <p className="text-xs uppercase tracking-wide text-muted-foreground">Manager</p>
+                          <div className="text-lg font-semibold leading-tight">{group.managerName}</div>
+                          <p className="text-sm text-muted-foreground">{group.managerEmail}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="gap-1"><Users className="h-4 w-4" />{group.team.length} teammates</Badge>
+                          <Badge variant="outline" className="gap-1"><Laptop className="h-4 w-4" />{group.team.reduce((acc, member) => acc + member.assets.length, 0)} assets</Badge>
+                        </div>
                       </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Select value={bulkRole} onValueChange={setBulkRole}>
-                          <SelectTrigger className="w-36"><SelectValue placeholder="Bulk role" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="employee">Employee</SelectItem>
-                            <SelectItem value="manager">Manager</SelectItem>
-                            <SelectItem value="admin">Admin</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Button size="sm" onClick={handleBulkRoleUpdate} disabled={!bulkRole || savingEdit}>
-                          {savingEdit && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Apply role
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-destructive hover:text-destructive"
-                          onClick={handleBulkDeleteUsers}
-                          disabled={bulkDeleting}
-                        >
-                          {bulkDeleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Delete
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={clearUserSelection}>Clear</Button>
+
+                      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                        {group.team.map((member) => (
+                          <Card key={member.id} className="border-muted bg-muted/20">
+                            <CardContent className="p-4 space-y-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="space-y-1">
+                                  <div className="font-semibold leading-tight">{formatDisplayName(member)}</div>
+                                  <p className="text-sm text-muted-foreground break-all">{member.email}</p>
+                                  <div className="flex flex-wrap gap-2 mt-2">
+                                    <Badge variant="secondary" className="uppercase text-xs">{member.role}</Badge>
+                                    {member.companies.length === 0 && <Badge variant="outline">No company</Badge>}
+                                    {member.companies.map((company) => (
+                                      <Badge key={company} variant="outline" className="bg-background">{company}</Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-xs text-muted-foreground">Assets</p>
+                                  <div className="text-2xl font-bold">{member.assets.length}</div>
+                                </div>
+                              </div>
+
+                              {member.assets.length > 0 && (
+                                <div className="space-y-2">
+                                  {member.assets.slice(0, 2).map((asset) => (
+                                    <div key={asset.id || `${asset.laptop_asset_tag}-${asset.employee_email}`}
+                                      className="rounded-lg border bg-background px-3 py-2 flex items-center justify-between">
+                                      <div className="space-y-0.5">
+                                        <div className="flex items-center gap-2 font-medium">
+                                          <Laptop className="h-4 w-4 text-muted-foreground" />
+                                          <span>{asset.laptop_asset_tag || asset.laptop_serial_number || 'Laptop asset'}</span>
+                                        </div>
+                                        <p className="text-xs text-muted-foreground">{asset.company_name || 'Unassigned company'}</p>
+                                      </div>
+                                      <Badge variant="outline" className="uppercase text-xs">{asset.status || 'Active'}</Badge>
+                                    </div>
+                                  ))}
+                                  {member.assets.length > 2 && (
+                                    <p className="text-xs text-muted-foreground">+{member.assets.length - 2} more devices</p>
+                                  )}
+                                </div>
+                              )}
+
+                              <div className="flex flex-wrap gap-2 pt-1">
+                                <Select value={member.role} onValueChange={(value) => handleRoleChange(member.id, value)}>
+                                  <SelectTrigger className="w-32 uppercase"><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="employee">Employee</SelectItem>
+                                    <SelectItem value="manager">Manager</SelectItem>
+                                    <SelectItem value="admin">Admin</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <Button variant="outline" size="sm" onClick={() => openEditDialog(member)}>
+                                  <Edit className="h-4 w-4 mr-2" />Update details
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => setDeleteDialog({ open: true, user: member })}
+                                  disabled={member.id === user.id}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" />Remove
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
                       </div>
                     </div>
-                  )}
-                </div>
-              </div>
-              {loading ? (
-                <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="md:hidden space-y-3">
-                    {filteredUsers.length === 0 && (
-                      <div className="text-center text-muted-foreground border rounded-md py-6">No users match your search.</div>
-                    )}
-                    {paginatedUsers.map((u) => (
-                      <div
-                        key={u.id}
-                        className={cn(
-                          'border rounded-lg p-4 flex gap-3',
-                          selectedUserIds.has(u.id) && 'bg-primary/5 border-primary/30'
-                        )}
-                      >
-                        <Checkbox
-                          checked={selectedUserIds.has(u.id)}
-                          onCheckedChange={() => toggleUserSelect(u.id)}
-                          className="mt-1"
-                          disabled={u.id === user.id}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              <h4 className="font-medium truncate">{u.name}</h4>
-                              <p className="text-sm text-muted-foreground truncate">{u.email}</p>
-                            </div>
-                            <Badge variant={getRoleColor(u.role)} className="uppercase">{u.role}</Badge>
-                          </div>
-                          <div className="mt-2 grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-                            <div>
-                              <span className="font-medium text-foreground">Manager</span>
-                              <div className="text-xs">{u.manager_name || '—'}</div>
-                              <div className="text-xs">{u.manager_email || '—'}</div>
-                            </div>
-                            <div className="text-right text-xs">Last login<br />{formatDate(u.last_login)}</div>
-                          </div>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => openEditDialog(u)}><Edit className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setDeleteDialog({ open: true, user: u })} disabled={u.id === user.id}><Trash2 className="h-4 w-4" /></Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="rounded-md border hidden md:block overflow-hidden">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="bg-muted/50">
-                          <TableHead className="w-12">
-                            <Checkbox
-                              checked={isAllUsersSelected ? true : isSomeUsersSelected ? 'indeterminate' : false}
-                              onCheckedChange={toggleSelectAllUsers}
-                            />
-                          </TableHead>
-                          <TableHead>User</TableHead>
-                          <TableHead>Role</TableHead>
-                          <TableHead>Manager</TableHead>
-                          <TableHead>Last Login</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredUsers.length === 0 && (
-                          <TableRow>
-                            <TableCell colSpan={6} className="text-center text-muted-foreground py-6">No users match your search.</TableCell>
-                          </TableRow>
-                        )}
-                        {paginatedUsers.map((u) => (
-                          <TableRow key={u.id} className={selectedUserIds.has(u.id) ? 'bg-primary/5' : ''} data-state={selectedUserIds.has(u.id) ? 'selected' : undefined}>
-                            <TableCell>
-                              <Checkbox
-                                checked={selectedUserIds.has(u.id)}
-                                onCheckedChange={() => toggleUserSelect(u.id)}
-                                disabled={u.id === user.id}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <div className="space-y-1">
-                                <div className="font-medium">{u.name}</div>
-                                <div className="text-sm text-muted-foreground">{u.email}</div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Select value={u.role} onValueChange={(value) => handleRoleChange(u.id, value)} disabled={u.id === user.id}>
-                                <SelectTrigger className="w-32 uppercase"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="employee">Employee</SelectItem>
-                                  <SelectItem value="manager">Manager</SelectItem>
-                                  <SelectItem value="admin">Admin</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </TableCell>
-                            <TableCell>
-                              <div className="text-sm">
-                                <div className="font-medium">{u.manager_name || '—'}</div>
-                                <div className="text-muted-foreground">{u.manager_email || '—'}</div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">{formatDate(u.last_login)}</TableCell>
-                            <TableCell className="text-right space-x-2">
-                              <Button variant="outline" size="sm" onClick={() => openEditDialog(u)}>
-                                <Edit className="h-4 w-4 mr-2" />Edit
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-destructive hover:text-destructive"
-                                onClick={() => setDeleteDialog({ open: true, user: u })}
-                                disabled={u.id === user.id}
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />Delete
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                  <div className="flex justify-end">
-                    <TablePaginationControls
-                      page={usersPage}
-                      pageSize={usersPageSize}
-                      totalItems={filteredUsers.length}
-                      onPageChange={setUsersPage}
-                      onPageSizeChange={setUsersPageSize}
-                    />
-                  </div>
+                  ))}
                 </div>
               )}
             </TabsContent>
 
-            <TabsContent value="policies" className="space-y-3">
+            <TabsContent value="companies" className="space-y-4">
+              {activeLoading ? (
+                <div className="flex items-center justify-center py-12 text-muted-foreground">
+                  <Loader2 className="h-6 w-6 mr-2 animate-spin" /> Loading company view
+                </div>
+              ) : filteredCompanies.length === 0 ? (
+                <div className="text-center text-muted-foreground border rounded-md py-10">No companies match the current filters.</div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {filteredCompanies.map((company) => (
+                    <Card key={company.name} className="border-muted bg-muted/10">
+                      <CardHeader className="pb-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <CardTitle className="text-base">{company.name}</CardTitle>
+                            <p className="text-sm text-muted-foreground">{company.employees.length} employees • {company.assets.length} assets</p>
+                          </div>
+                          <Badge variant="outline" className="gap-1"><Activity className="h-4 w-4" />Active</Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="flex flex-wrap gap-2">
+                          {company.managers.length ? (
+                            company.managers.map((manager) => <Badge key={manager} variant="secondary">{manager}</Badge>)
+                          ) : (
+                            <Badge variant="outline">No manager noted</Badge>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          {company.employees.slice(0, 4).map((emp) => (
+                            <div key={emp.id} className="flex items-center justify-between rounded-lg border bg-background px-3 py-2">
+                              <div>
+                                <div className="font-medium leading-tight">{formatDisplayName(emp)}</div>
+                                <p className="text-xs text-muted-foreground">{emp.email}</p>
+                              </div>
+                              <Badge variant="outline" className="uppercase text-xs">{emp.role}</Badge>
+                            </div>
+                          ))}
+                          {company.employees.length > 4 && (
+                            <p className="text-xs text-muted-foreground">+{company.employees.length - 4} more teammates</p>
+                          )}
+                        </div>
+                        {company.assets.length > 0 && (
+                          <div className="rounded-lg border bg-background px-3 py-2">
+                            <p className="text-xs uppercase text-muted-foreground mb-2">Assets mapped</p>
+                            <div className="flex flex-wrap gap-2">
+                              {company.assets.slice(0, 5).map((asset) => (
+                                <Badge key={asset.id || `${asset.laptop_asset_tag}-${asset.employee_email}`}
+                                  variant="secondary" className="gap-1">
+                                  <Laptop className="h-3 w-3" />{asset.laptop_asset_tag || asset.laptop_serial_number || 'Asset'}
+                                </Badge>
+                              ))}
+                              {company.assets.length > 5 && (
+                                <Badge variant="outline">+{company.assets.length - 5} more</Badge>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="guidance" className="space-y-3">
               <Card className="border-yellow-400 bg-yellow-50">
                 <CardHeader className="pb-2">
-                  <div className="flex items-center gap-2 text-yellow-800"><Shield className="h-5 w-5" /><CardTitle className="text-base">Team management guidance</CardTitle></div>
+                  <div className="flex items-center gap-2 text-yellow-800">
+                    <Shield className="h-5 w-5" />
+                    <CardTitle className="text-base">Team management guidance</CardTitle>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <ul className="text-sm text-yellow-800 space-y-1">
                     <li>Review access levels regularly to keep least-privilege in place.</li>
                     <li>Keep manager contacts current so escalations reach the right people.</li>
-                    <li>Deactivate accounts quickly when someone leaves the organization.</li>
-                    <li>Rotate admin duties and audit activity for sensitive actions.</li>
+                    <li>Map devices to owners so support teams have a single source of truth.</li>
+                    <li>Spot check teams with many assets to ensure nothing is orphaned or stale.</li>
                   </ul>
                 </CardContent>
               </Card>
