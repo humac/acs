@@ -472,8 +472,7 @@ const AdminSettingsNew = () => {
                     ))}
                   </div>
 
-                  <div className="rounded-md border hidden md:block overflow-hidden">
-                    <Table>
+                  <Table wrapperClassName="hidden md:block">
                       <TableHeader>
                         <TableRow className="bg-muted/50">
                           <TableHead className="w-12">
@@ -545,6 +544,7 @@ const AdminSettingsNew = () => {
                   </div>
                   {filteredUsers.length > 0 && (
                     <TablePaginationControls
+                      className="mt-4"
                       page={usersPage}
                       pageSize={usersPageSize}
                       totalItems={filteredUsers.length}

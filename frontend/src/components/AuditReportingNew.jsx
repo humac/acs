@@ -180,7 +180,7 @@ const AuditReportingNew = () => {
               ) : logs.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground"><FileText className="h-12 w-12 mx-auto mb-4 opacity-50" /><p>No audit logs found.</p></div>
               ) : (
-                <div className="rounded-md border">
+                <div className="space-y-4">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -205,15 +205,14 @@ const AuditReportingNew = () => {
                       ))}
                     </TableBody>
                   </Table>
-                  <div className="mt-4">
-                    <TablePaginationControls
-                      page={logsPage}
-                      pageSize={logsPageSize}
-                      totalItems={logs.length}
-                      onPageChange={setLogsPage}
-                      onPageSizeChange={setLogsPageSize}
-                    />
-                  </div>
+                  <TablePaginationControls
+                    className="mt-4"
+                    page={logsPage}
+                    pageSize={logsPageSize}
+                    totalItems={logs.length}
+                    onPageChange={setLogsPage}
+                    onPageSizeChange={setLogsPageSize}
+                  />
                 </div>
               )}
             </TabsContent>
@@ -268,26 +267,24 @@ const AuditReportingNew = () => {
               ) : stats.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground"><BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" /><p>No statistics available.</p></div>
               ) : (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Action</TableHead>
-                        <TableHead>Entity Type</TableHead>
-                        <TableHead>Count</TableHead>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Action</TableHead>
+                      <TableHead>Entity Type</TableHead>
+                      <TableHead>Count</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {stats.map((stat, i) => (
+                      <TableRow key={i}>
+                        <TableCell><Badge variant={getActionColor(stat.action)}>{stat.action}</Badge></TableCell>
+                        <TableCell className="capitalize">{stat.entity_type}</TableCell>
+                        <TableCell className="font-semibold">{stat.count}</TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {stats.map((stat, i) => (
-                        <TableRow key={i}>
-                          <TableCell><Badge variant={getActionColor(stat.action)}>{stat.action}</Badge></TableCell>
-                          <TableCell className="capitalize">{stat.entity_type}</TableCell>
-                          <TableCell className="font-semibold">{stat.count}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
             </TabsContent>
           </Tabs>
