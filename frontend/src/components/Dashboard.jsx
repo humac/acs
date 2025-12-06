@@ -935,23 +935,23 @@ const Dashboard = () => {
               <TableHeader>
                 <TableRow className="bg-muted/50">
                   <TableHead className="w-12">
-                      <Checkbox
-                        checked={isAllSelected ? true : isSomeSelected ? "indeterminate" : false}
-                        onCheckedChange={toggleSelectAll}
-                      />
-                    </TableHead>
-                    <TableHead>Employee</TableHead>
-                    <TableHead>Employee Email</TableHead>
-                    <TableHead>Manager Email</TableHead>
-                    <TableHead>Company</TableHead>
-                    <TableHead>Serial Number</TableHead>
-                    <TableHead>Asset Tag</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedAssets.map((asset) => (
+                    <Checkbox
+                      checked={isAllSelected ? true : isSomeSelected ? "indeterminate" : false}
+                      onCheckedChange={toggleSelectAll}
+                    />
+                  </TableHead>
+                  <TableHead>Employee</TableHead>
+                  <TableHead>Employee Email</TableHead>
+                  <TableHead>Manager Email</TableHead>
+                  <TableHead>Company</TableHead>
+                  <TableHead>Serial Number</TableHead>
+                  <TableHead>Asset Tag</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedAssets.map((asset) => (
                   <TableRow
                     key={asset.id}
                     data-state={selectedIds.has(asset.id) ? "selected" : undefined}
@@ -959,57 +959,58 @@ const Dashboard = () => {
                       selectedIds.has(asset.id) && "bg-primary/5 border-primary/40"
                     )}
                   >
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedIds.has(asset.id)}
-                          onCheckedChange={() => toggleSelect(asset.id)}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-medium">{asset.employee_name}</div>
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">{asset.employee_email}</TableCell>
-                      <TableCell className="font-mono text-sm">{asset.manager_email || '—'}</TableCell>
-                      <TableCell>{asset.company_name}</TableCell>
-                      <TableCell className="font-mono text-sm">{asset.laptop_serial_number}</TableCell>
-                      <TableCell className="font-mono text-sm">{asset.laptop_asset_tag}</TableCell>
-                      <TableCell>{getStatusBadge(asset.status)}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedIds.has(asset.id)}
+                        onCheckedChange={() => toggleSelect(asset.id)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium">{asset.employee_name}</div>
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">{asset.employee_email}</TableCell>
+                    <TableCell className="font-mono text-sm">{asset.manager_email || '—'}</TableCell>
+                    <TableCell>{asset.company_name}</TableCell>
+                    <TableCell className="font-mono text-sm">{asset.laptop_serial_number}</TableCell>
+                    <TableCell className="font-mono text-sm">{asset.laptop_asset_tag}</TableCell>
+                    <TableCell>{getStatusBadge(asset.status)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openAssetDetails(asset)}
+                          title="More Info"
+                        >
+                          <Info className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleStatusUpdate(asset)}
+                          title="Update Status"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        {user?.role === 'admin' && (
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => openAssetDetails(asset)}
-                            title="More Info"
+                            onClick={() => handleDelete(asset)}
+                            title="Delete Asset"
+                            className="text-destructive hover:text-destructive"
                           >
-                            <Info className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleStatusUpdate(asset)}
-                            title="Update Status"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          {user?.role === 'admin' && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDelete(asset)}
-                              title="Delete Asset"
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
             </Table>
           )}
+
           {filteredAssets.length > 0 && (
             <TablePaginationControls
               className="mt-4"
