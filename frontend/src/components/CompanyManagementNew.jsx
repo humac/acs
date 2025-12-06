@@ -320,11 +320,10 @@ const CompanyManagementNew = () => {
                 ))}
               </div>
 
-              <div className="rounded-md border hidden md:block overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead className="w-12">
+              <Table wrapperClassName="hidden md:block">
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="w-12">
                         <Checkbox
                           checked={isAllSelected ? true : isSomeSelected ? "indeterminate" : false}
                           onCheckedChange={toggleSelectAll}
@@ -362,8 +361,8 @@ const CompanyManagementNew = () => {
                     ))}
                   </TableBody>
                 </Table>
-              </div>
               <TablePaginationControls
+                className="mt-4"
                 page={page}
                 pageSize={pageSize}
                 totalItems={filteredCompanies.length}

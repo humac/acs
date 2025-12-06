@@ -6,6 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
@@ -16,6 +17,7 @@ const TablePaginationControls = ({
   totalItems,
   onPageChange,
   onPageSizeChange,
+  className,
 }) => {
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize) || 1);
   const startItem = totalItems === 0 ? 0 : (page - 1) * pageSize + 1;
@@ -27,7 +29,11 @@ const TablePaginationControls = ({
   };
 
   return (
-    <div className="flex flex-col gap-3 rounded-md border bg-muted/40 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+    <div className={cn(
+      "flex flex-col gap-3 rounded-xl border border-border/70 bg-muted/40 px-3 py-2 shadow-sm sm:flex-row sm:items-center sm:justify-between",
+      className
+    )}
+    >
       <div className="text-sm text-muted-foreground">
         Showing{' '}
         <span className="font-medium text-foreground">{startItem}</span>

@@ -1032,11 +1032,10 @@ const Dashboard = () => {
             </div>
           ) : (
             /* Desktop Table View */
-            <div className="rounded-md border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12">
                       <Checkbox
                         checked={isAllSelected ? true : isSomeSelected ? "indeterminate" : false}
                         onCheckedChange={toggleSelectAll}
@@ -1110,19 +1109,17 @@ const Dashboard = () => {
                     </TableRow>
                   ))}
                 </TableBody>
-              </Table>
-            </div>
+            </Table>
           )}
           {filteredAssets.length > 0 && (
-            <div className="mt-4">
-              <TablePaginationControls
-                page={assetPage}
-                pageSize={assetPageSize}
-                totalItems={filteredAssets.length}
-                onPageChange={setAssetPage}
-                onPageSizeChange={setAssetPageSize}
-              />
-            </div>
+            <TablePaginationControls
+              className="mt-4"
+              page={assetPage}
+              pageSize={assetPageSize}
+              totalItems={filteredAssets.length}
+              onPageChange={setAssetPage}
+              onPageSizeChange={setAssetPageSize}
+            />
           )}
         </CardContent>
       </Card>
