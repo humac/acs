@@ -65,20 +65,29 @@ const isValidCertPath = (filePath) => {
     return false;
   }
   
-  // Resolve the path and compare with original to detect traversal attempts
-  // resolve() will normalize paths and eliminate .. sequences
-  const resolvedPath = resolve(filePath);
-  
-  // If the resolved path differs from the original (after normalization),
-  // it might contain traversal sequences
-  const normalizedOriginal = resolve(filePath);
-  
-  // Additional check: ensure the path doesn't contain .. components
-  if (filePath.includes('..')) {
+  // Check for .. sequences (both regular and URL-encoded)
+  // This catches most common traversal attempts before normalization
+  if (filePath.includes('..') || filePath.includes('%2e%2e') || filePath.includes('%2E%2E')) {
     return false;
   }
   
-  return resolvedPath === normalizedOriginal;
+  // Normalize the path to resolve any symbolic links or relative components
+  // This ensures the path is in canonical form
+  const resolvedPath = resolve(filePath);
+  
+  // If resolve() significantly changed the path (beyond normalization of slashes),
+  // it likely contained traversal sequences or symlinks
+  // We check that the resolved path maintains the same structure
+  const pathSegments = filePath.split(/[/\\]/).filter(s => s && s !== '.');
+  const resolvedSegments = resolvedPath.split(/[/\\]/).filter(s => s && s !== '.');
+  
+  // The resolved path should not have fewer segments (indicates .. was processed)
+  // This catches cases like /etc/../../../etc/passwd
+  if (resolvedSegments.length < pathSegments.length) {
+    return false;
+  }
+  
+  return true;
 };
 
 /**

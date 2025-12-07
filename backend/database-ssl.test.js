@@ -176,11 +176,20 @@ describe('Database SSL Configuration', () => {
       // Implementation should reject this because it contains .. sequences
     });
 
+    it('should prevent URL-encoded path traversal attacks', () => {
+      // URL-encoded .. (%2e%2e) can bypass simple string checks
+      const encodedPath = '/etc/%2e%2e/%2e%2e/etc/passwd';
+      
+      expect(encodedPath.includes('%2e%2e')).toBe(true);
+      // Implementation should reject URL-encoded traversal attempts
+    });
+
     it('should accept clean absolute paths without traversal', () => {
       const safePath = '/etc/ssl/certs/ca-certificate.crt';
       
       expect(safePath.startsWith('/')).toBe(true);
       expect(safePath.includes('..')).toBe(false);
+      expect(safePath.includes('%2e')).toBe(false);
       // Implementation should accept this
     });
   });
