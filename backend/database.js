@@ -496,7 +496,22 @@ const initDb = async () => {
       }
     }
   } catch (err) {
-    console.log('Profile/manager columns may already exist in users table:', err.message);
+    // Only ignore duplicate column errors (defensive programming)
+    // PostgreSQL: error code 42701 or message contains "already exists"
+    // SQLite: message contains "duplicate column"
+    const isDuplicateColumn = 
+      err.message?.toLowerCase().includes('duplicate column') ||
+      err.message?.toLowerCase().includes('already exists') ||
+      err.code === '42701';
+    
+    if (isDuplicateColumn) {
+      console.warn('Column already exists (ignored):', err.message);
+    } else {
+      // Real errors (missing table, connection issues, etc.) must be thrown
+      console.error('Migration FAILED for users/settings tables:', err.message);
+      console.error('Stack trace:', err.stack);
+      throw new Error(`Failed to add columns to users/settings tables: ${err.message}`);
+    }
   }
 
   // Migrate existing assets table to make manager fields nullable
