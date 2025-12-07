@@ -27,6 +27,7 @@ import {
   Sun,
 } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
+import AssetsPage from '@/pages/AssetsPage';
 import CompanyManagement from '@/components/CompanyManagement';
 import AuditReporting from '@/components/AuditReporting';
 import AdminSettings from '@/components/AdminSettings';
@@ -317,7 +318,8 @@ function AppNew() {
       <main className="container mx-auto py-6">
         <Routes>
           <Route path="/" element={<Navigate to="/assets" replace />} />
-          <Route path="/assets" element={<Dashboard />} />
+          <Route path="/assets" element={<AssetsPage />} />
+          <Route path="/assets/dashboard" element={<Dashboard />} />
           {user?.role === 'admin' && (
             <Route path="/companies" element={<CompanyManagement />} />
           )}
