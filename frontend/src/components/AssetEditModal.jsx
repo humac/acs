@@ -32,6 +32,17 @@ export default function AssetEditModal({ asset, currentUser, onClose, onSaved })
     setForm(prev => ({ ...prev, [name]: value }));
   }
 
+  // Handle escape key to close modal
+  React.useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+
   async function save() {
     setSaving(true);
     try {
@@ -60,10 +71,15 @@ export default function AssetEditModal({ asset, currentUser, onClose, onSaved })
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center p-6">
-      <div className="fixed inset-0 bg-black/40" onClick={onClose} />
-      <div className="bg-white rounded-md shadow-lg z-10 w-full max-w-2xl overflow-hidden">
+      <div className="fixed inset-0 bg-black/40" onClick={onClose} aria-hidden="true" />
+      <div 
+        className="bg-white rounded-md shadow-lg z-10 w-full max-w-2xl overflow-hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+      >
         <div className="px-6 py-4 border-b">
-          <h2 className="text-lg font-medium">Edit Asset</h2>
+          <h2 id="modal-title" className="text-lg font-medium">Edit Asset</h2>
         </div>
         <div className="p-6 space-y-4">
           {allowedFields.includes('employee_name') && (

@@ -5,6 +5,10 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser 
   const { getAuthHeaders } = useAuth();
 
   async function handleDelete(asset) {
+    if (!canDelete(asset)) {
+      alert('You do not have permission to delete this asset.');
+      return;
+    }
     if (!confirm(`Delete asset "${asset.employee_name}"? This action cannot be undone.`)) return;
     try {
       const res = await fetch(`/api/assets/${asset.id}`, { 
@@ -22,6 +26,14 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser 
   const canEdit = (asset) => {
     if (currentUser?.roles?.includes('admin')) return true;
     if (currentUser?.roles?.includes('editor')) return true;
+    return false;
+  };
+
+  const canDelete = (asset) => {
+    // Admin can delete any asset
+    if (currentUser?.roles?.includes('admin')) return true;
+    // Users can only delete their own assets
+    if (currentUser?.email === asset.employee_email) return true;
     return false;
   };
 
@@ -59,7 +71,8 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser 
                 </button>
                 <button
                   onClick={() => handleDelete(asset)}
-                  className="px-2 py-1 rounded text-sm text-red-600 hover:bg-red-50"
+                  disabled={!canDelete(asset)}
+                  className={`px-2 py-1 rounded text-sm ${canDelete(asset) ? 'text-red-600 hover:bg-red-50' : 'text-gray-300 cursor-not-allowed'}`}
                 >
                   Delete
                 </button>

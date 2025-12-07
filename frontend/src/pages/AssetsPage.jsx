@@ -16,11 +16,15 @@ export default function AssetsPage() {
     if (user) {
       // Map the user role to roles array for compatibility with the modal
       const roles = [];
-      if (user.role === 'admin') roles.push('admin');
-      if (user.role === 'editor') roles.push('editor');
-      if (user.role === 'manager') roles.push('editor'); // managers can edit similar to editors
-      if (user.role === 'employee') roles.push('user');
-      roles.push('user'); // everyone has base user role
+      if (user.role === 'admin') {
+        roles.push('admin');
+      } else if (user.role === 'editor') {
+        roles.push('editor');
+      } else if (user.role === 'manager') {
+        roles.push('editor'); // managers can edit similar to editors
+      } else {
+        roles.push('user'); // default to user role for employees and others
+      }
       
       setCurrentUser({ ...user, roles });
     }
