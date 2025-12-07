@@ -1,518 +1,476 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
-  Box,
-  Card,
-  Typography,
-  Button,
-  TextField,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  CircularProgress,
-  Alert,
-  Grid,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  IconButton,
-  useTheme,
-  useMediaQuery,
-  Stack,
-  Link,
-  List,
-  ListItem,
-  ListItemText,
-} from '@mui/material';
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table';
 import {
-  Add,
-  Edit,
-  Delete,
-  Business,
-  UploadFile,
-} from '@mui/icons-material';
-import { useAuth } from '../contexts/AuthContext';
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import TablePaginationControls from '@/components/TablePaginationControls';
+import { cn } from '@/lib/utils';
+import { Building2, Plus, Edit, Trash2, Upload, Download, Loader2, Search, Sparkles } from 'lucide-react';
 
-const CompanyManagement = () => {
+const CompanyManagementNew = () => {
   const { getAuthHeaders } = useAuth();
+  const { toast } = useToast();
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingCompany, setEditingCompany] = useState(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    description: ''
-  });
-  const [formError, setFormError] = useState(null);
-  const [formSuccess, setFormSuccess] = useState(false);
+  const [formData, setFormData] = useState({ name: '', description: '' });
+  const [formLoading, setFormLoading] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, company: null });
   const [showImportModal, setShowImportModal] = useState(false);
   const [importFile, setImportFile] = useState(null);
   const [importResult, setImportResult] = useState(null);
-  const [importError, setImportError] = useState(null);
-  const [importing, setImporting] = useState(false);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [bulkDescription, setBulkDescription] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
-  useEffect(() => {
-    fetchCompanies();
-  }, []);
+  useEffect(() => { fetchCompanies(); }, []);
 
   const fetchCompanies = async () => {
     setLoading(true);
-    setError(null);
-
     try {
-      const response = await fetch('/api/companies', {
-        headers: {
-          ...getAuthHeaders()
-        }
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch companies');
-      }
-      const data = await response.json();
-      setCompanies(data);
+      const response = await fetch('/api/companies', { headers: { ...getAuthHeaders() } });
+      if (!response.ok) throw new Error('Failed to fetch companies');
+      setCompanies(await response.json());
     } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally { setLoading(false); }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setFormError(null);
-    setFormSuccess(false);
-
+    setFormLoading(true);
     try {
-      const url = editingCompany
-        ? `/api/companies/${editingCompany.id}`
-        : '/api/companies';
-
-      const method = editingCompany ? 'PUT' : 'POST';
-
+      const url = editingCompany ? `/api/companies/${editingCompany.id}` : '/api/companies';
       const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders()
-        },
+        method: editingCompany ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify(formData),
       });
-
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to save company');
-      }
-
-      setFormSuccess(true);
-      setFormData({ name: '', description: '' });
+      if (!response.ok) throw new Error(data.error || 'Failed to save company');
+      toast({ title: "Success", description: `Company ${editingCompany ? 'updated' : 'added'} successfully`, variant: "success" });
       setShowForm(false);
+      setFormData({ name: '', description: '' });
       setEditingCompany(null);
       fetchCompanies();
-
-      setTimeout(() => setFormSuccess(false), 3000);
     } catch (err) {
-      setFormError(err.message);
-    }
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally { setFormLoading(false); }
   };
 
   const handleEdit = (company) => {
     setEditingCompany(company);
-    setFormData({
-      name: company.name,
-      description: company.description || ''
-    });
+    setFormData({ name: company.name, description: company.description || '' });
     setShowForm(true);
-    setFormError(null);
-  };
-
-  const handleDeleteClick = (company) => {
-    setDeleteDialog({ open: true, company });
   };
 
   const handleDeleteConfirm = async () => {
     const company = deleteDialog.company;
     setDeleteDialog({ open: false, company: null });
-
     try {
       const response = await fetch(`/api/companies/${company.id}`, {
-        method: 'DELETE',
-        headers: {
-          ...getAuthHeaders()
-        }
+        method: 'DELETE', headers: { ...getAuthHeaders() }
       });
-
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to delete company');
-      }
-
+      if (!response.ok) throw new Error(data.error || 'Failed to delete company');
+      toast({ title: "Success", description: "Company deleted successfully", variant: "success" });
       fetchCompanies();
     } catch (err) {
-      setError(err.message);
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     }
   };
 
-  const handleDeleteCancel = () => {
-    setDeleteDialog({ open: false, company: null });
-  };
-
-  const handleCancel = () => {
-    setShowForm(false);
-    setEditingCompany(null);
-    setFormData({ name: '', description: '' });
-    setFormError(null);
-  };
-
-  const handleImportCompanies = async (e) => {
+  const handleImport = async (e) => {
     e.preventDefault();
-    setImportError(null);
+    if (!importFile) return;
+    setFormLoading(true);
     setImportResult(null);
-
-    if (!importFile) {
-      setImportError('Please select a CSV file to import.');
-      return;
-    }
-
-    setImporting(true);
-
     try {
       const formDataUpload = new FormData();
       formDataUpload.append('file', importFile);
-
       const response = await fetch('/api/companies/import', {
-        method: 'POST',
-        headers: {
-          ...getAuthHeaders()
-        },
-        body: formDataUpload
+        method: 'POST', headers: { ...getAuthHeaders() }, body: formDataUpload
       });
-
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to import companies');
-      }
-
+      if (!response.ok) throw new Error(data.error || 'Failed to import');
       setImportResult(data);
+      toast({ title: "Success", description: data.message, variant: "success" });
       setImportFile(null);
       fetchCompanies();
     } catch (err) {
-      setImportError(err.message);
-    } finally {
-      setImporting(false);
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally { setFormLoading(false); }
+  };
+
+  const formatDate = (dateString) => new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+
+  const handleAddClick = () => {
+    setEditingCompany(null);
+    setFormData({ name: '', description: '' });
+    setShowForm(true);
+  };
+
+  const filteredCompanies = useMemo(() => {
+    const term = searchTerm.toLowerCase();
+    return companies.filter((c) =>
+      c.name?.toLowerCase().includes(term) ||
+      c.description?.toLowerCase().includes(term)
+    );
+  }, [companies, searchTerm]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredCompanies.length / pageSize) || 1);
+  useEffect(() => {
+    setPage(1);
+  }, [pageSize, filteredCompanies.length]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
     }
-  };
+  }, [page, totalPages]);
 
-  const handleImportModalClose = () => {
-    setShowImportModal(false);
-    setImportFile(null);
-    setImportError(null);
-    setImportResult(null);
-  };
+  const paginatedCompanies = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredCompanies.slice(start, start + pageSize);
+  }, [filteredCompanies, page, pageSize]);
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
     });
   };
 
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) => {
+      const pageIds = paginatedCompanies.map((c) => c.id);
+      const hasAll = pageIds.every((id) => prev.has(id));
+      const next = new Set(prev);
+      pageIds.forEach((id) => {
+        if (hasAll) next.delete(id);
+        else next.add(id);
+      });
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (!ids.length) return;
+    setFormLoading(true);
+    try {
+      for (const id of ids) {
+        const response = await fetch(`/api/companies/${id}`, { method: 'DELETE', headers: { ...getAuthHeaders() } });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to delete company');
+      }
+      toast({ title: "Success", description: `Deleted ${ids.length} compan${ids.length === 1 ? 'y' : 'ies'}`, variant: "success" });
+      clearSelection();
+      fetchCompanies();
+    } catch (err) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleBulkDescriptionUpdate = async () => {
+    const ids = Array.from(selectedIds);
+    if (!ids.length || !bulkDescription.trim()) return;
+    setFormLoading(true);
+    try {
+      for (const id of ids) {
+        const company = companies.find((c) => c.id === id);
+        if (!company) continue;
+        const response = await fetch(`/api/companies/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+          body: JSON.stringify({ name: company.name, description: bulkDescription })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to update company');
+      }
+      toast({ title: "Updated", description: `Applied description to ${ids.length} compan${ids.length === 1 ? 'y' : 'ies'}`, variant: "success" });
+      setBulkDialogOpen(false);
+      setBulkDescription('');
+      clearSelection();
+      fetchCompanies();
+    } catch (err) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const isAllSelected = paginatedCompanies.length > 0 && paginatedCompanies.every((c) => selectedIds.has(c.id));
+  const isSomeSelected = paginatedCompanies.some((c) => selectedIds.has(c.id)) && !isAllSelected;
+
   if (loading) {
     return (
-      <Card sx={{ p: 3 }}>
-        <Box display="flex" justifyContent="center" alignItems="center" py={5}>
-          <CircularProgress />
-          <Typography variant="body1" sx={{ ml: 2 }}>
-            Loading companies...
-          </Typography>
-        </Box>
-      </Card>
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-muted-foreground">Loading companies...</span>
+      </div>
     );
   }
 
   return (
-    <>
-      <Card sx={{ p: 3 }}>
-        {/* Header */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Business color="primary" />
-            <Typography variant="h5" fontWeight={600}>
-              Company Management ({companies.length} companies)
-            </Typography>
-          </Box>
-          <Stack direction="row" spacing={1}>
-            <Button
-              variant="outlined"
-              startIcon={<UploadFile />}
-              onClick={() => setShowImportModal(true)}
-            >
-              Bulk Import
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={() => setShowForm(true)}
-            >
-              Add Company
-            </Button>
-          </Stack>
-        </Box>
-
-        {/* Success Message */}
-        {formSuccess && (
-          <Alert severity="success" sx={{ mb: 3 }}>
-            Company {editingCompany ? 'updated' : 'added'} successfully!
-          </Alert>
-        )}
-
-        {/* Error Message */}
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>
-        )}
-
-        {/* Companies Table */}
-        {companies.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 5 }}>
-            <Business sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
-            <Typography variant="body1" color="text.secondary">
-              No companies registered yet. Add your first company to get started.
-            </Typography>
-          </Box>
-        ) : (
-          <TableContainer component={Paper} variant="outlined" sx={{ maxWidth: '100%' }}>
-            <Table size={isMobile ? 'small' : 'medium'}>
-              <TableHead>
-                <TableRow>
-                  <TableCell><strong>Company Name</strong></TableCell>
-                  {!isMobile && <TableCell><strong>Description</strong></TableCell>}
-                  {!isMobile && <TableCell><strong>Created Date</strong></TableCell>}
-                  <TableCell><strong>Actions</strong></TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {companies.map((company) => (
-                  <TableRow key={company.id} hover>
-                    <TableCell>
-                      <Typography variant="body1" fontWeight={600}>
-                        {company.name}
-                      </Typography>
-                    </TableCell>
-                    {!isMobile && (
-                      <TableCell>
-                        <Typography variant="body2" color="text.secondary">
-                          {company.description || '-'}
-                        </Typography>
-                      </TableCell>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader className="space-y-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-primary" />
+              <CardTitle>Company Management ({companies.length})</CardTitle>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <Button variant="outline" onClick={() => setShowImportModal(true)}>
+                <Upload className="h-4 w-4 mr-2" />Bulk Import
+              </Button>
+              <Button onClick={handleAddClick}>
+                <Plus className="h-4 w-4 mr-2" />Add Company
+              </Button>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative max-w-md w-full">
+              <Search className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
+              <Input
+                placeholder="Search companies by name or description"
+                className="pl-9"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            {selectedIds.size > 0 && (
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 rounded-lg border px-3 py-2 bg-muted/50">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">{selectedIds.size} selected</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button variant="ghost" size="sm" onClick={() => setBulkDialogOpen(true)}>Bulk edit</Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                    onClick={handleBulkDelete}
+                  >
+                    Delete
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={clearSelection}>Clear</Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {filteredCompanies.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No companies registered yet.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="md:hidden space-y-3">
+                {paginatedCompanies.map((company) => (
+                  <div
+                    key={company.id}
+                    className={cn(
+                      "border rounded-lg p-4 flex gap-3",
+                      selectedIds.has(company.id) && "bg-primary/5 border-primary/50 shadow-[0_0_0_1px_hsl(var(--primary))]"
                     )}
-                    {!isMobile && <TableCell>{formatDate(company.created_date)}</TableCell>}
-                    <TableCell>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          onClick={() => handleEdit(company)}
-                          title="Edit"
-                        >
-                          <Edit fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => handleDeleteClick(company)}
-                          title="Delete"
-                        >
-                          <Delete fontSize="small" />
-                        </IconButton>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
+                  >
+                    <Checkbox
+                      checked={selectedIds.has(company.id)}
+                      onCheckedChange={() => toggleSelect(company.id)}
+                      className="mt-1"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <h4 className="font-medium truncate">{company.name}</h4>
+                          <p className="text-sm text-muted-foreground line-clamp-2">{company.description || '—'}</p>
+                        </div>
+                        <div className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(company.created_date)}</div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(company)}><Edit className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setDeleteDialog({ open: true, company })}><Trash2 className="h-4 w-4" /></Button>
+                    </div>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
+              </div>
+
+              <Table wrapperClassName="hidden md:block">
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead className="w-12">
+                        <Checkbox
+                          checked={isAllSelected ? true : isSomeSelected ? "indeterminate" : false}
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      </TableHead>
+                      <TableHead>Company Name</TableHead>
+                      <TableHead className="hidden md:table-cell">Description</TableHead>
+                      <TableHead className="hidden md:table-cell">Created</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedCompanies.map((company) => (
+                      <TableRow
+                        key={company.id}
+                        data-state={selectedIds.has(company.id) ? "selected" : undefined}
+                        className={cn(selectedIds.has(company.id) && "bg-primary/5 border-primary/40")}
+                      >
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedIds.has(company.id)}
+                            onCheckedChange={() => toggleSelect(company.id)}
+                          />
+                        </TableCell>
+                        <TableCell className="font-medium">{company.name}</TableCell>
+                        <TableCell className="hidden md:table-cell text-muted-foreground">{company.description || '-'}</TableCell>
+                        <TableCell className="hidden md:table-cell">{formatDate(company.created_date)}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => handleEdit(company)}><Edit className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setDeleteDialog({ open: true, company })}><Trash2 className="h-4 w-4" /></Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              <TablePaginationControls
+                className="mt-4"
+                page={page}
+                pageSize={pageSize}
+                totalItems={filteredCompanies.length}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+              />
+            </div>
+          )}
+        </CardContent>
       </Card>
 
-      {/* Bulk Import Dialog */}
-      <Dialog
-        open={showImportModal}
-        onClose={handleImportModalClose}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Import Companies from CSV</DialogTitle>
+      <Dialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Upload a CSV file with company names and optional descriptions. Use the example file to see the expected columns.
-          </Typography>
-
-          <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
-            <Button
-              component="label"
-              variant="outlined"
-              startIcon={<UploadFile />}
-            >
-              {importFile ? 'Change File' : 'Choose CSV File'}
-              <input
-                type="file"
-                accept=".csv"
-                hidden
-                onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+          <DialogHeader>
+            <DialogTitle>Bulk edit selected companies</DialogTitle>
+            <DialogDescription>Apply a shared description to keep the portfolio organized.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="bulk-description">Description</Label>
+              <Textarea
+                id="bulk-description"
+                placeholder="What do these companies have in common?"
+                value={bulkDescription}
+                onChange={(e) => setBulkDescription(e.target.value)}
               />
-            </Button>
-            <Button
-              component={Link}
-              href="/import_companies.csv"
-              download
-              variant="text"
-            >
-              Download example CSV
-            </Button>
-          </Stack>
-
-          {importFile && (
-            <Typography variant="body2" sx={{ mb: 2 }}>
-              Selected file: {importFile.name}
-            </Typography>
-          )}
-
-          {importError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {importError}
-            </Alert>
-          )}
-
-          {importResult && (
-            <Alert severity="success" sx={{ mb: 2 }}>
-              {importResult.message}
-            </Alert>
-          )}
-
-          {importResult?.errors?.length > 0 && (
-            <Paper variant="outlined" sx={{ p: 1, maxHeight: 200, overflow: 'auto' }}>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Issues
-              </Typography>
-              <List dense>
-                {importResult.errors.map((err, idx) => (
-                  <ListItem key={idx} disablePadding>
-                    <ListItemText primary={err} />
-                  </ListItem>
-                ))}
-              </List>
-            </Paper>
-          )}
+              <p className="text-xs text-muted-foreground">This will replace existing descriptions for {selectedIds.size} compan{selectedIds.size === 1 ? 'y' : 'ies'}.</p>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setBulkDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleBulkDescriptionUpdate} disabled={formLoading || !bulkDescription.trim()}>
+                {formLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Apply description
+              </Button>
+            </DialogFooter>
+          </div>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleImportModalClose} variant="outlined">
-            Cancel
-          </Button>
-          <Button
-            onClick={handleImportCompanies}
-            variant="contained"
-            disabled={importing}
-          >
-            {importing ? 'Importing...' : 'Import Companies'}
-          </Button>
-        </DialogActions>
       </Dialog>
 
-      {/* Add/Edit Company Dialog */}
-      <Dialog
-        open={showForm}
-        onClose={handleCancel}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          {editingCompany ? 'Edit Company' : 'Add New Company'}
-        </DialogTitle>
+      <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent>
-          {formError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {formError}
-            </Alert>
-          )}
-
-          <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
-            <TextField
-              fullWidth
-              required
-              id="name"
-              name="name"
-              label="Company Name"
-              placeholder="Acme Corporation"
-              value={formData.name}
-              onChange={handleChange}
-              sx={{ mb: 2 }}
-            />
-
-            <TextField
-              fullWidth
-              multiline
-              rows={3}
-              id="description"
-              name="description"
-              label="Description (Optional)"
-              placeholder="Brief description of the company..."
-              value={formData.description}
-              onChange={handleChange}
-            />
-          </Box>
+          <DialogHeader>
+            <DialogTitle>{editingCompany ? 'Edit Company' : 'Add New Company'}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Company Name</Label>
+              <Input id="name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} placeholder="Acme Corporation" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description (Optional)</Label>
+              <Textarea id="description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Brief description..." rows={3} />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
+              <Button type="submit" disabled={formLoading}>
+                {formLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {editingCompany ? 'Update' : 'Add'} Company
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCancel} variant="outlined">
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} variant="contained">
-            {editingCompany ? 'Update Company' : 'Add Company'}
-          </Button>
-        </DialogActions>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog
-        open={deleteDialog.open}
-        onClose={handleDeleteCancel}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Confirm Delete</DialogTitle>
+      <Dialog open={deleteDialog.open} onOpenChange={(open) => !open && setDeleteDialog({ open: false, company: null })}>
         <DialogContent>
-          <Typography>
-            Are you sure you want to delete "{deleteDialog.company?.name}"? This action cannot be undone.
-          </Typography>
+          <DialogHeader>
+            <DialogTitle>Confirm Delete</DialogTitle>
+            <DialogDescription>Are you sure you want to delete "{deleteDialog.company?.name}"? This action cannot be undone.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialog({ open: false, company: null })}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm}>Delete</Button>
+          </DialogFooter>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDeleteCancel} variant="outlined">
-            Cancel
-          </Button>
-          <Button onClick={handleDeleteConfirm} variant="contained" color="error">
-            Delete
-          </Button>
-        </DialogActions>
       </Dialog>
-    </>
+
+      <Dialog open={showImportModal} onOpenChange={(open) => { setShowImportModal(open); if (!open) { setImportFile(null); setImportResult(null); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Import Companies from CSV</DialogTitle>
+            <DialogDescription>Upload a CSV file with company names and descriptions.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleImport} className="space-y-4">
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" asChild>
+                <label className="cursor-pointer">
+                  <Upload className="h-4 w-4 mr-2" />
+                  {importFile ? 'Change File' : 'Choose CSV'}
+                  <input type="file" accept=".csv" className="hidden" onChange={(e) => setImportFile(e.target.files?.[0] || null)} />
+                </label>
+              </Button>
+              <Button type="button" variant="ghost" asChild>
+                <a href="/import_companies.csv" download><Download className="h-4 w-4 mr-2" />Example</a>
+              </Button>
+            </div>
+            {importFile && <p className="text-sm text-muted-foreground">Selected: {importFile.name}</p>}
+            {importResult && <div className="rounded-md bg-green-50 text-green-900 p-4 text-sm">{importResult.message}</div>}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowImportModal(false)}>Cancel</Button>
+              <Button type="submit" disabled={formLoading || !importFile}>
+                {formLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Import
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 
-export default CompanyManagement;
+export default CompanyManagementNew;

@@ -1,24 +1,29 @@
 import { useState } from 'react';
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  DialogActions,
-  Button,
-  Box,
-  Typography,
-  TextField,
-  Stepper,
-  Step,
-  StepLabel,
-  Alert,
-  Paper,
-  CircularProgress,
-  Chip,
-  IconButton,
-  Divider,
-} from '@mui/material';
-import { Close, ContentCopy, CheckCircle } from '@mui/icons-material';
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Card, CardContent } from '@/components/ui/card';
+import { 
+  Loader2, 
+  Copy, 
+  Check, 
+  X, 
+  AlertTriangle,
+  Shield,
+  ChevronRight
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const MFASetupModal = ({ open, onClose, onComplete, getAuthHeaders }) => {
   const [activeStep, setActiveStep] = useState(0);
@@ -134,170 +139,214 @@ const MFASetupModal = ({ open, onClose, onComplete, getAuthHeaders }) => {
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={handleDialogClose}
-      maxWidth="sm"
-      fullWidth
-      disableEscapeKeyDown={activeStep === 2}
-    >
-      <DialogTitle>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6" fontWeight={600}>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleDialogClose()}>
+      <DialogContent className="sm:max-w-[500px]" onEscapeKeyDown={(e) => activeStep === 2 && e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
             Set Up Two-Factor Authentication
-          </Typography>
-          {activeStep !== 2 && (
-            <IconButton onClick={handleDialogClose} size="small">
-              <Close />
-            </IconButton>
-          )}
-        </Box>
-      </DialogTitle>
+          </DialogTitle>
+          <DialogDescription>
+            Step {activeStep + 1} of {steps.length}: {steps[activeStep]}
+          </DialogDescription>
+        </DialogHeader>
 
-      <DialogContent>
-        <Stepper activeStep={activeStep} sx={{ mb: 3 }}>
-          {steps.map((label) => (
-            <Step key={label}>
-              <StepLabel>{label}</StepLabel>
-            </Step>
+        {/* Progress Indicator */}
+        <div className="flex items-center gap-2 mb-4">
+          {steps.map((_, index) => (
+            <div key={index} className="flex items-center flex-1">
+              <div
+                className={cn(
+                  "h-2 rounded-full flex-1 transition-colors",
+                  index <= activeStep ? "bg-primary" : "bg-muted"
+                )}
+              />
+              {index < steps.length - 1 && (
+                <ChevronRight className="h-4 w-4 text-muted-foreground mx-1" />
+              )}
+            </div>
           ))}
-        </Stepper>
+        </div>
 
         {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
         {/* Step 0: Initial state */}
         {activeStep === 0 && (
-          <Box>
-            <Typography variant="body1" gutterBottom>
+          <div className="space-y-4">
+            <p className="text-sm">
               Two-factor authentication adds an extra layer of security to your account.
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-              You'll need an authenticator app on your phone such as:
-            </Typography>
-            <Box sx={{ mt: 1, ml: 2 }}>
-              <Typography variant="body2">• Google Authenticator</Typography>
-              <Typography variant="body2">• Microsoft Authenticator</Typography>
-              <Typography variant="body2">• Authy</Typography>
-            </Box>
-          </Box>
+            </p>
+            <div>
+              <p className="text-sm text-muted-foreground mb-2">
+                You'll need an authenticator app on your phone such as:
+              </p>
+              <ul className="ml-6 space-y-1 text-sm">
+                <li>• Google Authenticator</li>
+                <li>• Microsoft Authenticator</li>
+                <li>• Authy</li>
+              </ul>
+            </div>
+          </div>
         )}
 
         {/* Step 1: QR Code Display */}
         {activeStep === 1 && (
-          <Box>
-            <Typography variant="body1" gutterBottom>
+          <div className="space-y-4">
+            <p className="text-sm">
               Scan this QR code with your authenticator app:
-            </Typography>
+            </p>
 
             {qrCode && (
-              <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
-                <img src={qrCode} alt="MFA QR Code" style={{ maxWidth: '200px' }} />
-              </Box>
+              <div className="flex justify-center py-4">
+                <img src={qrCode} alt="MFA QR Code" className="max-w-[200px] rounded border" />
+              </div>
             )}
 
-            <Divider sx={{ my: 2 }} />
+            <Separator />
 
-            <Typography variant="body2" color="text.secondary" gutterBottom>
-              Or enter this code manually:
-            </Typography>
-            <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50', position: 'relative' }}>
-              <Typography variant="body2" fontFamily="monospace" sx={{ wordBreak: 'break-all' }}>
-                {secret}
-              </Typography>
-              <IconButton
-                size="small"
-                onClick={handleCopySecret}
-                sx={{ position: 'absolute', top: 8, right: 8 }}
-              >
-                {copiedSecret ? <CheckCircle color="success" /> : <ContentCopy />}
-              </IconButton>
-            </Paper>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">
+                Or enter this code manually:
+              </Label>
+              <Card className="bg-muted/50 relative">
+                <CardContent className="p-3">
+                  <code className="text-sm break-all">{secret}</code>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="absolute top-2 right-2 h-7 w-7 p-0"
+                    onClick={handleCopySecret}
+                  >
+                    {copiedSecret ? (
+                      <Check className="h-3.5 w-3.5 text-green-600" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
 
-            <TextField
-              fullWidth
-              label="Enter 6-digit code from app"
-              value={verificationCode}
-              onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              placeholder="123456"
-              inputProps={{ maxLength: 6, pattern: '[0-9]*', inputMode: 'numeric' }}
-              sx={{ mt: 3 }}
-              autoFocus
-            />
-          </Box>
+            <div className="space-y-2">
+              <Label htmlFor="verification-code">Enter 6-digit code from app</Label>
+              <Input
+                id="verification-code"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={6}
+                placeholder="123456"
+                value={verificationCode}
+                onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                autoFocus
+              />
+            </div>
+          </div>
         )}
 
         {/* Step 2: Backup Codes */}
         {activeStep === 2 && (
-          <Box>
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              <Typography variant="body2" fontWeight={600}>
-                Save these backup codes in a secure place!
-              </Typography>
-              <Typography variant="body2" sx={{ mt: 1 }}>
-                You can use these codes to access your account if you lose access to your authenticator app.
-              </Typography>
+          <div className="space-y-4">
+            <Alert variant="default" className="border-amber-500 bg-amber-50 dark:bg-amber-950/50">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertDescription>
+                <p className="font-semibold text-amber-900 dark:text-amber-100">
+                  Save these backup codes in a secure place!
+                </p>
+                <p className="text-sm mt-1 text-amber-800 dark:text-amber-200">
+                  You can use these codes to access your account if you lose access to your authenticator app.
+                </p>
+              </AlertDescription>
             </Alert>
 
-            <Paper variant="outlined" sx={{ p: 2, bgcolor: 'grey.50', position: 'relative' }}>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
-                {backupCodes.map((code, index) => (
-                  <Chip
-                    key={index}
-                    label={code}
-                    sx={{ fontFamily: 'monospace', fontSize: '0.875rem' }}
-                  />
-                ))}
-              </Box>
-              <Button
-                size="small"
-                startIcon={copiedBackupCodes ? <CheckCircle /> : <ContentCopy />}
-                onClick={handleCopyBackupCodes}
-                sx={{ mt: 2 }}
-              >
-                {copiedBackupCodes ? 'Copied!' : 'Copy All Codes'}
+            <Card className="bg-muted/50 relative">
+              <CardContent className="p-4 space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  {backupCodes.map((code, index) => (
+                    <Badge
+                      key={index}
+                      variant="outline"
+                      className="font-mono text-xs justify-center py-1.5"
+                    >
+                      {code}
+                    </Badge>
+                  ))}
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleCopyBackupCodes}
+                >
+                  {copiedBackupCodes ? (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copy All Codes
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        <DialogFooter>
+          {activeStep === 0 && (
+            <>
+              <Button variant="outline" onClick={handleDialogClose}>
+                Cancel
               </Button>
-            </Paper>
-          </Box>
-        )}
+              <Button onClick={handleStart} disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Starting...
+                  </>
+                ) : (
+                  'Get Started'
+                )}
+              </Button>
+            </>
+          )}
+
+          {activeStep === 1 && (
+            <>
+              <Button variant="outline" onClick={handleDialogClose}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleVerify}
+                disabled={loading || verificationCode.length !== 6}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  'Verify & Enable'
+                )}
+              </Button>
+            </>
+          )}
+
+          {activeStep === 2 && (
+            <Button onClick={handleComplete} className="w-full">
+              I've Saved My Backup Codes
+            </Button>
+          )}
+        </DialogFooter>
       </DialogContent>
-
-      <DialogActions>
-        {activeStep === 0 && (
-          <>
-            <Button onClick={handleDialogClose}>Cancel</Button>
-            <Button
-              variant="contained"
-              onClick={handleStart}
-              disabled={loading}
-            >
-              {loading ? <CircularProgress size={24} /> : 'Get Started'}
-            </Button>
-          </>
-        )}
-
-        {activeStep === 1 && (
-          <>
-            <Button onClick={handleDialogClose}>Cancel</Button>
-            <Button
-              variant="contained"
-              onClick={handleVerify}
-              disabled={loading || verificationCode.length !== 6}
-            >
-              {loading ? <CircularProgress size={24} /> : 'Verify & Enable'}
-            </Button>
-          </>
-        )}
-
-        {activeStep === 2 && (
-          <Button variant="contained" onClick={handleComplete} fullWidth>
-            I've Saved My Backup Codes
-          </Button>
-        )}
-      </DialogActions>
     </Dialog>
   );
 };

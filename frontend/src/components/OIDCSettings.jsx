@@ -1,22 +1,24 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 import {
-  Box,
-  Card,
-  CardContent,
-  TextField,
-  Button,
-  Typography,
-  Alert,
-  Switch,
-  FormControlLabel,
-  CircularProgress,
-  Divider,
-} from '@mui/material';
-import { Save, VpnKey } from '@mui/icons-material';
-import { useAuth } from '../contexts/AuthContext';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Loader2, Save } from 'lucide-react';
 
 const OIDCSettings = () => {
   const { getAuthHeaders } = useAuth();
+  const { toast } = useToast();
   const [settings, setSettings] = useState({
     enabled: false,
     issuer_url: '',
@@ -26,11 +28,12 @@ const OIDCSettings = () => {
     scope: 'openid email profile',
     role_claim_path: 'roles',
     default_role: 'employee',
+    sso_button_text: 'Sign In with SSO',
+    sso_button_help_text: '',
+    sso_button_variant: 'outline',
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(false);
   const [hasClientSecret, setHasClientSecret] = useState(false);
 
   useEffect(() => {
@@ -54,29 +57,29 @@ const OIDCSettings = () => {
           scope: data.scope || 'openid email profile',
           role_claim_path: data.role_claim_path || 'roles',
           default_role: data.default_role || 'employee',
+          sso_button_text: data.sso_button_text || 'Sign In with SSO',
+          sso_button_help_text: data.sso_button_help_text || '',
+          sso_button_variant: data.sso_button_variant || 'outline',
         });
         setHasClientSecret(data.has_client_secret);
       }
     } catch (err) {
-      setError('Failed to load OIDC settings');
+      toast({ title: "Error", description: 'Failed to load OIDC settings', variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleChange = (e) => {
-    const { name, value, checked, type } = e.target;
+  const handleChange = (name, value) => {
     setSettings({
       ...settings,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: value
     });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
-    setError(null);
-    setSuccess(false);
 
     try {
       const response = await fetch('/api/admin/oidc-settings', {
@@ -94,11 +97,10 @@ const OIDCSettings = () => {
         throw new Error(data.error || 'Failed to save settings');
       }
 
-      setSuccess(true);
+      toast({ title: "Success", description: 'OIDC settings saved successfully!' });
       setHasClientSecret(!!settings.client_secret || hasClientSecret);
-      setTimeout(() => setSuccess(false), 5000);
     } catch (err) {
-      setError(err.message);
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -106,175 +108,231 @@ const OIDCSettings = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" py={5}>
-        <CircularProgress />
-      </Box>
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
-          <VpnKey color="primary" />
-          <Typography variant="h5" fontWeight={600}>
-            OIDC/SSO Configuration
-          </Typography>
-        </Box>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Enable Toggle */}
+      <div className="flex items-center justify-between space-x-4">
+        <div className="flex-1">
+          <Label htmlFor="oidc-enabled" className="text-base font-semibold">
+            Enable OIDC/SSO Authentication
+          </Label>
+          <p className="text-sm text-muted-foreground mt-1">
+            Allow users to sign in with an external identity provider
+          </p>
+        </div>
+        <Switch
+          id="oidc-enabled"
+          checked={settings.enabled}
+          onCheckedChange={(checked) => handleChange('enabled', checked)}
+        />
+      </div>
 
-        {success && (
-          <Alert severity="success" sx={{ mb: 3 }}>
-            OIDC settings saved successfully!
-          </Alert>
-        )}
+      <Separator />
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
+      {/* Provider Configuration */}
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold">Provider Configuration</h3>
 
-        <Box component="form" onSubmit={handleSubmit}>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={settings.enabled}
-                onChange={handleChange}
-                name="enabled"
-                color="primary"
-              />
-            }
-            label={
-              <Box>
-                <Typography variant="body1" fontWeight={600}>
-                  Enable OIDC/SSO Authentication
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Allow users to sign in with an external identity provider
-                </Typography>
-              </Box>
-            }
-            sx={{ mb: 3 }}
-          />
-
-          <Divider sx={{ mb: 3 }} />
-
-          <Typography variant="h6" gutterBottom>
-            Provider Configuration
-          </Typography>
-
-          <TextField
-            fullWidth
-            label="Issuer URL"
+        <div className="space-y-2">
+          <Label htmlFor="issuer_url">Issuer URL {settings.enabled && <span className="text-destructive">*</span>}</Label>
+          <Input
+            id="issuer_url"
             name="issuer_url"
             value={settings.issuer_url}
-            onChange={handleChange}
+            onChange={(e) => handleChange('issuer_url', e.target.value)}
             required={settings.enabled}
             disabled={!settings.enabled}
             placeholder="https://your-domain.auth0.com"
-            helperText="The OIDC issuer URL from your identity provider"
-            sx={{ mb: 2 }}
           />
+          <p className="text-xs text-muted-foreground">
+            The OIDC issuer URL from your identity provider
+          </p>
+        </div>
 
-          <TextField
-            fullWidth
-            label="Client ID"
+        <div className="space-y-2">
+          <Label htmlFor="client_id">Client ID {settings.enabled && <span className="text-destructive">*</span>}</Label>
+          <Input
+            id="client_id"
             name="client_id"
             value={settings.client_id}
-            onChange={handleChange}
+            onChange={(e) => handleChange('client_id', e.target.value)}
             required={settings.enabled}
             disabled={!settings.enabled}
             placeholder="your-client-id"
-            sx={{ mb: 2 }}
           />
+        </div>
 
-          <TextField
-            fullWidth
-            label="Client Secret"
+        <div className="space-y-2">
+          <Label htmlFor="client_secret">
+            Client Secret {settings.enabled && !hasClientSecret && <span className="text-destructive">*</span>}
+          </Label>
+          <Input
+            id="client_secret"
             name="client_secret"
             type="password"
             value={settings.client_secret}
-            onChange={handleChange}
+            onChange={(e) => handleChange('client_secret', e.target.value)}
             required={settings.enabled && !hasClientSecret}
             disabled={!settings.enabled}
             placeholder={hasClientSecret ? "••••••••••••" : "your-client-secret"}
-            helperText={hasClientSecret ? "Leave blank to keep existing secret" : ""}
-            sx={{ mb: 2 }}
           />
+          {hasClientSecret && (
+            <p className="text-xs text-muted-foreground">
+              Leave blank to keep existing secret
+            </p>
+          )}
+        </div>
 
-          <TextField
-            fullWidth
-            label="Redirect URI"
+        <div className="space-y-2">
+          <Label htmlFor="redirect_uri">Redirect URI {settings.enabled && <span className="text-destructive">*</span>}</Label>
+          <Input
+            id="redirect_uri"
             name="redirect_uri"
             value={settings.redirect_uri}
-            onChange={handleChange}
+            onChange={(e) => handleChange('redirect_uri', e.target.value)}
             required={settings.enabled}
             disabled={!settings.enabled}
             placeholder={window.location.origin + "/auth/callback"}
-            helperText="Configure this URL in your OIDC provider's allowed callback URLs"
-            sx={{ mb: 2 }}
           />
+          <p className="text-xs text-muted-foreground">
+            Configure this URL in your OIDC provider's allowed callback URLs
+          </p>
+        </div>
+      </div>
 
-          <Divider sx={{ my: 3 }} />
+      <Separator />
 
-          <Typography variant="h6" gutterBottom>
-            Advanced Settings
-          </Typography>
+      {/* Advanced Settings */}
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold">Advanced Settings</h3>
 
-          <TextField
-            fullWidth
-            label="Scopes"
+        <div className="space-y-2">
+          <Label htmlFor="scope">Scopes</Label>
+          <Input
+            id="scope"
             name="scope"
             value={settings.scope}
-            onChange={handleChange}
+            onChange={(e) => handleChange('scope', e.target.value)}
             disabled={!settings.enabled}
             placeholder="openid email profile"
-            helperText="Space-separated list of OAuth scopes"
-            sx={{ mb: 2 }}
           />
+          <p className="text-xs text-muted-foreground">
+            Space-separated list of OAuth scopes
+          </p>
+        </div>
 
-          <TextField
-            fullWidth
-            label="Role Claim Path"
+        <div className="space-y-2">
+          <Label htmlFor="role_claim_path">Role Claim Path</Label>
+          <Input
+            id="role_claim_path"
             name="role_claim_path"
             value={settings.role_claim_path}
-            onChange={handleChange}
+            onChange={(e) => handleChange('role_claim_path', e.target.value)}
             disabled={!settings.enabled}
             placeholder="roles"
-            helperText="Path to the roles claim in the OIDC token (e.g., 'roles', 'groups', 'https://myapp.com/roles')"
-            sx={{ mb: 2 }}
           />
+          <p className="text-xs text-muted-foreground">
+            Path to the roles claim in the OIDC token (e.g., 'roles', 'groups', 'https://myapp.com/roles')
+          </p>
+        </div>
 
-          <TextField
-            fullWidth
-            select
-            label="Default Role"
-            name="default_role"
+        <div className="space-y-2">
+          <Label htmlFor="default_role">Default Role</Label>
+          <Select
             value={settings.default_role}
-            onChange={handleChange}
+            onValueChange={(value) => handleChange('default_role', value)}
             disabled={!settings.enabled}
-            SelectProps={{ native: true }}
-            helperText="Default role for new users if no role mapping matches"
-            sx={{ mb: 3 }}
           >
-            <option value="employee">Employee</option>
-            <option value="manager">Manager</option>
-            <option value="admin">Admin</option>
-          </TextField>
+            <SelectTrigger id="default_role">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="employee">Employee</SelectItem>
+              <SelectItem value="manager">Manager</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Default role for new users if no role mapping matches
+          </p>
+        </div>
+      </div>
 
-          <Button
-            type="submit"
-            variant="contained"
-            size="large"
-            fullWidth
-            disabled={saving}
-            startIcon={saving ? <CircularProgress size={20} /> : <Save />}
+      <Separator />
+
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold">Sign in button customization</h3>
+
+        <div className="space-y-2">
+          <Label htmlFor="sso_button_text">Button label</Label>
+          <Input
+            id="sso_button_text"
+            name="sso_button_text"
+            value={settings.sso_button_text}
+            onChange={(e) => handleChange('sso_button_text', e.target.value)}
+            disabled={!settings.enabled}
+            placeholder="Sign In with SSO"
+          />
+          <p className="text-xs text-muted-foreground">Set the text users see on the sign-in button.</p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="sso_button_help_text">Helper text (optional)</Label>
+          <Textarea
+            id="sso_button_help_text"
+            name="sso_button_help_text"
+            value={settings.sso_button_help_text}
+            onChange={(e) => handleChange('sso_button_help_text', e.target.value)}
+            disabled={!settings.enabled}
+            placeholder="Use your company identity provider."
+          />
+          <p className="text-xs text-muted-foreground">Appears below the button on the sign-in page.</p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="sso_button_variant">Button style</Label>
+          <Select
+            value={settings.sso_button_variant}
+            onValueChange={(value) => handleChange('sso_button_variant', value)}
+            disabled={!settings.enabled}
           >
-            {saving ? 'Saving...' : 'Save OIDC Settings'}
-          </Button>
-        </Box>
-      </CardContent>
-    </Card>
+            <SelectTrigger id="sso_button_variant">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="default">Primary</SelectItem>
+              <SelectItem value="secondary">Muted</SelectItem>
+              <SelectItem value="outline">Outline</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">Match your branding by selecting a button variant.</p>
+        </div>
+      </div>
+
+      <Button
+        type="submit"
+        disabled={saving}
+        size="sm"
+      >
+        {saving ? (
+          <>
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            Saving...
+          </>
+        ) : (
+          <>
+            <Save className="h-4 w-4 mr-2" />
+            Save OIDC Settings
+          </>
+        )}
+      </Button>
+    </form>
   );
 };
 

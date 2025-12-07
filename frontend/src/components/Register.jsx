@@ -1,20 +1,13 @@
 import { useState } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  TextField,
-  Button,
-  Typography,
-  Alert,
-  Link,
-  CircularProgress,
-  Grid,
-} from '@mui/material';
-import { PersonAdd } from '@mui/icons-material';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
+import { UserPlus, Loader2, AlertCircle, Laptop } from 'lucide-react';
 
-const Register = ({ onSwitchToLogin }) => {
+const RegisterNew = ({ onSwitchToLogin }) => {
   const { register } = useAuth();
   const [formData, setFormData] = useState({
     first_name: '',
@@ -41,24 +34,28 @@ const Register = ({ onSwitchToLogin }) => {
     setLoading(true);
     setError(null);
 
-    // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       setLoading(false);
       return;
     }
 
-    // Validate password length
     if (formData.password.length < 6) {
       setError('Password must be at least 6 characters');
       setLoading(false);
       return;
     }
 
-    // Combine manager first and last names
     const manager_name = `${formData.manager_first_name} ${formData.manager_last_name}`.trim();
 
-    const result = await register(formData.email, formData.password, formData.first_name, formData.last_name, manager_name, formData.manager_email);
+    const result = await register(
+      formData.email,
+      formData.password,
+      formData.first_name,
+      formData.last_name,
+      manager_name,
+      formData.manager_email
+    );
 
     if (!result.success) {
       setError(result.error);
@@ -68,189 +65,191 @@ const Register = ({ onSwitchToLogin }) => {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        bgcolor: 'background.default',
-        p: 2,
-      }}
-    >
-      <Card sx={{ maxWidth: 550, width: '100%' }}>
-        <Box
-          sx={{
-            bgcolor: 'secondary.main',
-            color: 'white',
-            p: 3,
-            textAlign: 'center',
-          }}
-        >
-          <Typography variant="h5" fontWeight={600} gutterBottom>
-            KARS - KeyData Asset Registration System
-          </Typography>
-          <Typography variant="body2" sx={{ opacity: 0.9 }}>
-            Create an account to get started
-          </Typography>
-        </Box>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4">
+      <div className="w-full max-w-lg">
+        {/* Logo/Brand */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-primary mb-4">
+            <Laptop className="h-8 w-8 text-primary-foreground" />
+          </div>
+          <h1 className="text-2xl font-bold text-foreground">KARS</h1>
+          <p className="text-muted-foreground">KeyData Asset Registration System</p>
+        </div>
 
-        <CardContent sx={{ p: 4 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
-            <PersonAdd color="primary" />
-            <Typography variant="h6" fontWeight={600}>
-              Register
-            </Typography>
-          </Box>
+        <Card className="shadow-lg">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl text-center">Create an account</CardTitle>
+            <CardDescription className="text-center">
+              Enter your information to get started
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {error && (
+              <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
 
-          {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
-            </Alert>
-          )}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Personal Information */}
+              <div className="space-y-4">
+                <h4 className="font-medium text-sm text-muted-foreground">Your Information</h4>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="first_name">First Name</Label>
+                    <Input
+                      id="first_name"
+                      name="first_name"
+                      value={formData.first_name}
+                      onChange={handleChange}
+                      placeholder="John"
+                      autoComplete="given-name"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="last_name">Last Name</Label>
+                    <Input
+                      id="last_name"
+                      name="last_name"
+                      value={formData.last_name}
+                      onChange={handleChange}
+                      placeholder="Doe"
+                      autoComplete="family-name"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="you@company.com"
+                    autoComplete="email"
+                    required
+                  />
+                </div>
+              </div>
 
-          <Box component="form" onSubmit={handleSubmit}>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="First Name"
-                  name="first_name"
-                  value={formData.first_name}
-                  onChange={handleChange}
-                  required
-                  autoComplete="given-name"
-                  placeholder="John"
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Last Name"
-                  name="last_name"
-                  value={formData.last_name}
-                  onChange={handleChange}
-                  required
-                  autoComplete="family-name"
-                  placeholder="Doe"
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Email Address"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                  autoComplete="email"
-                  placeholder="you@company.com"
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  label="Manager First Name"
-                  name="manager_first_name"
-                  value={formData.manager_first_name}
-                  onChange={handleChange}
-                  required
-                  placeholder="Jane"
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  label="Manager Last Name"
-                  name="manager_last_name"
-                  value={formData.manager_last_name}
-                  onChange={handleChange}
-                  required
-                  placeholder="Smith"
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  label="Manager Email"
-                  name="manager_email"
-                  type="email"
-                  value={formData.manager_email}
-                  onChange={handleChange}
-                  required
-                  placeholder="manager@company.com"
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Password"
-                  name="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  autoComplete="new-password"
-                  placeholder="At least 6 characters"
-                  inputProps={{ minLength: 6 }}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Confirm Password"
-                  name="confirmPassword"
-                  type="password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
-                  autoComplete="new-password"
-                  placeholder="Re-enter your password"
-                  inputProps={{ minLength: 6 }}
-                />
-              </Grid>
-            </Grid>
+              <Separator />
 
-            <Button
-              fullWidth
-              type="submit"
-              variant="contained"
-              size="large"
-              disabled={loading}
-              startIcon={loading ? <CircularProgress size={20} /> : <PersonAdd />}
-              sx={{ mt: 3 }}
-            >
-              {loading ? 'Creating account...' : 'Create Account'}
-            </Button>
+              {/* Manager Information */}
+              <div className="space-y-4">
+                <h4 className="font-medium text-sm text-muted-foreground">Manager Information</h4>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="manager_first_name">Manager First Name</Label>
+                    <Input
+                      id="manager_first_name"
+                      name="manager_first_name"
+                      value={formData.manager_first_name}
+                      onChange={handleChange}
+                      placeholder="Jane"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="manager_last_name">Manager Last Name</Label>
+                    <Input
+                      id="manager_last_name"
+                      name="manager_last_name"
+                      value={formData.manager_last_name}
+                      onChange={handleChange}
+                      placeholder="Smith"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="manager_email">Manager Email</Label>
+                  <Input
+                    id="manager_email"
+                    name="manager_email"
+                    type="email"
+                    value={formData.manager_email}
+                    onChange={handleChange}
+                    placeholder="manager@company.com"
+                    required
+                  />
+                </div>
+              </div>
 
-            <Box
-              sx={{
-                mt: 3,
-                pt: 2,
-                borderTop: 1,
-                borderColor: 'divider',
-                textAlign: 'center',
-              }}
-            >
-              <Typography variant="body2" color="text.secondary">
-                Already have an account?{' '}
-                <Link
-                  component="button"
-                  type="button"
-                  variant="body2"
-                  onClick={onSwitchToLogin}
-                  sx={{ cursor: 'pointer', fontWeight: 600 }}
-                >
-                  Sign in here
-                </Link>
-              </Typography>
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
-    </Box>
+              <Separator />
+
+              {/* Password */}
+              <div className="space-y-4">
+                <h4 className="font-medium text-sm text-muted-foreground">Set Password</h4>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="At least 6 characters"
+                    autoComplete="new-password"
+                    minLength={6}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    placeholder="Re-enter your password"
+                    autoComplete="new-password"
+                    minLength={6}
+                    required
+                  />
+                </div>
+              </div>
+
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Creating account...
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Create Account
+                  </>
+                )}
+              </Button>
+            </form>
+
+            <Separator />
+
+            <p className="text-center text-sm text-muted-foreground">
+              Already have an account?{' '}
+              <button
+                type="button"
+                onClick={onSwitchToLogin}
+                className="font-semibold text-primary hover:underline"
+              >
+                Sign in here
+              </button>
+            </p>
+          </CardContent>
+        </Card>
+
+        <p className="text-center text-xs text-muted-foreground mt-6">
+          SOC2 Compliance - Track and manage company assets
+        </p>
+      </div>
+    </div>
   );
 };
 
-export default Register;
+export default RegisterNew;
