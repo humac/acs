@@ -395,15 +395,16 @@ describe('LRUCache - Memory Leak Prevention', () => {
     });
 
     it('should handle default size configuration', () => {
-      const cache = new LRUCache(); // Default should be 1000
+      const cache = new LRUCache(); // Default should be 1000 (as defined in LRUCache constructor)
+      const defaultSize = 1000; // LRUCache default
       
-      // Add entries up to default limit
-      for (let i = 0; i < 1500; i++) {
+      // Add entries beyond default limit
+      for (let i = 0; i < defaultSize + 500; i++) {
         cache.set(`key${i}`, `value${i}`);
       }
       
-      // Should not exceed 1000
-      expect(cache.size).toBe(1000);
+      // Should not exceed default size
+      expect(cache.size).toBe(defaultSize);
     });
 
     it('should work correctly with OIDC verifier store size', () => {

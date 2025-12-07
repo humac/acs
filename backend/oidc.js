@@ -68,15 +68,15 @@ let OIDC_CONFIG = {
   defaultRole: 'employee',
 };
 
-let config = null;
-// Use LRU cache to prevent unbounded memory growth under heavy load
-let codeVerifierStore = new LRUCache(1000); // Max 1000 concurrent OIDC flows
-let timeoutStore = new Map(); // Store timeout IDs to prevent memory leaks
-
 // Timeout duration for PKCE code verifiers (10 minutes)
 const PKCE_VERIFIER_TIMEOUT_MS = 10 * 60 * 1000;
 // Maximum number of concurrent OIDC flows (prevents memory exhaustion)
 const MAX_VERIFIER_STORE_SIZE = 1000;
+
+let config = null;
+// Use LRU cache to prevent unbounded memory growth under heavy load
+let codeVerifierStore = new LRUCache(MAX_VERIFIER_STORE_SIZE);
+let timeoutStore = new Map(); // Store timeout IDs to prevent memory leaks
 
 /**
  * Initialize OIDC client with settings from database
