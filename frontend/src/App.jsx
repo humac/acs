@@ -34,7 +34,7 @@ import Profile from '@/components/Profile';
 import AuthPage from '@/components/AuthPage';
 import OIDCCallback from '@/components/OIDCCallback';
 
-function App() {
+function AppNew() {
   const { user, logout, loading, isAuthenticated } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [brandingLogo, setBrandingLogo] = useState(null);
@@ -339,4 +339,4 @@ function App() {
   );
 }
 
-export default App;
+export default AppNew;

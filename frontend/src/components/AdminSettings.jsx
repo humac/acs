@@ -22,7 +22,7 @@ import { Settings, Users, LayoutDashboard, Database, Trash2, Loader2, AlertTrian
 import OIDCSettings from './OIDCSettings';
 import SecuritySettings from './SecuritySettings';
 
-const AdminSettings = () => {
+const AdminSettingsNew = () => {
   const { getAuthHeaders, user } = useAuth();
   const { toast } = useToast();
   const [activeView, setActiveView] = useState('users');
@@ -685,7 +685,7 @@ const AdminSettings = () => {
             </TabsContent>
 
             <TabsContent value="security">
-              <SecuritySettingsNew />
+              <SecuritySettings />
             </TabsContent>
           </Tabs>
         </CardContent>
@@ -764,4 +764,4 @@ const AdminSettings = () => {
   );
 };
 
-export default AdminSettings;
+export default AdminSettingsNew;

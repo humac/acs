@@ -17,7 +17,7 @@ import TablePaginationControls from '@/components/TablePaginationControls';
 import { cn } from '@/lib/utils';
 import { Building2, Plus, Edit, Trash2, Upload, Download, Loader2, Search, Sparkles } from 'lucide-react';
 
-const CompanyManagement = () => {
+const CompanyManagementNew = () => {
   const { getAuthHeaders } = useAuth();
   const { toast } = useToast();
   const [companies, setCompanies] = useState([]);
@@ -473,4 +473,4 @@ const CompanyManagement = () => {
   );
 };
 
-export default CompanyManagement;
+export default CompanyManagementNew;

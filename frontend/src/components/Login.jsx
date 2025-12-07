@@ -16,7 +16,7 @@ import {
 import { LogIn, Key, Loader2, AlertCircle, Laptop, Moon, Sun } from 'lucide-react';
 import { prepareRequestOptions, uint8ArrayToBase64Url } from '@/utils/webauthn';
 
-const Login = ({ onSwitchToRegister }) => {
+const LoginNew = ({ onSwitchToRegister }) => {
   const { login, setAuthData } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
@@ -514,4 +514,4 @@ const Login = ({ onSwitchToRegister }) => {
   );
 };
 
-export default Login;
+export default LoginNew;

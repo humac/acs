@@ -16,7 +16,7 @@ import { User, Shield, Key, Loader2, Check, X, Trash2 } from 'lucide-react';
 import MFASetupModal from './MFASetupModal';
 import { prepareCreationOptions, uint8ArrayToBase64Url } from '@/utils/webauthn';
 
-const Profile = () => {
+const ProfileNew = () => {
   const { user, getAuthHeaders, updateUser } = useAuth();
   const { toast } = useToast();
   const [formData, setFormData] = useState({ first_name: '', last_name: '', manager_first_name: '', manager_last_name: '', manager_email: '' });
@@ -400,4 +400,4 @@ const Profile = () => {
   );
 };
 
-export default Profile;
+export default ProfileNew;

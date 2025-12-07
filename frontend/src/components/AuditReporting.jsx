@@ -14,7 +14,7 @@ import {
 import { FileText, BarChart3, Filter, Download, Loader2, X } from 'lucide-react';
 import TablePaginationControls from '@/components/TablePaginationControls';
 
-const AuditReporting = () => {
+const AuditReportingNew = () => {
   const { getAuthHeaders } = useAuth();
   const [activeView, setActiveView] = useState('logs');
   const [logs, setLogs] = useState([]);
@@ -294,4 +294,4 @@ const AuditReporting = () => {
   );
 };
 
-export default AuditReporting;
+export default AuditReportingNew;

@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { UserPlus, Loader2, AlertCircle, Laptop } from 'lucide-react';
 
-const Register = ({ onSwitchToLogin }) => {
+const RegisterNew = ({ onSwitchToLogin }) => {
   const { register } = useAuth();
   const [formData, setFormData] = useState({
     first_name: '',
@@ -252,4 +252,4 @@ const Register = ({ onSwitchToLogin }) => {
   );
 };
 
-export default Register;
+export default RegisterNew;
