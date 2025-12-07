@@ -34,13 +34,18 @@ const STATUS_OPTIONS = [
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function AssetRegisterModal({ onClose, onRegistered }) {
-  const { getAuthHeaders } = useAuth();
+  const { getAuthHeaders, user } = useAuth();
   const { toast } = useToast();
   
+  // Check if user is an employee (not admin or editor)
+  const isEmployee = user && user.role === 'employee';
+  
   // Initialize form with required fields
+  // For employees, prepopulate their information
   const [form, setForm] = useState({ 
-    employee_name: '',
-    employee_email: '',
+    employee_first_name: isEmployee ? (user.first_name || '') : '',
+    employee_last_name: isEmployee ? (user.last_name || '') : '',
+    employee_email: isEmployee ? user.email : '',
     company_name: '',
     laptop_make: '',
     laptop_model: '',
@@ -55,7 +60,8 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
 
   // Field max length configuration
   const MAX_LENGTHS = {
-    employee_name: 255,
+    employee_first_name: 100,
+    employee_last_name: 100,
     company_name: 255,
     laptop_make: 100,
     laptop_model: 100,
@@ -93,7 +99,7 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
     }
 
     // Validate required fields
-    if (!form.employee_name || !form.employee_email || !form.company_name || 
+    if (!form.employee_first_name || !form.employee_last_name || !form.employee_email || !form.company_name || 
         !form.laptop_serial_number || !form.laptop_asset_tag) {
       toast({
         title: "Validation Error",
@@ -105,13 +111,28 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
 
     setSaving(true);
     try {
+      // Combine first and last name for backend compatibility
+      const employee_name = `${form.employee_first_name} ${form.employee_last_name}`.trim();
+      
+      const payload = {
+        employee_name,
+        employee_email: form.employee_email,
+        company_name: form.company_name,
+        laptop_make: form.laptop_make,
+        laptop_model: form.laptop_model,
+        laptop_serial_number: form.laptop_serial_number,
+        laptop_asset_tag: form.laptop_asset_tag,
+        status: form.status,
+        notes: form.notes,
+      };
+      
       const res = await fetch('/api/assets', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           ...getAuthHeaders()
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
       
       if (!res.ok) {
@@ -155,17 +176,38 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
           <div className="space-y-4">
             <h4 className="text-sm font-semibold text-muted-foreground">Employee Information</h4>
             
-            <div className="space-y-2">
-              <Label htmlFor="employee_name">Employee Name *</Label>
-              <Input 
-                id="employee_name" 
-                name="employee_name" 
-                value={form.employee_name} 
-                onChange={onChange}
-                maxLength={255}
-                placeholder="John Doe"
-                required
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="employee_first_name">First Name *</Label>
+                <Input 
+                  id="employee_first_name" 
+                  name="employee_first_name" 
+                  value={form.employee_first_name} 
+                  onChange={onChange}
+                  maxLength={100}
+                  placeholder="John"
+                  required
+                  readOnly={isEmployee}
+                  disabled={isEmployee}
+                  className={isEmployee ? 'bg-muted cursor-not-allowed' : ''}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="employee_last_name">Last Name *</Label>
+                <Input 
+                  id="employee_last_name" 
+                  name="employee_last_name" 
+                  value={form.employee_last_name} 
+                  onChange={onChange}
+                  maxLength={100}
+                  placeholder="Doe"
+                  required
+                  readOnly={isEmployee}
+                  disabled={isEmployee}
+                  className={isEmployee ? 'bg-muted cursor-not-allowed' : ''}
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -177,14 +219,21 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
                 value={form.employee_email} 
                 onChange={onChange}
                 placeholder="john.doe@company.com"
-                className={emailError ? 'border-destructive' : ''}
+                className={`${emailError ? 'border-destructive' : ''} ${isEmployee ? 'bg-muted cursor-not-allowed' : ''}`}
                 required
+                readOnly={isEmployee}
+                disabled={isEmployee}
               />
               {emailError && (
                 <div className="flex items-center gap-1 text-sm text-destructive">
                   <AlertCircle className="h-4 w-4" />
                   <span>{emailError}</span>
                 </div>
+              )}
+              {isEmployee && (
+                <p className="text-xs text-muted-foreground">
+                  As an employee, you can only register assets for yourself
+                </p>
               )}
             </div>
 

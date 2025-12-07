@@ -256,6 +256,7 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
   const canRegister = () => {
     if (currentUser?.roles?.includes('admin')) return true;
     if (currentUser?.roles?.includes('editor')) return true;
+    if (currentUser?.roles?.includes('user')) return true; // Employees can register assets for themselves
     return false;
   };
 
@@ -291,14 +292,17 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
           <div className="flex flex-wrap gap-2">
             {canRegister() && (
               <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowBulkImportModal(true)}
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  Bulk Import
-                </Button>
+                {/* Only admins and editors can bulk import */}
+                {(currentUser?.roles?.includes('admin') || currentUser?.roles?.includes('editor')) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowBulkImportModal(true)}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Bulk Import
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   onClick={() => setShowRegisterModal(true)}
