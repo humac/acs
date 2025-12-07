@@ -89,8 +89,9 @@ export default function AssetBulkImportModal({ onClose, onImported }) {
   function handleFileChange(e) {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
-      if (!file.name.endsWith('.csv')) {
+      // Validate file type - check both extension and MIME type
+      const isCSV = file.name.endsWith('.csv') || file.type === 'text/csv' || file.type === 'application/csv';
+      if (!isCSV) {
         toast({
           title: "Invalid File Type",
           description: "Please select a CSV file",

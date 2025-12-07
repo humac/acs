@@ -53,26 +53,23 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
   const [saving, setSaving] = useState(false);
   const [emailError, setEmailError] = useState('');
 
+  // Field max length configuration
+  const MAX_LENGTHS = {
+    employee_name: 255,
+    company_name: 255,
+    laptop_make: 100,
+    laptop_model: 100,
+    laptop_serial_number: 100,
+    laptop_asset_tag: 100,
+    notes: 1000,
+  };
+
   function onChange(e) {
     const { name, value } = e.target;
     
     // Apply max length constraints
-    let finalValue = value;
-    if (name === 'employee_name' && value.length > 255) {
-      finalValue = value.slice(0, 255);
-    } else if (name === 'company_name' && value.length > 255) {
-      finalValue = value.slice(0, 255);
-    } else if (name === 'laptop_make' && value.length > 100) {
-      finalValue = value.slice(0, 100);
-    } else if (name === 'laptop_model' && value.length > 100) {
-      finalValue = value.slice(0, 100);
-    } else if (name === 'laptop_serial_number' && value.length > 100) {
-      finalValue = value.slice(0, 100);
-    } else if (name === 'laptop_asset_tag' && value.length > 100) {
-      finalValue = value.slice(0, 100);
-    } else if (name === 'notes' && value.length > 1000) {
-      finalValue = value.slice(0, 1000);
-    }
+    const maxLength = MAX_LENGTHS[name];
+    const finalValue = maxLength && value.length > maxLength ? value.slice(0, maxLength) : value;
     
     setForm(prev => ({ ...prev, [name]: finalValue }));
     
