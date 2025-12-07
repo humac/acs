@@ -95,8 +95,10 @@ export default {
           to: { opacity: "1", transform: "scale(1)" },
         },
         "shimmer": {
-          "0%": { backgroundPosition: "-1000px 0" },
-          "100%": { backgroundPosition: "1000px 0" },
+          // Shimmer effect moves background from left (-100%) to right (100%)
+          // Values correspond to 200% background-size for smooth animation
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
         },
       },
       animation: {

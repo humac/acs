@@ -810,7 +810,7 @@ const Dashboard = () => {
                   Damaged
                 </Button>
                 <Button
-                  variant={statusFilter === 'retired' ? 'outline' : 'outline'}
+                  variant={statusFilter === 'retired' ? 'secondary' : 'outline'}
                   size="sm"
                   onClick={() => setStatusFilter('retired')}
                   className="rounded-full"

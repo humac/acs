@@ -274,12 +274,7 @@ const LoginNew = ({ onSwitchToRegister }) => {
   const isLoading = loading || oidcLoading || passkeyLoading;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-subtle p-4 relative overflow-hidden">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-[0.02] pointer-events-none" 
-           style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)', backgroundSize: '32px 32px' }} 
-      />
-      
+    <div className="min-h-screen flex items-center justify-center bg-gradient-subtle p-4 relative overflow-hidden bg-dot-pattern">
       <div className="w-full max-w-md relative z-10 animate-fade-in">
         {/* Dark Mode Toggle */}
         <div className="flex justify-end mb-4">
