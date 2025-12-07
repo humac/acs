@@ -1,8 +1,8 @@
-name: Deploy to Portainer (Staging)
+name: Deploy (Staging)
 
-# Automatic staging deployment on develop branch
+# Automatic staging deployment on develop branch to Portainer
 # Triggers on push to develop (automatic staging) and manual runs
-# Main branch is reserved for production deploys (currently manual only)
+# Production deployment (TBD - may use Azure AKS) is currently manual only
 
 on:
   push:
@@ -82,15 +82,15 @@ jobs:
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:buildcache
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:buildcache,mode=max
 
-  deploy-to-portainer:
+  deploy-staging:
     needs: build-and-push
     runs-on: ubuntu-latest
-    # Deploy to staging environment
+    # Deploy to staging environment (Portainer)
     # Add protection rules in Settings > Environments > staging
     environment: staging
 
     steps:
-      - name: Deploy Stack via Portainer Webhook
+      - name: Deploy to Portainer
         run: curl -X POST "${{ secrets.PORTAINER_WEBHOOK_URL }}"
 
       - name: Wait for deployment
@@ -102,9 +102,10 @@ jobs:
           echo "Check Portainer for deployment status"
 
   # Placeholder for future production deployment
+  # Production may use Azure AKS or another platform (TBD)
   # Uncomment and configure when ready to enable automatic production deploys
   #
-  # deploy-to-production:
+  # deploy-production:
   #   needs: build-and-push
   #   runs-on: ubuntu-latest
   #   # Only deploy to production from main branch
@@ -112,13 +113,8 @@ jobs:
   #   environment: production
   #
   #   steps:
-  #     - name: Deploy Stack via Portainer Webhook (Production)
-  #       run: curl -X POST "${{ secrets.PORTAINER_WEBHOOK_URL_PROD }}"
-  #
-  #     - name: Wait for deployment
-  #       run: sleep 15
-  #
-  #     - name: Verify deployment
+  #     - name: Deploy to Production
   #       run: |
-  #         echo "Production deployment triggered successfully"
-  #         echo "Check Portainer for deployment status"
+  #         # Configure production deployment (Azure AKS or other platform)
+  #         echo "Production deployment not yet configured"
+  #         exit 1
