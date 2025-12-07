@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname, join, resolve, isAbsolute } from 'path';
 import { mkdirSync, readFileSync, writeFileSync } from 'fs';
 import pg from 'pg';
 
@@ -52,6 +52,96 @@ const configuredPostgresUrl = configFile.postgresUrl || '';
 const wantsPostgres = (envEngine || configuredEngine) === 'postgres';
 const postgresUrl = envPostgresUrl || configuredPostgresUrl || '';
 
+/**
+ * Validate that a path is absolute and doesn't contain path traversal sequences
+ * @param {string} filePath - The file path to validate
+ * @returns {boolean} True if the path is safe to use
+ */
+const isValidCertPath = (filePath) => {
+  if (!filePath) return false;
+  
+  // Must be an absolute path
+  if (!isAbsolute(filePath)) {
+    return false;
+  }
+  
+  // Check for .. sequences (both regular and URL-encoded)
+  // This catches most common traversal attempts before normalization
+  if (filePath.includes('..') || filePath.includes('%2e%2e') || filePath.includes('%2E%2E')) {
+    return false;
+  }
+  
+  // Normalize the path to resolve any symbolic links or relative components
+  // This ensures the path is in canonical form
+  const resolvedPath = resolve(filePath);
+  
+  // If resolve() significantly changed the path (beyond normalization of slashes),
+  // it likely contained traversal sequences or symlinks
+  // We check that the resolved path maintains the same structure
+  const pathSegments = filePath.split(/[/\\]/).filter(s => s && s !== '.');
+  const resolvedSegments = resolvedPath.split(/[/\\]/).filter(s => s && s !== '.');
+  
+  // The resolved path should not have fewer segments (indicates .. was processed)
+  // This catches cases like /etc/../../../etc/passwd
+  if (resolvedSegments.length < pathSegments.length) {
+    return false;
+  }
+  
+  return true;
+};
+
+/**
+ * Build PostgreSQL SSL configuration from environment variables
+ * @returns {undefined|object} SSL configuration object or undefined if SSL not enabled
+ */
+const buildSslConfig = () => {
+  if (process.env.POSTGRES_SSL !== 'true') {
+    return undefined;
+  }
+
+  // Default to secure SSL with certificate validation
+  const sslConfig = {
+    rejectUnauthorized: process.env.POSTGRES_SSL_REJECT_UNAUTHORIZED !== 'false'
+  };
+
+  // Support custom CA certificate for production use
+  if (process.env.POSTGRES_SSL_CA) {
+    const caPath = process.env.POSTGRES_SSL_CA;
+    if (!isValidCertPath(caPath)) {
+      console.warn('POSTGRES_SSL_CA must be a valid absolute path without traversal sequences, skipping');
+    } else {
+      try {
+        // Reading certificate files synchronously is acceptable during startup
+        // Note: Certificates are public data and don't require special memory handling
+        sslConfig.ca = readFileSync(caPath, 'utf-8');
+      } catch (err) {
+        console.warn('Failed to read POSTGRES_SSL_CA certificate file:', err.message);
+      }
+    }
+  }
+
+  // Support client certificate authentication
+  if (process.env.POSTGRES_SSL_CERT && process.env.POSTGRES_SSL_KEY) {
+    const certPath = process.env.POSTGRES_SSL_CERT;
+    const keyPath = process.env.POSTGRES_SSL_KEY;
+    
+    if (!isValidCertPath(certPath) || !isValidCertPath(keyPath)) {
+      console.warn('POSTGRES_SSL_CERT and POSTGRES_SSL_KEY must be valid absolute paths without traversal sequences, skipping');
+    } else {
+      try {
+        // Reading during startup/initialization is acceptable
+        // Note: Private keys are sensitive but this is the standard pattern for TLS configuration
+        sslConfig.cert = readFileSync(certPath, 'utf-8');
+        sslConfig.key = readFileSync(keyPath, 'utf-8');
+      } catch (err) {
+        console.warn('Failed to read POSTGRES_SSL_CERT/KEY files:', err.message);
+      }
+    }
+  }
+
+  return sslConfig;
+};
+
 let sqliteDb = null;
 let pgPool = null;
 let selectedEngine = 'sqlite';
@@ -61,7 +151,7 @@ if (wantsPostgres && postgresUrl) {
   try {
     pgPool = new Pool({
       connectionString: postgresUrl,
-      ssl: process.env.POSTGRES_SSL === 'true' ? { rejectUnauthorized: false } : undefined
+      ssl: buildSslConfig()
     });
     selectedEngine = 'postgres';
     selectedPostgresUrl = postgresUrl;
@@ -1273,7 +1363,7 @@ export const passkeySettingsDb = {
 const testPostgresConnection = async (connectionString) => {
   const pool = new Pool({
     connectionString,
-    ssl: process.env.POSTGRES_SSL === 'true' ? { rejectUnauthorized: false } : undefined
+    ssl: buildSslConfig()
   });
 
   try {

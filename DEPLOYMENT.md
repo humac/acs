@@ -399,6 +399,52 @@ docker volume rm asset-data
 4. **Backup Database** - Schedule regular backups of the `asset-data` volume
 5. **Monitor Logs** - Set up log aggregation for security monitoring
 6. **Restrict Access** - Use Cloudflare Access policies if needed
+7. **PostgreSQL SSL** - When using PostgreSQL, configure secure SSL connections (see below)
+
+### PostgreSQL SSL Configuration
+
+When using PostgreSQL instead of SQLite, configure SSL for secure database connections:
+
+**Basic SSL (Secure Default):**
+```env
+DB_CLIENT=postgres
+POSTGRES_URL=postgresql://username:password@hostname:5432/database
+POSTGRES_SSL=true
+# Certificate validation is ENABLED by default (secure)
+```
+
+**Custom CA Certificate (Recommended for Production):**
+```env
+DB_CLIENT=postgres
+POSTGRES_URL=postgresql://username:password@hostname:5432/database
+POSTGRES_SSL=true
+POSTGRES_SSL_CA=/path/to/ca-certificate.crt
+# Certificate validation is ENABLED by default (secure)
+```
+
+**Mutual TLS (Client Certificate Authentication):**
+```env
+DB_CLIENT=postgres
+POSTGRES_URL=postgresql://username:password@hostname:5432/database
+POSTGRES_SSL=true
+POSTGRES_SSL_CA=/path/to/ca-certificate.crt
+POSTGRES_SSL_CERT=/path/to/client-certificate.crt
+POSTGRES_SSL_KEY=/path/to/client-key.key
+```
+
+**Development/Testing Only (Self-Signed Certificates):**
+```env
+DB_CLIENT=postgres
+POSTGRES_URL=postgresql://username:password@hostname:5432/database
+POSTGRES_SSL=true
+POSTGRES_SSL_REJECT_UNAUTHORIZED=false  # ⚠️ INSECURE - Development only!
+```
+
+**⚠️ SECURITY WARNING:**
+- **NEVER** set `POSTGRES_SSL_REJECT_UNAUTHORIZED=false` in production
+- This disables certificate validation and enables Man-in-the-Middle (MITM) attacks
+- Always use proper certificates with certificate validation enabled
+- By default, certificate validation is **enabled** for security
 
 ## Backup and Restore
 
