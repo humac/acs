@@ -6,6 +6,9 @@
 
 import { describe, test, expect, beforeAll, afterEach } from '@jest/globals';
 import { assetDb, userDb } from './database.js';
+import Database from 'better-sqlite3';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
 describe('UserDb MFA Backup Codes', () => {
   let testUserId;
@@ -43,13 +46,9 @@ describe('UserDb MFA Backup Codes', () => {
       const validBackupCodes = ['ABCD1234', 'EFGH5678'];
       await userDb.enableMFA(testUserId, 'test_secret', validBackupCodes);
 
-      // Now corrupt the JSON data by directly updating the database with invalid JSON
-      // We need to access the database directly since dbRun is not exported
-      const Database = (await import('better-sqlite3')).default;
-      const { join } = await import('path');
-      const { fileURLToPath } = await import('url');
-      const { dirname } = await import('path');
-      
+      // Corrupt the JSON data by directly updating the database with invalid JSON
+      // Direct database access is necessary because the userDb API only accepts valid backup code arrays
+      // and automatically JSON.stringify's them. We need to test the error handling for corrupted data.
       const __filename = fileURLToPath(import.meta.url);
       const __dirname = dirname(__filename);
       const dataDir = process.env.DATA_DIR || join(__dirname, 'data');
