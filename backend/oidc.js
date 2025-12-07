@@ -276,4 +276,5 @@ export {
   extractUserData,
   isOIDCEnabled,
   OIDC_CONFIG,
+  PKCE_VERIFIER_TIMEOUT_MS,
 };

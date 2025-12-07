@@ -1,4 +1,5 @@
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
+import { PKCE_VERIFIER_TIMEOUT_MS } from './oidc.js';
 
 /**
  * Tests for OIDC PKCE Verifier Store - Timeout Management
@@ -60,12 +61,12 @@ describe('OIDC Module - PKCE Verifier Store Timeout Management', () => {
       const timeoutId = setTimeout(() => {
         codeVerifierStore.delete(state);
         timeoutStore.delete(state);
-      }, 10 * 60 * 1000);
+      }, PKCE_VERIFIER_TIMEOUT_MS);
       timeoutStore.set(state, timeoutId);
 
       // Verify timeout was created
       expect(timeoutIds.length).toBe(1);
-      expect(timeoutIds[0].delay).toBe(10 * 60 * 1000);
+      expect(timeoutIds[0].delay).toBe(PKCE_VERIFIER_TIMEOUT_MS);
       expect(timeoutStore.has(state)).toBe(true);
     });
 
@@ -76,7 +77,7 @@ describe('OIDC Module - PKCE Verifier Store Timeout Management', () => {
 
       // First call
       codeVerifierStore.set(state, 'verifier1');
-      const timeout1 = setTimeout(() => {}, 10 * 60 * 1000);
+      const timeout1 = setTimeout(() => {}, PKCE_VERIFIER_TIMEOUT_MS);
       timeoutStore.set(state, timeout1);
 
       // Second call - should clear first timeout
@@ -86,7 +87,7 @@ describe('OIDC Module - PKCE Verifier Store Timeout Management', () => {
       }
       
       codeVerifierStore.set(state, 'verifier2');
-      const timeout2 = setTimeout(() => {}, 10 * 60 * 1000);
+      const timeout2 = setTimeout(() => {}, PKCE_VERIFIER_TIMEOUT_MS);
       timeoutStore.set(state, timeout2);
 
       // Verify first timeout was cleared
@@ -101,7 +102,7 @@ describe('OIDC Module - PKCE Verifier Store Timeout Management', () => {
 
       // Setup
       codeVerifierStore.set(state, 'verifier');
-      const timeoutId = setTimeout(() => {}, 10 * 60 * 1000);
+      const timeoutId = setTimeout(() => {}, PKCE_VERIFIER_TIMEOUT_MS);
       timeoutStore.set(state, timeoutId);
 
       // Simulate callback cleanup
@@ -125,7 +126,7 @@ describe('OIDC Module - PKCE Verifier Store Timeout Management', () => {
       // Create verifiers for multiple states
       states.forEach(state => {
         codeVerifierStore.set(state, `verifier_${state}`);
-        const timeoutId = setTimeout(() => {}, 10 * 60 * 1000);
+        const timeoutId = setTimeout(() => {}, PKCE_VERIFIER_TIMEOUT_MS);
         timeoutStore.set(state, timeoutId);
       });
 
@@ -150,7 +151,7 @@ describe('OIDC Module - PKCE Verifier Store Timeout Management', () => {
         }
 
         codeVerifierStore.set(state, `verifier_${i}`);
-        const timeoutId = setTimeout(() => {}, 10 * 60 * 1000);
+        const timeoutId = setTimeout(() => {}, PKCE_VERIFIER_TIMEOUT_MS);
         timeoutStore.set(state, timeoutId);
       }
 
@@ -172,7 +173,7 @@ describe('OIDC Module - PKCE Verifier Store Timeout Management', () => {
       const timeoutId = setTimeout(() => {
         codeVerifierStore.delete(state);
         timeoutStore.delete(state);
-      }, 10 * 60 * 1000);
+      }, PKCE_VERIFIER_TIMEOUT_MS);
       timeoutStore.set(state, timeoutId);
 
       // Simulate timeout firing
@@ -210,13 +211,13 @@ describe('OIDC Module - PKCE Verifier Store Timeout Management', () => {
       const withoutFixTimeouts = [];
       for (let i = 0; i < iterations; i++) {
         codeVerifierStore.set(state, `verifier_${i}`);
-        const tid = setTimeout(() => {}, 10 * 60 * 1000);
+        const tid = setTimeout(() => {}, PKCE_VERIFIER_TIMEOUT_MS);
         withoutFixTimeouts.push(tid);
       }
       // Would have 100 active timeouts
 
-      // Reset
-      withoutFixTimeouts.forEach(clearTimeout);
+      // Reset - use mocked clearTimeout to maintain test isolation
+      withoutFixTimeouts.forEach(id => clearTimeout(id));
       timeoutIds = [];
       clearedTimeouts = [];
 
@@ -228,7 +229,7 @@ describe('OIDC Module - PKCE Verifier Store Timeout Management', () => {
         }
         
         codeVerifierStore.set(state, `verifier_${i}`);
-        const timeoutId = setTimeout(() => {}, 10 * 60 * 1000);
+        const timeoutId = setTimeout(() => {}, PKCE_VERIFIER_TIMEOUT_MS);
         timeoutStore.set(state, timeoutId);
       }
 
@@ -246,7 +247,7 @@ describe('OIDC Module - PKCE Verifier Store Timeout Management', () => {
 
       // Setup
       codeVerifierStore.set(state, 'verifier');
-      const timeoutId = setTimeout(() => {}, 10 * 60 * 1000);
+      const timeoutId = setTimeout(() => {}, PKCE_VERIFIER_TIMEOUT_MS);
       timeoutStore.set(state, timeoutId);
 
       // Simulate error handling that still cleans up
