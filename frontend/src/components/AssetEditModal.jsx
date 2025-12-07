@@ -40,7 +40,8 @@ export default function AssetEditModal({ asset, currentUser, onClose, onSaved })
   // Initialize form with only editable fields
   const [form, setForm] = useState({ 
     status: asset.status || 'active',
-    manager_name: asset.manager_name || '',
+    manager_first_name: asset.manager_first_name || '',
+    manager_last_name: asset.manager_last_name || '',
     manager_email: asset.manager_email || '',
     notes: asset.notes || '',
   });
@@ -53,7 +54,7 @@ export default function AssetEditModal({ asset, currentUser, onClose, onSaved })
     
     // Apply max length constraints
     let finalValue = value;
-    if (name === 'manager_name' && value.length > 100) {
+    if ((name === 'manager_first_name' || name === 'manager_last_name') && value.length > 100) {
       finalValue = value.slice(0, 100);
     } else if (name === 'notes' && value.length > 1000) {
       finalValue = value.slice(0, 1000);
@@ -81,11 +82,11 @@ export default function AssetEditModal({ asset, currentUser, onClose, onSaved })
     setSaving(true);
     try {
       // Merge editable fields with existing asset data to satisfy backend validation
-      // The backend requires all fields, but we only want to update these 4
       const payload = {
         ...asset, // Include all existing fields
         status: form.status,
-        manager_name: form.manager_name,
+        manager_first_name: form.manager_first_name,
+        manager_last_name: form.manager_last_name,
         manager_email: form.manager_email,
         notes: form.notes,
       };
@@ -170,7 +171,7 @@ export default function AssetEditModal({ asset, currentUser, onClose, onSaved })
           <div className="grid grid-cols-2 gap-2">
             <div>
               <span className="font-medium text-muted-foreground">Employee:</span>
-              <div>{asset.employee_name || 'N/A'}</div>
+              <div>{asset.employee_first_name && asset.employee_last_name ? `${asset.employee_first_name} ${asset.employee_last_name}` : 'N/A'}</div>
             </div>
             <div>
               <span className="font-medium text-muted-foreground">Employee Email:</span>
@@ -210,18 +211,35 @@ export default function AssetEditModal({ asset, currentUser, onClose, onSaved })
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="manager_name">Manager Name</Label>
-            <Input 
-              id="manager_name" 
-              name="manager_name" 
-              value={form.manager_name} 
-              onChange={onChange}
-              maxLength={100}
-              placeholder="Enter manager name"
-            />
-            <div className="text-xs text-muted-foreground text-right">
-              {form.manager_name.length}/100
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="manager_first_name">Manager First Name</Label>
+              <Input 
+                id="manager_first_name" 
+                name="manager_first_name" 
+                value={form.manager_first_name} 
+                onChange={onChange}
+                maxLength={100}
+                placeholder="First name"
+              />
+              <div className="text-xs text-muted-foreground text-right">
+                {form.manager_first_name.length}/100
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="manager_last_name">Manager Last Name</Label>
+              <Input 
+                id="manager_last_name" 
+                name="manager_last_name" 
+                value={form.manager_last_name} 
+                onChange={onChange}
+                maxLength={100}
+                placeholder="Last name"
+              />
+              <div className="text-xs text-muted-foreground text-right">
+                {form.manager_last_name.length}/100
+              </div>
             </div>
           </div>
 

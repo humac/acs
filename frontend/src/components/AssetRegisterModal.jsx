@@ -132,16 +132,12 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
 
     setSaving(true);
     try {
-      // Combine first and last name for backend compatibility
-      const employee_name = `${form.employee_first_name} ${form.employee_last_name}`.trim();
-      const manager_name = form.manager_first_name || form.manager_last_name 
-        ? `${form.manager_first_name} ${form.manager_last_name}`.trim() 
-        : null;
-      
       const payload = {
-        employee_name,
+        employee_first_name: form.employee_first_name,
+        employee_last_name: form.employee_last_name,
         employee_email: form.employee_email,
-        manager_name,
+        manager_first_name: form.manager_first_name || null,
+        manager_last_name: form.manager_last_name || null,
         manager_email: form.manager_email || null,
         company_name: form.company_name,
         laptop_make: form.laptop_make,

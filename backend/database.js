@@ -223,9 +223,11 @@ const initDb = async () => {
   const assetsTable = isPostgres ? `
     CREATE TABLE IF NOT EXISTS assets (
       id SERIAL PRIMARY KEY,
-      employee_name TEXT NOT NULL,
+      employee_first_name TEXT NOT NULL,
+      employee_last_name TEXT NOT NULL,
       employee_email TEXT NOT NULL,
-      manager_name TEXT,
+      manager_first_name TEXT,
+      manager_last_name TEXT,
       manager_email TEXT,
       company_name TEXT NOT NULL,
       laptop_serial_number TEXT NOT NULL UNIQUE,
@@ -240,9 +242,11 @@ const initDb = async () => {
   ` : `
     CREATE TABLE IF NOT EXISTS assets (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      employee_name TEXT NOT NULL,
+      employee_first_name TEXT NOT NULL,
+      employee_last_name TEXT NOT NULL,
       employee_email TEXT NOT NULL,
-      manager_name TEXT,
+      manager_first_name TEXT,
+      manager_last_name TEXT,
       manager_email TEXT,
       company_name TEXT NOT NULL,
       laptop_serial_number TEXT NOT NULL UNIQUE,

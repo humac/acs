@@ -128,7 +128,8 @@ export default function AssetBulkImportModal({ onClose, onImported }) {
               <div className="space-y-2 text-sm">
                 <p className="font-medium">Required fields:</p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                  <li>employee_name</li>
+                  <li>employee_first_name</li>
+                  <li>employee_last_name</li>
                   <li>employee_email</li>
                   <li>company_name</li>
                   <li>laptop_serial_number (must be unique)</li>
@@ -136,7 +137,8 @@ export default function AssetBulkImportModal({ onClose, onImported }) {
                 </ul>
                 <p className="font-medium mt-3">Optional fields:</p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground">
-                  <li>manager_name</li>
+                  <li>manager_first_name</li>
+                  <li>manager_last_name</li>
                   <li>manager_email</li>
                   <li>laptop_make</li>
                   <li>laptop_model</li>

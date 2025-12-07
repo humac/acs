@@ -2071,7 +2071,8 @@ app.post('/api/assets/import', authenticate, upload.single('file'), async (req, 
   try {
     const records = await parseCSVFile(req.file.path);
     const requiredFields = [
-      'employee_name',
+      'employee_first_name',
+      'employee_last_name',
       'employee_email',
       'company_name',
       'laptop_serial_number',
@@ -2081,11 +2082,6 @@ app.post('/api/assets/import', authenticate, upload.single('file'), async (req, 
 
     let imported = 0;
     const errors = [];
-
-    // Batch fetch all users by email in one query (performance optimization)
-    const employeeEmails = [...new Set(records.map(row => row.employee_email?.trim()).filter(Boolean))];
-    const users = await userDb.getByEmails(employeeEmails);
-    const userMap = new Map(users.map(user => [user.email.toLowerCase(), user]));
 
     for (let index = 0; index < records.length; index++) {
       const row = records[index];
@@ -2105,26 +2101,13 @@ app.post('/api/assets/import', authenticate, upload.single('file'), async (req, 
         continue;
       }
 
-      // Get manager data from employee's user record if they exist (using cached userMap)
-      const employeeUser = userMap.get(normalizedRow.employee_email.toLowerCase());
-      let manager_name = normalizedRow.manager_name || null;
-      let manager_email = normalizedRow.manager_email || null;
-
-      if (!manager_name || !manager_email) {
-        if (employeeUser && employeeUser.manager_name && employeeUser.manager_email) {
-          // User exists with manager info - use it
-          manager_name = employeeUser.manager_name;
-          manager_email = employeeUser.manager_email;
-        }
-      }
-      // If user doesn't exist or has no manager info, allow asset creation with null manager fields
-      // These will be populated when the employee registers
-
       const assetData = {
-        employee_name: normalizedRow.employee_name,
+        employee_first_name: normalizedRow.employee_first_name,
+        employee_last_name: normalizedRow.employee_last_name,
         employee_email: normalizedRow.employee_email,
-        manager_name,
-        manager_email,
+        manager_first_name: normalizedRow.manager_first_name || null,
+        manager_last_name: normalizedRow.manager_last_name || null,
+        manager_email: normalizedRow.manager_email || null,
         company_name: normalizedRow.company_name,
         laptop_make: normalizedRow.laptop_make || '',
         laptop_model: normalizedRow.laptop_model || '',
@@ -2137,14 +2120,16 @@ app.post('/api/assets/import', authenticate, upload.single('file'), async (req, 
       try {
         const result = await assetDb.create(assetData);
         
+        const employee_name = `${assetData.employee_first_name} ${assetData.employee_last_name}`;
         // Use result.id directly instead of fetching the asset again
         await auditDb.log(
           'CREATE',
           'asset',
           result.id,
-          `${assetData.laptop_serial_number} - ${assetData.employee_name}`,
+          `${assetData.laptop_serial_number} - ${employee_name}`,
           {
-            employee_name: assetData.employee_name,
+            employee_first_name: assetData.employee_first_name,
+            employee_last_name: assetData.employee_last_name,
             employee_email: assetData.employee_email,
             company_name: assetData.company_name,
             laptop_serial_number: assetData.laptop_serial_number,
@@ -2183,46 +2168,43 @@ app.post('/api/assets/import', authenticate, upload.single('file'), async (req, 
 // Create new asset
 app.post('/api/assets', authenticate, async (req, res) => {
   try {
-    const { employee_name, employee_email, company_name, laptop_serial_number, laptop_asset_tag, notes } = req.body;
+    const { 
+      employee_first_name, 
+      employee_last_name, 
+      employee_email, 
+      manager_first_name,
+      manager_last_name,
+      manager_email,
+      company_name, 
+      laptop_serial_number, 
+      laptop_asset_tag, 
+      notes 
+    } = req.body;
 
     // Validation
-    if (!employee_name || !employee_email || !company_name || !laptop_serial_number || !laptop_asset_tag) {
+    if (!employee_first_name || !employee_last_name || !employee_email || !company_name || !laptop_serial_number || !laptop_asset_tag) {
       return res.status(400).json({
         error: 'Missing required fields',
-        required: ['employee_name', 'employee_email', 'company_name', 'laptop_serial_number', 'laptop_asset_tag']
+        required: ['employee_first_name', 'employee_last_name', 'employee_email', 'company_name', 'laptop_serial_number', 'laptop_asset_tag']
       });
     }
 
-    // Get manager data from employee's user record if they exist
-    const employeeUser = await userDb.getByEmail(employee_email);
-    let manager_name = null;
-    let manager_email = null;
-
-    if (employeeUser && employeeUser.manager_name && employeeUser.manager_email) {
-      // User exists with manager info - use it
-      manager_name = employeeUser.manager_name;
-      manager_email = employeeUser.manager_email;
-    }
-    // If user doesn't exist or has no manager info, allow asset creation with null manager fields
-    // These will be populated when the employee registers
-
-    const result = await assetDb.create({
-      ...req.body,
-      manager_name,
-      manager_email
-    });
+    const result = await assetDb.create(req.body);
     const newAsset = await assetDb.getById(result.id);
 
     // Log audit
+    const employee_name = `${employee_first_name} ${employee_last_name}`;
     await auditDb.log(
       'CREATE',
       'asset',
       newAsset.id,
       `${laptop_serial_number} - ${employee_name}`,
       {
-        employee_name,
+        employee_first_name,
+        employee_last_name,
         employee_email,
-        manager_name,
+        manager_first_name,
+        manager_last_name,
         manager_email,
         company_name,
         laptop_serial_number,
@@ -2543,40 +2525,35 @@ app.put('/api/assets/:id', authenticate, async (req, res) => {
     const user = await userDb.getById(req.user.id);
     const isEmployeeOwner = user.role === 'employee' && asset.employee_email === user.email;
 
-    let { employee_name, employee_email, manager_name, manager_email, company_name, laptop_serial_number, laptop_asset_tag, status, notes } = req.body;
+    let { 
+      employee_first_name, 
+      employee_last_name, 
+      employee_email, 
+      manager_first_name, 
+      manager_last_name, 
+      manager_email, 
+      company_name, 
+      laptop_serial_number, 
+      laptop_asset_tag, 
+      status, 
+      notes 
+    } = req.body;
 
     // Employees can update the asset but cannot change their own name/email
     if (isEmployeeOwner) {
-      employee_name = asset.employee_name;
+      employee_first_name = asset.employee_first_name;
+      employee_last_name = asset.employee_last_name;
       employee_email = asset.employee_email;
     }
 
-    if (!employee_name || !employee_email || !company_name || !laptop_serial_number || !laptop_asset_tag) {
+    if (!employee_first_name || !employee_last_name || !employee_email || !company_name || !laptop_serial_number || !laptop_asset_tag) {
       return res.status(400).json({
         error: 'Missing required fields',
-        required: ['employee_name', 'employee_email', 'company_name', 'laptop_serial_number', 'laptop_asset_tag']
+        required: ['employee_first_name', 'employee_last_name', 'employee_email', 'company_name', 'laptop_serial_number', 'laptop_asset_tag']
       });
     }
 
-    // Use provided manager info or get from employee's user record
-    let finalManagerName = manager_name;
-    let finalManagerEmail = manager_email;
-
-    if (!finalManagerName || !finalManagerEmail) {
-      const employeeUser = await userDb.getByEmail(employee_email);
-      if (employeeUser && employeeUser.manager_name && employeeUser.manager_email) {
-        finalManagerName = employeeUser.manager_name;
-        finalManagerEmail = employeeUser.manager_email;
-      }
-    }
-
-    await assetDb.update(req.params.id, {
-      ...req.body,
-      employee_name,
-      employee_email,
-      manager_name: finalManagerName || '',
-      manager_email: finalManagerEmail || ''
-    });
+    await assetDb.update(req.params.id, req.body);
     const updatedAsset = await assetDb.getById(req.params.id);
 
     // Log audit trail
