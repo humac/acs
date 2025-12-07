@@ -1,20 +1,20 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import {
-  Box,
-  Card,
-  CardContent,
-  TextField,
-  Button,
-  Typography,
-  Alert,
-  Link,
-  CircularProgress,
-  Divider,
-} from '@mui/material';
-import { Login as LoginIcon, VpnKey } from '@mui/icons-material';
-import { useAuth } from '../contexts/AuthContext';
-import MFAVerifyModal from './MFAVerifyModal';
-import { prepareRequestOptions, uint8ArrayToBase64Url } from '../utils/webauthn';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { LogIn, Key, Loader2, AlertCircle, Laptop, Moon, Sun } from 'lucide-react';
+import { prepareRequestOptions, uint8ArrayToBase64Url } from '@/utils/webauthn';
 
 const Login = ({ onSwitchToRegister }) => {
   const { login, setAuthData } = useAuth();
@@ -27,20 +27,58 @@ const Login = ({ onSwitchToRegister }) => {
   const [error, setError] = useState(null);
   const [oidcEnabled, setOidcEnabled] = useState(false);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
+  const [passkeysEnabled, setPasskeysEnabled] = useState(true);
+  const [ssoButtonConfig, setSsoButtonConfig] = useState({
+    text: 'Sign In with SSO',
+    helpText: '',
+    variant: 'outline'
+  });
   const [brandingLogo, setBrandingLogo] = useState(null);
+
+  // Dark mode state - default to light mode
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('theme') || 'light';
+  });
 
   // MFA state
   const [showMFAVerify, setShowMFAVerify] = useState(false);
   const [mfaSessionId, setMfaSessionId] = useState('');
   const [mfaLoading, setMfaLoading] = useState(false);
   const [mfaError, setMfaError] = useState('');
+  const [mfaCode, setMfaCode] = useState('');
+  const [useBackupCode, setUseBackupCode] = useState(false);
+
+  useEffect(() => {
+    // Apply theme
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     // Check if OIDC is enabled
     fetch('/api/auth/oidc/config')
       .then(res => res.json())
-      .then(data => setOidcEnabled(data.enabled))
+      .then(data => {
+        setOidcEnabled(data.enabled);
+        setSsoButtonConfig({
+          text: data.button_text || 'Sign In with SSO',
+          helpText: data.button_help_text || '',
+          variant: ['default', 'secondary', 'outline', 'ghost'].includes(data.button_variant)
+            ? data.button_variant
+            : 'outline'
+        });
+      })
       .catch(err => console.error('Failed to check OIDC config:', err));
+
+    fetch('/api/auth/passkeys/config')
+      .then(res => res.json())
+      .then(data => setPasskeysEnabled(data.enabled !== false))
+      .catch(err => console.error('Failed to check passkey config:', err));
 
     // Fetch branding settings
     fetch('/api/branding')
@@ -68,9 +106,7 @@ const Login = ({ onSwitchToRegister }) => {
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
@@ -83,7 +119,6 @@ const Login = ({ onSwitchToRegister }) => {
         throw new Error(data.error || 'Login failed');
       }
 
-      // Check if MFA is required
       if (data.mfaRequired) {
         setMfaSessionId(data.mfaSessionId);
         setShowMFAVerify(true);
@@ -91,7 +126,6 @@ const Login = ({ onSwitchToRegister }) => {
         return;
       }
 
-      // Regular login success
       const result = await login(formData.email, formData.password);
       if (!result.success) {
         setError(result.error);
@@ -103,19 +137,18 @@ const Login = ({ onSwitchToRegister }) => {
     }
   };
 
-  const handleMFAVerify = async (code, useBackupCode) => {
+  const handleMFAVerify = async (e) => {
+    e.preventDefault();
     setMfaLoading(true);
     setMfaError('');
 
     try {
       const response = await fetch('/api/auth/mfa/verify-login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           mfaSessionId,
-          token: code,
+          token: mfaCode,
           useBackupCode,
         }),
       });
@@ -126,11 +159,8 @@ const Login = ({ onSwitchToRegister }) => {
         throw new Error(data.error || 'Invalid verification code');
       }
 
-      // Store token and user data
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-
-      // Reload to trigger auth context update
       window.location.reload();
     } catch (err) {
       setMfaError(err.message);
@@ -151,7 +181,6 @@ const Login = ({ onSwitchToRegister }) => {
         throw new Error(data.error || 'Failed to initiate OIDC login');
       }
 
-      // Redirect to OIDC provider
       window.location.href = data.authUrl;
     } catch (err) {
       setError(err.message);
@@ -159,7 +188,7 @@ const Login = ({ onSwitchToRegister }) => {
     }
   };
 
-  const handlePasskeyLogin = async (useConditionalUI = false) => {
+  const handlePasskeyLogin = async () => {
     if (!window.PublicKeyCredential) {
       setError('Passkeys are not supported in this browser.');
       return;
@@ -169,11 +198,11 @@ const Login = ({ onSwitchToRegister }) => {
     setError(null);
 
     try {
-      // Request authentication options (with or without email)
+      const optionsPayload = formData.email ? { email: formData.email } : {};
       const optionsResponse = await fetch('/api/auth/passkeys/auth-options', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: formData.email || undefined })
+        body: JSON.stringify(optionsPayload)
       });
 
       const optionsData = await optionsResponse.json();
@@ -182,15 +211,11 @@ const Login = ({ onSwitchToRegister }) => {
       }
 
       const publicKeyOptions = prepareRequestOptions(optionsData.options);
+      const credentialRequestOptions = { publicKey: publicKeyOptions };
 
-      // Use conditional mediation for passwordless login if supported
-      const credentialRequestOptions = {
-        publicKey: publicKeyOptions
-      };
-
-      if (useConditionalUI && window.PublicKeyCredential.isConditionalMediationAvailable) {
-        const available = await window.PublicKeyCredential.isConditionalMediationAvailable();
-        if (available) {
+      if (window.PublicKeyCredential.isConditionalMediationAvailable) {
+        const conditionalAvailable = await window.PublicKeyCredential.isConditionalMediationAvailable();
+        if (conditionalAvailable) {
           credentialRequestOptions.mediation = 'conditional';
         }
       }
@@ -202,7 +227,6 @@ const Login = ({ onSwitchToRegister }) => {
       }
 
       const verificationPayload = {
-        email: formData.email || undefined,
         credential: {
           id: assertion.id,
           type: assertion.type,
@@ -218,6 +242,10 @@ const Login = ({ onSwitchToRegister }) => {
         }
       };
 
+      if (formData.email) {
+        verificationPayload.email = formData.email;
+      }
+
       const verifyResponse = await fetch('/api/auth/passkeys/verify-authentication', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -231,7 +259,6 @@ const Login = ({ onSwitchToRegister }) => {
 
       setAuthData(verifyData.token, verifyData.user);
     } catch (err) {
-      // Ignore AbortError (user cancelled the passkey prompt)
       if (err.name !== 'AbortError' && err.name !== 'NotAllowedError') {
         setError(err.message);
       }
@@ -240,180 +267,250 @@ const Login = ({ onSwitchToRegister }) => {
     }
   };
 
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
+  const isLoading = loading || oidcLoading || passkeyLoading;
+
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        bgcolor: 'background.default',
-        p: 2,
-      }}
-    >
-      <Card sx={{ maxWidth: 450, width: '100%' }}>
-        <Box
-          sx={{
-            bgcolor: 'secondary.main',
-            color: 'white',
-            p: 3,
-            textAlign: 'center',
-          }}
-        >
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4">
+      <div className="w-full max-w-md">
+        {/* Dark Mode Toggle */}
+        <div className="flex justify-end mb-4">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={toggleTheme}
+            className="rounded-full"
+          >
+            {theme === 'dark' ? (
+              <Sun className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
+          </Button>
+        </div>
+        {/* Logo/Brand */}
+        <div className="text-center mb-8">
           {brandingLogo ? (
-            <Box sx={{ mb: 2 }}>
+            <div className="mb-4">
               <img
                 src={brandingLogo}
                 alt="Company Logo"
-                style={{
-                  maxWidth: '100%',
-                  height: 'auto',
-                  maxHeight: '120px',
-                  objectFit: 'contain',
-                  display: 'block',
-                  margin: '0 auto'
-                }}
+                className="max-w-full h-auto max-h-32 object-contain mx-auto"
               />
-            </Box>
+            </div>
           ) : (
             <>
-              <Typography variant="h5" fontWeight={600} gutterBottom>
-                KARS - KeyData Asset Registration System
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Sign in to manage company assets
-              </Typography>
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-primary mb-4">
+                <Laptop className="h-8 w-8 text-primary-foreground" />
+              </div>
+              <h1 className="text-2xl font-bold text-foreground">KARS</h1>
+              <p className="text-muted-foreground">KeyData Asset Registration System</p>
             </>
           )}
-        </Box>
+        </div>
 
-        <CardContent sx={{ p: 4 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, gap: 1 }}>
-            <LoginIcon color="primary" />
-            <Typography variant="h6" fontWeight={600}>
-              Login
-            </Typography>
-          </Box>
+        <Card className="shadow-lg">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl text-center">Welcome back</CardTitle>
+            <CardDescription className="text-center">
+              Sign in to manage company assets
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {error && (
+              <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
 
-          {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
-            </Alert>
-          )}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="you@company.com"
+                  autoComplete="email"
+                  required
+                />
+              </div>
 
-          <Box component="form" onSubmit={handleSubmit}>
-            <TextField
-              fullWidth
-              label="Email Address"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              required={!formData.password}
-              autoComplete="email webauthn"
-              placeholder="you@company.com"
-              sx={{ mb: 2 }}
-            />
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                  required
+                />
+              </div>
 
-            <TextField
-              fullWidth
-              label="Password"
-              name="password"
-              type="password"
-              value={formData.password}
-              onChange={handleChange}
-              required={!!formData.email}
-              autoComplete="current-password webauthn"
-              placeholder="Enter your password"
-              sx={{ mb: 3 }}
-            />
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  <>
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Sign In
+                  </>
+                )}
+              </Button>
+            </form>
 
-            <Button
-              fullWidth
-              type="submit"
-              variant="contained"
-              size="large"
-              disabled={loading || oidcLoading || passkeyLoading}
-              startIcon={loading ? <CircularProgress size={20} /> : <LoginIcon />}
-            >
-              {loading ? 'Signing in...' : 'Sign In'}
-            </Button>
-
-            <Button
-              fullWidth
-              variant="outlined"
-              size="large"
-              onClick={() => handlePasskeyLogin()}
-              disabled={loading || oidcLoading || passkeyLoading}
-              startIcon={passkeyLoading ? <CircularProgress size={20} /> : <VpnKey />}
-              sx={{ mt: 2 }}
-            >
-              {passkeyLoading ? 'Waiting for passkey...' : 'Sign In with Passkey'}
-            </Button>
-
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', mt: 1 }}>
-              No password needed
-            </Typography>
+            {passkeysEnabled ? (
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={handlePasskeyLogin}
+                disabled={isLoading}
+              >
+                {passkeyLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Waiting for passkey...
+                  </>
+                ) : (
+                  <>
+                    <Key className="h-4 w-4 mr-2" />
+                    Use Passkey
+                  </>
+                )}
+              </Button>
+            ) : (
+              <div className="flex items-center gap-2 p-3 rounded-md border text-sm text-muted-foreground bg-muted/50">
+                <Key className="h-4 w-4" />
+                <span>Passkey sign-in is disabled by your administrator.</span>
+              </div>
+            )}
 
             {oidcEnabled && (
               <>
-                <Divider sx={{ my: 3 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    OR
-                  </Typography>
-                </Divider>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <Separator className="w-full" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">Or</span>
+                  </div>
+                </div>
 
                 <Button
-                  fullWidth
-                  variant="outlined"
-                  size="large"
+                  variant={ssoButtonConfig.variant}
+                  className="w-full"
                   onClick={handleOIDCLogin}
-                  disabled={loading || oidcLoading || passkeyLoading}
-                  startIcon={oidcLoading ? <CircularProgress size={20} /> : <VpnKey />}
+                  disabled={isLoading}
                 >
-                  {oidcLoading ? 'Redirecting...' : 'Sign In with SSO'}
+                  {oidcLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Redirecting...
+                    </>
+                    ) : (
+                      <>
+                        <Key className="h-4 w-4 mr-2" />
+                        {ssoButtonConfig.text}
+                      </>
+                    )}
                 </Button>
+                {ssoButtonConfig.helpText && (
+                  <p className="text-xs text-muted-foreground text-center">{ssoButtonConfig.helpText}</p>
+                )}
               </>
             )}
 
-            <Box
-              sx={{
-                mt: 3,
-                pt: 2,
-                borderTop: 1,
-                borderColor: 'divider',
-                textAlign: 'center',
-              }}
-            >
-              <Typography variant="body2" color="text.secondary">
-                Don't have an account?{' '}
-                <Link
-                  component="button"
-                  type="button"
-                  variant="body2"
-                  onClick={onSwitchToRegister}
-                  sx={{ cursor: 'pointer', fontWeight: 600 }}
-                >
-                  Register here
-                </Link>
-              </Typography>
-            </Box>
-          </Box>
-        </CardContent>
-      </Card>
+            <Separator />
+
+            <p className="text-center text-sm text-muted-foreground">
+              Don't have an account?{' '}
+              <button
+                type="button"
+                onClick={onSwitchToRegister}
+                className="font-semibold text-primary hover:underline"
+              >
+                Register here
+              </button>
+            </p>
+          </CardContent>
+        </Card>
+
+        <p className="text-center text-xs text-muted-foreground mt-6">
+          SOC2 Compliance - Track and manage company assets
+        </p>
+      </div>
 
       {/* MFA Verification Modal */}
-      <MFAVerifyModal
-        open={showMFAVerify}
-        onClose={() => {
-          setShowMFAVerify(false);
+      <Dialog open={showMFAVerify} onOpenChange={(open) => {
+        setShowMFAVerify(open);
+        if (!open) {
           setMfaError('');
-        }}
-        onVerify={handleMFAVerify}
-        loading={mfaLoading}
-        error={mfaError}
-      />
-    </Box>
+          setMfaCode('');
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Two-Factor Authentication</DialogTitle>
+            <DialogDescription>
+              Enter the verification code from your authenticator app.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleMFAVerify} className="space-y-4">
+            {mfaError && (
+              <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                <span>{mfaError}</span>
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="mfa_code">
+                {useBackupCode ? 'Backup Code' : 'Verification Code'}
+              </Label>
+              <Input
+                id="mfa_code"
+                value={mfaCode}
+                onChange={(e) => setMfaCode(e.target.value)}
+                placeholder={useBackupCode ? 'Enter backup code' : 'Enter 6-digit code'}
+                autoFocus
+                required
+              />
+            </div>
+            <div className="flex items-center">
+              <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={useBackupCode}
+                  onChange={(e) => setUseBackupCode(e.target.checked)}
+                  className="rounded border-input"
+                />
+                Use backup code instead
+              </label>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowMFAVerify(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={mfaLoading}>
+                {mfaLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Verify
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 

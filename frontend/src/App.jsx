@@ -1,88 +1,78 @@
-import { useState, useEffect } from 'react';
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Navigate, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import {
-  AppBar,
-  Toolbar,
-  Typography,
-  Button,
-  Container,
-  Box,
-  Tabs,
-  Tab,
-  useMediaQuery,
-  useTheme,
-  IconButton,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Laptop,
+  Building2,
+  FileBarChart,
+  Settings,
+  User,
+  LogOut,
   Menu,
-  MenuItem,
-  Avatar,
-  Chip,
-  Divider,
-  ListItemIcon,
-  ListItemText,
-} from '@mui/material';
-import {
-  AccountCircle,
-  ExitToApp,
-  Dashboard,
-  Business,
-  Assessment,
-  AdminPanelSettings,
-  Person,
-} from '@mui/icons-material';
-import { useAuth } from './contexts/AuthContext';
-import AssetList from './components/AssetList';
-import CompanyManagement from './components/CompanyManagement';
-import AuditReporting from './components/AuditReporting';
-import Profile from './components/Profile';
-import AdminSettings from './components/AdminSettings';
-import AuthPage from './components/AuthPage';
-import OIDCCallback from './components/OIDCCallback';
+  X,
+  Loader2,
+  Moon,
+  Sun,
+} from 'lucide-react';
+import Dashboard from '@/components/Dashboard';
+import CompanyManagement from '@/components/CompanyManagement';
+import AuditReporting from '@/components/AuditReporting';
+import AdminSettings from '@/components/AdminSettings';
+import Profile from '@/components/Profile';
+import AuthPage from '@/components/AuthPage';
+import OIDCCallback from '@/components/OIDCCallback';
 
 function App() {
   const { user, logout, loading, isAuthenticated } = useAuth();
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [anchorEl, setAnchorEl] = useState(null);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [brandingLogo, setBrandingLogo] = useState(null);
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === 'undefined') return 'light';
+    return localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  });
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleAssetRegistered = () => {
-    setRefreshKey(prev => prev + 1);
-  };
+  useEffect(() => {
+    if (!isAuthenticated) return;
 
-  const handleMenuOpen = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
+    const loadBranding = async () => {
+      try {
+        const response = await fetch('/api/branding');
+        if (!response.ok) return;
+        const data = await response.json();
+        if (data.logo_data) {
+          setBrandingLogo(data.logo_data);
+        }
+      } catch (error) {
+        console.error('Failed to load branding logo:', error);
+      }
+    };
 
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
+    loadBranding();
+  }, [isAuthenticated]);
 
-  const handleProfileClick = () => {
-    handleMenuClose();
-    navigate('/profile');
-  };
-
-  const handleLogout = () => {
-    handleMenuClose();
-    logout();
-  };
-
-  // Determine active tab based on current route
-  const getActiveTab = () => {
-    const path = location.pathname;
-    if (path === '/' || path === '/assets') return 0;
-    if (path === '/companies') return 1;
-    if (path === '/audit') return 2;
-    if (path === '/admin') return 3;
-    return false;
-  };
-
-  const handleTabChange = (event, newValue) => {
-    const routes = ['/', '/companies', '/audit', '/admin'];
-    navigate(routes[newValue]);
-  };
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   // Handle OIDC callback route (no authentication required)
   if (location.pathname === '/auth/callback') {
@@ -91,16 +81,12 @@ function App() {
 
   if (loading) {
     return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="100vh"
-      >
-        <Typography variant="h5" color="text.secondary">
-          Loading...
-        </Typography>
-      </Box>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Loading...</span>
+        </div>
+      </div>
     );
   }
 
@@ -108,127 +94,230 @@ function App() {
     return <AuthPage />;
   }
 
-  const tabConfig = [
-    { label: 'Asset Management', icon: <Dashboard />, value: 0, role: null, path: '/' },
-    { label: 'Company Management', icon: <Business />, value: 1, role: 'admin', path: '/companies' },
-    { label: 'Audit & Reporting', icon: <Assessment />, value: 2, role: null, path: '/audit' },
-    { label: 'Admin Settings', icon: <AdminPanelSettings />, value: 3, role: 'admin', path: '/admin' },
+  const navItems = [
+    { label: 'Assets', icon: Laptop, path: '/assets' },
+    { label: 'Companies', icon: Building2, path: '/companies', roles: ['admin'] },
+    { label: 'Audit & Reports', icon: FileBarChart, path: '/audit' },
+    { label: 'Admin Settings', icon: Settings, path: '/admin', roles: ['admin'] },
   ];
 
-  const visibleTabs = tabConfig.filter(tab => !tab.role || user?.role === tab.role);
-  const activeTab = getActiveTab();
+  const visibleNavItems = navItems.filter(item => !item.roles || item.roles.includes(user?.role));
+
+  const isActive = (path) => {
+    if (path === '/assets') {
+      return location.pathname === '/' || location.pathname === '/assets';
+    }
+    return location.pathname === path;
+  };
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
+  const handleNavigation = (path) => {
+    navigate(path);
+    setMobileMenuOpen(false);
+  };
+
+  const handleLogout = () => {
+    logout();
+    setMobileMenuOpen(false);
+  };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      {/* AppBar */}
-      <AppBar position="static" color="primary" elevation={0}>
-        <Toolbar>
-          <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="h6" component="div" fontWeight={600}>
-              KARS - KeyData Asset Registration System
-            </Typography>
-            <Typography variant="body2" sx={{ opacity: 0.9 }}>
-              SOC2 Compliance - Track and manage company assets
-            </Typography>
-          </Box>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto flex h-16 items-center justify-between">
+          {/* Logo and Nav */}
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/assets')}>
+              {brandingLogo ? (
+                <img
+                  src={brandingLogo}
+                  alt="Company logo"
+                  className="h-9 w-auto max-h-10 object-contain"
+                />
+              ) : (
+                <>
+                  <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-primary">
+                    <Laptop className="h-4 w-4 text-primary-foreground" />
+                  </div>
+                  <span className="font-semibold text-lg hidden sm:block">KARS</span>
+                </>
+              )}
+            </div>
 
-          {/* User Menu */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            {!isMobile && (
-              <Box sx={{ textAlign: 'right' }}>
-                <Typography variant="body2" fontWeight={600}>
-                  {user?.first_name} {user?.last_name}
-                </Typography>
-                <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                  {user?.email}
-                </Typography>
-              </Box>
-            )}
-            <Chip
-              label={user?.role?.toUpperCase()}
-              size="small"
-              color="secondary"
-              sx={{ fontWeight: 600 }}
-            />
-            <IconButton
-              color="inherit"
-              onClick={handleMenuOpen}
-              size="large"
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-1">
+              {visibleNavItems.map((item) => (
+                <Button
+                  key={item.path}
+                  variant={isActive(item.path) ? 'secondary' : 'ghost'}
+                  size="sm"
+                  onClick={() => handleNavigation(item.path)}
+                  className="gap-2"
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                </Button>
+              ))}
+            </nav>
+          </div>
+
+          {/* User Menu - Desktop */}
+          <div className="hidden md:flex items-center gap-4">
+            <div className="flex flex-col items-end text-sm">
+              <span className="font-medium">{user?.first_name} {user?.last_name}</span>
+              <span className="text-muted-foreground text-xs">{user?.email}</span>
+            </div>
+            <Badge variant="secondary" className="uppercase text-xs">
+              {user?.role}
+            </Badge>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full"
+              onClick={toggleTheme}
             >
-              <Avatar sx={{ width: 36, height: 36, bgcolor: 'secondary.main' }}>
-                {user?.first_name?.charAt(0)}
-              </Avatar>
-            </IconButton>
-          </Box>
+              {theme === 'dark' ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
+              <span className="sr-only">Toggle theme</span>
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <Avatar className="h-8 w-8">
+                    {user?.profile_image && (
+                      <AvatarImage src={user.profile_image} alt="Profile" />
+                    )}
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      {user?.first_name?.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium">{user?.first_name} {user?.last_name}</p>
+                    <p className="text-xs text-muted-foreground">{user?.email}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate('/profile')}>
+                  <User className="mr-2 h-4 w-4" />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
 
-          {/* User Dropdown Menu */}
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleMenuClose}
-            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-            PaperProps={{
-              sx: { minWidth: 200 }
-            }}
+          {/* Mobile Menu Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
-            <MenuItem disabled>
-              <Box>
-                <Typography variant="body2" fontWeight={600}>
-                  {user?.first_name} {user?.last_name}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {user?.email}
-                </Typography>
-              </Box>
-            </MenuItem>
-            <Divider />
-            <MenuItem onClick={handleProfileClick}>
-              <ListItemIcon>
-                <Person fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>Profile</ListItemText>
-            </MenuItem>
-            <MenuItem onClick={handleLogout}>
-              <ListItemIcon>
-                <ExitToApp fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>Logout</ListItemText>
-            </MenuItem>
-          </Menu>
-        </Toolbar>
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
+        </div>
 
-        {/* Navigation Tabs */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper' }}>
-          <Tabs
-            value={activeTab}
-            onChange={handleTabChange}
-            variant={isMobile ? 'scrollable' : 'standard'}
-            scrollButtons={isMobile ? 'auto' : false}
-            sx={{ px: isMobile ? 0 : 3 }}
-          >
-            {visibleTabs.map((tab) => (
-              <Tab
-                key={tab.value}
-                label={tab.label}
-                icon={tab.icon}
-                iconPosition="start"
-                value={tab.value}
-              />
-            ))}
-          </Tabs>
-        </Box>
-      </AppBar>
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t bg-background">
+            <div className="container mx-auto py-4 space-y-4">
+              {/* User Info */}
+              <div className="flex items-center gap-3 pb-4 border-b">
+                <Avatar className="h-10 w-10">
+                  {user?.profile_image && (
+                    <AvatarImage src={user.profile_image} alt="Profile" />
+                  )}
+                  <AvatarFallback className="bg-primary text-primary-foreground">
+                    {user?.first_name?.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <p className="font-medium">{user?.first_name} {user?.last_name}</p>
+                  <p className="text-sm text-muted-foreground">{user?.email}</p>
+                </div>
+                <Badge variant="secondary" className="uppercase text-xs">
+                  {user?.role}
+                </Badge>
+              </div>
 
-      {/* Main Content with Routes */}
-      <Container maxWidth="xl" sx={{ flexGrow: 1, py: 3 }}>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Appearance</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={toggleTheme}
+                >
+                  {theme === 'dark' ? (
+                    <>
+                      <Sun className="h-4 w-4" />
+                      Light
+                    </>
+                  ) : (
+                    <>
+                      <Moon className="h-4 w-4" />
+                      Dark
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {/* Navigation */}
+              <nav className="space-y-1">
+                {visibleNavItems.map((item) => (
+                  <Button
+                    key={item.path}
+                    variant={isActive(item.path) ? 'secondary' : 'ghost'}
+                    className="w-full justify-start gap-2"
+                    onClick={() => handleNavigation(item.path)}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                  </Button>
+                ))}
+                <Separator />
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start gap-2"
+                  onClick={() => handleNavigation('/profile')}
+                >
+                  <User className="h-4 w-4" />
+                  Profile
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start gap-2 text-destructive hover:text-destructive"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="h-4 w-4" />
+                  Logout
+                </Button>
+              </nav>
+            </div>
+          </div>
+        )}
+      </header>
+
+      {/* Main Content */}
+      <main className="container mx-auto py-6">
         <Routes>
-          <Route path="/" element={
-            <AssetList refresh={refreshKey} onAssetRegistered={handleAssetRegistered} />
-          } />
-          <Route path="/assets" element={
-            <AssetList refresh={refreshKey} onAssetRegistered={handleAssetRegistered} />
-          } />
+          <Route path="/" element={<Navigate to="/assets" replace />} />
+          <Route path="/assets" element={<Dashboard />} />
           {user?.role === 'admin' && (
             <Route path="/companies" element={<CompanyManagement />} />
           )}
@@ -238,8 +327,15 @@ function App() {
           )}
           <Route path="/profile" element={<Profile />} />
         </Routes>
-      </Container>
-    </Box>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t py-4 mt-auto">
+        <div className="container mx-auto text-center text-sm text-muted-foreground">
+          SOC2 Compliance - KeyData Asset Registration System
+        </div>
+      </footer>
+    </div>
   );
 }
 
