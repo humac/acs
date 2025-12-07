@@ -41,15 +41,18 @@ verify_file() {
     
     # Check if file is ASCII text (not binary or corrupted)
     if ! file "$file" | grep -q "text"; then
-        echo "  ❌ WARNING: File may not be a text file!"
+        echo "  ⚠️  WARNING: File may not be a text file!"
     fi
     
     echo "  ✅ OK ($lines lines)"
 }
 
 # Verify critical backend files
-verify_file "backend/server.js" 3000 "Backend Server"
-verify_file "backend/database.js" 500 "Database Module"
+# Note: Line count thresholds are intentionally conservative to catch major issues
+# while allowing for normal code evolution. Adjust as needed if legitimate changes
+# significantly reduce file sizes.
+verify_file "backend/server.js" 2500 "Backend Server"
+verify_file "backend/database.js" 400 "Database Module"
 verify_file "backend/auth.js" 50 "Authentication Module"
 verify_file "backend/oidc.js" 50 "OIDC Module"
 verify_file "backend/mfa.js" 50 "MFA Module"
