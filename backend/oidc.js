@@ -19,6 +19,10 @@ let OIDC_CONFIG = {
 
 let config = null;
 let codeVerifierStore = new Map(); // Store PKCE code verifiers temporarily
+let timeoutStore = new Map(); // Store timeout IDs to prevent memory leaks
+
+// Timeout duration for PKCE code verifiers (10 minutes)
+const PKCE_VERIFIER_TIMEOUT_MS = 10 * 60 * 1000;
 
 /**
  * Initialize OIDC client with settings from database
@@ -82,13 +86,23 @@ async function getAuthorizationUrl(state) {
   const code_verifier = client.randomPKCECodeVerifier();
   const code_challenge = await client.calculatePKCECodeChallenge(code_verifier);
 
+  // Clear any existing timeout for this state to prevent memory leaks
+  const existingTimeout = timeoutStore.get(state);
+  if (existingTimeout) {
+    clearTimeout(existingTimeout);
+  }
+
   // Store code verifier for later use in callback
   codeVerifierStore.set(state, code_verifier);
 
-  // Clean up old verifiers (older than 10 minutes)
-  setTimeout(() => {
+  // Clean up old verifiers after timeout period
+  const timeoutId = setTimeout(() => {
     codeVerifierStore.delete(state);
-  }, 10 * 60 * 1000);
+    timeoutStore.delete(state);
+  }, PKCE_VERIFIER_TIMEOUT_MS);
+  
+  // Store timeout ID to allow cleanup
+  timeoutStore.set(state, timeoutId);
 
   const authUrl = client.buildAuthorizationUrl(config, {
     scope: OIDC_CONFIG.scope,
@@ -122,12 +136,23 @@ async function handleCallback(callbackParams, state) {
       expectedState: state,
     });
 
-    // Clean up used code verifier
+    // Clean up used code verifier and its timeout
     codeVerifierStore.delete(state);
+    const timeoutId = timeoutStore.get(state);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutStore.delete(state);
+    }
 
     return tokens;
   } catch (error) {
+    // Clean up on error as well
     codeVerifierStore.delete(state);
+    const timeoutId = timeoutStore.get(state);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutStore.delete(state);
+    }
     throw error;
   }
 }
@@ -251,4 +276,5 @@ export {
   extractUserData,
   isOIDCEnabled,
   OIDC_CONFIG,
+  PKCE_VERIFIER_TIMEOUT_MS,
 };
