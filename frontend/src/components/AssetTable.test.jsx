@@ -39,6 +39,9 @@ describe('AssetTable Component', () => {
       laptop_make: 'Dell',
       laptop_model: 'XPS 15',
       employee_email: 'john@example.com',
+      manager_first_name: 'Bob',
+      manager_last_name: 'Manager',
+      manager_email: 'bob@example.com',
       status: 'active',
     },
     {
@@ -48,6 +51,9 @@ describe('AssetTable Component', () => {
       laptop_make: 'Apple',
       laptop_model: 'MacBook Pro',
       employee_email: 'jane@example.com',
+      manager_first_name: 'Alice',
+      manager_last_name: 'Boss',
+      manager_email: 'alice@example.com',
       status: 'returned',
     },
   ];
@@ -205,6 +211,71 @@ describe('AssetTable Component', () => {
         expect.objectContaining({ method: 'DELETE' })
       );
       expect(mockOnDelete).toHaveBeenCalledWith(1);
+    });
+  });
+
+  it('displays manager information in the table', () => {
+    const currentUser = { roles: ['admin'] };
+    
+    render(
+      <AssetTable
+        assets={sampleAssets}
+        onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
+        currentUser={currentUser}
+      />
+    );
+
+    // Manager names should appear in desktop view
+    expect(screen.getAllByText('Bob Manager')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Alice Boss')[0]).toBeInTheDocument();
+  });
+
+  it('filters assets by manager name', async () => {
+    const user = userEvent.setup();
+    const currentUser = { roles: ['admin'] };
+    
+    render(
+      <AssetTable
+        assets={sampleAssets}
+        onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
+        currentUser={currentUser}
+      />
+    );
+
+    // Type manager name in search
+    const searchInput = screen.getByPlaceholderText(/search assets/i);
+    await user.type(searchInput, 'Bob Manager');
+
+    // Only John Doe should be visible (managed by Bob)
+    await waitFor(() => {
+      expect(screen.getAllByText('John Doe').length).toBeGreaterThan(0);
+      expect(screen.queryAllByText('Jane Smith').length).toBe(0);
+    });
+  });
+
+  it('filters assets by manager email', async () => {
+    const user = userEvent.setup();
+    const currentUser = { roles: ['admin'] };
+    
+    render(
+      <AssetTable
+        assets={sampleAssets}
+        onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
+        currentUser={currentUser}
+      />
+    );
+
+    // Type manager email in search
+    const searchInput = screen.getByPlaceholderText(/search assets/i);
+    await user.type(searchInput, 'alice@example.com');
+
+    // Only Jane Smith should be visible (managed by Alice)
+    await waitFor(() => {
+      expect(screen.queryAllByText('John Doe').length).toBe(0);
+      expect(screen.getAllByText('Jane Smith').length).toBeGreaterThan(0);
     });
   });
 });

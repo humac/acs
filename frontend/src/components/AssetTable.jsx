@@ -102,8 +102,11 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter((asset) => {
         const fullName = `${asset.employee_first_name || ''} ${asset.employee_last_name || ''}`.toLowerCase();
+        const managerName = `${asset.manager_first_name || ''} ${asset.manager_last_name || ''}`.toLowerCase();
         return fullName.includes(term) ||
           asset.employee_email?.toLowerCase().includes(term) ||
+          managerName.includes(term) ||
+          asset.manager_email?.toLowerCase().includes(term) ||
           asset.laptop_serial_number?.toLowerCase().includes(term) ||
           asset.laptop_asset_tag?.toLowerCase().includes(term) ||
           asset.company_name?.toLowerCase().includes(term) ||
@@ -211,6 +214,9 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
       'employee_first_name',
       'employee_last_name',
       'employee_email',
+      'manager_first_name',
+      'manager_last_name',
+      'manager_email',
       'company_name',
       'laptop_make',
       'laptop_model',
@@ -285,7 +291,7 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
           <div className="relative max-w-md w-full">
             <Search className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
             <Input
-              placeholder="Search assets by name, email, serial, tag..."
+              placeholder="Search assets by name, email, manager, serial, tag..."
               className="pl-9"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -411,6 +417,17 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
                       </div>
                       {getStatusBadge(asset.status)}
                     </div>
+                    {(asset.manager_first_name || asset.manager_email) && (
+                      <div className="mt-2">
+                        <p className="text-xs text-muted-foreground">Manager:</p>
+                        {asset.manager_first_name && asset.manager_last_name && (
+                          <p className="text-sm font-medium">{asset.manager_first_name} {asset.manager_last_name}</p>
+                        )}
+                        {asset.manager_email && (
+                          <p className="text-sm text-muted-foreground">{asset.manager_email}</p>
+                        )}
+                      </div>
+                    )}
                     <p className="text-sm text-muted-foreground mt-2">{asset.laptop_serial_number}</p>
                   </div>
                   <div className="flex flex-col gap-2">
@@ -442,9 +459,11 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
                   </TableHead>
                   <TableHead>Employee Name</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead className="hidden lg:table-cell">Company</TableHead>
-                  <TableHead className="hidden lg:table-cell">Laptop</TableHead>
-                  <TableHead className="hidden xl:table-cell">Serial Number</TableHead>
+                  <TableHead className="hidden lg:table-cell">Manager Name</TableHead>
+                  <TableHead className="hidden lg:table-cell">Manager Email</TableHead>
+                  <TableHead className="hidden xl:table-cell">Company</TableHead>
+                  <TableHead className="hidden xl:table-cell">Laptop</TableHead>
+                  <TableHead className="hidden 2xl:table-cell">Serial Number</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -464,11 +483,13 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
                     </TableCell>
                     <TableCell className="font-medium">{asset.employee_first_name && asset.employee_last_name ? `${asset.employee_first_name} ${asset.employee_last_name}` : 'N/A'}</TableCell>
                     <TableCell className="text-muted-foreground">{asset.employee_email || 'N/A'}</TableCell>
-                    <TableCell className="hidden lg:table-cell">{asset.company_name || '-'}</TableCell>
-                    <TableCell className="hidden lg:table-cell">
+                    <TableCell className="hidden lg:table-cell">{asset.manager_first_name && asset.manager_last_name ? `${asset.manager_first_name} ${asset.manager_last_name}` : '-'}</TableCell>
+                    <TableCell className="hidden lg:table-cell text-muted-foreground">{asset.manager_email || '-'}</TableCell>
+                    <TableCell className="hidden xl:table-cell">{asset.company_name || '-'}</TableCell>
+                    <TableCell className="hidden xl:table-cell">
                       {asset.laptop_make && asset.laptop_model ? `${asset.laptop_make} ${asset.laptop_model}` : '-'}
                     </TableCell>
-                    <TableCell className="hidden xl:table-cell font-mono text-sm">{asset.laptop_serial_number || '-'}</TableCell>
+                    <TableCell className="hidden 2xl:table-cell font-mono text-sm">{asset.laptop_serial_number || '-'}</TableCell>
                     <TableCell>{getStatusBadge(asset.status)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
