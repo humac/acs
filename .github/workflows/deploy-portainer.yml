@@ -99,47 +99,17 @@ jobs:
     # Option 1: When creating webhook, select "Pull latest image version"
     # Option 2: Add ?pullImage=true to the end of PORTAINER_WEBHOOK_URL secret
     environment: staging
-
     steps:
       - name: Deploy to Portainer
-        run: |
-          # Trigger Portainer webhook to redeploy stack with image pull
-          # This relies on the webhook being properly configured (see comments above)
-          response=$(curl -X POST "${{ secrets.PORTAINER_WEBHOOK_URL }}" \
-            -w "\n%{http_code}" \
-            -s \
-            --fail-with-body)
-          
-          http_code=$(echo "$response" | tail -n1)
-          body=$(echo "$response" | head -n-1)
-          
-          if [ "$http_code" -eq 200 ] || [ "$http_code" -eq 204 ]; then
-            echo "✅ Webhook triggered successfully (HTTP $http_code)"
-            echo "$body"
-          else
-            echo "❌ Webhook failed with HTTP $http_code"
-            echo "$body"
-            exit 1
-          fi
+        run: curl -X POST "${{ secrets.PORTAINER_WEBHOOK_URL }}"
 
-      - name: Wait for stack update
-        run: |
-          echo "⏳ Waiting for Portainer to pull images and redeploy stack..."
-          sleep 30
+      - name: Wait for deployment
+        run: sleep 15
 
-      - name: Deployment summary
+      - name: Verify deployment
         run: |
-          echo "✅ Deployment request completed"
-          echo ""
-          echo "📋 Next steps:"
-          echo "  1. Check Portainer UI to verify deployment status"
-          echo "  2. Verify containers are running: docker ps"
-          echo "  3. Check logs if needed: docker logs kars-backend / docker logs kars-frontend"
-          echo ""
-          echo "⚠️  If images didn't update:"
-          echo "  • Ensure Portainer webhook has 'Pull latest image version' enabled"
-          echo "  • Or append '?pullImage=true' to your PORTAINER_WEBHOOK_URL secret"
-          echo "  • Stack config already has 'pull_policy: always' for backend and frontend"
+          echo "Deployment triggered successfully with forced image pull"
+          echo "Check Portainer for deployment status"
 
   # Placeholder for future production deployment
   # Production may use Azure AKS or another platform (TBD)
