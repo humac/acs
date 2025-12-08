@@ -1,5 +1,5 @@
-import { describe, it, expect } from '@jest/globals';
-import { generateToken, verifyToken, hashPassword, comparePassword } from './auth.js';
+import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
+import { generateToken, verifyToken, hashPassword, comparePassword, authenticate, authorize, optionalAuth } from './auth.js';
 
 describe('Auth Module', () => {
   describe('JWT_SECRET validation', () => {
@@ -129,6 +129,93 @@ describe('Auth Module', () => {
       const isMatch = await comparePassword(password, 'invalid-hash');
 
       expect(isMatch).toBe(false);
+    });
+  });
+
+  describe('optionalAuth middleware', () => {
+    let req, res, next, consoleErrorSpy;
+
+    beforeEach(() => {
+      // Reset request/response/next mocks
+      req = {
+        headers: {}
+      };
+      res = {};
+      next = jest.fn();
+      
+      // Spy on console.error
+      consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      // Restore console.error
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should call next() when no auth header is present', () => {
+      optionalAuth(req, res, next);
+      
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(req.user).toBeUndefined();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    it('should attach user when valid token is provided', () => {
+      const user = {
+        id: 1,
+        email: 'test@example.com',
+        name: 'Test User',
+        role: 'user'
+      };
+      
+      const token = generateToken(user);
+      req.headers.authorization = `Bearer ${token}`;
+      
+      optionalAuth(req, res, next);
+      
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(req.user).toBeDefined();
+      expect(req.user.email).toBe(user.email);
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    it('should not attach user when invalid token is provided', () => {
+      req.headers.authorization = 'Bearer invalid-token';
+      
+      optionalAuth(req, res, next);
+      
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(req.user).toBeUndefined();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    it('should log error and call next() when an exception occurs', () => {
+      // Create a scenario where an error would be thrown
+      // by providing malformed authorization header that causes substring to fail
+      Object.defineProperty(req.headers, 'authorization', {
+        get: () => {
+          throw new Error('Unexpected error in header processing');
+        }
+      });
+      
+      optionalAuth(req, res, next);
+      
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Optional authentication error:',
+        expect.any(Error)
+      );
+    });
+
+    it('should not throw error when malformed Bearer token format', () => {
+      req.headers.authorization = 'Bearer ';
+      
+      optionalAuth(req, res, next);
+      
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(req.user).toBeUndefined();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
   });
 });

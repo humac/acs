@@ -99,6 +99,7 @@ export const optionalAuth = (req, res, next) => {
 
     next();
   } catch (error) {
+    console.error('Optional authentication error:', error);
     next();
   }
 };
