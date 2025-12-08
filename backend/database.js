@@ -1201,15 +1201,15 @@ export const assetDb = {
       ${isPostgres ? 'RETURNING id' : ''}
     `;
 
-    // Use empty strings for denormalized fields - they will be fetched via JOINs
-    // This maintains backward compatibility while ensuring JOINs are the source of truth
+    // Store denormalized fields for backward compatibility and unregistered users
+    // JOINs will override these values when user records exist
     const result = await dbRun(insertQuery, [
-      '', // employee_first_name - fetched via JOIN
-      '', // employee_last_name - fetched via JOIN  
+      asset.employee_first_name || '', // stored for unregistered users
+      asset.employee_last_name || '', // stored for unregistered users
       asset.employee_email || '', // keep email for backward compat lookups
       ownerId,
-      '', // manager_first_name - fetched via JOIN
-      '', // manager_last_name - fetched via JOIN
+      asset.manager_first_name || '', // stored for unregistered managers
+      asset.manager_last_name || '', // stored for unregistered managers
       asset.manager_email || '', // keep email for backward compat lookups
       managerId,
       asset.company_name,
@@ -1343,8 +1343,8 @@ export const assetDb = {
       managerId = manager?.id || null;
     }
 
-    // Use empty strings for denormalized fields - they will be fetched via JOINs
-    // This maintains backward compatibility while ensuring JOINs are the source of truth
+    // Store denormalized fields for backward compatibility and unregistered users
+    // JOINs will override these values when user records exist
     return dbRun(`
       UPDATE assets
       SET employee_first_name = ?, employee_last_name = ?, employee_email = ?, owner_id = ?,
@@ -1353,12 +1353,12 @@ export const assetDb = {
           status = ?, last_updated = ?, notes = ?
       WHERE id = ?
     `, [
-      '', // employee_first_name - fetched via JOIN
-      '', // employee_last_name - fetched via JOIN
+      asset.employee_first_name || '', // stored for unregistered users
+      asset.employee_last_name || '', // stored for unregistered users
       asset.employee_email || '', // keep email for backward compat lookups
       ownerId,
-      '', // manager_first_name - fetched via JOIN
-      '', // manager_last_name - fetched via JOIN
+      asset.manager_first_name || '', // stored for unregistered managers
+      asset.manager_last_name || '', // stored for unregistered managers
       asset.manager_email || '', // keep email for backward compat lookups
       managerId,
       asset.company_name,
@@ -1403,12 +1403,13 @@ export const assetDb = {
       managerId = manager?.id || null;
     }
     
-    // Update only manager_id and email - names will be fetched via JOIN
+    // Store denormalized fields for unregistered managers
+    // JOINs will override these values when user records exist
     return dbRun(`
       UPDATE assets
       SET manager_first_name = ?, manager_last_name = ?, manager_email = ?, manager_id = ?, last_updated = ?
       WHERE employee_email = ?
-    `, ['', '', managerEmail || '', managerId, now, employeeEmail]);
+    `, [managerFirstName || '', managerLastName || '', managerEmail || '', managerId, now, employeeEmail]);
   },
   updateManagerForEmployee: async (employeeEmail, managerName, managerEmail) => {
     const now = new Date().toISOString();
@@ -1420,13 +1421,18 @@ export const assetDb = {
       managerId = manager?.id || null;
     }
 
-    // Update only manager_id and email - names will be fetched via JOIN
-    // The managerName parameter is ignored as it will come from the user record via JOIN
+    // Split manager name into first and last name
+    // Store denormalized fields for unregistered managers
+    // JOINs will override these values when user records exist
+    const nameParts = (managerName || '').trim().split(/\s+/);
+    const managerFirstName = nameParts[0] || '';
+    const managerLastName = nameParts.slice(1).join(' ') || '';
+    
     return dbRun(`
       UPDATE assets
       SET manager_first_name = ?, manager_last_name = ?, manager_email = ?, manager_id = ?, last_updated = ?
       WHERE employee_email = ?
-    `, ['', '', managerEmail || '', managerId, now, employeeEmail]);
+    `, [managerFirstName, managerLastName, managerEmail || '', managerId, now, employeeEmail]);
   },
   updateManagerIdForOwner: async (ownerId, managerId) => {
     const now = new Date().toISOString();
@@ -1494,8 +1500,9 @@ export const assetDb = {
       SET manager_first_name = ?, manager_last_name = ?, manager_email = ?, manager_id = ?, last_updated = ?
       WHERE id IN (${placeholders})
     `;
-    // Store email but use empty strings for name fields - names will be fetched via JOINs
-    return dbRun(query, ['', '', managerEmail || '', managerId, now, ...ids]);
+    // Store denormalized fields for unregistered managers
+    // JOINs will override these values when user records exist
+    return dbRun(query, [managerFirstName || '', managerLastName || '', managerEmail || '', managerId, now, ...ids]);
   },
   getEmployeeEmailsByManager: async (managerEmail) => {
     const rows = await dbAll('SELECT DISTINCT employee_email FROM assets WHERE manager_email = ?', [managerEmail]);
