@@ -248,34 +248,34 @@ const ProfileNew = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <User className="h-5 w-5 text-primary" />
             <CardTitle>Profile Settings</CardTitle>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-3">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="mb-6">
+            <TabsList className="mb-4">
               <TabsTrigger value="account" className="gap-2"><User className="h-4 w-4" />Account</TabsTrigger>
               <TabsTrigger value="update" className="gap-2"><User className="h-4 w-4" />Update Info</TabsTrigger>
               <TabsTrigger value="security" className="gap-2"><Shield className="h-4 w-4" />Security</TabsTrigger>
             </TabsList>
 
             <TabsContent value="account">
-              <div className="grid gap-4 md:grid-cols-3">
-                <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Email</p><p className="font-semibold">{user?.email}</p></CardContent></Card>
-                <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Role</p><Badge variant={getRoleColor(user?.role)}>{user?.role?.toUpperCase()}</Badge></CardContent></Card>
-                <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Name</p><p className="font-semibold">{user?.name}</p></CardContent></Card>
-                <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Manager</p><p className="font-semibold">{user?.manager_name || 'Not set'}</p></CardContent></Card>
-                <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Manager Email</p><p className="font-semibold">{user?.manager_email || 'Not set'}</p></CardContent></Card>
+              <div className="grid gap-3 md:grid-cols-3">
+                <Card><CardContent className="pt-4 pb-4"><p className="text-sm text-muted-foreground">Email</p><p className="font-semibold">{user?.email}</p></CardContent></Card>
+                <Card><CardContent className="pt-4 pb-4"><p className="text-sm text-muted-foreground">Role</p><Badge variant={getRoleColor(user?.role)}>{user?.role?.toUpperCase()}</Badge></CardContent></Card>
+                <Card><CardContent className="pt-4 pb-4"><p className="text-sm text-muted-foreground">Name</p><p className="font-semibold">{user?.name}</p></CardContent></Card>
+                <Card><CardContent className="pt-4 pb-4"><p className="text-sm text-muted-foreground">Manager</p><p className="font-semibold">{user?.manager_name || 'Not set'}</p></CardContent></Card>
+                <Card><CardContent className="pt-4 pb-4"><p className="text-sm text-muted-foreground">Manager Email</p><p className="font-semibold">{user?.manager_email || 'Not set'}</p></CardContent></Card>
               </div>
             </TabsContent>
 
             <TabsContent value="update">
-              <form onSubmit={handleSubmit} className="space-y-4 max-w-xl">
+              <form onSubmit={handleSubmit} className="space-y-3 max-w-xl">
                 <div className="flex items-center gap-4">
                   <Avatar className="h-16 w-16">
                     {profileImage && <AvatarImage src={profileImage} alt="Profile" />}
@@ -305,12 +305,12 @@ const ProfileNew = () => {
                   </div>
                 </div>
                 <Separator />
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-2"><Label>First Name</Label><Input value={formData.first_name} onChange={(e) => setFormData({ ...formData, first_name: e.target.value })} required /></div>
                   <div className="space-y-2"><Label>Last Name</Label><Input value={formData.last_name} onChange={(e) => setFormData({ ...formData, last_name: e.target.value })} required /></div>
                 </div>
                 <Separator />
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-2"><Label>Manager First Name</Label><Input value={formData.manager_first_name} onChange={(e) => setFormData({ ...formData, manager_first_name: e.target.value })} /></div>
                   <div className="space-y-2"><Label>Manager Last Name</Label><Input value={formData.manager_last_name} onChange={(e) => setFormData({ ...formData, manager_last_name: e.target.value })} /></div>
                 </div>
@@ -319,11 +319,11 @@ const ProfileNew = () => {
               </form>
             </TabsContent>
 
-            <TabsContent value="security" className="space-y-6">
+            <TabsContent value="security" className="space-y-4">
               <Card>
-                <CardHeader><CardTitle className="text-base">Change Password</CardTitle></CardHeader>
-                <CardContent>
-                  <form onSubmit={handlePasswordSubmit} className="space-y-4 max-w-md">
+                <CardHeader className="pb-3"><CardTitle className="text-base">Change Password</CardTitle></CardHeader>
+                <CardContent className="pt-3">
+                  <form onSubmit={handlePasswordSubmit} className="space-y-3 max-w-md">
                     <div className="space-y-2"><Label>Current Password</Label><Input type="password" value={passwordData.currentPassword} onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })} required /></div>
                     <div className="space-y-2"><Label>New Password</Label><Input type="password" value={passwordData.newPassword} onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })} minLength={6} required /></div>
                     <div className="space-y-2"><Label>Confirm New Password</Label><Input type="password" value={passwordData.confirmPassword} onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })} minLength={6} required /></div>
@@ -333,11 +333,11 @@ const ProfileNew = () => {
               </Card>
 
               <Card>
-                <CardHeader>
+                <CardHeader className="pb-3">
                   <CardTitle className="text-base">Two-Factor Authentication</CardTitle>
                   <CardDescription>Add extra security with a verification code.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3 pt-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       {mfaEnabled ? <><Check className="h-4 w-4 text-green-500" /><span className="text-green-600 font-semibold">Enabled</span></> : <><X className="h-4 w-4 text-red-500" /><span className="text-red-600">Disabled</span></>}
@@ -348,11 +348,11 @@ const ProfileNew = () => {
               </Card>
 
               <Card>
-                <CardHeader>
+                <CardHeader className="pb-3">
                   <div className="flex items-center gap-2"><Key className="h-4 w-4 text-primary" /><CardTitle className="text-base">Passkeys</CardTitle></div>
                   <CardDescription>Use passkeys for passwordless sign-in.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3 pt-3">
                   <div className="flex gap-2">
                     <Input placeholder="Passkey name (e.g., MacBook Touch ID)" value={newPasskeyName} onChange={(e) => setNewPasskeyName(e.target.value)} className="max-w-xs" />
                     <Button onClick={handlePasskeyRegistration} disabled={passkeyLoading}>{passkeyLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}<Key className="h-4 w-4 mr-2" />Create Passkey</Button>

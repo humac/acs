@@ -185,21 +185,22 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[500px] max-h-[85vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-4">
           <DialogTitle>Register New Asset</DialogTitle>
           <DialogDescription>
             Add a new asset to the system. All fields marked with * are required.
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={save} className="space-y-4 py-2">
-          {/* Employee Information */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-muted-foreground">Employee Information</h4>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
+        <form onSubmit={save} className="flex flex-col flex-1 min-h-0">
+          <div className="overflow-y-auto px-6 space-y-3 flex-1">
+            {/* Employee Information */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold text-muted-foreground">Employee Information</h4>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
                 <Label htmlFor="employee_first_name">First Name *</Label>
                 <Input 
                   id="employee_first_name" 
@@ -273,11 +274,11 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
             </div>
           </div>
 
-          {/* Manager Information */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-muted-foreground">Manager Information</h4>
-            
-            <div className="grid grid-cols-2 gap-4">
+            {/* Manager Information */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold text-muted-foreground">Manager Information</h4>
+              
+              <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="manager_first_name">Manager First Name</Label>
                 <Input 
@@ -330,11 +331,11 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
             </div>
           </div>
 
-          {/* Asset Information */}
-          <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-muted-foreground">Asset Information</h4>
-            
-            <div className="grid grid-cols-2 gap-4">
+            {/* Asset Information */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-semibold text-muted-foreground">Asset Information</h4>
+              
+              <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label htmlFor="laptop_make">Laptop Make</Label>
                 <Input 
@@ -420,9 +421,10 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
                 {form.notes.length}/1000
               </div>
             </div>
+            </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="px-6 py-4 border-t mt-auto">
             <Button type="button" variant="outline" onClick={onClose} disabled={saving}>
               Cancel
             </Button>

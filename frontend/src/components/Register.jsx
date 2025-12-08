@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { UserPlus, Loader2, AlertCircle, Laptop } from 'lucide-react';
+import { UserPlus, Loader2, AlertCircle, Laptop, User, Briefcase, Lock } from 'lucide-react';
 
 const RegisterNew = ({ onSwitchToLogin }) => {
   const { register } = useAuth();
@@ -78,7 +78,10 @@ const RegisterNew = ({ onSwitchToLogin }) => {
 
         <Card className="shadow-xl backdrop-blur-sm bg-card/95 border-border/50 animate-scale-in">
           <CardHeader className="space-y-2 pb-4">
-            <CardTitle className="text-2xl text-center">✨ Create an account</CardTitle>
+            <CardTitle className="text-2xl text-center flex items-center justify-center gap-2">
+              <UserPlus className="h-6 w-6" />
+              Create an account
+            </CardTitle>
             <CardDescription className="text-center text-base">
               Enter your information to get started
             </CardDescription>
@@ -95,7 +98,7 @@ const RegisterNew = ({ onSwitchToLogin }) => {
               {/* Personal Information */}
               <div className="space-y-4">
                 <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
-                  <span className="text-lg">👤</span> Your Information
+                  <User className="h-4 w-4" /> Your Information
                 </h4>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
@@ -143,7 +146,7 @@ const RegisterNew = ({ onSwitchToLogin }) => {
               {/* Manager Information */}
               <div className="space-y-4">
                 <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
-                  <span className="text-lg">👔</span> Manager Information
+                  <Briefcase className="h-4 w-4" /> Manager Information
                 </h4>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
@@ -188,7 +191,7 @@ const RegisterNew = ({ onSwitchToLogin }) => {
               {/* Password */}
               <div className="space-y-4">
                 <h4 className="font-semibold text-sm text-foreground flex items-center gap-2">
-                  <span className="text-lg">🔒</span> Set Password
+                  <Lock className="h-4 w-4" /> Set Password
                 </h4>
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>

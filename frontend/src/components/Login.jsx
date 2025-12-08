@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { LogIn, Key, Loader2, AlertCircle, Laptop, Moon, Sun } from 'lucide-react';
+import { LogIn, Key, Loader2, AlertCircle, Laptop, Moon, Sun, UserCircle } from 'lucide-react';
 import { prepareRequestOptions, uint8ArrayToBase64Url } from '@/utils/webauthn';
 
 const LoginNew = ({ onSwitchToRegister }) => {
@@ -315,7 +315,10 @@ const LoginNew = ({ onSwitchToRegister }) => {
 
         <Card className="shadow-xl backdrop-blur-sm bg-card/95 border-border/50 animate-scale-in">
           <CardHeader className="space-y-2 pb-4">
-            <CardTitle className="text-2xl text-center">🎯 Welcome back</CardTitle>
+            <CardTitle className="text-2xl text-center flex items-center justify-center gap-2">
+              <UserCircle className="h-6 w-6" />
+              Welcome back
+            </CardTitle>
             <CardDescription className="text-center text-base">
               Sign in to your workspace
             </CardDescription>
