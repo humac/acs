@@ -318,7 +318,7 @@ const AdminSettingsNew = () => {
   const filteredUsers = useMemo(() => {
     const term = searchTerm.toLowerCase();
     return users.filter((u) => {
-      const managerFullName = `${u.manager_first_name || ''} ${u.manager_last_name || ''}`.toLowerCase();
+      const managerFullName = `${u.manager_first_name || ''} ${u.manager_last_name || ''}`.trim().toLowerCase();
       return (
         u.name?.toLowerCase().includes(term) ||
         u.email?.toLowerCase().includes(term) ||
