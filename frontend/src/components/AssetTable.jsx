@@ -1,5 +1,6 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useUsers } from '../contexts/UsersContext';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import {
@@ -38,6 +39,7 @@ import { Laptop, Search, Edit, Trash2, Sparkles, Loader2, Plus, Upload, Download
 
 export default function AssetTable({ assets = [], onEdit, onDelete, currentUser, onRefresh, onAssetAdded }) {
   const { getAuthHeaders } = useAuth();
+  const { getFullName, getEmail } = useUsers();
   const { toast } = useToast();
   const [deleteDialog, setDeleteDialog] = useState({ open: false, asset: null });
   const [searchTerm, setSearchTerm] = useState('');
@@ -93,20 +95,73 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
     return false;
   };
 
+  // Helper to get manager display name - handles three cases:
+  // 1. manager_first_name/manager_last_name (preferred)
+  // 2. manager_id resolved via UsersContext
+  // 3. fallback to null
+  const getManagerDisplayName = useCallback((asset) => {
+    // Case 1: Prefer denormalized fields if present
+    if (asset.manager_first_name && asset.manager_last_name) {
+      return `${asset.manager_first_name.trim()} ${asset.manager_last_name.trim()}`.trim();
+    }
+    if (asset.manager_first_name || asset.manager_last_name) {
+      return (asset.manager_first_name || asset.manager_last_name).trim();
+    }
+    
+    // Case 2: Fallback to resolving via manager_id
+    if (asset.manager_id) {
+      const name = getFullName(asset.manager_id);
+      if (name) return name;
+    }
+    
+    // Case 3: No name available
+    return null;
+  }, [getFullName]);
+
+  // Helper to get manager email - handles three cases:
+  // 1. manager_email (preferred)
+  // 2. manager_id resolved via UsersContext
+  // 3. fallback to null
+  const getManagerEmail = useCallback((asset) => {
+    // Case 1: Prefer denormalized field if present
+    if (asset.manager_email) {
+      return asset.manager_email;
+    }
+    
+    // Case 2: Fallback to resolving via manager_id
+    if (asset.manager_id) {
+      const email = getEmail(asset.manager_id);
+      if (email) return email;
+    }
+    
+    // Case 3: No email available
+    return null;
+  }, [getEmail]);
+
+  // Enhance assets with computed manager data for efficient rendering
+  const assetsWithManagerData = useMemo(() => {
+    return assets.map(asset => ({
+      ...asset,
+      _managerDisplayName: getManagerDisplayName(asset),
+      _managerEmail: getManagerEmail(asset)
+    }));
+  }, [assets, getManagerDisplayName, getManagerEmail]);
+
   // Filter assets based on search term and status
   const filteredAssets = useMemo(() => {
-    let filtered = [...assets];
+    let filtered = [...assetsWithManagerData];
     
     // Search filter
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter((asset) => {
         const fullName = `${asset.employee_first_name || ''} ${asset.employee_last_name || ''}`.toLowerCase();
-        const managerName = `${asset.manager_first_name || ''} ${asset.manager_last_name || ''}`.toLowerCase();
+        const managerName = (asset._managerDisplayName || '').toLowerCase();
+        const managerEmail = (asset._managerEmail || '').toLowerCase();
         return fullName.includes(term) ||
           asset.employee_email?.toLowerCase().includes(term) ||
           managerName.includes(term) ||
-          asset.manager_email?.toLowerCase().includes(term) ||
+          managerEmail.includes(term) ||
           asset.laptop_serial_number?.toLowerCase().includes(term) ||
           asset.laptop_asset_tag?.toLowerCase().includes(term) ||
           asset.company_name?.toLowerCase().includes(term) ||
@@ -121,7 +176,7 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
     }
 
     return filtered;
-  }, [assets, searchTerm, statusFilter]);
+  }, [assetsWithManagerData, searchTerm, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredAssets.length / pageSize) || 1);
   
@@ -417,14 +472,14 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
                       </div>
                       {getStatusBadge(asset.status)}
                     </div>
-                    {(asset.manager_first_name || asset.manager_email) && (
+                    {(asset._managerDisplayName || asset._managerEmail) && (
                       <div className="mt-2">
                         <p className="text-xs text-muted-foreground">Manager:</p>
-                        {asset.manager_first_name && asset.manager_last_name && (
-                          <p className="text-sm font-medium">{asset.manager_first_name} {asset.manager_last_name}</p>
+                        {asset._managerDisplayName && (
+                          <p className="text-sm font-medium">{asset._managerDisplayName}</p>
                         )}
-                        {asset.manager_email && (
-                          <p className="text-sm text-muted-foreground">{asset.manager_email}</p>
+                        {asset._managerEmail && (
+                          <p className="text-sm text-muted-foreground">{asset._managerEmail}</p>
                         )}
                       </div>
                     )}
@@ -483,8 +538,8 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
                     </TableCell>
                     <TableCell className="font-medium">{asset.employee_first_name && asset.employee_last_name ? `${asset.employee_first_name} ${asset.employee_last_name}` : 'N/A'}</TableCell>
                     <TableCell className="text-muted-foreground">{asset.employee_email || 'N/A'}</TableCell>
-                    <TableCell className="hidden xl:table-cell">{asset.manager_first_name && asset.manager_last_name ? `${asset.manager_first_name} ${asset.manager_last_name}` : '-'}</TableCell>
-                    <TableCell className="hidden xl:table-cell text-muted-foreground">{asset.manager_email || '-'}</TableCell>
+                    <TableCell className="hidden xl:table-cell">{asset._managerDisplayName || '-'}</TableCell>
+                    <TableCell className="hidden xl:table-cell text-muted-foreground">{asset._managerEmail || '-'}</TableCell>
                     <TableCell className="hidden lg:table-cell">{asset.company_name || '-'}</TableCell>
                     <TableCell className="hidden lg:table-cell">
                       {asset.laptop_make && asset.laptop_model ? `${asset.laptop_make} ${asset.laptop_model}` : '-'}
