@@ -317,10 +317,10 @@ const LoginNew = ({ onSwitchToRegister }) => {
           <CardHeader className="space-y-2 pb-4">
             <CardTitle className="text-2xl text-center flex items-center justify-center gap-2">
               <UserCircle className="h-6 w-6" />
-              Welcome back
+              Welcome to KARS
             </CardTitle>
             <CardDescription className="text-center text-base">
-              Sign in to your workspace
+              KeyData Asset Registration System Login 
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
