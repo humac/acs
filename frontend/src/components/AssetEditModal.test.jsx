@@ -31,7 +31,8 @@ describe('AssetEditModal Component', () => {
 
   const sampleAsset = {
     id: 1,
-    employee_name: 'John Doe',
+    employee_first_name: 'John',
+    employee_last_name: 'Doe',
     employee_email: 'john@example.com',
     company_name: 'Acme Corp',
     laptop_make: 'Dell',
@@ -40,7 +41,8 @@ describe('AssetEditModal Component', () => {
     laptop_asset_tag: 'AT001',
     status: 'active',
     notes: 'Test notes',
-    manager_name: 'Jane Manager',
+    manager_first_name: 'Jane',
+    manager_last_name: 'Manager',
     manager_email: 'jane@example.com',
     registration_date: '2024-01-15',
   };
@@ -103,12 +105,14 @@ describe('AssetEditModal Component', () => {
 
     // Editable fields should be present
     expect(screen.getByLabelText('Status')).toBeInTheDocument();
-    expect(screen.getByLabelText('Manager Name')).toBeInTheDocument();
+    expect(screen.getByLabelText('Manager First Name')).toBeInTheDocument();
+    expect(screen.getByLabelText('Manager Last Name')).toBeInTheDocument();
     expect(screen.getByLabelText('Manager Email')).toBeInTheDocument();
     expect(screen.getByLabelText('Notes')).toBeInTheDocument();
 
     // Other fields should NOT be editable inputs (only in read-only summary)
-    expect(screen.queryByLabelText('Employee Name')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Employee First Name')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Employee Last Name')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Employee Email')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Company')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Laptop Make')).not.toBeInTheDocument();
@@ -177,14 +181,16 @@ describe('AssetEditModal Component', () => {
       />
     );
 
-    const nameField = screen.getByLabelText('Manager Name');
+    const firstNameField = screen.getByLabelText('Manager First Name');
     const longName = 'a'.repeat(150);
-    await user.clear(nameField);
-    await user.click(nameField);
+    await user.clear(firstNameField);
+    await user.click(firstNameField);
     await user.paste(longName);
 
-    expect(nameField).toHaveValue('a'.repeat(100));
-    expect(screen.getByText('100/100')).toBeInTheDocument();
+    expect(firstNameField).toHaveValue('a'.repeat(100));
+    // Check for the character counter for first name field
+    const counters = screen.getAllByText('100/100');
+    expect(counters.length).toBeGreaterThan(0);
   });
 
   it('enforces max length on notes (1000 chars)', async () => {
@@ -237,7 +243,8 @@ describe('AssetEditModal Component', () => {
       asset: { 
         ...sampleAsset, 
         status: 'maintenance',
-        manager_name: 'New Manager',
+        manager_first_name: 'New',
+        manager_last_name: 'Manager',
         manager_email: 'new@example.com',
         notes: 'Updated notes' 
       } 
@@ -257,10 +264,15 @@ describe('AssetEditModal Component', () => {
     );
 
     // Update editable fields using paste instead of type to avoid character composition issues
-    const managerNameField = screen.getByLabelText('Manager Name');
-    await user.clear(managerNameField);
-    await user.click(managerNameField);
-    await user.paste('New Manager');
+    const managerFirstNameField = screen.getByLabelText('Manager First Name');
+    await user.clear(managerFirstNameField);
+    await user.click(managerFirstNameField);
+    await user.paste('New');
+
+    const managerLastNameField = screen.getByLabelText('Manager Last Name');
+    await user.clear(managerLastNameField);
+    await user.click(managerLastNameField);
+    await user.paste('Manager');
 
     const managerEmailField = screen.getByLabelText('Manager Email');
     await user.clear(managerEmailField);
@@ -291,12 +303,14 @@ describe('AssetEditModal Component', () => {
       const fetchCall = global.fetch.mock.calls[0];
       const payload = JSON.parse(fetchCall[1].body);
       expect(payload.status).toBe('active');
-      expect(payload.manager_name).toBe('New Manager');
+      expect(payload.manager_first_name).toBe('New');
+      expect(payload.manager_last_name).toBe('Manager');
       expect(payload.manager_email).toBe('new@example.com');
       expect(payload.notes).toBe('Updated notes');
       
       // Verify it also includes the original asset data (for backend validation)
-      expect(payload.employee_name).toBe('John Doe');
+      expect(payload.employee_first_name).toBe('John');
+      expect(payload.employee_last_name).toBe('Doe');
       expect(payload.company_name).toBe('Acme Corp');
       
       expect(mockOnSaved).toHaveBeenCalledWith(mockResponse.asset);
@@ -316,11 +330,17 @@ describe('AssetEditModal Component', () => {
       />
     );
 
-    const nameField = screen.getByLabelText('Manager Name');
-    await user.clear(nameField);
-    await user.type(nameField, 'Updated Manager');
+    const firstNameField = screen.getByLabelText('Manager First Name');
+    await user.clear(firstNameField);
+    await user.type(firstNameField, 'Updated');
 
-    expect(nameField).toHaveValue('Updated Manager');
+    expect(firstNameField).toHaveValue('Updated');
+    
+    const lastNameField = screen.getByLabelText('Manager Last Name');
+    await user.clear(lastNameField);
+    await user.type(lastNameField, 'Manager');
+
+    expect(lastNameField).toHaveValue('Manager');
   });
 
   it('has status dropdown with backend-compatible values', () => {

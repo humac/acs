@@ -15,6 +15,7 @@ Welcome to the documentation for the **KeyData Asset Registration System (KARS)*
 - **[Admin Guide](Admin-Guide)** – User management, companies, audits, and security best practices
 - **[API Reference](API-Reference)** – REST endpoints for auth, assets, companies, audits, OIDC, passkeys, and MFA
 - **[Deployment Guide](Deployment-Guide)** – Portainer/Docker setup, GitHub Actions, Cloudflare Tunnel, and environment config
+- **[Schema Migration Guide](../SCHEMA-MIGRATION.md)** – ⚠️ **Important**: Asset name fields now separated (first_name/last_name)
 - **[Wiki README](README)** – Tips for syncing these pages to the GitHub Wiki
 
 ## 🚀 Quick Links

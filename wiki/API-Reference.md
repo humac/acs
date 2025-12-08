@@ -884,17 +884,21 @@ GET /api/assets
 [
   {
     "id": 1,
-    "employee_name": "John Doe",
+    "employee_first_name": "John",
+    "employee_last_name": "Doe",
     "employee_email": "john@example.com",
-    "manager_name": "Jane Smith",
+    "manager_first_name": "Jane",
+    "manager_last_name": "Smith",
     "manager_email": "jane@example.com",
-    "client_name": "Acme Corp",
+    "company_name": "Acme Corp",
+    "laptop_make": "Apple",
+    "laptop_model": "MacBook Pro 16\"",
     "laptop_serial_number": "SN123456",
     "laptop_asset_tag": "ASSET-001",
     "status": "active",
     "registration_date": "2024-01-01T00:00:00.000Z",
     "last_updated": "2024-01-01T00:00:00.000Z",
-    "notes": "MacBook Pro 16-inch"
+    "notes": "Primary development laptop"
   }
 ]
 ```
@@ -914,16 +918,38 @@ POST /api/assets
 **Request Body:**
 ```json
 {
-  "employee_name": "John Doe",
+  "employee_first_name": "John",
+  "employee_last_name": "Doe",
   "employee_email": "john@example.com",
-  "manager_name": "Jane Smith",
+  "manager_first_name": "Jane",
+  "manager_last_name": "Smith",
   "manager_email": "jane@example.com",
-  "client_name": "Acme Corp",
+  "company_name": "Acme Corp",
+  "laptop_make": "Apple",
+  "laptop_model": "MacBook Pro 16\"",
   "laptop_serial_number": "SN123456",
   "laptop_asset_tag": "ASSET-001",
-  "notes": "MacBook Pro 16-inch"
+  "status": "active",
+  "notes": "Primary development laptop"
 }
 ```
+
+**Required Fields:**
+- `employee_first_name` - Employee's first name
+- `employee_last_name` - Employee's last name
+- `employee_email` - Employee's email address
+- `company_name` - Client company name
+- `laptop_serial_number` - Unique laptop serial number
+- `laptop_asset_tag` - Unique asset tag
+
+**Optional Fields:**
+- `manager_first_name` - Manager's first name
+- `manager_last_name` - Manager's last name
+- `manager_email` - Manager's email address
+- `laptop_make` - Laptop manufacturer (Dell, Apple, Lenovo, etc.)
+- `laptop_model` - Laptop model
+- `status` - Asset status (defaults to 'active')
+- `notes` - Additional notes
 
 **Response:** `201 Created`
 ```json
@@ -931,24 +957,93 @@ POST /api/assets
   "message": "Asset registered successfully",
   "asset": {
     "id": 1,
-    "employee_name": "John Doe",
+    "employee_first_name": "John",
+    "employee_last_name": "Doe",
     "employee_email": "john@example.com",
-    "manager_name": "Jane Smith",
+    "manager_first_name": "Jane",
+    "manager_last_name": "Smith",
     "manager_email": "jane@example.com",
-    "client_name": "Acme Corp",
+    "company_name": "Acme Corp",
+    "laptop_make": "Apple",
+    "laptop_model": "MacBook Pro 16\"",
     "laptop_serial_number": "SN123456",
     "laptop_asset_tag": "ASSET-001",
     "status": "active",
     "registration_date": "2024-01-01T00:00:00.000Z",
     "last_updated": "2024-01-01T00:00:00.000Z",
-    "notes": "MacBook Pro 16-inch"
+    "notes": "Primary development laptop"
   }
 }
 ```
 
 **Errors:**
-- `400` - Missing required fields
+- `400` - Missing required fields (employee_first_name, employee_last_name, employee_email, company_name, laptop_serial_number, laptop_asset_tag)
 - `409` - Duplicate serial number or asset tag
+
+---
+
+### Bulk Import Assets
+
+Import multiple assets from a CSV file (Admin & Manager only).
+
+```http
+POST /api/assets/import
+Content-Type: multipart/form-data
+```
+
+**Request:**
+- Form field: `file` (CSV file)
+
+**CSV Format:**
+Required columns:
+- `employee_first_name`
+- `employee_last_name`
+- `employee_email`
+- `company_name`
+- `laptop_serial_number`
+- `laptop_asset_tag`
+
+Optional columns:
+- `manager_first_name`
+- `manager_last_name`
+- `manager_email`
+- `laptop_make`
+- `laptop_model`
+- `status` (active, returned, lost, damaged, retired)
+- `notes`
+
+**Example CSV:**
+```csv
+employee_first_name,employee_last_name,employee_email,manager_first_name,manager_last_name,manager_email,company_name,laptop_make,laptop_model,laptop_serial_number,laptop_asset_tag,status,notes
+Jane,Doe,jane.doe@example.com,John,Manager,john.manager@example.com,Acme Corp,Lenovo,ThinkPad T14,ABC12345,AT-1001,active,Primary laptop issued Q1
+Sam,Smith,sam.smith@example.com,John,Manager,john.manager@example.com,Globex Inc,Apple,MacBook Pro,XYZ98765,AT-1002,returned,Returned after project completion
+```
+
+**Response:** `200 OK`
+```json
+{
+  "message": "Imported 2 assets",
+  "imported": 2,
+  "failed": 0,
+  "errors": []
+}
+```
+
+**Response with Errors:** `200 OK`
+```json
+{
+  "message": "Imported 1 assets with 1 issues",
+  "imported": 1,
+  "failed": 1,
+  "errors": [
+    "Row 3: Asset with this serial number or asset tag already exists"
+  ]
+}
+```
+
+**Errors:**
+- `400` - No file uploaded or invalid CSV format
+- `403` - Insufficient permissions (employees cannot bulk import)
 
 ---
 

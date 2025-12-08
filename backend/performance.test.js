@@ -88,9 +88,11 @@ describe('Performance Optimizations', () => {
       assetIds = [];
       for (let i = 0; i < 5; i++) {
         const result = await assetDb.create({
-          employee_name: `Employee ${i}`,
+          employee_first_name: `Employee`,
+          employee_last_name: `${i}`,
           employee_email: `emp${i}@example.com`,
-          manager_name: 'Manager',
+          manager_first_name: 'Manager',
+          manager_last_name: 'Test',
           manager_email: 'manager@example.com',
           company_name: 'Test Company',
           laptop_serial_number: `SN${Date.now()}${i}`,
@@ -145,7 +147,7 @@ describe('Performance Optimizations', () => {
 
     test('bulkUpdateManager should update multiple assets in one query', async () => {
       const startTime = Date.now();
-      const result = await assetDb.bulkUpdateManager(assetIds, 'New Manager', 'newmgr@example.com');
+      const result = await assetDb.bulkUpdateManager(assetIds, 'New', 'Manager', 'newmgr@example.com');
       const duration = Date.now() - startTime;
 
       expect(result.changes).toBeGreaterThan(0);
@@ -179,9 +181,11 @@ describe('Performance Optimizations', () => {
       assetIds = [];
       for (let i = 0; i < 3; i++) {
         const result = await assetDb.create({
-          employee_name: `Employee ${i}`,
+          employee_first_name: `Employee`,
+          employee_last_name: `${i}`,
           employee_email: `emp${i}@perftest.com`,
-          manager_name: 'Perf Manager',
+          manager_first_name: 'Perf',
+          manager_last_name: 'Manager',
           manager_email: managerEmail,
           company_name: 'Test Company',
           laptop_serial_number: `PERF${Date.now()}${i}`,

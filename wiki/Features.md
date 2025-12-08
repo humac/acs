@@ -7,11 +7,22 @@ Complete feature overview of the KeyData Asset Registration System (KARS).
 ### Asset Management
 
 **Asset Registration**
-- Self-service registration by consultants
-- Required fields: employee name/email, manager name/email, client company, serial number, asset tag
-- Optional notes field for additional information
+- Self-service registration by consultants with improved data quality through separated name fields
+- Required fields:
+  - Employee first name, last name, email
+  - Company name
+  - Laptop serial number (unique), asset tag (unique)
+- Optional fields:
+  - Manager first name, last name, email
+  - Laptop make, model
+  - Status (defaults to 'active')
+  - Notes
+- **Role-based prepopulation**:
+  - **Employees**: First/last name and email prepopulated from profile and set to readonly. Manager information also prepopulated from profile and readonly. Employees can only register assets for themselves.
+  - **Managers & Admins**: All fields editable, can register assets for anyone
 - Company selection via dropdown (populated from admin-managed companies)
 - Automatic timestamp tracking (registration date, last updated)
+- Separated name fields (first_name/last_name) for employees and managers for better data quality
 
 **Asset Tracking**
 - View all assets you have access to (based on role)
@@ -23,10 +34,13 @@ Complete feature overview of the KeyData Asset Registration System (KARS).
 - Clear filter button to reset all filters
 - Asset count display
 - Sortable table view with pagination
-- **Bulk Import**
+- **Bulk Import** (Admin & Manager Only)
   - CSV import with validation feedback for admins and managers
+  - Required CSV fields: employee_first_name, employee_last_name, employee_email, company_name, laptop_serial_number, laptop_asset_tag
+  - Optional CSV fields: manager_first_name, manager_last_name, manager_email, laptop_make, laptop_model, status, notes
   - Displays per-row success/errors after upload
   - Refreshes asset table after import completes
+  - Download example CSV template with proper field names
 
 **Asset Status Management**
 - Update asset status: Active, Returned, Lost, Damaged, Retired

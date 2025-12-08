@@ -22,14 +22,14 @@ const AssetViewModal = ({ asset, open = true, onClose }) => {
             <Badge variant="secondary">{(asset.status || '').toUpperCase()}</Badge>
           </DialogTitle>
           <DialogDescription className="mt-1">
-            Read-only details for <span className="font-medium">{asset.employee_name}</span>
+            Read-only details for <span className="font-medium">{asset.employee_first_name && asset.employee_last_name ? `${asset.employee_first_name} ${asset.employee_last_name}` : 'N/A'}</span>
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 text-sm">
           <div className="space-y-1">
             <div className="text-muted-foreground text-xs">Employee</div>
-            <div className="font-medium">{asset.employee_name}</div>
+            <div className="font-medium">{asset.employee_first_name && asset.employee_last_name ? `${asset.employee_first_name} ${asset.employee_last_name}` : 'N/A'}</div>
 
             <div className="text-muted-foreground text-xs mt-2">Email</div>
             <div className="text-sm">{asset.employee_email || '-'}</div>
@@ -46,7 +46,7 @@ const AssetViewModal = ({ asset, open = true, onClose }) => {
             <div className="font-mono">{asset.laptop_serial_number || '-'}</div>
 
             <div className="text-muted-foreground text-xs mt-2">Manager</div>
-            <div className="text-sm">{asset.manager_name || '-'}</div>
+            <div className="text-sm">{asset.manager_first_name && asset.manager_last_name ? `${asset.manager_first_name} ${asset.manager_last_name}` : '-'}</div>
           </div>
 
           <div className="sm:col-span-2 mt-1">

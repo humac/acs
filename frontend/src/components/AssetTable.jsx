@@ -32,9 +32,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import TablePaginationControls from '@/components/TablePaginationControls';
+import AssetRegisterModal from '@/components/AssetRegisterModal';
+import AssetBulkImportModal from '@/components/AssetBulkImportModal';
 import { Laptop, Search, Edit, Trash2, Sparkles, Loader2, Plus, Upload, Download } from 'lucide-react';
 
-export default function AssetTable({ assets = [], onEdit, onDelete, currentUser, onRefresh }) {
+export default function AssetTable({ assets = [], onEdit, onDelete, currentUser, onRefresh, onAssetAdded }) {
   const { getAuthHeaders } = useAuth();
   const { toast } = useToast();
   const [deleteDialog, setDeleteDialog] = useState({ open: false, asset: null });
@@ -47,6 +49,8 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
   const [formLoading, setFormLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [showBulkImportModal, setShowBulkImportModal] = useState(false);
 
   async function handleDeleteConfirm() {
     const asset = deleteDialog.asset;
@@ -96,15 +100,16 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
     // Search filter
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter((asset) =>
-        asset.employee_name?.toLowerCase().includes(term) ||
-        asset.employee_email?.toLowerCase().includes(term) ||
-        asset.laptop_serial_number?.toLowerCase().includes(term) ||
-        asset.laptop_asset_tag?.toLowerCase().includes(term) ||
-        asset.company_name?.toLowerCase().includes(term) ||
-        asset.laptop_make?.toLowerCase().includes(term) ||
-        asset.laptop_model?.toLowerCase().includes(term)
-      );
+      filtered = filtered.filter((asset) => {
+        const fullName = `${asset.employee_first_name || ''} ${asset.employee_last_name || ''}`.toLowerCase();
+        return fullName.includes(term) ||
+          asset.employee_email?.toLowerCase().includes(term) ||
+          asset.laptop_serial_number?.toLowerCase().includes(term) ||
+          asset.laptop_asset_tag?.toLowerCase().includes(term) ||
+          asset.company_name?.toLowerCase().includes(term) ||
+          asset.laptop_make?.toLowerCase().includes(term) ||
+          asset.laptop_model?.toLowerCase().includes(term);
+      });
     }
 
     // Status filter
@@ -203,7 +208,8 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
   const handleExportSelected = () => {
     const selectedAssets = assets.filter(a => selectedIds.has(a.id));
     const headers = [
-      'employee_name',
+      'employee_first_name',
+      'employee_last_name',
       'employee_email',
       'company_name',
       'laptop_make',
@@ -249,19 +255,32 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
     );
   };
 
-  if (assets.length === 0) {
-    return (
-      <div className="text-center py-12 text-muted-foreground">
-        <Laptop className="h-12 w-12 mx-auto mb-4 opacity-50" />
-        <p>No assets found</p>
-      </div>
-    );
-  }
+  const canRegister = () => {
+    if (currentUser?.roles?.includes('admin')) return true;
+    if (currentUser?.roles?.includes('editor')) return true;
+    if (currentUser?.roles?.includes('user')) return true; // Employees can register assets for themselves
+    return false;
+  };
+
+  const handleAssetRegistered = (newAsset) => {
+    if (onAssetAdded) {
+      onAssetAdded(newAsset);
+    }
+    if (onRefresh) {
+      onRefresh();
+    }
+  };
+
+  const handleBulkImported = () => {
+    if (onRefresh) {
+      onRefresh();
+    }
+  };
 
   return (
     <>
       <div className="space-y-4">
-        {/* Search and Status Filters */}
+        {/* Action Buttons and Search */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative max-w-md w-full">
             <Search className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
@@ -273,42 +292,68 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
             />
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button
-              variant={statusFilter === 'all' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setStatusFilter('all')}
-            >
-              All
-            </Button>
-            <Button
-              variant={statusFilter === 'active' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setStatusFilter('active')}
-            >
-              Active
-            </Button>
-            <Button
-              variant={statusFilter === 'returned' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setStatusFilter('returned')}
-            >
-              Returned
-            </Button>
-            <Button
-              variant={statusFilter === 'lost' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setStatusFilter('lost')}
-            >
-              Lost
-            </Button>
-            <Button
-              variant={statusFilter === 'damaged' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setStatusFilter('damaged')}
-            >
-              Damaged
-            </Button>
+            {canRegister() && (
+              <>
+                {/* Only admins and editors can bulk import */}
+                {(currentUser?.roles?.includes('admin') || currentUser?.roles?.includes('editor')) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowBulkImportModal(true)}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Bulk Import
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  onClick={() => setShowRegisterModal(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Register Asset
+                </Button>
+              </>
+            )}
           </div>
+        </div>
+
+        {/* Status Filters */}
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant={statusFilter === 'all' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setStatusFilter('all')}
+          >
+            All
+          </Button>
+          <Button
+            variant={statusFilter === 'active' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setStatusFilter('active')}
+          >
+            Active
+          </Button>
+          <Button
+            variant={statusFilter === 'returned' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setStatusFilter('returned')}
+          >
+            Returned
+          </Button>
+          <Button
+            variant={statusFilter === 'lost' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setStatusFilter('lost')}
+          >
+            Lost
+          </Button>
+          <Button
+            variant={statusFilter === 'damaged' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setStatusFilter('damaged')}
+          >
+            Damaged
+          </Button>
         </div>
 
         {/* Bulk Actions Bar */}
@@ -340,7 +385,7 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
         {filteredAssets.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <Laptop className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No assets match your search or filters</p>
+            <p>{assets.length === 0 ? 'No assets found. Get started by registering your first asset!' : 'No assets match your search or filters'}</p>
           </div>
         ) : (
           <>
@@ -361,7 +406,7 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <h4 className="font-medium truncate">{asset.employee_name}</h4>
+                        <h4 className="font-medium truncate">{asset.employee_first_name && asset.employee_last_name ? `${asset.employee_first_name} ${asset.employee_last_name}` : 'N/A'}</h4>
                         <p className="text-sm text-muted-foreground line-clamp-2">{asset.employee_email}</p>
                       </div>
                       {getStatusBadge(asset.status)}
@@ -417,7 +462,7 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
                         onCheckedChange={() => toggleSelect(asset.id)}
                       />
                     </TableCell>
-                    <TableCell className="font-medium">{asset.employee_name || 'N/A'}</TableCell>
+                    <TableCell className="font-medium">{asset.employee_first_name && asset.employee_last_name ? `${asset.employee_first_name} ${asset.employee_last_name}` : 'N/A'}</TableCell>
                     <TableCell className="text-muted-foreground">{asset.employee_email || 'N/A'}</TableCell>
                     <TableCell className="hidden lg:table-cell">{asset.company_name || '-'}</TableCell>
                     <TableCell className="hidden lg:table-cell">
@@ -512,7 +557,7 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
           <DialogHeader>
             <DialogTitle>Confirm Delete</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{deleteDialog.asset?.employee_name}"? This action cannot be undone.
+              Are you sure you want to delete "{deleteDialog.asset?.employee_first_name} {deleteDialog.asset?.employee_last_name}"'s asset? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -521,6 +566,22 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Register Asset Modal */}
+      {showRegisterModal && (
+        <AssetRegisterModal
+          onClose={() => setShowRegisterModal(false)}
+          onRegistered={handleAssetRegistered}
+        />
+      )}
+
+      {/* Bulk Import Modal */}
+      {showBulkImportModal && (
+        <AssetBulkImportModal
+          onClose={() => setShowBulkImportModal(false)}
+          onImported={handleBulkImported}
+        />
+      )}
     </>
   );
 }

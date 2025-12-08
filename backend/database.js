@@ -223,9 +223,11 @@ const initDb = async () => {
   const assetsTable = isPostgres ? `
     CREATE TABLE IF NOT EXISTS assets (
       id SERIAL PRIMARY KEY,
-      employee_name TEXT NOT NULL,
+      employee_first_name TEXT NOT NULL,
+      employee_last_name TEXT NOT NULL,
       employee_email TEXT NOT NULL,
-      manager_name TEXT,
+      manager_first_name TEXT,
+      manager_last_name TEXT,
       manager_email TEXT,
       company_name TEXT NOT NULL,
       laptop_serial_number TEXT NOT NULL UNIQUE,
@@ -240,9 +242,11 @@ const initDb = async () => {
   ` : `
     CREATE TABLE IF NOT EXISTS assets (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      employee_name TEXT NOT NULL,
+      employee_first_name TEXT NOT NULL,
+      employee_last_name TEXT NOT NULL,
       employee_email TEXT NOT NULL,
-      manager_name TEXT,
+      manager_first_name TEXT,
+      manager_last_name TEXT,
       manager_email TEXT,
       company_name TEXT NOT NULL,
       laptop_serial_number TEXT NOT NULL UNIQUE,
@@ -761,9 +765,11 @@ const initDb = async () => {
   }
 
   // Indexes
-  await dbRun('CREATE INDEX IF NOT EXISTS idx_employee_name ON assets(employee_name)');
+  await dbRun('CREATE INDEX IF NOT EXISTS idx_employee_first_name ON assets(employee_first_name)');
+  await dbRun('CREATE INDEX IF NOT EXISTS idx_employee_last_name ON assets(employee_last_name)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_employee_email ON assets(employee_email)');
-  await dbRun('CREATE INDEX IF NOT EXISTS idx_manager_name ON assets(manager_name)');
+  await dbRun('CREATE INDEX IF NOT EXISTS idx_manager_first_name ON assets(manager_first_name)');
+  await dbRun('CREATE INDEX IF NOT EXISTS idx_manager_last_name ON assets(manager_last_name)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_manager_email ON assets(manager_email)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_company_name ON assets(company_name)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_status ON assets(status)');
@@ -797,18 +803,21 @@ export const assetDb = {
     const now = new Date().toISOString();
     const insertQuery = `
       INSERT INTO assets (
-        employee_name, employee_email, manager_name, manager_email,
+        employee_first_name, employee_last_name, employee_email, 
+        manager_first_name, manager_last_name, manager_email,
         company_name, laptop_make, laptop_model, laptop_serial_number, laptop_asset_tag,
         status, registration_date, last_updated, notes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ${isPostgres ? 'RETURNING id' : ''}
     `;
 
     const result = await dbRun(insertQuery, [
-      asset.employee_name,
+      asset.employee_first_name,
+      asset.employee_last_name,
       asset.employee_email,
-      asset.manager_name,
-      asset.manager_email,
+      asset.manager_first_name || null,
+      asset.manager_last_name || null,
+      asset.manager_email || null,
       asset.company_name,
       asset.laptop_make || '',
       asset.laptop_model || '',
@@ -885,15 +894,18 @@ export const assetDb = {
     const now = new Date().toISOString();
     return dbRun(`
       UPDATE assets
-      SET employee_name = ?, employee_email = ?, manager_name = ?, manager_email = ?,
+      SET employee_first_name = ?, employee_last_name = ?, employee_email = ?, 
+          manager_first_name = ?, manager_last_name = ?, manager_email = ?,
           company_name = ?, laptop_serial_number = ?, laptop_asset_tag = ?,
           status = ?, last_updated = ?, notes = ?
       WHERE id = ?
     `, [
-      asset.employee_name,
+      asset.employee_first_name,
+      asset.employee_last_name,
       asset.employee_email,
-      asset.manager_name,
-      asset.manager_email,
+      asset.manager_first_name || null,
+      asset.manager_last_name || null,
+      asset.manager_email || null,
       asset.company_name,
       asset.laptop_serial_number,
       asset.laptop_asset_tag,
@@ -912,13 +924,13 @@ export const assetDb = {
       last_updated: normalizeDates(row.last_updated)
     }));
   },
-  linkAssetsToUser: async (employeeEmail, managerName, managerEmail) => {
+  linkAssetsToUser: async (employeeEmail, managerFirstName, managerLastName, managerEmail) => {
     const now = new Date().toISOString();
     return dbRun(`
       UPDATE assets
-      SET manager_name = ?, manager_email = ?, last_updated = ?
+      SET manager_first_name = ?, manager_last_name = ?, manager_email = ?, last_updated = ?
       WHERE employee_email = ?
-    `, [managerName, managerEmail, now, employeeEmail]);
+    `, [managerFirstName, managerLastName, managerEmail, now, employeeEmail]);
   },
   updateManagerForEmployee: async (employeeEmail, managerName, managerEmail) => {
     const now = new Date().toISOString();
@@ -956,16 +968,16 @@ export const assetDb = {
     const query = `DELETE FROM assets WHERE id IN (${placeholders})`;
     return dbRun(query, ids);
   },
-  bulkUpdateManager: async (ids, managerName, managerEmail) => {
+  bulkUpdateManager: async (ids, managerFirstName, managerLastName, managerEmail) => {
     if (!ids || ids.length === 0) return { changes: 0 };
     const now = new Date().toISOString();
     const placeholders = ids.map(() => '?').join(',');
     const query = `
       UPDATE assets
-      SET manager_name = ?, manager_email = ?, last_updated = ?
+      SET manager_first_name = ?, manager_last_name = ?, manager_email = ?, last_updated = ?
       WHERE id IN (${placeholders})
     `;
-    return dbRun(query, [managerName, managerEmail, now, ...ids]);
+    return dbRun(query, [managerFirstName, managerLastName, managerEmail, now, ...ids]);
   },
   getEmployeeEmailsByManager: async (managerEmail) => {
     const rows = await dbAll('SELECT DISTINCT employee_email FROM assets WHERE manager_email = ?', [managerEmail]);

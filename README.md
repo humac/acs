@@ -10,6 +10,8 @@ A comprehensive SOC2-compliant web application for tracking and managing client 
 
 📖 **Documentation:** [View Wiki](../../wiki)
 
+🔄 **Schema Update:** [Migration Guide](SCHEMA-MIGRATION.md) - Important: Asset name fields now separated into first/last names
+
 ---
 
 ## ✨ Features
@@ -40,14 +42,17 @@ A comprehensive SOC2-compliant web application for tracking and managing client 
 - **Branding Controls** - Admins can upload a custom logo and branding name from the UI
 
 ### 📦 Asset Management
-- **Self-Service Registration** - Consultants register client laptops
+- **Self-Service Registration** - Consultants register client laptops with separated name fields for better data quality
+  - Employee first/last name, email (prepopulated and readonly for employees)
+  - Manager first/last name, email (prepopulated from employee profile for employees)
+  - Company, laptop details, serial number, asset tag, status, notes
 - **Status Tracking** - Active, Returned, Lost, Damaged, Retired
 - **Advanced Search** - Filter by employee, manager, client, status
 - **Role-Based Visibility**:
-  - Employees: Own assets only
-  - Managers: Own + team assets
-  - Admins: All assets
-- **Bulk Import/Export** - CSV importers for assets and companies plus CSV audit export
+  - Employees: Own assets only (register for themselves with prepopulated info)
+  - Managers: Own + team assets (can register for others with full editing)
+  - Admins: All assets (can register for anyone with full editing)
+- **Bulk Import/Export** - CSV importers for assets (with separated name fields) and companies plus CSV audit export
 
 ### 🏢 Company Management (Admin Only)
 - Create, edit, and delete client companies
