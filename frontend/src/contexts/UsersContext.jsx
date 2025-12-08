@@ -19,9 +19,9 @@ export const UsersProvider = ({ children }) => {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch('/api/auth/users', {
-          headers: getAuthHeaders()
-        });
+        // Get auth headers at call time to avoid stale closures
+        const headers = getAuthHeaders();
+        const response = await fetch('/api/auth/users', { headers });
 
         if (response.ok) {
           const data = await response.json();
@@ -41,8 +41,7 @@ export const UsersProvider = ({ children }) => {
     };
 
     fetchUsers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated]); // getAuthHeaders intentionally omitted - only fetch once on authentication
+  }, [isAuthenticated, getAuthHeaders]);
 
   // Build a map for efficient lookups
   const usersById = useMemo(() => {
