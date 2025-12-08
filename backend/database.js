@@ -305,10 +305,11 @@ const initDb = async () => {
       manager_email TEXT,
       manager_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
       company_name TEXT NOT NULL,
-      laptop_serial_number TEXT NOT NULL UNIQUE,
-      laptop_asset_tag TEXT NOT NULL UNIQUE,
-      laptop_make TEXT DEFAULT '',
-      laptop_model TEXT DEFAULT '',
+      asset_type TEXT NOT NULL,
+      make TEXT DEFAULT '',
+      model TEXT DEFAULT '',
+      serial_number TEXT NOT NULL UNIQUE,
+      asset_tag TEXT NOT NULL UNIQUE,
       status TEXT NOT NULL DEFAULT 'active',
       registration_date TIMESTAMP NOT NULL,
       last_updated TIMESTAMP NOT NULL,
@@ -326,10 +327,11 @@ const initDb = async () => {
       manager_email TEXT,
       manager_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
       company_name TEXT NOT NULL,
-      laptop_serial_number TEXT NOT NULL UNIQUE,
-      laptop_asset_tag TEXT NOT NULL UNIQUE,
-      laptop_make TEXT,
-      laptop_model TEXT,
+      asset_type TEXT NOT NULL,
+      make TEXT,
+      model TEXT,
+      serial_number TEXT NOT NULL UNIQUE,
+      asset_tag TEXT NOT NULL UNIQUE,
       status TEXT NOT NULL DEFAULT 'active',
       registration_date TEXT NOT NULL,
       last_updated TEXT NOT NULL,
@@ -1113,6 +1115,8 @@ const initDb = async () => {
   await dbRun('CREATE INDEX IF NOT EXISTS idx_manager_id ON assets(manager_id)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_company_name ON assets(company_name)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_status ON assets(status)');
+  await dbRun('CREATE INDEX IF NOT EXISTS idx_serial_number ON assets(serial_number)');
+  await dbRun('CREATE INDEX IF NOT EXISTS idx_asset_tag ON assets(asset_tag)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_company_name ON companies(name)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_logs(timestamp)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_logs(entity_type, entity_id)');
@@ -1195,9 +1199,9 @@ export const assetDb = {
       INSERT INTO assets (
         employee_first_name, employee_last_name, employee_email, owner_id,
         manager_first_name, manager_last_name, manager_email, manager_id,
-        company_name, laptop_make, laptop_model, laptop_serial_number, laptop_asset_tag,
+        company_name, asset_type, make, model, serial_number, asset_tag,
         status, registration_date, last_updated, notes
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ${isPostgres ? 'RETURNING id' : ''}
     `;
 
@@ -1213,10 +1217,11 @@ export const assetDb = {
       asset.manager_email || '', // keep email for backward compat lookups
       managerId,
       asset.company_name,
-      asset.laptop_make || '',
-      asset.laptop_model || '',
-      asset.laptop_serial_number,
-      asset.laptop_asset_tag,
+      asset.asset_type,
+      asset.make || '',
+      asset.model || '',
+      asset.serial_number,
+      asset.asset_tag,
       asset.status || 'active',
       now,
       now,
@@ -1349,7 +1354,7 @@ export const assetDb = {
       UPDATE assets
       SET employee_first_name = ?, employee_last_name = ?, employee_email = ?, owner_id = ?,
           manager_first_name = ?, manager_last_name = ?, manager_email = ?, manager_id = ?,
-          company_name = ?, laptop_serial_number = ?, laptop_asset_tag = ?,
+          company_name = ?, asset_type = ?, make = ?, model = ?, serial_number = ?, asset_tag = ?,
           status = ?, last_updated = ?, notes = ?
       WHERE id = ?
     `, [
@@ -1362,8 +1367,11 @@ export const assetDb = {
       asset.manager_email || '', // keep email for backward compat lookups
       managerId,
       asset.company_name,
-      asset.laptop_serial_number,
-      asset.laptop_asset_tag,
+      asset.asset_type,
+      asset.make || '',
+      asset.model || '',
+      asset.serial_number,
+      asset.asset_tag,
       asset.status,
       now,
       asset.notes || '',
