@@ -9,39 +9,40 @@ export const UsersProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
+  // Shared fetch logic
+  const fetchUsersData = useCallback(async () => {
     if (!isAuthenticated) {
       setLoading(false);
       return;
     }
 
-    const fetchUsers = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        // Get auth headers at call time to avoid stale closures
-        const headers = getAuthHeaders();
-        const response = await fetch('/api/auth/users', { headers });
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch('/api/auth/users', {
+        headers: getAuthHeaders()
+      });
 
-        if (response.ok) {
-          const data = await response.json();
-          setUsers(data);
-        } else {
-          // If we can't fetch users (e.g., not admin), just set empty array
-          // This is defensive - we don't want to break the UI
-          setUsers([]);
-        }
-      } catch (err) {
-        console.error('Failed to fetch users:', err);
-        setError(err.message);
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data);
+      } else {
+        // If we can't fetch users (e.g., not admin), just set empty array
+        // This is defensive - we don't want to break the UI
         setUsers([]);
-      } finally {
-        setLoading(false);
       }
-    };
-
-    fetchUsers();
+    } catch (err) {
+      console.error('Failed to fetch users:', err);
+      setError(err.message);
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
   }, [isAuthenticated, getAuthHeaders]);
+
+  useEffect(() => {
+    fetchUsersData();
+  }, [fetchUsersData]);
 
   // Build a map for efficient lookups
   const usersById = useMemo(() => {
@@ -60,10 +61,12 @@ export const UsersProvider = ({ children }) => {
     const user = usersById[userId];
     if (!user) return null;
     
-    const firstName = user.first_name || '';
-    const lastName = user.last_name || '';
-    const fullName = `${firstName} ${lastName}`.trim();
-    return fullName || null;
+    const firstName = (user.first_name || '').trim();
+    const lastName = (user.last_name || '').trim();
+    
+    if (!firstName && !lastName) return null;
+    
+    return `${firstName} ${lastName}`.trim();
   }, [usersById]);
 
   // Helper function to get email
@@ -73,31 +76,8 @@ export const UsersProvider = ({ children }) => {
     return user?.email || null;
   }, [usersById]);
 
-  // Refresh function for manual updates
-  const refresh = useCallback(async () => {
-    if (!isAuthenticated) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await fetch('/api/auth/users', {
-        headers: getAuthHeaders()
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data);
-      } else {
-        setUsers([]);
-      }
-    } catch (err) {
-      console.error('Failed to fetch users:', err);
-      setError(err.message);
-      setUsers([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [isAuthenticated, getAuthHeaders]);
+  // Refresh function for manual updates - reuses shared fetch logic
+  const refresh = fetchUsersData;
 
   const value = {
     users,
