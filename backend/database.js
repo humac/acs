@@ -143,11 +143,10 @@ const isValidColumnName = (columnName) => {
  * 
  * @param {string} columnName - Column name from PRAGMA table_info
  * @param {string} [alias] - Optional alias for the column in SELECT
- * @param {string} [defaultValue] - Optional default value if column doesn't exist (must be a SQL literal)
  * @returns {string} Safe SQL SELECT expression
  * @throws {Error} If column name is invalid
  */
-const buildSafeColumnExpression = (columnName, alias = null, defaultValue = null) => {
+const buildSafeColumnExpression = (columnName, alias = null) => {
   if (!isValidColumnName(columnName)) {
     throw new Error(`Invalid column name for SQL expression: "${columnName}"`);
   }
