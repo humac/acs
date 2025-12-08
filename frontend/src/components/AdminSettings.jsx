@@ -10,8 +10,19 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Settings, LayoutDashboard, Database, Loader2, AlertTriangle, Shield, Image, Trash2 } from 'lucide-react';
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import TablePaginationControls from '@/components/TablePaginationControls';
+import { cn } from '@/lib/utils';
+import { Settings, Users, LayoutDashboard, Database, Trash2, Loader2, AlertTriangle, Shield, Image, Edit, Search, Sparkles, Plug } from 'lucide-react';
 import OIDCSettings from './OIDCSettings';
 import SecuritySettings from './SecuritySettings';
+import HubSpotSettings from './HubSpotSettings';
 
 const AdminSettingsNew = () => {
   const { getAuthHeaders, user } = useAuth();
@@ -163,6 +174,7 @@ const AdminSettingsNew = () => {
               <TabsTrigger value="settings" className="gap-2"><Database className="h-4 w-4" />Database</TabsTrigger>
               <TabsTrigger value="branding" className="gap-2"><Image className="h-4 w-4" />Branding</TabsTrigger>
               <TabsTrigger value="security" className="gap-2"><Shield className="h-4 w-4" />Security</TabsTrigger>
+              <TabsTrigger value="integrations" className="gap-2"><Plug className="h-4 w-4" />Integrations</TabsTrigger>
             </TabsList>
 
 
@@ -283,6 +295,10 @@ const AdminSettingsNew = () => {
 
             <TabsContent value="security">
               <SecuritySettings />
+            </TabsContent>
+
+            <TabsContent value="integrations">
+              <HubSpotSettings />
             </TabsContent>
           </Tabs>
         </CardContent>
