@@ -248,132 +248,148 @@ const ProfileNew = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-2">
           <div className="flex items-center gap-2">
             <User className="h-5 w-5 text-primary" />
             <CardTitle>Profile Settings</CardTitle>
           </div>
         </CardHeader>
-        <CardContent className="pt-3">
+        <CardContent className="pt-2 pb-4">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="mb-4">
+            <TabsList className="mb-3">
               <TabsTrigger value="account" className="gap-2"><User className="h-4 w-4" />Account</TabsTrigger>
               <TabsTrigger value="update" className="gap-2"><User className="h-4 w-4" />Update Info</TabsTrigger>
               <TabsTrigger value="security" className="gap-2"><Shield className="h-4 w-4" />Security</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="account">
-              <div className="grid gap-3 md:grid-cols-3">
-                <Card><CardContent className="pt-4 pb-4"><p className="text-sm text-muted-foreground">Email</p><p className="font-semibold">{user?.email}</p></CardContent></Card>
-                <Card><CardContent className="pt-4 pb-4"><p className="text-sm text-muted-foreground">Role</p><Badge variant={getRoleColor(user?.role)}>{user?.role?.toUpperCase()}</Badge></CardContent></Card>
-                <Card><CardContent className="pt-4 pb-4"><p className="text-sm text-muted-foreground">Name</p><p className="font-semibold">{user?.name}</p></CardContent></Card>
-                <Card><CardContent className="pt-4 pb-4"><p className="text-sm text-muted-foreground">Manager</p><p className="font-semibold">{user?.manager_name || 'Not set'}</p></CardContent></Card>
-                <Card><CardContent className="pt-4 pb-4"><p className="text-sm text-muted-foreground">Manager Email</p><p className="font-semibold">{user?.manager_email || 'Not set'}</p></CardContent></Card>
+            <TabsContent value="account" className="space-y-0 mt-3">
+              <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
+                <div className="flex items-center justify-between p-3 rounded-md border bg-card">
+                  <span className="text-sm text-muted-foreground">Email</span>
+                  <span className="font-medium text-sm">{user?.email}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-md border bg-card">
+                  <span className="text-sm text-muted-foreground">Role</span>
+                  <Badge variant={getRoleColor(user?.role)} className="text-xs">{user?.role?.toUpperCase()}</Badge>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-md border bg-card">
+                  <span className="text-sm text-muted-foreground">Name</span>
+                  <span className="font-medium text-sm">{user?.name}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-md border bg-card">
+                  <span className="text-sm text-muted-foreground">Manager</span>
+                  <span className="font-medium text-sm">{user?.manager_name || 'Not set'}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-md border bg-card md:col-span-2 lg:col-span-2">
+                  <span className="text-sm text-muted-foreground">Manager Email</span>
+                  <span className="font-medium text-sm">{user?.manager_email || 'Not set'}</span>
+                </div>
               </div>
             </TabsContent>
 
-            <TabsContent value="update">
-              <form onSubmit={handleSubmit} className="space-y-3 max-w-xl">
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-16 w-16">
+            <TabsContent value="update" className="space-y-0 mt-3">
+              <form onSubmit={handleSubmit} className="space-y-3 max-w-2xl">
+                <div className="flex items-center gap-3 pb-2 border-b">
+                  <Avatar className="h-14 w-14">
                     {profileImage && <AvatarImage src={profileImage} alt="Profile" />}
-                    <AvatarFallback className="bg-primary text-primary-foreground text-lg">
+                    <AvatarFallback className="bg-primary text-primary-foreground text-base">
                       {user?.first_name?.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="space-y-2">
-                    <div className="space-y-1">
-                      <Label htmlFor="profile-image">Profile Picture</Label>
-                      <Input id="profile-image" type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Button type="button" variant="secondary" onClick={() => document.getElementById('profile-image')?.click()}>
+                  <div className="flex-1 space-y-1">
+                    <Label htmlFor="profile-image" className="text-sm">Profile Picture</Label>
+                    <Input id="profile-image" type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Button type="button" size="sm" variant="secondary" onClick={() => document.getElementById('profile-image')?.click()}>
                         Choose Image
                       </Button>
-                      <span className="text-sm text-muted-foreground">
-                        {profileImageName || 'No file selected'}
-                      </span>
                       {profileImage && (
-                        <Button type="button" variant="outline" onClick={handleRemoveImage}>
+                        <Button type="button" size="sm" variant="outline" onClick={handleRemoveImage}>
                           Remove
                         </Button>
                       )}
+                      <span className="text-xs text-muted-foreground">
+                        {profileImageName || 'No file selected'}
+                      </span>
                     </div>
-                    <p className="text-sm text-muted-foreground">JPG, PNG, or SVG up to 5MB.</p>
+                    <p className="text-xs text-muted-foreground">JPG, PNG, or SVG up to 5MB.</p>
                   </div>
                 </div>
-                <Separator />
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-2"><Label>First Name</Label><Input value={formData.first_name} onChange={(e) => setFormData({ ...formData, first_name: e.target.value })} required /></div>
-                  <div className="space-y-2"><Label>Last Name</Label><Input value={formData.last_name} onChange={(e) => setFormData({ ...formData, last_name: e.target.value })} required /></div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="space-y-1.5"><Label className="text-sm">First Name</Label><Input value={formData.first_name} onChange={(e) => setFormData({ ...formData, first_name: e.target.value })} required /></div>
+                  <div className="space-y-1.5"><Label className="text-sm">Last Name</Label><Input value={formData.last_name} onChange={(e) => setFormData({ ...formData, last_name: e.target.value })} required /></div>
                 </div>
-                <Separator />
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-2"><Label>Manager First Name</Label><Input value={formData.manager_first_name} onChange={(e) => setFormData({ ...formData, manager_first_name: e.target.value })} /></div>
-                  <div className="space-y-2"><Label>Manager Last Name</Label><Input value={formData.manager_last_name} onChange={(e) => setFormData({ ...formData, manager_last_name: e.target.value })} /></div>
+                <div className="grid gap-2 sm:grid-cols-2 pt-1">
+                  <div className="space-y-1.5"><Label className="text-sm">Manager First Name</Label><Input value={formData.manager_first_name} onChange={(e) => setFormData({ ...formData, manager_first_name: e.target.value })} /></div>
+                  <div className="space-y-1.5"><Label className="text-sm">Manager Last Name</Label><Input value={formData.manager_last_name} onChange={(e) => setFormData({ ...formData, manager_last_name: e.target.value })} /></div>
                 </div>
-                <div className="space-y-2"><Label>Manager Email</Label><Input type="email" value={formData.manager_email} onChange={(e) => setFormData({ ...formData, manager_email: e.target.value })} /></div>
-                <Button type="submit" disabled={loading}>{loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Update Profile</Button>
+                <div className="space-y-1.5"><Label className="text-sm">Manager Email</Label><Input type="email" value={formData.manager_email} onChange={(e) => setFormData({ ...formData, manager_email: e.target.value })} /></div>
+                <Button type="submit" size="sm" disabled={loading}>{loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Update Profile</Button>
               </form>
             </TabsContent>
 
-            <TabsContent value="security" className="space-y-4">
-              <Card>
-                <CardHeader className="pb-3"><CardTitle className="text-base">Change Password</CardTitle></CardHeader>
-                <CardContent className="pt-3">
-                  <form onSubmit={handlePasswordSubmit} className="space-y-3 max-w-md">
-                    <div className="space-y-2"><Label>Current Password</Label><Input type="password" value={passwordData.currentPassword} onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })} required /></div>
-                    <div className="space-y-2"><Label>New Password</Label><Input type="password" value={passwordData.newPassword} onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })} minLength={6} required /></div>
-                    <div className="space-y-2"><Label>Confirm New Password</Label><Input type="password" value={passwordData.confirmPassword} onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })} minLength={6} required /></div>
-                    <Button type="submit" disabled={passwordLoading}>{passwordLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Change Password</Button>
+            <TabsContent value="security" className="space-y-3 mt-3">
+              <div className="rounded-lg border bg-card">
+                <div className="p-3 pb-2 border-b">
+                  <h4 className="text-sm font-semibold">Change Password</h4>
+                </div>
+                <div className="p-3">
+                  <form onSubmit={handlePasswordSubmit} className="space-y-2 max-w-md">
+                    <div className="space-y-1.5"><Label className="text-sm">Current Password</Label><Input type="password" value={passwordData.currentPassword} onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })} required /></div>
+                    <div className="space-y-1.5"><Label className="text-sm">New Password</Label><Input type="password" value={passwordData.newPassword} onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })} minLength={6} required /></div>
+                    <div className="space-y-1.5"><Label className="text-sm">Confirm New Password</Label><Input type="password" value={passwordData.confirmPassword} onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })} minLength={6} required /></div>
+                    <Button type="submit" size="sm" disabled={passwordLoading}>{passwordLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Change Password</Button>
                   </form>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Two-Factor Authentication</CardTitle>
-                  <CardDescription>Add extra security with a verification code.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3 pt-3">
+              <div className="rounded-lg border bg-card">
+                <div className="p-3 pb-2 border-b">
+                  <h4 className="text-sm font-semibold">Two-Factor Authentication</h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">Add extra security with a verification code.</p>
+                </div>
+                <div className="p-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      {mfaEnabled ? <><Check className="h-4 w-4 text-green-500" /><span className="text-green-600 font-semibold">Enabled</span></> : <><X className="h-4 w-4 text-red-500" /><span className="text-red-600">Disabled</span></>}
+                      {mfaEnabled ? <><Check className="h-4 w-4 text-green-500" /><span className="text-sm text-green-600 font-medium">Enabled</span></> : <><X className="h-4 w-4 text-red-500" /><span className="text-sm text-red-600">Disabled</span></>}
                     </div>
-                    {mfaEnabled ? <Button variant="outline" onClick={() => setShowDisableMFA(true)}>Disable MFA</Button> : <Button onClick={() => setShowMFASetup(true)}>Enable MFA</Button>}
+                    {mfaEnabled ? <Button size="sm" variant="outline" onClick={() => setShowDisableMFA(true)}>Disable MFA</Button> : <Button size="sm" onClick={() => setShowMFASetup(true)}>Enable MFA</Button>}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
-              <Card>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center gap-2"><Key className="h-4 w-4 text-primary" /><CardTitle className="text-base">Passkeys</CardTitle></div>
-                  <CardDescription>Use passkeys for passwordless sign-in.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3 pt-3">
-                  <div className="flex gap-2">
-                    <Input placeholder="Passkey name (e.g., MacBook Touch ID)" value={newPasskeyName} onChange={(e) => setNewPasskeyName(e.target.value)} className="max-w-xs" />
-                    <Button onClick={handlePasskeyRegistration} disabled={passkeyLoading}>{passkeyLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}<Key className="h-4 w-4 mr-2" />Create Passkey</Button>
+              <div className="rounded-lg border bg-card">
+                <div className="p-3 pb-2 border-b">
+                  <div className="flex items-center gap-2">
+                    <Key className="h-4 w-4 text-primary" />
+                    <h4 className="text-sm font-semibold">Passkeys</h4>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">Use passkeys for passwordless sign-in.</p>
+                </div>
+                <div className="p-3 space-y-2">
+                  <div className="flex gap-2 flex-wrap">
+                    <Input placeholder="Passkey name (e.g., MacBook Touch ID)" value={newPasskeyName} onChange={(e) => setNewPasskeyName(e.target.value)} className="max-w-xs flex-1 min-w-[200px]" />
+                    <Button size="sm" onClick={handlePasskeyRegistration} disabled={passkeyLoading}>{passkeyLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}<Key className="h-4 w-4 mr-2" />Create Passkey</Button>
                   </div>
                   {passkeys.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No passkeys registered yet.</p>
+                    <p className="text-xs text-muted-foreground">No passkeys registered yet.</p>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       {passkeys.map((pk) => (
-                        <div key={pk.id} className="flex items-center justify-between p-3 rounded-md border">
-                          <div>
-                            <p className="font-medium">{pk.name}</p>
-                            <p className="text-xs text-muted-foreground">Created {formatDate(pk.created_at)} | Last used {formatDate(pk.last_used_at)}</p>
+                        <div key={pk.id} className="flex items-center justify-between p-2 rounded-md border">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-sm">{pk.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">Created {formatDate(pk.created_at)} | Last used {formatDate(pk.last_used_at)}</p>
                           </div>
-                          <Button variant="ghost" size="icon" onClick={() => handleDeletePasskey(pk.id)} disabled={passkeyLoading}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => handleDeletePasskey(pk.id)} disabled={passkeyLoading}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
                         </div>
                       ))}
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </TabsContent>
           </Tabs>
         </CardContent>
