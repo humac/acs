@@ -765,9 +765,11 @@ const initDb = async () => {
   }
 
   // Indexes
-  await dbRun('CREATE INDEX IF NOT EXISTS idx_employee_name ON assets(employee_name)');
+  await dbRun('CREATE INDEX IF NOT EXISTS idx_employee_first_name ON assets(employee_first_name)');
+  await dbRun('CREATE INDEX IF NOT EXISTS idx_employee_last_name ON assets(employee_last_name)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_employee_email ON assets(employee_email)');
-  await dbRun('CREATE INDEX IF NOT EXISTS idx_manager_name ON assets(manager_name)');
+  await dbRun('CREATE INDEX IF NOT EXISTS idx_manager_first_name ON assets(manager_first_name)');
+  await dbRun('CREATE INDEX IF NOT EXISTS idx_manager_last_name ON assets(manager_last_name)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_manager_email ON assets(manager_email)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_company_name ON assets(company_name)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_status ON assets(status)');

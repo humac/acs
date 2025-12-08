@@ -100,15 +100,16 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
     // Search filter
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter((asset) =>
-        asset.employee_name?.toLowerCase().includes(term) ||
-        asset.employee_email?.toLowerCase().includes(term) ||
-        asset.laptop_serial_number?.toLowerCase().includes(term) ||
-        asset.laptop_asset_tag?.toLowerCase().includes(term) ||
-        asset.company_name?.toLowerCase().includes(term) ||
-        asset.laptop_make?.toLowerCase().includes(term) ||
-        asset.laptop_model?.toLowerCase().includes(term)
-      );
+      filtered = filtered.filter((asset) => {
+        const fullName = `${asset.employee_first_name || ''} ${asset.employee_last_name || ''}`.toLowerCase();
+        return fullName.includes(term) ||
+          asset.employee_email?.toLowerCase().includes(term) ||
+          asset.laptop_serial_number?.toLowerCase().includes(term) ||
+          asset.laptop_asset_tag?.toLowerCase().includes(term) ||
+          asset.company_name?.toLowerCase().includes(term) ||
+          asset.laptop_make?.toLowerCase().includes(term) ||
+          asset.laptop_model?.toLowerCase().includes(term);
+      });
     }
 
     // Status filter
@@ -207,7 +208,8 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
   const handleExportSelected = () => {
     const selectedAssets = assets.filter(a => selectedIds.has(a.id));
     const headers = [
-      'employee_name',
+      'employee_first_name',
+      'employee_last_name',
       'employee_email',
       'company_name',
       'laptop_make',
@@ -404,7 +406,7 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <h4 className="font-medium truncate">{asset.employee_name}</h4>
+                        <h4 className="font-medium truncate">{asset.employee_first_name && asset.employee_last_name ? `${asset.employee_first_name} ${asset.employee_last_name}` : 'N/A'}</h4>
                         <p className="text-sm text-muted-foreground line-clamp-2">{asset.employee_email}</p>
                       </div>
                       {getStatusBadge(asset.status)}
@@ -460,7 +462,7 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
                         onCheckedChange={() => toggleSelect(asset.id)}
                       />
                     </TableCell>
-                    <TableCell className="font-medium">{asset.employee_name || 'N/A'}</TableCell>
+                    <TableCell className="font-medium">{asset.employee_first_name && asset.employee_last_name ? `${asset.employee_first_name} ${asset.employee_last_name}` : 'N/A'}</TableCell>
                     <TableCell className="text-muted-foreground">{asset.employee_email || 'N/A'}</TableCell>
                     <TableCell className="hidden lg:table-cell">{asset.company_name || '-'}</TableCell>
                     <TableCell className="hidden lg:table-cell">
@@ -555,7 +557,7 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
           <DialogHeader>
             <DialogTitle>Confirm Delete</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{deleteDialog.asset?.employee_name}"? This action cannot be undone.
+              Are you sure you want to delete "{deleteDialog.asset?.employee_first_name} {deleteDialog.asset?.employee_last_name}"'s asset? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
