@@ -9,7 +9,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Settings, LayoutDashboard, Database, Loader2, AlertTriangle, Shield, Image, Trash2 } from 'lucide-react';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
@@ -19,7 +18,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import TablePaginationControls from '@/components/TablePaginationControls';
 import { cn } from '@/lib/utils';
-import { Settings, Users, LayoutDashboard, Database, Trash2, Loader2, AlertTriangle, Shield, Image, Edit, Search, Sparkles, Plug } from 'lucide-react';
+import { Settings, LayoutDashboard, Database, Trash2, Loader2, AlertTriangle, Shield, Image, Edit, Search, Sparkles, Plug } from 'lucide-react';
 import OIDCSettings from './OIDCSettings';
 import SecuritySettings from './SecuritySettings';
 import HubSpotSettings from './HubSpotSettings';
