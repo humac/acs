@@ -30,7 +30,7 @@ const AdminSettingsNew = () => {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [editingUser, setEditingUser] = useState(null);
-  const [editForm, setEditForm] = useState({ first_name: '', last_name: '', manager_name: '', manager_email: '' });
+  const [editForm, setEditForm] = useState({ first_name: '', last_name: '', manager_first_name: '', manager_last_name: '', manager_email: '' });
   const [savingEdit, setSavingEdit] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, user: null });
   const [selectedUserIds, setSelectedUserIds] = useState(new Set());
@@ -93,7 +93,8 @@ const AdminSettingsNew = () => {
     setEditForm({
       first_name: user.first_name || '',
       last_name: user.last_name || '',
-      manager_name: user.manager_name || '',
+      manager_first_name: user.manager_first_name || '',
+      manager_last_name: user.manager_last_name || '',
       manager_email: user.manager_email || ''
     });
   };
@@ -106,8 +107,8 @@ const AdminSettingsNew = () => {
       return;
     }
 
-    if (!editForm.manager_name || !editForm.manager_email) {
-      toast({ title: "Missing info", description: "Manager name and email are required", variant: "destructive" });
+    if (!editForm.manager_first_name || !editForm.manager_last_name || !editForm.manager_email) {
+      toast({ title: "Missing info", description: "Manager first name, last name, and email are required", variant: "destructive" });
       return;
     }
 
@@ -316,12 +317,15 @@ const AdminSettingsNew = () => {
 
   const filteredUsers = useMemo(() => {
     const term = searchTerm.toLowerCase();
-    return users.filter((u) =>
-      u.name?.toLowerCase().includes(term) ||
-      u.email?.toLowerCase().includes(term) ||
-      u.manager_name?.toLowerCase().includes(term) ||
-      u.manager_email?.toLowerCase().includes(term)
-    );
+    return users.filter((u) => {
+      const managerFullName = `${u.manager_first_name || ''} ${u.manager_last_name || ''}`.trim().toLowerCase();
+      return (
+        u.name?.toLowerCase().includes(term) ||
+        u.email?.toLowerCase().includes(term) ||
+        managerFullName.includes(term) ||
+        u.manager_email?.toLowerCase().includes(term)
+      );
+    });
   }, [users, searchTerm]);
 
   const totalUserPages = Math.max(1, Math.ceil(filteredUsers.length / usersPageSize) || 1);
@@ -523,7 +527,11 @@ const AdminSettingsNew = () => {
                             </TableCell>
                             <TableCell className="hidden lg:table-cell">
                               <div className="flex flex-col">
-                                <span className="font-medium">{u.manager_name || '—'}</span>
+                                <span className="font-medium">
+                                  {u.manager_first_name && u.manager_last_name 
+                                    ? `${u.manager_first_name} ${u.manager_last_name}` 
+                                    : '—'}
+                                </span>
                                 <span className="text-xs text-muted-foreground">{u.manager_email || '—'}</span>
                               </div>
                             </TableCell>
@@ -719,22 +727,30 @@ const AdminSettingsNew = () => {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium">Manager Name</label>
+                <label className="text-sm font-medium">Manager First Name</label>
                 <Input
-                  value={editForm.manager_name}
-                  onChange={(e) => setEditForm({ ...editForm, manager_name: e.target.value })}
-                  placeholder="Manager name"
+                  value={editForm.manager_first_name}
+                  onChange={(e) => setEditForm({ ...editForm, manager_first_name: e.target.value })}
+                  placeholder="First name"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium">Manager Email</label>
+                <label className="text-sm font-medium">Manager Last Name</label>
                 <Input
-                  value={editForm.manager_email}
-                  onChange={(e) => setEditForm({ ...editForm, manager_email: e.target.value })}
-                  placeholder="manager@example.com"
-                  type="email"
+                  value={editForm.manager_last_name}
+                  onChange={(e) => setEditForm({ ...editForm, manager_last_name: e.target.value })}
+                  placeholder="Last name"
                 />
               </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Manager Email</label>
+              <Input
+                value={editForm.manager_email}
+                onChange={(e) => setEditForm({ ...editForm, manager_email: e.target.value })}
+                placeholder="manager@example.com"
+                type="email"
+              />
             </div>
             {editingUser && (
               <p className="text-xs text-muted-foreground">Editing: {editingUser.email}</p>

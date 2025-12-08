@@ -46,14 +46,13 @@ const RegisterNew = ({ onSwitchToLogin }) => {
       return;
     }
 
-    const manager_name = `${formData.manager_first_name} ${formData.manager_last_name}`.trim();
-
     const result = await register(
       formData.email,
       formData.password,
       formData.first_name,
       formData.last_name,
-      manager_name,
+      formData.manager_first_name,
+      formData.manager_last_name,
       formData.manager_email
     );
 

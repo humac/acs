@@ -204,7 +204,7 @@ const autoAssignManagerRole = async (email, triggeredBy) => {
 // Register new user
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { email, password, name, first_name, last_name, manager_name, manager_email } = req.body;
+    let { email, password, name, first_name, last_name, manager_first_name, manager_last_name, manager_name, manager_email } = req.body;
 
     // Validation - accept either 'name' or 'first_name + last_name'
     if (!email || !password) {
@@ -219,9 +219,23 @@ app.post('/api/auth/register', async (req, res) => {
       });
     }
 
-    if (!manager_name || !manager_email) {
+    // Support both split fields and combined field for backward compatibility
+    if (manager_first_name && manager_last_name) {
+      // Split fields provided - use them
+    } else if (manager_name) {
+      // Combined field provided - split it
+      const nameParts = manager_name.trim().split(/\s+/);
+      manager_first_name = nameParts[0] || '';
+      manager_last_name = nameParts.slice(1).join(' ') || '';
+    } else {
       return res.status(400).json({
-        error: 'Manager name and manager email are required'
+        error: 'Manager first name and last name are required'
+      });
+    }
+
+    if (!manager_email) {
+      return res.status(400).json({
+        error: 'Manager email is required'
       });
     }
 
@@ -255,7 +269,8 @@ app.post('/api/auth/register', async (req, res) => {
       name: name || `${first_name} ${last_name}`,
       first_name: first_name || null,
       last_name: last_name || null,
-      manager_name,
+      manager_first_name,
+      manager_last_name,
       manager_email,
       role: userRole
     });
@@ -275,7 +290,8 @@ app.post('/api/auth/register', async (req, res) => {
         name: newUser.name,
         email: newUser.email,
         role: newUser.role,
-        manager_name: newUser.manager_name,
+        manager_first_name: newUser.manager_first_name,
+        manager_last_name: newUser.manager_last_name,
         manager_email: newUser.manager_email,
         registration_method: 'local'
       },
@@ -457,7 +473,7 @@ app.get('/api/auth/me', authenticate, async (req, res) => {
 // Update user profile
 app.put('/api/auth/profile', authenticate, async (req, res) => {
   try {
-    const { first_name, last_name, manager_name, manager_email, profile_image } = req.body;
+    let { first_name, last_name, manager_first_name, manager_last_name, manager_name, manager_email, profile_image } = req.body;
 
     // Validation
     if (!first_name || !last_name) {
@@ -466,9 +482,24 @@ app.put('/api/auth/profile', authenticate, async (req, res) => {
       });
     }
 
-    if (!manager_name || !manager_email) {
+    // Support both split fields and combined field for backward compatibility
+    // If split fields are provided, use them; otherwise fall back to combined field
+    if (manager_first_name && manager_last_name) {
+      // Split fields provided - use them
+    } else if (manager_name) {
+      // Combined field provided - split it
+      const nameParts = manager_name.trim().split(/\s+/);
+      manager_first_name = nameParts[0] || '';
+      manager_last_name = nameParts.slice(1).join(' ') || '';
+    } else {
       return res.status(400).json({
-        error: 'Manager name and manager email are required'
+        error: 'Manager first name and last name are required'
+      });
+    }
+
+    if (!manager_email) {
+      return res.status(400).json({
+        error: 'Manager email is required'
       });
     }
 
@@ -500,7 +531,8 @@ app.put('/api/auth/profile', authenticate, async (req, res) => {
       name,
       first_name,
       last_name,
-      manager_name,
+      manager_first_name,
+      manager_last_name,
       manager_email,
       profile_image: normalizedProfileImage
     });
@@ -517,12 +549,14 @@ app.put('/api/auth/profile', authenticate, async (req, res) => {
       {
         old_first_name: oldUser.first_name,
         old_last_name: oldUser.last_name,
-        old_manager_name: oldUser.manager_name,
+        old_manager_first_name: oldUser.manager_first_name,
+        old_manager_last_name: oldUser.manager_last_name,
         old_manager_email: oldUser.manager_email,
         old_profile_image_set: !!oldUser.profile_image,
         new_first_name: first_name,
         new_last_name: last_name,
-        new_manager_name: manager_name,
+        new_manager_first_name: manager_first_name,
+        new_manager_last_name: manager_last_name,
         new_manager_email: manager_email,
         new_profile_image_set: !!normalizedProfileImage
       },
@@ -530,12 +564,15 @@ app.put('/api/auth/profile', authenticate, async (req, res) => {
     );
 
     // Update manager info on all assets for this employee if manager changed
-    const managerChanged = oldUser.manager_name !== manager_name || oldUser.manager_email !== manager_email;
+    const managerChanged = oldUser.manager_first_name !== manager_first_name || 
+                           oldUser.manager_last_name !== manager_last_name ||
+                           oldUser.manager_email !== manager_email;
     if (managerChanged) {
       try {
+        const combined_manager_name = `${manager_first_name} ${manager_last_name}`;
         const updatedAssets = await assetDb.updateManagerForEmployee(
           user.email,
-          manager_name,
+          combined_manager_name,
           manager_email
         );
 
@@ -550,9 +587,11 @@ app.put('/api/auth/profile', authenticate, async (req, res) => {
             `Manager synced for ${user.email}`,
             {
               employee_email: user.email,
-              old_manager_name: oldUser.manager_name,
+              old_manager_first_name: oldUser.manager_first_name,
+              old_manager_last_name: oldUser.manager_last_name,
               old_manager_email: oldUser.manager_email,
-              new_manager_name: manager_name,
+              new_manager_first_name: manager_first_name,
+              new_manager_last_name: manager_last_name,
               new_manager_email: manager_email,
               updated_count: updatedAssets.changes
             },
@@ -1311,7 +1350,7 @@ app.get('/api/auth/users', authenticate, authorize('admin'), async (req, res) =>
 app.put('/api/auth/users/:id', authenticate, authorize('admin'), async (req, res) => {
   try {
     const userId = parseInt(req.params.id);
-    const { first_name, last_name, manager_name, manager_email, profile_image } = req.body;
+    const { first_name, last_name, manager_first_name, manager_last_name, manager_email, profile_image } = req.body;
 
     const targetUser = await userDb.getById(userId);
     if (!targetUser) {
@@ -1322,8 +1361,8 @@ app.put('/api/auth/users/:id', authenticate, authorize('admin'), async (req, res
       return res.status(400).json({ error: 'First name and last name are required' });
     }
 
-    if (!manager_name || !manager_email) {
-      return res.status(400).json({ error: 'Manager name and manager email are required' });
+    if (!manager_first_name || !manager_last_name || !manager_email) {
+      return res.status(400).json({ error: 'Manager first name, last name, and email are required' });
     }
 
     let normalizedProfileImage = targetUser.profile_image;
@@ -1348,7 +1387,8 @@ app.put('/api/auth/users/:id', authenticate, authorize('admin'), async (req, res
       name,
       first_name,
       last_name,
-      manager_name,
+      manager_first_name,
+      manager_last_name,
       manager_email,
       profile_image: normalizedProfileImage
     });
@@ -1363,12 +1403,14 @@ app.put('/api/auth/users/:id', authenticate, authorize('admin'), async (req, res
       {
         old_first_name: targetUser.first_name,
         old_last_name: targetUser.last_name,
-        old_manager_name: targetUser.manager_name,
+        old_manager_first_name: targetUser.manager_first_name,
+        old_manager_last_name: targetUser.manager_last_name,
         old_manager_email: targetUser.manager_email,
         old_profile_image_set: !!targetUser.profile_image,
         new_first_name: first_name,
         new_last_name: last_name,
-        new_manager_name: manager_name,
+        new_manager_first_name: manager_first_name,
+        new_manager_last_name: manager_last_name,
         new_manager_email: manager_email,
         new_profile_image_set: !!normalizedProfileImage,
         changed_by: req.user.email
@@ -1377,10 +1419,13 @@ app.put('/api/auth/users/:id', authenticate, authorize('admin'), async (req, res
     );
 
     const managerChanged =
-      targetUser.manager_name !== manager_name || targetUser.manager_email !== manager_email;
+      targetUser.manager_first_name !== manager_first_name || 
+      targetUser.manager_last_name !== manager_last_name ||
+      targetUser.manager_email !== manager_email;
 
     if (managerChanged) {
       try {
+        const manager_name = `${manager_first_name} ${manager_last_name}`;
         await assetDb.updateManagerForEmployee(
           updatedUser.email,
           manager_name,
@@ -1400,7 +1445,8 @@ app.put('/api/auth/users/:id', authenticate, authorize('admin'), async (req, res
         role: updatedUser.role,
         first_name: updatedUser.first_name,
         last_name: updatedUser.last_name,
-        manager_name: updatedUser.manager_name,
+        manager_first_name: updatedUser.manager_first_name,
+        manager_last_name: updatedUser.manager_last_name,
         manager_email: updatedUser.manager_email
       }
     });

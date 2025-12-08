@@ -41,12 +41,11 @@ const ProfileNew = () => {
 
   useEffect(() => {
     if (user) {
-      const managerParts = user.manager_name ? user.manager_name.trim().split(' ') : ['', ''];
       setFormData({
         first_name: user.first_name || '',
         last_name: user.last_name || '',
-        manager_first_name: managerParts[0] || '',
-        manager_last_name: managerParts.slice(1).join(' ') || '',
+        manager_first_name: user.manager_first_name || '',
+        manager_last_name: user.manager_last_name || '',
         manager_email: user.manager_email || ''
       });
       setProfileImage(user.profile_image || null);
@@ -86,11 +85,8 @@ const ProfileNew = () => {
     try {
       const submitData = {
         ...formData,
-        manager_name: `${formData.manager_first_name} ${formData.manager_last_name}`.trim(),
         profile_image: profileImage ?? null
       };
-      delete submitData.manager_first_name;
-      delete submitData.manager_last_name;
       const response = await fetch('/api/auth/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
@@ -280,7 +276,11 @@ const ProfileNew = () => {
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-md border bg-card">
                   <span className="text-sm text-muted-foreground">Manager</span>
-                  <span className="font-medium text-sm">{user?.manager_name || 'Not set'}</span>
+                  <span className="font-medium text-sm">
+                    {user?.manager_first_name && user?.manager_last_name 
+                      ? `${user.manager_first_name} ${user.manager_last_name}` 
+                      : 'Not set'}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-md border bg-card lg:col-span-2">
                   <span className="text-sm text-muted-foreground">Manager Email</span>

@@ -389,6 +389,8 @@ const initDb = async () => {
       first_name TEXT,
       last_name TEXT,
       manager_name TEXT,
+      manager_first_name TEXT,
+      manager_last_name TEXT,
       manager_email TEXT,
       profile_image TEXT,
       oidc_sub TEXT UNIQUE,
@@ -408,6 +410,8 @@ const initDb = async () => {
       first_name TEXT,
       last_name TEXT,
       manager_name TEXT,
+      manager_first_name TEXT,
+      manager_last_name TEXT,
       manager_email TEXT,
       profile_image TEXT,
       oidc_sub TEXT,
@@ -535,6 +539,8 @@ const initDb = async () => {
   try {
     if (isPostgres) {
       await dbRun('ALTER TABLE users ADD COLUMN IF NOT EXISTS manager_name TEXT');
+      await dbRun('ALTER TABLE users ADD COLUMN IF NOT EXISTS manager_first_name TEXT');
+      await dbRun('ALTER TABLE users ADD COLUMN IF NOT EXISTS manager_last_name TEXT');
       await dbRun('ALTER TABLE users ADD COLUMN IF NOT EXISTS manager_email TEXT');
       await dbRun('ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_image TEXT');
       await dbRun('ALTER TABLE passkey_settings ADD COLUMN IF NOT EXISTS enabled INTEGER NOT NULL DEFAULT 1');
@@ -551,6 +557,8 @@ const initDb = async () => {
           `, ['users'])
         : await dbAll("PRAGMA table_info(users)");
       const hasManagerName = columns.some(col => col.name === 'manager_name');
+      const hasManagerFirstName = columns.some(col => col.name === 'manager_first_name');
+      const hasManagerLastName = columns.some(col => col.name === 'manager_last_name');
       const hasManagerEmail = columns.some(col => col.name === 'manager_email');
       const hasProfileImage = columns.some(col => col.name === 'profile_image');
       const passkeyColumns = isPostgres
@@ -574,6 +582,12 @@ const initDb = async () => {
 
       if (!hasManagerName) {
         await dbRun('ALTER TABLE users ADD COLUMN manager_name TEXT');
+      }
+      if (!hasManagerFirstName) {
+        await dbRun('ALTER TABLE users ADD COLUMN manager_first_name TEXT');
+      }
+      if (!hasManagerLastName) {
+        await dbRun('ALTER TABLE users ADD COLUMN manager_last_name TEXT');
       }
       if (!hasManagerEmail) {
         await dbRun('ALTER TABLE users ADD COLUMN manager_email TEXT');
@@ -611,6 +625,36 @@ const initDb = async () => {
       console.error('Stack trace:', err.stack);
       throw new Error(`Failed to add columns to users/settings tables: ${err.message}`);
     }
+  }
+
+  // Migrate existing manager_name data to split fields
+  try {
+    const usersWithManagerName = await dbAll(`
+      SELECT id, manager_name 
+      FROM users 
+      WHERE manager_name IS NOT NULL 
+      AND manager_name != '' 
+      AND (manager_first_name IS NULL OR manager_first_name = '')
+    `);
+    
+    for (const user of usersWithManagerName) {
+      const nameParts = user.manager_name.trim().split(/\s+/);
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      
+      await dbRun(`
+        UPDATE users 
+        SET manager_first_name = ?, manager_last_name = ? 
+        WHERE id = ?
+      `, [firstName, lastName, user.id]);
+    }
+    
+    if (usersWithManagerName.length > 0) {
+      console.log(`Migrated ${usersWithManagerName.length} manager names to split fields`);
+    }
+  } catch (err) {
+    console.error('Failed to migrate manager_name data:', err.message);
+    // Don't throw - this is a data migration that can fail without breaking the system
   }
 
   // Migrate existing assets table to make manager fields nullable
@@ -1534,8 +1578,8 @@ export const userDb = {
   create: async (user) => {
     const now = new Date().toISOString();
     const insertQuery = `
-      INSERT INTO users (email, password_hash, name, role, created_at, first_name, last_name, manager_name, manager_email)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO users (email, password_hash, name, role, created_at, first_name, last_name, manager_first_name, manager_last_name, manager_email)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ${isPostgres ? 'RETURNING id' : ''}
     `;
     const result = await dbRun(insertQuery, [
@@ -1546,7 +1590,8 @@ export const userDb = {
       now,
       user.first_name || null,
       user.last_name || null,
-      user.manager_name || null,
+      user.manager_first_name || null,
+      user.manager_last_name || null,
       user.manager_email || null
     ]);
     const id = isPostgres ? result.rows?.[0]?.id : result.lastInsertRowid;
@@ -1594,13 +1639,14 @@ export const userDb = {
   delete: async (id) => dbRun('DELETE FROM users WHERE id = ?', [id]),
   updateProfile: async (id, profile) => dbRun(`
     UPDATE users
-    SET name = ?, first_name = ?, last_name = ?, manager_name = ?, manager_email = ?, profile_image = ?
+    SET name = ?, first_name = ?, last_name = ?, manager_first_name = ?, manager_last_name = ?, manager_email = ?, profile_image = ?
     WHERE id = ?
   `, [
     profile.name,
     profile.first_name || null,
     profile.last_name || null,
-    profile.manager_name || null,
+    profile.manager_first_name || null,
+    profile.manager_last_name || null,
     profile.manager_email || null,
     profile.profile_image ?? null,
     id
@@ -1618,8 +1664,8 @@ export const userDb = {
   createFromOIDC: async (userData) => {
     const now = new Date().toISOString();
     const insertQuery = `
-      INSERT INTO users (email, password_hash, name, role, created_at, first_name, last_name, manager_name, manager_email, oidc_sub)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO users (email, password_hash, name, role, created_at, first_name, last_name, manager_first_name, manager_last_name, manager_email, oidc_sub)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ${isPostgres ? 'RETURNING id' : ''}
     `;
     const result = await dbRun(insertQuery, [
@@ -1630,7 +1676,8 @@ export const userDb = {
       now,
       userData.first_name || null,
       userData.last_name || null,
-      userData.manager_name || null,
+      userData.manager_first_name || null,
+      userData.manager_last_name || null,
       userData.manager_email || null,
       userData.oidcSub
     ]);
