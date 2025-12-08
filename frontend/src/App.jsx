@@ -16,6 +16,7 @@ import {
 import {
   Laptop,
   Building2,
+  Users,
   FileBarChart,
   Settings,
   User,
@@ -29,6 +30,7 @@ import {
 import Dashboard from '@/components/Dashboard';
 import AssetsPage from '@/pages/AssetsPage';
 import CompanyManagement from '@/components/CompanyManagement';
+import UserManagement from '@/components/UserManagement';
 import AuditReporting from '@/components/AuditReporting';
 import AdminSettings from '@/components/AdminSettings';
 import Profile from '@/components/Profile';
@@ -98,6 +100,7 @@ function AppNew() {
   const navItems = [
     { label: 'Assets', icon: Laptop, path: '/assets' },
     { label: 'Companies', icon: Building2, path: '/companies', roles: ['admin'] },
+    { label: 'Users', icon: Users, path: '/users', roles: ['admin', 'manager'] },
     { label: 'Audit & Reports', icon: FileBarChart, path: '/audit' },
     { label: 'Admin Settings', icon: Settings, path: '/admin', roles: ['admin'] },
   ];
@@ -322,6 +325,9 @@ function AppNew() {
           <Route path="/assets/dashboard" element={<Dashboard />} />
           {user?.role === 'admin' && (
             <Route path="/companies" element={<CompanyManagement />} />
+          )}
+          {(user?.role === 'admin' || user?.role === 'manager') && (
+            <Route path="/users" element={<UserManagement />} />
           )}
           <Route path="/audit" element={<AuditReporting />} />
           {user?.role === 'admin' && (
