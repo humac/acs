@@ -204,7 +204,7 @@ const autoAssignManagerRole = async (email, triggeredBy) => {
 // Register new user
 app.post('/api/auth/register', async (req, res) => {
   try {
-    const { email, password, name, first_name, last_name, manager_name, manager_email } = req.body;
+    let { email, password, name, first_name, last_name, manager_first_name, manager_last_name, manager_name, manager_email } = req.body;
 
     // Validation - accept either 'name' or 'first_name + last_name'
     if (!email || !password) {
@@ -219,9 +219,23 @@ app.post('/api/auth/register', async (req, res) => {
       });
     }
 
-    if (!manager_name || !manager_email) {
+    // Support both split fields and combined field for backward compatibility
+    if (manager_first_name && manager_last_name) {
+      // Split fields provided - use them
+    } else if (manager_name) {
+      // Combined field provided - split it
+      const nameParts = manager_name.trim().split(/\s+/);
+      manager_first_name = nameParts[0] || '';
+      manager_last_name = nameParts.slice(1).join(' ') || '';
+    } else {
       return res.status(400).json({
-        error: 'Manager name and manager email are required'
+        error: 'Manager first name and last name are required'
+      });
+    }
+
+    if (!manager_email) {
+      return res.status(400).json({
+        error: 'Manager email is required'
       });
     }
 
@@ -255,7 +269,8 @@ app.post('/api/auth/register', async (req, res) => {
       name: name || `${first_name} ${last_name}`,
       first_name: first_name || null,
       last_name: last_name || null,
-      manager_name,
+      manager_first_name,
+      manager_last_name,
       manager_email,
       role: userRole
     });
@@ -275,7 +290,8 @@ app.post('/api/auth/register', async (req, res) => {
         name: newUser.name,
         email: newUser.email,
         role: newUser.role,
-        manager_name: newUser.manager_name,
+        manager_first_name: newUser.manager_first_name,
+        manager_last_name: newUser.manager_last_name,
         manager_email: newUser.manager_email,
         registration_method: 'local'
       },
