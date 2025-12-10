@@ -2,40 +2,44 @@
 
 ## Repository Overview
 
-KARS (KeyData Asset Registration System) is a SOC2-compliant asset tracking web app. ~100MB repo with Node.js backend and React frontend.
+KARS (KeyData Asset Registration System) is a SOC2-compliant asset tracking web app with multi-factor authentication, role-based access control (RBAC), and comprehensive audit logging.
 
-**Stack:** Node.js 18 + Express + SQLite/Postgres | React 18 + Vite + Tailwind + shadcn/ui | Jest/Vitest | Docker (ARM64/AMD64)
+**Stack:** Node.js 18 + Express + SQLite/PostgreSQL | React 18 + Vite + Tailwind + shadcn/ui | Jest/Vitest | Docker (ARM64/AMD64)
+
+**Auth Methods:** JWT, WebAuthn/Passkeys, TOTP MFA, OIDC/SSO
+
+**RBAC Roles:** employee (own assets), manager (own + team), admin (all access)
 
 ## Build & Test Commands
 
 ### Backend (`/backend`)
 
-**⚠️ CRITICAL: Node 18 preferred** (`>=18 <19` in package.json) for native modules (better-sqlite3). Node 20 works but shows warnings. CI uses Node 20 successfully. Use Node 18 if you encounter build errors.
+**⚠️ CRITICAL: Node 18 required** (`>=18 <19` in package.json) for native modules (better-sqlite3).
 
 ```bash
 npm ci                # Install (ALWAYS use ci, not install)
-npm test              # Jest tests (5 suites, 67+ tests, ~2s)
+npm test              # Jest tests
 npm run dev           # Dev with auto-restart (port 3001)
 npm start             # Production
 ```
 
 **Requirements:** `.env` file with `JWT_SECRET` (copy from `.env.example`)
+
 **Issues:** Missing .env → copy example | Native errors → use Node 18 | DB locked → delete `backend/data/*.db`
 
 ### Frontend (`/frontend`)
 
 ```bash
 npm ci                # Install (use ci, not install)
-npm test              # Vitest (4 files, 23+ tests, ~5s)
+npm test              # Vitest tests
 npm run dev           # Dev server (port 3000, proxies /api to :3001)
-npm run build         # Production build (~4s, ~550KB, expect chunk warnings)
+npm run build         # Production build
 ```
 
-**Issues:** API errors → ensure backend running | Build warnings about 500KB chunks are normal
+**Issues:** API errors → ensure backend running | Build chunk warnings are normal
 
 ### Full Stack Development
 
-**Start backend first, then frontend:**
 ```bash
 cd backend && npm run dev     # Terminal 1
 cd frontend && npm run dev    # Terminal 2
@@ -48,109 +52,183 @@ cd frontend && npm run dev    # Terminal 2
 
 ```
 /
-├── backend/              # Node.js Express API
-│   ├── server.js         # Main server (3067 lines) - all API routes
-│   ├── database.js       # DB abstraction (1538 lines) - SQLite/Postgres adapters
-│   ├── auth.js           # JWT/password auth
-│   ├── oidc.js           # SSO/OIDC integration
-│   ├── mfa.js            # TOTP 2FA
-│   ├── *.test.js         # Jest test files
-│   ├── jest.config.js    # Jest configuration
-│   ├── Dockerfile        # Production image (Node 18)
-│   └── package.json      # Deps: express, better-sqlite3, pg, bcryptjs, jsonwebtoken
+├── backend/                    # Node.js Express API
+│   ├── server.js              # Main server - all API routes
+│   ├── database.js            # DB abstraction - SQLite/Postgres adapters
+│   ├── auth.js                # JWT/password auth & RBAC
+│   ├── mfa.js                 # TOTP 2FA & backup codes
+│   ├── oidc.js                # SSO/OIDC integration
+│   ├── hubspot.js             # HubSpot integration
+│   ├── *.test.js              # Jest test files
+│   └── package.json           # Dependencies
 │
-├── frontend/             # React SPA
+├── frontend/                   # React SPA
 │   ├── src/
-│   │   ├── App.jsx       # Main app component with routing (344 lines)
-│   │   ├── components/   # React components (shadcn/ui primitives)
-│   │   │   ├── ui/       # Radix-based UI primitives (button, dialog, table, etc.)
-│   │   │   └── *.jsx     # Feature components (Dashboard, AssetTable, etc.)
-│   │   ├── pages/        # Page-level components
-│   │   ├── contexts/     # React contexts (AuthContext)
-│   │   ├── hooks/        # Custom React hooks
-│   │   ├── utils/        # Helper functions
-│   │   └── test/         # Test setup
-│   ├── vite.config.js    # Vite config with API proxy
-│   ├── tailwind.config.js
-│   ├── Dockerfile        # Multi-stage: build + nginx
-│   └── package.json      # Deps: react, react-router-dom, @radix-ui/*
+│   │   ├── App.jsx            # Main app with routing (React Router v7)
+│   │   ├── components/        # React components
+│   │   │   ├── ui/            # shadcn/ui primitives (20+ components)
+│   │   │   └── *.jsx          # Feature components
+│   │   ├── contexts/          # AuthContext, UsersContext
+│   │   ├── hooks/             # Custom React hooks (use-toast)
+│   │   ├── pages/             # Page-level components
+│   │   └── utils/             # Helper functions (webauthn.js)
+│   ├── vite.config.js         # Vite config with API proxy
+│   └── package.json           # Dependencies
 │
-├── .github/
-│   ├── workflows/
-│   │   ├── unit-tests.yml           # Runs on PR/push to main/develop
-│   │   ├── verify-files.yml         # Validates critical files exist
-│   │   └── deploy-portainer.yml     # Builds multi-arch images, deploys
-│   └── verify-critical-files.sh     # Checks file integrity
+├── .github/workflows/
+│   ├── ci-tests.yml           # Runs on PR/push (frontend + backend tests)
+│   ├── verify-files.yml       # Validates critical files exist
+│   └── deploy-portainer.yml   # Multi-arch builds, deployment
 │
-├── docker-compose*.yml   # Various deployment configs
-├── AGENTS.md            # Agent-specific guidance (more detailed than this file)
-└── README.md            # User-facing documentation
+├── docker-compose*.yml        # Various deployment configs
+├── CLAUDE.md                  # Comprehensive AI assistant guide
+├── AGENTS.md                  # Agent-specific guidance
+└── README.md                  # User-facing documentation
 ```
 
 ### Key Patterns
 
 **Backend:**
-- API routes: `/api/*` in `server.js` | DB: `database.js` exports (assetDb, userDb, etc.) | Auth: `authenticate`, `authorize(roles)` | Audit: `auditDb.log()` for all mutations
+- ES modules only (`import`/`export`, no CommonJS)
+- Routes: `/api/*` in `server.js`
+- DB: `database.js` exports (assetDb, userDb, companyDb, auditDb, passkeyDb, etc.)
+- Auth middleware: `authenticate`, `authorize('admin')`, `authorize('admin', 'manager')`
+- Audit: `auditDb.create()` for ALL mutations
 
 **Frontend:**
-- Router: React Router v7 | Auth: `AuthContext` | UI: shadcn/ui from `components/ui/` | Style: Tailwind | API: `/api/*` (proxied in dev)
+- Functional components + hooks only
+- Router: React Router v7
+- Auth: `useAuth()` from `AuthContext`
+- Users: `useUsers()` from `UsersContext`
+- UI: shadcn/ui from `@/components/ui/`
+- Style: Tailwind CSS
+- API: `/api/*` (proxied in dev)
+- Imports: Use `@/` alias for `src/`
+
+## Database Objects
+
+```javascript
+import {
+  assetDb,              // Asset CRUD
+  companyDb,            // Company management
+  auditDb,              // Audit logs
+  userDb,               // User auth & profiles
+  passkeyDb,            // WebAuthn credentials
+  oidcSettingsDb,       // SSO configuration
+  brandingSettingsDb,   // Custom branding
+  passkeySettingsDb,    // Passkey settings
+  hubspotSettingsDb,    // HubSpot integration
+  hubspotSyncLogDb,     // Sync audit trail
+  syncAssetOwnership,   // Manager change propagation
+} from './database.js';
+```
 
 ## CI/CD & Validation
 
-### GitHub Workflows (`.github/workflows/`)
+### GitHub Workflows
 
-**unit-tests.yml** - Triggers: Push/PR to main/develop/claude/** | Runs: `npm ci && npm test` in both modules (uses Node 20, works despite backend preferring 18) | **MUST pass**
+**ci-tests.yml** - Triggers: Push/PR to main/develop/claude/** | Runs tests in both modules | **MUST pass**
 
-**verify-files.yml** - Triggers: Push/PR to main/develop | Validates critical files complete (server.js ≥2400 lines, database.js ≥1200 lines)
+**verify-files.yml** - Validates critical files exist and are complete
 
-**deploy-portainer.yml** - Triggers: Push to main | Builds multi-platform Docker images → GitHub Container Registry → Portainer webhook
+**deploy-portainer.yml** - Builds multi-platform Docker images → GHCR → Portainer webhook
 
 ### Before Committing
+
 1. Run `npm test` in changed module(s)
-2. Backend: verify server starts | Frontend: run `npm run build`
-3. Full stack: test integration manually
+2. Backend: verify server starts
+3. Frontend: run `npm run build`
+4. Full stack: test integration manually
 
 ## Common Tasks
 
-**New API Endpoint:** Add to `server.js` → use `authenticate`/`authorize()` → log with `auditDb.log()` → return JSON → add tests
+**New API Endpoint:**
+```javascript
+app.get('/api/my-endpoint',
+  authenticate,
+  authorize('admin'),  // Optional: restrict to roles
+  async (req, res) => {
+    const data = await myDb.getData();
+    await auditDb.create({
+      action: 'READ',
+      resource_type: 'my_resource',
+      resource_id: 'N/A',
+      user_email: req.user.email,
+      details: 'Retrieved data'
+    });
+    res.json({ success: true, data });
+  }
+);
+```
 
-**New Component:** Create in `components/` or `pages/` → use shadcn/ui primitives → functional + hooks → @ alias for imports → add tests (mock useToast)
+**New Component:**
+```javascript
+import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
 
-**DB Changes:** Update `database.js` (both SQLite & Postgres) → add migrations in `initDb` → update `.env.example` if needed
+export default function MyComponent() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  // ...
+}
+```
 
-**Docker:** `docker-compose up -d` or build individually with `docker build -t name:tag ./path`
+**DB Changes:** Update `database.js` (both SQLite & PostgreSQL paths) → add migrations in init functions
 
-## Environment
+## Environment Variables
 
 **Backend `.env`** (copy from `.env.example`):
-- `JWT_SECRET` **REQUIRED** - Generate: `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`
-- `PORT` (default 3001) | `DB_CLIENT` (sqlite/postgres) | `ADMIN_EMAIL` (optional) | OIDC/Passkey (optional)
+- `JWT_SECRET` **REQUIRED**
+- `PORT` (default 3001)
+- `DB_CLIENT` (sqlite/postgres)
+- `POSTGRES_URL` (if using postgres)
+- `ADMIN_EMAIL` (auto-admin on registration)
+- `PASSKEY_RP_ID`, `PASSKEY_RP_NAME`, `PASSKEY_ORIGIN` (WebAuthn)
+- `OIDC_ENABLED` and related OIDC settings (SSO)
 
-## Troubleshooting
+## Authorization Quick Reference
 
-**Backend won't start:** Check `.env` with JWT_SECRET | Use Node 18 | Delete `backend/data/*.db` | Check port 3001
-
-**Frontend API fails:** Ensure backend running on :3001 | Check vite proxy | Browser console for CORS
-
-**Tests fail:** Run `npm ci` | Use Node 18 (backend) | Delete test DBs | Mock useToast in frontend tests
-
-**Docker fails:** Use Node 18 base (backend) | Test `npm run build` locally | Check `.dockerignore`
-
-**CI fails:** Check Actions logs | Test locally with `npm ci && npm test` | Most common: test/dependency issues
+```javascript
+// Role-based data filtering
+if (user.role === 'employee') {
+  assets = await assetDb.getByEmployee(user.email);
+} else if (user.role === 'manager') {
+  const own = await assetDb.getByEmployee(user.email);
+  const team = await assetDb.getByManager(user.email);
+  assets = [...own, ...team];
+} else if (user.role === 'admin') {
+  assets = await assetDb.getAll();
+}
+```
 
 ## Security & Best Practices
 
-**Never commit:** .env, secrets | **Always use:** `npm ci` (not install) | **DB changes:** Test both SQLite & Postgres | **Audit:** Log mutations with user ID | **Auth:** Use `authorize()` for protected routes | **Validation:** Sanitize inputs | **Errors:** Don't leak sensitive data
+- **Never commit:** .env, secrets, password hashes
+- **Always use:** `npm ci` (not install), ES modules, async/await
+- **DB changes:** Test both SQLite & PostgreSQL
+- **Audit:** Log ALL mutations with `auditDb.create()`
+- **Auth:** Use `authorize()` for protected routes
+- **Validation:** Sanitize inputs, never leak sensitive data
+- **Responses:** Always return `{ success: true/false, ... }` format
 
-**File monitoring:** `server.js` ≥2400 lines, `database.js` ≥1200 lines (large deletions trigger CI failures)
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Backend won't start | Check `.env` has JWT_SECRET, use Node 18, delete `backend/data/*.db` |
+| Frontend API fails | Ensure backend on :3001, check vite proxy, browser console for CORS |
+| Tests fail | Run `npm ci`, use Node 18 (backend), delete test DBs |
+| Docker fails | Use Node 18 base, test `npm run build` locally |
+| CI fails | Check Actions logs, test locally with `npm ci && npm test` |
 
 ## Tips for Coding Agents
 
-1. **Trust these instructions** - Don't re-explore unless info seems outdated
-2. **Node 18 for backend** - This is the most common build failure cause
-3. **Use `npm ci`** - Not `npm install` (CI/CD requirement)
-4. **Test incrementally** - Run tests after each change, don't batch
-5. **Check both modules** - If API changes, update both backend and frontend
-6. **Follow existing patterns** - Code consistency is highly valued
-7. **Read AGENTS.md** - More detailed guidelines on code style and architecture
-8. **Verify locally** - Always test `npm test` and `npm run build` before committing
+1. **Node 18 for backend** - Most common build failure cause
+2. **Use `npm ci`** - Not `npm install`
+3. **Test incrementally** - Run tests after each change
+4. **Check both modules** - API changes affect backend AND frontend
+5. **Follow existing patterns** - Code consistency is critical
+6. **Read CLAUDE.md** - Comprehensive guide with all details
+7. **Audit everything** - All data mutations need audit logs
+8. **Never skip auth** - Always use authenticate/authorize middleware
