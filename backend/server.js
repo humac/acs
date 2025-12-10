@@ -2130,14 +2130,14 @@ app.put('/api/admin/notification-settings', authenticate, authorize('admin'), as
     await smtpSettingsDb.update(updateData);
 
     // Log the action
-    await auditDb.log({
-      action: 'update',
-      entity_type: 'smtp_settings',
-      entity_id: 1,
-      entity_name: 'SMTP Notification Settings',
-      details: `Updated SMTP settings. Enabled: ${enabled ? 'Yes' : 'No'}`,
-      user_email: req.user.email
-    });
+    await auditDb.log(
+      'update',
+      'smtp_settings',
+      1,
+      'SMTP Notification Settings',
+      `Updated SMTP settings. Enabled: ${enabled ? 'Yes' : 'No'}`,
+      req.user.email
+    );
 
     // Return updated settings (without password)
     const updatedSettings = await smtpSettingsDb.get();
@@ -2166,14 +2166,14 @@ app.post('/api/admin/notification-settings/test', authenticate, authorize('admin
 
     if (result.success) {
       // Log the action
-      await auditDb.log({
-        action: 'test',
-        entity_type: 'smtp_settings',
-        entity_id: 1,
-        entity_name: 'SMTP Notification Settings',
-        details: `Sent test email to ${recipient || settings.default_recipient}`,
-        user_email: req.user.email
-      });
+      await auditDb.log(
+        'test',
+        'smtp_settings',
+        1,
+        'SMTP Notification Settings',
+        `Sent test email to ${recipient || settings.default_recipient}`,
+        req.user.email
+      );
 
       res.json({ 
         success: true, 
