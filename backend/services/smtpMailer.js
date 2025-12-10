@@ -49,18 +49,22 @@ const createTransport = async () => {
   }
   
   // Create transport
+  // Note: 'secure: true' is for port 465 (implicit TLS)
+  // For port 587 and others, use 'secure: false' and let STARTTLS handle encryption
+  const useTls = settings.use_tls === 1 || settings.use_tls === true;
   const transportConfig = {
     host: settings.host,
     port: settings.port,
-    secure: settings.use_tls === 1 || settings.use_tls === true, // true for 465, false for other ports
+    secure: useTls && settings.port === 465, // true only for port 465 (implicit TLS)
     auth: auth,
     connectionTimeout: 10000, // 10 second connection timeout
     greetingTimeout: 5000,    // 5 second greeting timeout
     socketTimeout: 15000,     // 15 second socket timeout
-    // Reject unauthorized only in production
+    // Enable STARTTLS for non-465 ports when TLS is requested
     tls: {
       rejectUnauthorized: process.env.NODE_ENV === 'production'
-    }
+    },
+    requireTLS: useTls && settings.port !== 465 // Require STARTTLS for port 587 and similar
   };
   
   return nodemailer.createTransport(transportConfig);
