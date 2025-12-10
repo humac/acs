@@ -492,7 +492,24 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
                         )}
                       </div>
                     )}
-                    <p className="text-sm text-muted-foreground mt-2">{asset.serial_number}</p>
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Type</p>
+                        <p className="capitalize">{asset.asset_type === 'mobile_phone' ? 'Mobile Phone' : asset.asset_type || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Make/Model</p>
+                        <p>{asset.make && asset.model ? `${asset.make} ${asset.model}` : '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Asset Tag</p>
+                        <p>{asset.asset_tag || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Serial Number</p>
+                        <p className="font-mono">{asset.serial_number || '-'}</p>
+                      </div>
+                    </div>
                   </div>
                   <div className="flex flex-col gap-2">
                     <Button variant="ghost" size="icon" onClick={() => onEdit(asset)} disabled={!canEdit(asset)}>
@@ -521,14 +538,13 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
                       onCheckedChange={toggleSelectAll}
                     />
                   </TableHead>
-                  <TableHead>Employee Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead className="hidden xl:table-cell">Manager Name</TableHead>
-                  <TableHead className="hidden xl:table-cell">Manager Email</TableHead>
+                  <TableHead>Employee</TableHead>
+                  <TableHead className="hidden xl:table-cell">Manager</TableHead>
                   <TableHead className="hidden lg:table-cell">Company</TableHead>
                   <TableHead className="hidden xl:table-cell">Type</TableHead>
                   <TableHead className="hidden lg:table-cell">Make/Model</TableHead>
-                  <TableHead className="hidden 2xl:table-cell">Serial Number</TableHead>
+                  <TableHead className="hidden 2xl:table-cell">Asset Tag</TableHead>
+                  <TableHead>Serial Number</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -546,10 +562,26 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
                         onCheckedChange={() => toggleSelect(asset.id)}
                       />
                     </TableCell>
-                    <TableCell className="font-medium">{asset.employee_first_name && asset.employee_last_name ? `${asset.employee_first_name} ${asset.employee_last_name}` : 'N/A'}</TableCell>
-                    <TableCell className="text-muted-foreground">{asset.employee_email || 'N/A'}</TableCell>
-                    <TableCell className="hidden xl:table-cell">{asset._managerDisplayName || '-'}</TableCell>
-                    <TableCell className="hidden xl:table-cell text-muted-foreground">{asset._managerEmail || '-'}</TableCell>
+                    <TableCell>
+                      <div className="font-medium">
+                        {asset.employee_first_name && asset.employee_last_name
+                          ? `${asset.employee_first_name} ${asset.employee_last_name}`
+                          : 'N/A'}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {asset.employee_email || 'N/A'}
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden xl:table-cell">
+                      <div className="font-medium">
+                        {asset._managerDisplayName || '-'}
+                      </div>
+                      {asset._managerEmail && (
+                        <div className="text-sm text-muted-foreground">
+                          {asset._managerEmail}
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell className="hidden lg:table-cell">{asset.company_name || '-'}</TableCell>
                     <TableCell className="hidden xl:table-cell capitalize">
                       {asset.asset_type === 'mobile_phone' ? 'Mobile Phone' : asset.asset_type || '-'}
@@ -557,7 +589,8 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
                     <TableCell className="hidden lg:table-cell">
                       {asset.make && asset.model ? `${asset.make} ${asset.model}` : '-'}
                     </TableCell>
-                    <TableCell className="hidden 2xl:table-cell font-mono text-sm">{asset.serial_number || '-'}</TableCell>
+                    <TableCell className="hidden 2xl:table-cell">{asset.asset_tag || '-'}</TableCell>
+                    <TableCell className="font-mono text-sm">{asset.serial_number || '-'}</TableCell>
                     <TableCell>{getStatusBadge(asset.status)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
