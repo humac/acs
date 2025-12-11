@@ -92,15 +92,15 @@ export default function AssetEditModal({ asset, currentUser, onClose, onSaved })
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-[85vh] flex flex-col p-0">
-        <DialogHeader className="px-6 pt-6 pb-4">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] sm:max-h-none">
+        <DialogHeader>
           <DialogTitle>Edit Asset</DialogTitle>
           <DialogDescription>
             Update the status of this asset.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="overflow-y-auto px-6 space-y-3 flex-1">
+        <div className="overflow-y-auto sm:overflow-visible space-y-4">
           {/* Read-only Summary Section */}
           <div className="rounded-md bg-muted/50 p-3 space-y-2 text-sm">
             <div className="grid grid-cols-2 gap-2">
@@ -188,7 +188,7 @@ export default function AssetEditModal({ asset, currentUser, onClose, onSaved })
           </div>
         </div>
 
-        <DialogFooter className="px-6 py-4 border-t mt-auto">
+        <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>
             Cancel
           </Button>

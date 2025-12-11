@@ -21,6 +21,7 @@ const CompanyManagementNew = () => {
   const { getAuthHeaders } = useAuth();
   const { toast } = useToast();
   const [companies, setCompanies] = useState([]);
+  const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingCompany, setEditingCompany] = useState(null);
@@ -37,7 +38,7 @@ const CompanyManagementNew = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  useEffect(() => { fetchCompanies(); }, []);
+  useEffect(() => { fetchCompanies(); fetchAssets(); }, []);
 
   const fetchCompanies = async () => {
     setLoading(true);
@@ -49,6 +50,28 @@ const CompanyManagementNew = () => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally { setLoading(false); }
   };
+
+  const fetchAssets = async () => {
+    try {
+      const response = await fetch('/api/assets', { headers: { ...getAuthHeaders() } });
+      if (!response.ok) throw new Error('Failed to fetch assets');
+      setAssets(await response.json());
+    } catch (err) {
+      console.error('Failed to fetch assets for count:', err);
+    }
+  };
+
+  // Compute asset counts per company
+  const assetCountByCompany = useMemo(() => {
+    const counts = {};
+    assets.forEach(asset => {
+      const companyName = asset.company_name;
+      if (companyName) {
+        counts[companyName] = (counts[companyName] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [assets]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -309,7 +332,10 @@ const CompanyManagementNew = () => {
                           <h4 className="font-medium truncate">{company.name}</h4>
                           <p className="text-sm text-muted-foreground line-clamp-2">{company.description || '—'}</p>
                         </div>
-                        <div className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(company.created_date)}</div>
+                        <div className="text-right">
+                          <div className="text-sm font-medium">{assetCountByCompany[company.name] || 0} assets</div>
+                          <div className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(company.created_date)}</div>
+                        </div>
                       </div>
                     </div>
                     <div className="flex flex-col gap-2">
@@ -331,6 +357,7 @@ const CompanyManagementNew = () => {
                       </TableHead>
                       <TableHead>Company Name</TableHead>
                       <TableHead className="hidden md:table-cell">Description</TableHead>
+                      <TableHead className="hidden md:table-cell text-center">Assets</TableHead>
                       <TableHead className="hidden md:table-cell">Created</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -350,6 +377,7 @@ const CompanyManagementNew = () => {
                         </TableCell>
                         <TableCell className="font-medium">{company.name}</TableCell>
                         <TableCell className="hidden md:table-cell text-muted-foreground">{company.description || '-'}</TableCell>
+                        <TableCell className="hidden md:table-cell text-center">{assetCountByCompany[company.name] || 0}</TableCell>
                         <TableCell className="hidden md:table-cell">{formatDate(company.created_date)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">

@@ -113,7 +113,7 @@ export default function AssetsPage() {
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-2">
               <Laptop className="h-5 w-5 text-primary" />
-              <CardTitle>Asset Management</CardTitle>
+              <CardTitle>Asset Management ({assets.length})</CardTitle>
             </div>
             {canRegister() && (
               <div className="flex gap-2 flex-wrap">

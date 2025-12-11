@@ -323,7 +323,7 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
 
   return (
     <>
-      <div className="space-y-4">
+      <div className="space-y-6">
         {/* Search, Status Filters, and Bulk Actions - all on one row */}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:flex-wrap flex-1">
