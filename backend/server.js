@@ -324,7 +324,8 @@ app.post('/api/auth/register', async (req, res) => {
     try {
       const linkedAssets = await assetDb.linkAssetsToUser(
         newUser.email,
-        newUser.manager_name,
+        newUser.manager_first_name,
+        newUser.manager_last_name,
         newUser.manager_email
       );
 
@@ -339,7 +340,8 @@ app.post('/api/auth/register', async (req, res) => {
           `Assets linked to ${newUser.email}`,
           {
             employee_email: newUser.email,
-            manager_name: newUser.manager_name,
+            manager_first_name: newUser.manager_first_name,
+            manager_last_name: newUser.manager_last_name,
             manager_email: newUser.manager_email,
             linked_count: linkedAssets.changes
           },
