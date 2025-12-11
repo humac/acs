@@ -631,6 +631,117 @@ const initDb = async () => {
   await dbRun(hubspotSyncLogTable);  // 10. Create HubSpot sync log table
   await dbRun(smtpSettingsTable);    // 11. Create SMTP settings table
 
+  // === Migration: company_name -> company_id ===
+  // Check if assets table has old schema (company_name) instead of new schema (company_id)
+  try {
+    const assetCols = isPostgres
+      ? await dbAll(`
+          SELECT column_name as name
+          FROM information_schema.columns
+          WHERE table_name = 'assets'
+        `)
+      : await dbAll("PRAGMA table_info(assets)");
+
+    const hasCompanyName = assetCols.some(col => col.name === 'company_name');
+    const hasCompanyId = assetCols.some(col => col.name === 'company_id');
+
+    if (hasCompanyName && !hasCompanyId) {
+      console.log('Migrating assets table: company_name -> company_id...');
+
+      // Step 1: Add company_id column (nullable initially)
+      if (isPostgres) {
+        await dbRun('ALTER TABLE assets ADD COLUMN company_id INTEGER REFERENCES companies(id)');
+      } else {
+        await dbRun('ALTER TABLE assets ADD COLUMN company_id INTEGER REFERENCES companies(id)');
+      }
+
+      // Step 2: Populate company_id from company_name
+      // Get all unique company names from assets
+      const assetCompanies = await dbAll('SELECT DISTINCT company_name FROM assets WHERE company_name IS NOT NULL');
+      for (const row of assetCompanies) {
+        const company = await dbGet('SELECT id FROM companies WHERE name = ?', [row.company_name]);
+        if (company) {
+          await dbRun('UPDATE assets SET company_id = ? WHERE company_name = ?', [company.id, row.company_name]);
+        } else {
+          // Create the company if it doesn't exist
+          const now = new Date().toISOString();
+          const insertQuery = isPostgres
+            ? 'INSERT INTO companies (name, description, created_date) VALUES ($1, $2, $3) RETURNING id'
+            : 'INSERT INTO companies (name, description, created_date) VALUES (?, ?, ?)';
+          const result = await dbRun(insertQuery, [row.company_name, '', now]);
+          const newCompanyId = isPostgres ? result.rows?.[0]?.id : result.lastInsertRowid;
+          await dbRun('UPDATE assets SET company_id = ? WHERE company_name = ?', [newCompanyId, row.company_name]);
+          console.log(`  Created company "${row.company_name}" with id ${newCompanyId}`);
+        }
+      }
+
+      // Step 3: For SQLite, we need to recreate the table to drop the column
+      // For PostgreSQL, we can just drop it
+      if (isPostgres) {
+        // Make company_id NOT NULL after populating
+        await dbRun('ALTER TABLE assets ALTER COLUMN company_id SET NOT NULL');
+        // Drop the old column
+        await dbRun('ALTER TABLE assets DROP COLUMN company_name');
+      } else {
+        // SQLite doesn't support DROP COLUMN in older versions, so we recreate the table
+        // First, verify all assets have company_id set
+        const nullCompanyAssets = await dbGet('SELECT COUNT(*) as count FROM assets WHERE company_id IS NULL');
+        if (nullCompanyAssets.count > 0) {
+          console.warn(`Warning: ${nullCompanyAssets.count} assets have NULL company_id, setting to first company`);
+          const firstCompany = await dbGet('SELECT id FROM companies ORDER BY id LIMIT 1');
+          if (firstCompany) {
+            await dbRun('UPDATE assets SET company_id = ? WHERE company_id IS NULL', [firstCompany.id]);
+          }
+        }
+
+        // Create new table with correct schema
+        await dbRun(`
+          CREATE TABLE assets_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            employee_first_name TEXT NOT NULL,
+            employee_last_name TEXT NOT NULL,
+            employee_email TEXT NOT NULL,
+            owner_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            manager_first_name TEXT,
+            manager_last_name TEXT,
+            manager_email TEXT,
+            manager_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE RESTRICT,
+            asset_type TEXT NOT NULL,
+            make TEXT,
+            model TEXT,
+            serial_number TEXT NOT NULL UNIQUE,
+            asset_tag TEXT NOT NULL UNIQUE,
+            status TEXT NOT NULL DEFAULT 'active',
+            registration_date TEXT NOT NULL,
+            last_updated TEXT NOT NULL,
+            notes TEXT
+          )
+        `);
+
+        // Copy data
+        await dbRun(`
+          INSERT INTO assets_new (id, employee_first_name, employee_last_name, employee_email, owner_id,
+            manager_first_name, manager_last_name, manager_email, manager_id, company_id, asset_type,
+            make, model, serial_number, asset_tag, status, registration_date, last_updated, notes)
+          SELECT id, employee_first_name, employee_last_name, employee_email, owner_id,
+            manager_first_name, manager_last_name, manager_email, manager_id, company_id, asset_type,
+            make, model, serial_number, asset_tag, status, registration_date, last_updated, notes
+          FROM assets
+        `);
+
+        // Drop old table and rename new one
+        await dbRun('DROP TABLE assets');
+        await dbRun('ALTER TABLE assets_new RENAME TO assets');
+      }
+
+      console.log('Migration complete: assets.company_name -> assets.company_id');
+    }
+  } catch (err) {
+    console.error('Migration error (company_name -> company_id):', err.message);
+    // Don't fail initialization - the table might be new with correct schema
+  }
+
   // Insert default OIDC settings if not exists
   const checkSettings = await dbGet('SELECT id FROM oidc_settings WHERE id = 1');
   if (!checkSettings) {
@@ -688,7 +799,12 @@ const initDb = async () => {
   await dbRun('CREATE INDEX IF NOT EXISTS idx_manager_last_name ON assets(manager_last_name)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_manager_email ON assets(manager_email)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_manager_id ON assets(manager_id)');
-  await dbRun('CREATE INDEX IF NOT EXISTS idx_company_id ON assets(company_id)');
+  // Only create company_id index if the column exists (handles migration case)
+  try {
+    await dbRun('CREATE INDEX IF NOT EXISTS idx_company_id ON assets(company_id)');
+  } catch (err) {
+    console.warn('Could not create idx_company_id index:', err.message);
+  }
   await dbRun('CREATE INDEX IF NOT EXISTS idx_status ON assets(status)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_serial_number ON assets(serial_number)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_asset_tag ON assets(asset_tag)');
