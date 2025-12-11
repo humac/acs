@@ -3277,7 +3277,7 @@ app.delete('/api/companies/:id', authenticate, authorize('admin'), async (req, r
     }
 
     // Check if company has assets
-    if (await companyDb.hasAssets(company.name)) {
+    if (await companyDb.hasAssets(company.id)) {
       return res.status(409).json({
         error: 'Cannot delete company with existing assets. Please reassign or delete assets first.'
       });

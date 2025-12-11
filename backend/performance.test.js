@@ -6,11 +6,30 @@
  */
 
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
-import { assetDb, userDb, auditDb } from './database.js';
+import { assetDb, userDb, auditDb, companyDb } from './database.js';
 
 describe('Performance Optimizations', () => {
+  let testCompany;
+
   beforeAll(async () => {
     await assetDb.init();
+    // Create test company (required for assets with company_id FK)
+    const companyResult = await companyDb.create({
+      name: 'Test Company',
+      description: 'Test company for performance tests'
+    });
+    testCompany = await companyDb.getById(companyResult.id);
+  });
+
+  afterAll(async () => {
+    // Clean up test company
+    if (testCompany) {
+      try {
+        await companyDb.delete(testCompany.id);
+      } catch (err) {
+        // May have assets still referencing it
+      }
+    }
   });
 
   beforeEach(async () => {

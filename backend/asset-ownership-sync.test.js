@@ -1,14 +1,22 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
-import { assetDb, userDb, syncAssetOwnership } from './database.js';
+import { assetDb, userDb, syncAssetOwnership, companyDb } from './database.js';
 
 describe('Asset Ownership Sync', () => {
   let employeeUser;
   let managerUser;
   let preloadedAsset;
+  let testCompany;
 
   beforeAll(async () => {
     // Initialize database
     await assetDb.init();
+
+    // Create test company (required for assets with company_id FK)
+    const companyResult = await companyDb.create({
+      name: 'Test Company',
+      description: 'Test company for ownership sync tests'
+    });
+    testCompany = await companyDb.getById(companyResult.id);
   });
 
   beforeEach(async () => {
@@ -47,6 +55,13 @@ describe('Asset Ownership Sync', () => {
     if (managerUser) {
       try {
         await userDb.delete(managerUser.id);
+      } catch (err) {
+        // Ignore errors
+      }
+    }
+    if (testCompany) {
+      try {
+        await companyDb.delete(testCompany.id);
       } catch (err) {
         // Ignore errors
       }

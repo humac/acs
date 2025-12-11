@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
-import { assetDb, userDb, auditDb } from './database.js';
+import { assetDb, userDb, auditDb, companyDb } from './database.js';
 
 describe('Asset Authorization and Manager Sync', () => {
   let testDb;
@@ -7,10 +7,18 @@ describe('Asset Authorization and Manager Sync', () => {
   let managerUser;
   let adminUser;
   let asset;
+  let testCompany;
 
   beforeAll(async () => {
     // Initialize database
     await assetDb.init();
+
+    // Create test company (required for assets with company_id FK)
+    const companyResult = await companyDb.create({
+      name: 'Test Company',
+      description: 'Test company for authorization tests'
+    });
+    testCompany = await companyDb.getById(companyResult.id);
 
     // Create test users
     const employeeResult = await userDb.create({
@@ -71,6 +79,7 @@ describe('Asset Authorization and Manager Sync', () => {
     if (employeeUser) await userDb.delete(employeeUser.id);
     if (managerUser) await userDb.delete(managerUser.id);
     if (adminUser) await userDb.delete(adminUser.id);
+    if (testCompany) await companyDb.delete(testCompany.id);
   });
 
   describe('Asset Creation with IDs', () => {

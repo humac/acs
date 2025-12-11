@@ -304,7 +304,7 @@ const initDb = async () => {
       manager_last_name TEXT,
       manager_email TEXT,
       manager_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-      company_name TEXT NOT NULL,
+      company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE RESTRICT,
       asset_type TEXT NOT NULL,
       make TEXT DEFAULT '',
       model TEXT DEFAULT '',
@@ -326,7 +326,7 @@ const initDb = async () => {
       manager_last_name TEXT,
       manager_email TEXT,
       manager_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-      company_name TEXT NOT NULL,
+      company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE RESTRICT,
       asset_type TEXT NOT NULL,
       make TEXT,
       model TEXT,
@@ -688,7 +688,7 @@ const initDb = async () => {
   await dbRun('CREATE INDEX IF NOT EXISTS idx_manager_last_name ON assets(manager_last_name)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_manager_email ON assets(manager_email)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_manager_id ON assets(manager_id)');
-  await dbRun('CREATE INDEX IF NOT EXISTS idx_company_name ON assets(company_name)');
+  await dbRun('CREATE INDEX IF NOT EXISTS idx_company_id ON assets(company_id)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_status ON assets(status)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_serial_number ON assets(serial_number)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_asset_tag ON assets(asset_tag)');
@@ -755,7 +755,7 @@ export const assetDb = {
   init: initDb,
   create: async (asset) => {
     const now = new Date().toISOString();
-    
+
     // Look up owner_id from employee_email
     let ownerId = null;
     if (asset.employee_email) {
@@ -770,11 +770,24 @@ export const assetDb = {
       managerId = manager?.id || null;
     }
 
+    // Look up company_id from company_name (or use provided company_id)
+    let companyId = asset.company_id || null;
+    if (!companyId && asset.company_name) {
+      const company = await dbGet('SELECT id FROM companies WHERE name = ?', [asset.company_name]);
+      if (!company) {
+        throw new Error(`Company not found: ${asset.company_name}`);
+      }
+      companyId = company.id;
+    }
+    if (!companyId) {
+      throw new Error('Company is required');
+    }
+
     const insertQuery = `
       INSERT INTO assets (
         employee_first_name, employee_last_name, employee_email, owner_id,
         manager_first_name, manager_last_name, manager_email, manager_id,
-        company_name, asset_type, make, model, serial_number, asset_tag,
+        company_id, asset_type, make, model, serial_number, asset_tag,
         status, registration_date, last_updated, notes
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ${isPostgres ? 'RETURNING id' : ''}
@@ -791,7 +804,7 @@ export const assetDb = {
       asset.manager_last_name || '', // stored for unregistered managers
       asset.manager_email || '', // keep email for backward compat lookups
       managerId,
-      asset.company_name,
+      companyId,
       asset.asset_type,
       asset.make || '',
       asset.model || '',
@@ -808,8 +821,9 @@ export const assetDb = {
   },
   getAll: async () => {
     const query = `
-      SELECT 
+      SELECT
         assets.*,
+        companies.name as company_name,
         COALESCE(owner.first_name, assets.employee_first_name) as employee_first_name,
         COALESCE(owner.last_name, assets.employee_last_name) as employee_last_name,
         COALESCE(owner.email, assets.employee_email) as employee_email,
@@ -817,6 +831,7 @@ export const assetDb = {
         COALESCE(manager.last_name, assets.manager_last_name) as manager_last_name,
         COALESCE(manager.email, assets.manager_email) as manager_email
       FROM assets
+      INNER JOIN companies ON assets.company_id = companies.id
       LEFT JOIN users owner ON assets.owner_id = owner.id
       LEFT JOIN users manager ON assets.manager_id = manager.id
       ORDER BY assets.registration_date DESC
@@ -830,8 +845,9 @@ export const assetDb = {
   },
   getById: async (id) => {
     const query = `
-      SELECT 
+      SELECT
         assets.*,
+        companies.name as company_name,
         COALESCE(owner.first_name, assets.employee_first_name) as employee_first_name,
         COALESCE(owner.last_name, assets.employee_last_name) as employee_last_name,
         COALESCE(owner.email, assets.employee_email) as employee_email,
@@ -839,6 +855,7 @@ export const assetDb = {
         COALESCE(manager.last_name, assets.manager_last_name) as manager_last_name,
         COALESCE(manager.email, assets.manager_email) as manager_email
       FROM assets
+      INNER JOIN companies ON assets.company_id = companies.id
       LEFT JOIN users owner ON assets.owner_id = owner.id
       LEFT JOIN users manager ON assets.manager_id = manager.id
       WHERE assets.id = ?
@@ -853,8 +870,9 @@ export const assetDb = {
   },
   search: async (filters) => {
     let query = `
-      SELECT 
+      SELECT
         assets.*,
+        companies.name as company_name,
         COALESCE(owner.first_name, assets.employee_first_name) as employee_first_name,
         COALESCE(owner.last_name, assets.employee_last_name) as employee_last_name,
         COALESCE(owner.email, assets.employee_email) as employee_email,
@@ -862,6 +880,7 @@ export const assetDb = {
         COALESCE(manager.last_name, assets.manager_last_name) as manager_last_name,
         COALESCE(manager.email, assets.manager_email) as manager_email
       FROM assets
+      INNER JOIN companies ON assets.company_id = companies.id
       LEFT JOIN users owner ON assets.owner_id = owner.id
       LEFT JOIN users manager ON assets.manager_id = manager.id
       WHERE 1=1
@@ -880,7 +899,7 @@ export const assetDb = {
     }
 
     if (filters.company_name) {
-      query += ' AND assets.company_name LIKE ?';
+      query += ' AND companies.name LIKE ?';
       params.push(`%${filters.company_name}%`);
     }
 
@@ -908,7 +927,7 @@ export const assetDb = {
   },
   update: async (id, asset) => {
     const now = new Date().toISOString();
-    
+
     // Look up owner_id from employee_email
     let ownerId = null;
     if (asset.employee_email) {
@@ -923,13 +942,26 @@ export const assetDb = {
       managerId = manager?.id || null;
     }
 
+    // Look up company_id from company_name (or use provided company_id)
+    let companyId = asset.company_id || null;
+    if (!companyId && asset.company_name) {
+      const company = await dbGet('SELECT id FROM companies WHERE name = ?', [asset.company_name]);
+      if (!company) {
+        throw new Error(`Company not found: ${asset.company_name}`);
+      }
+      companyId = company.id;
+    }
+    if (!companyId) {
+      throw new Error('Company is required');
+    }
+
     // Store denormalized fields for backward compatibility and unregistered users
     // JOINs will override these values when user records exist
     return dbRun(`
       UPDATE assets
       SET employee_first_name = ?, employee_last_name = ?, employee_email = ?, owner_id = ?,
           manager_first_name = ?, manager_last_name = ?, manager_email = ?, manager_id = ?,
-          company_name = ?, asset_type = ?, make = ?, model = ?, serial_number = ?, asset_tag = ?,
+          company_id = ?, asset_type = ?, make = ?, model = ?, serial_number = ?, asset_tag = ?,
           status = ?, last_updated = ?, notes = ?
       WHERE id = ?
     `, [
@@ -941,7 +973,7 @@ export const assetDb = {
       asset.manager_last_name || '', // stored for unregistered managers
       asset.manager_email || '', // keep email for backward compat lookups
       managerId,
-      asset.company_name,
+      companyId,
       asset.asset_type,
       asset.make || '',
       asset.model || '',
@@ -956,8 +988,9 @@ export const assetDb = {
   delete: async (id) => dbRun('DELETE FROM assets WHERE id = ?', [id]),
   getByEmployeeEmail: async (email) => {
     const query = `
-      SELECT 
+      SELECT
         assets.*,
+        companies.name as company_name,
         COALESCE(owner.first_name, assets.employee_first_name) as employee_first_name,
         COALESCE(owner.last_name, assets.employee_last_name) as employee_last_name,
         COALESCE(owner.email, assets.employee_email) as employee_email,
@@ -965,6 +998,7 @@ export const assetDb = {
         COALESCE(manager.last_name, assets.manager_last_name) as manager_last_name,
         COALESCE(manager.email, assets.manager_email) as manager_email
       FROM assets
+      INNER JOIN companies ON assets.company_id = companies.id
       LEFT JOIN users owner ON assets.owner_id = owner.id
       LEFT JOIN users manager ON assets.manager_id = manager.id
       WHERE COALESCE(owner.email, assets.employee_email) = ?
@@ -1047,8 +1081,9 @@ export const assetDb = {
     if (!ids || ids.length === 0) return [];
     const placeholders = ids.map(() => '?').join(',');
     const query = `
-      SELECT 
+      SELECT
         assets.*,
+        companies.name as company_name,
         COALESCE(owner.first_name, assets.employee_first_name) as employee_first_name,
         COALESCE(owner.last_name, assets.employee_last_name) as employee_last_name,
         COALESCE(owner.email, assets.employee_email) as employee_email,
@@ -1056,6 +1091,7 @@ export const assetDb = {
         COALESCE(manager.last_name, assets.manager_last_name) as manager_last_name,
         COALESCE(manager.email, assets.manager_email) as manager_email
       FROM assets
+      INNER JOIN companies ON assets.company_id = companies.id
       LEFT JOIN users owner ON assets.owner_id = owner.id
       LEFT JOIN users manager ON assets.manager_id = manager.id
       WHERE assets.id IN (${placeholders})
@@ -1114,10 +1150,11 @@ export const assetDb = {
     // Admin: all assets
     // Manager: own assets + direct reports' assets
     // Employee: only own assets
-    
+
     let baseQuery = `
-      SELECT 
+      SELECT
         assets.*,
+        companies.name as company_name,
         COALESCE(owner.first_name, assets.employee_first_name) as employee_first_name,
         COALESCE(owner.last_name, assets.employee_last_name) as employee_last_name,
         COALESCE(owner.email, assets.employee_email) as employee_email,
@@ -1125,11 +1162,12 @@ export const assetDb = {
         COALESCE(manager.last_name, assets.manager_last_name) as manager_last_name,
         COALESCE(manager.email, assets.manager_email) as manager_email
       FROM assets
+      INNER JOIN companies ON assets.company_id = companies.id
       LEFT JOIN users owner ON assets.owner_id = owner.id
       LEFT JOIN users manager ON assets.manager_id = manager.id
     `;
     let params = [];
-    
+
     if (user.role === 'admin') {
       // Admin sees all
       baseQuery += ' ORDER BY assets.registration_date DESC';
@@ -1145,7 +1183,7 @@ export const assetDb = {
                      ORDER BY assets.registration_date DESC`;
       params = [user.id, user.email];
     }
-    
+
     const rows = await dbAll(baseQuery, params);
     return rows.map((row) => ({
       ...row,
@@ -1267,9 +1305,13 @@ export const companyDb = {
     `, [hubspotId, now, id]);
   },
   delete: async (id) => dbRun('DELETE FROM companies WHERE id = ?', [id]),
-  hasAssets: async (companyName) => {
-    const row = await dbGet('SELECT COUNT(*) as count FROM assets WHERE company_name = ?', [companyName]);
+  hasAssets: async (companyId) => {
+    const row = await dbGet('SELECT COUNT(*) as count FROM assets WHERE company_id = ?', [companyId]);
     return (row?.count || 0) > 0;
+  },
+  getAssetCount: async (companyId) => {
+    const row = await dbGet('SELECT COUNT(*) as count FROM assets WHERE company_id = ?', [companyId]);
+    return row?.count || 0;
   }
 };
 

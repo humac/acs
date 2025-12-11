@@ -1,14 +1,22 @@
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
-import { assetDb, userDb } from './database.js';
+import { assetDb, userDb, companyDb } from './database.js';
 
 describe('Unregistered Manager Name Display', () => {
   let testAssetId;
   let employeeUser;
   let registeredManagerUser;
+  let testCompany;
 
   beforeAll(async () => {
     // Initialize database
     await assetDb.init();
+
+    // Create test company (required for assets with company_id FK)
+    const companyResult = await companyDb.create({
+      name: 'Test Company',
+      description: 'Test company for unregistered manager tests'
+    });
+    testCompany = await companyDb.getById(companyResult.id);
 
     // Create an employee user
     const employeeResult = await userDb.create({
@@ -28,6 +36,7 @@ describe('Unregistered Manager Name Display', () => {
     if (testAssetId) await assetDb.delete(testAssetId);
     if (employeeUser) await userDb.delete(employeeUser.id);
     if (registeredManagerUser) await userDb.delete(registeredManagerUser.id);
+    if (testCompany) await companyDb.delete(testCompany.id);
   });
 
   describe('Asset Creation with Unregistered Manager', () => {
