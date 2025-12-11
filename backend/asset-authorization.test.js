@@ -13,9 +13,11 @@ describe('Asset Authorization and Manager Sync', () => {
     // Initialize database
     await assetDb.init();
 
-    // Create test company (required for assets with company_id FK)
+    // Create test company with unique name to avoid UNIQUE constraint failures
+    // Using timestamp to ensure uniqueness across multiple test runs
+    const timestamp = Date.now();
     const companyResult = await companyDb.create({
-      name: 'Test Company',
+      name: `Test Company ${timestamp}`,
       description: 'Test company for authorization tests'
     });
     testCompany = await companyDb.getById(companyResult.id);
@@ -63,7 +65,7 @@ describe('Asset Authorization and Manager Sync', () => {
       manager_first_name: 'Test',
       manager_last_name: 'Manager',
       manager_email: 'manager@test.com',
-      company_name: 'Test Company',
+      company_name: testCompany.name, // Use the unique test company name
       asset_type: 'laptop',
       serial_number: 'SN12345',
       asset_tag: 'TAG12345',
@@ -74,12 +76,37 @@ describe('Asset Authorization and Manager Sync', () => {
   });
 
   afterAll(async () => {
-    // Clean up test data
-    if (asset) await assetDb.delete(asset.id);
-    if (employeeUser) await userDb.delete(employeeUser.id);
-    if (managerUser) await userDb.delete(managerUser.id);
-    if (adminUser) await userDb.delete(adminUser.id);
-    if (testCompany) await companyDb.delete(testCompany.id);
+    // Clean up test data - use try/catch to ensure cleanup continues even if some items fail
+    try {
+      if (asset?.id) await assetDb.delete(asset.id);
+    } catch (err) {
+      // Asset might have already been deleted or not created
+      console.warn('Failed to delete test asset:', err.message);
+    }
+    
+    try {
+      if (employeeUser?.id) await userDb.delete(employeeUser.id);
+    } catch (err) {
+      console.warn('Failed to delete employee user:', err.message);
+    }
+    
+    try {
+      if (managerUser?.id) await userDb.delete(managerUser.id);
+    } catch (err) {
+      console.warn('Failed to delete manager user:', err.message);
+    }
+    
+    try {
+      if (adminUser?.id) await userDb.delete(adminUser.id);
+    } catch (err) {
+      console.warn('Failed to delete admin user:', err.message);
+    }
+    
+    try {
+      if (testCompany?.id) await companyDb.delete(testCompany.id);
+    } catch (err) {
+      console.warn('Failed to delete test company:', err.message);
+    }
   });
 
   describe('Asset Creation with IDs', () => {

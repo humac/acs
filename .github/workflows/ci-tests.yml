@@ -53,8 +53,21 @@ jobs:
         working-directory: ./${{ matrix.project }}
         run: npm ci
 
+      - name: Clean test environment (backend)
+        if: matrix.project == 'backend'
+        working-directory: ./backend
+        run: |
+          # Remove any existing test databases to ensure clean state
+          rm -f data/*.db data/*.db-journal data/*.db-wal data/*.db-shm
+          echo "Test environment cleaned"
+
       - name: Run tests
         working-directory: ./${{ matrix.project }}
+        env:
+          NODE_ENV: test
+          CI: true
+          # Backend specific test environment variables
+          JWT_SECRET: test-jwt-secret-for-ci-only
         run: npm test
 
       - name: Generate coverage report

@@ -1652,11 +1652,26 @@ export const userDb = {
   getMFAStatus: async (userId) => dbGet('SELECT mfa_enabled, mfa_secret, mfa_backup_codes FROM users WHERE id = ?', [userId]),
   useBackupCode: async (userId, code) => {
     const user = await userDb.getMFAStatus(userId);
+    
+    // Defensive check: ensure user exists and has backup codes
     if (!user || !user.mfa_backup_codes) return false;
+    
+    // Additional defensive check for empty string edge case
+    const backupCodesStr = user.mfa_backup_codes;
+    if (backupCodesStr.trim() === '') {
+      console.error('MFA backup codes for user', userId, 'is an empty string');
+      return false;
+    }
 
     let backupCodes;
     try {
-      backupCodes = JSON.parse(user.mfa_backup_codes);
+      backupCodes = JSON.parse(backupCodesStr);
+      
+      // Validate that parsed result is an array
+      if (!Array.isArray(backupCodes)) {
+        console.error('MFA backup codes for user', userId, 'is not an array after parsing');
+        return false;
+      }
     } catch (error) {
       console.error('Failed to parse MFA backup codes for user', userId, ':', error.message);
       return false;

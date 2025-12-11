@@ -34,7 +34,26 @@ const { sendTestEmail, verifyConnection } = await import('./smtpMailer.js');
 
 describe('SMTP Mailer Service', () => {
   beforeEach(() => {
-    // Reset all mocks
+    // Reset all mocks to ensure test isolation
+    jest.clearAllMocks();
+    
+    // Reset mock implementations to defaults to prevent state bleeding between tests
+    mockSmtpSettingsDb.get.mockReset();
+    mockSmtpSettingsDb.getPassword.mockReset();
+    mockDecryptValue.mockReset();
+    mockSendMail.mockReset();
+    mockVerify.mockReset();
+    mockCreateTransport.mockReset();
+    
+    // Re-establish default mock behavior for createTransport
+    mockCreateTransport.mockReturnValue({
+      sendMail: mockSendMail,
+      verify: mockVerify
+    });
+  });
+
+  afterEach(() => {
+    // Additional cleanup to ensure no lingering state
     jest.clearAllMocks();
   });
 
