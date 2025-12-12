@@ -1714,11 +1714,10 @@ export const userDb = {
       
       // Validate that parsed result is an array
       if (!Array.isArray(backupCodes)) {
-        console.error('MFA backup codes for user', userId, 'is not an array after parsing');
         return false;
       }
     } catch (error) {
-      console.error('Failed to parse MFA backup codes for user', userId, ':', error.message);
+      // Invalid JSON or other parsing error - this is expected for corrupted data
       return false;
     }
 
