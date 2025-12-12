@@ -136,7 +136,8 @@ describe('Encryption Utilities', () => {
       // Tamper with the middle of the ciphertext portion (more reliable)
       const parts = encrypted.split(':');
       const midPoint = Math.floor(parts[2].length / 2);
-      const tamperedCiphertext = parts[2].substring(0, midPoint) + 'XXXX' + parts[2].substring(midPoint + 4);
+      const replaceLen = Math.min(4, parts[2].length - midPoint);
+      const tamperedCiphertext = parts[2].substring(0, midPoint) + 'XXXX' + parts[2].substring(midPoint + replaceLen);
       const tampered = `${parts[0]}:${parts[1]}:${tamperedCiphertext}`;
       
       expect(() => {
