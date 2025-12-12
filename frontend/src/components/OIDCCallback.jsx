@@ -60,6 +60,7 @@ const OIDCCallback = () => {
 
         setAuthData(data.token, data.user);
 
+        // Always navigate to home - App.jsx will redirect to CompleteProfile if needed
         setTimeout(() => navigate('/'), 500);
       } catch (err) {
         console.error('OIDC callback error:', err);

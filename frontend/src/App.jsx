@@ -36,6 +36,7 @@ import AdminSettings from '@/components/AdminSettings';
 import Profile from '@/components/Profile';
 import AuthPage from '@/components/AuthPage';
 import OIDCCallback from '@/components/OIDCCallback';
+import CompleteProfile from '@/components/CompleteProfile';
 
 function AppNew() {
   const { user, logout, loading, isAuthenticated } = useAuth();
@@ -95,6 +96,11 @@ function AppNew() {
 
   if (!isAuthenticated) {
     return <AuthPage />;
+  }
+
+  // Check if user needs to complete profile
+  if (user && (user.profile_complete === 0 || user.profile_complete === false)) {
+    return <CompleteProfile />;
   }
 
   const navItems = [
