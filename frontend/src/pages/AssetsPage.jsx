@@ -3,11 +3,9 @@ import AssetTable from '../components/AssetTable';
 import AssetEditModal from '../components/AssetEditModal';
 import AssetRegisterModal from '../components/AssetRegisterModal';
 import AssetBulkImportModal from '../components/AssetBulkImportModal';
-import Dashboard from '../components/Dashboard';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Laptop, Loader2, Upload, Plus } from 'lucide-react';
 
 export default function AssetsPage() {
@@ -130,25 +128,14 @@ export default function AssetsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="assets" className="w-full">
-            <TabsList>
-              <TabsTrigger value="assets">Assets</TabsTrigger>
-              <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-            </TabsList>
-            <TabsContent value="assets" className="mt-6">
-              <AssetTable
-                assets={assets}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                currentUser={currentUser}
-                onRefresh={loadAssets}
-                onAssetAdded={onAssetAdded}
-              />
-            </TabsContent>
-            <TabsContent value="dashboard" className="mt-6">
-              <Dashboard />
-            </TabsContent>
-          </Tabs>
+          <AssetTable
+            assets={assets}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            currentUser={currentUser}
+            onRefresh={loadAssets}
+            onAssetAdded={onAssetAdded}
+          />
         </CardContent>
       </Card>
 

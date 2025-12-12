@@ -42,6 +42,10 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
   const [deleteDialog, setDeleteDialog] = useState({ open: false, asset: null });
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [companyFilter, setCompanyFilter] = useState('all');
+  const [employeeFilter, setEmployeeFilter] = useState('all');
+  const [managerFilter, setManagerFilter] = useState('all');
+  const [companies, setCompanies] = useState([]);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const [bulkStatus, setBulkStatus] = useState('');
@@ -49,6 +53,24 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
   const [formLoading, setFormLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  // Fetch companies for filter dropdown
+  useEffect(() => {
+    async function fetchCompanies() {
+      try {
+        const res = await fetch('/api/companies/names', {
+          headers: { ...getAuthHeaders() }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setCompanies(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch companies:', err);
+      }
+    }
+    fetchCompanies();
+  }, [getAuthHeaders]);
 
   async function handleDeleteConfirm() {
     const asset = deleteDialog.asset;
@@ -150,11 +172,34 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
     }));
   }, [assets, getManagerDisplayName, getManagerEmail]);
 
-  // Filter assets based on search term and status
+  // Extract unique employees and managers for filter dropdowns
+  const uniqueEmployees = useMemo(() => {
+    const employeeMap = new Map();
+    assetsWithManagerData.forEach(asset => {
+      const name = `${asset.employee_first_name || ''} ${asset.employee_last_name || ''}`.trim();
+      if (name && !employeeMap.has(name)) {
+        employeeMap.set(name, { name, email: asset.employee_email });
+      }
+    });
+    return Array.from(employeeMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [assetsWithManagerData]);
+
+  const uniqueManagers = useMemo(() => {
+    const managerMap = new Map();
+    assetsWithManagerData.forEach(asset => {
+      const name = asset._managerDisplayName;
+      if (name && !managerMap.has(name)) {
+        managerMap.set(name, { name, email: asset._managerEmail });
+      }
+    });
+    return Array.from(managerMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [assetsWithManagerData]);
+
+  // Filter assets based on search term, status, company, employee, and manager
   const filteredAssets = useMemo(() => {
     let filtered = [...assetsWithManagerData];
     
-    // Search filter
+    // Search filter - across multiple fields
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter((asset) => {
@@ -179,8 +224,26 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
       filtered = filtered.filter(asset => asset.status === statusFilter);
     }
 
+    // Company filter
+    if (companyFilter && companyFilter !== 'all') {
+      filtered = filtered.filter(asset => asset.company_name === companyFilter);
+    }
+
+    // Employee filter
+    if (employeeFilter && employeeFilter !== 'all') {
+      filtered = filtered.filter(asset => {
+        const name = `${asset.employee_first_name || ''} ${asset.employee_last_name || ''}`.trim();
+        return name === employeeFilter;
+      });
+    }
+
+    // Manager filter
+    if (managerFilter && managerFilter !== 'all') {
+      filtered = filtered.filter(asset => asset._managerDisplayName === managerFilter);
+    }
+
     return filtered;
-  }, [assetsWithManagerData, searchTerm, statusFilter]);
+  }, [assetsWithManagerData, searchTerm, statusFilter, companyFilter, employeeFilter, managerFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredAssets.length / pageSize) || 1);
   
@@ -221,6 +284,14 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
   };
 
   const clearSelection = () => setSelectedIds(new Set());
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setCompanyFilter('all');
+    setEmployeeFilter('all');
+    setManagerFilter('all');
+  };
 
   const handleBulkStatusUpdate = async () => {
     const ids = Array.from(selectedIds);
@@ -324,80 +395,132 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
   return (
     <>
       <div className="space-y-6">
-        {/* Search, Status Filters, and Bulk Actions - all on one row */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:flex-wrap flex-1">
-            <div className="relative w-full sm:w-auto sm:min-w-[320px] lg:min-w-[380px]">
+        {/* Advanced Filters Section */}
+        <div className="space-y-4">
+          {/* Search and Clear Filters */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
               <Search className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
               <Input
-                placeholder="Search assets by name, manager, company, serial, tag..."
+                placeholder="Search assets by name, manager, company, serial, tag, make, model..."
                 className="pl-9"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <div className="flex flex-wrap gap-1">
-              <Button
-                variant={statusFilter === 'all' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setStatusFilter('all')}
-              >
-                All
-              </Button>
-              <Button
-                variant={statusFilter === 'active' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setStatusFilter('active')}
-              >
-                Active
-              </Button>
-              <Button
-                variant={statusFilter === 'returned' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setStatusFilter('returned')}
-              >
-                Returned
-              </Button>
-              <Button
-                variant={statusFilter === 'lost' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setStatusFilter('lost')}
-              >
-                Lost
-              </Button>
-              <Button
-                variant={statusFilter === 'damaged' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setStatusFilter('damaged')}
-              >
-                Damaged
-              </Button>
+            <Button 
+              variant="outline" 
+              onClick={clearFilters}
+              className="sm:w-auto"
+            >
+              Clear Filters
+            </Button>
+          </div>
+
+          {/* Filter Dropdowns Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* Status Filter */}
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Status</Label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="returned">Returned</SelectItem>
+                  <SelectItem value="lost">Lost</SelectItem>
+                  <SelectItem value="damaged">Damaged</SelectItem>
+                  <SelectItem value="retired">Retired</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Company Filter */}
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Company</Label>
+              <Select value={companyFilter} onValueChange={setCompanyFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All companies" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Companies</SelectItem>
+                  {companies.map((company) => (
+                    <SelectItem key={company.id} value={company.name}>
+                      {company.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Employee Filter */}
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Employee</Label>
+              <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All employees" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Employees</SelectItem>
+                  {uniqueEmployees.map((employee) => (
+                    <SelectItem key={employee.email} value={employee.name}>
+                      {employee.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Manager Filter */}
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Manager</Label>
+              <Select value={managerFilter} onValueChange={setManagerFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All managers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Managers</SelectItem>
+                  {uniqueManagers.map((manager) => (
+                    <SelectItem key={`${manager.email}-${manager.name}`} value={manager.name}>
+                      {manager.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
-          {/* Bulk Actions - inline on the right */}
-          {selectedIds.size > 0 && (
-            <div className="flex items-center gap-2 sm:gap-3 rounded-lg border px-3 py-1.5 bg-muted/50 shrink-0">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium whitespace-nowrap">{selectedIds.size} selected</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Button variant="ghost" size="sm" onClick={() => setBulkDialogOpen(true)}>Bulk edit</Button>
-                <Button variant="ghost" size="sm" onClick={handleExportSelected}>
-                  <Download className="h-4 w-4 mr-1" />Export
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-destructive hover:text-destructive"
-                  onClick={handleBulkDelete}
-                >
-                  Delete
-                </Button>
-                <Button size="sm" variant="ghost" onClick={clearSelection}>Clear</Button>
-              </div>
+
+          {/* Results Count and Bulk Actions */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="text-sm text-muted-foreground">
+              Showing {filteredAssets.length} of {assets.length} assets
             </div>
-          )}
+            {selectedIds.size > 0 && (
+              <div className="flex items-center gap-2 sm:gap-3 rounded-lg border px-3 py-1.5 bg-muted/50">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium whitespace-nowrap">{selectedIds.size} selected</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="sm" onClick={() => setBulkDialogOpen(true)}>Bulk edit</Button>
+                  <Button variant="ghost" size="sm" onClick={handleExportSelected}>
+                    <Download className="h-4 w-4 mr-1" />Export
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-destructive hover:text-destructive"
+                    onClick={handleBulkDelete}
+                  >
+                    Delete
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={clearSelection}>Clear</Button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Table */}
