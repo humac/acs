@@ -483,7 +483,7 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
                 <SelectContent>
                   <SelectItem value="all">All Managers</SelectItem>
                   {uniqueManagers.map((manager) => (
-                    <SelectItem key={manager.email || manager.name} value={manager.name}>
+                    <SelectItem key={`${manager.email}-${manager.name}`} value={manager.name}>
                       {manager.name}
                     </SelectItem>
                   ))}

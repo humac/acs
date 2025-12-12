@@ -1319,6 +1319,9 @@ export const assetDb = {
       baseQuery += ' ORDER BY assets.registration_date DESC';
     } else if (user.role === 'manager') {
       // Manager sees own assets + all assets where the owner has role = 'employee'
+      // Note: No duplication occurs because managers have role='manager', not 'employee'
+      // First condition: manager's own assets (where they are the owner)
+      // Second condition: all employee-owned assets (for visibility across the organization)
       baseQuery += ` WHERE (assets.owner_id = ? OR LOWER(assets.employee_email) = LOWER(?))
                      OR (owner.role = 'employee')
                      ORDER BY assets.registration_date DESC`;
