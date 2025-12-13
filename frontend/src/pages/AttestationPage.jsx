@@ -84,6 +84,29 @@ export default function AttestationPage() {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [campaignToCancel, setCampaignToCancel] = useState(null);
 
+  // Helper function to parse target_user_ids
+  const parseTargetUserIds = (targetUserIds) => {
+    if (!targetUserIds) return [];
+    try {
+      return typeof targetUserIds === 'string' ? JSON.parse(targetUserIds) : targetUserIds;
+    } catch (error) {
+      console.error('Error parsing target_user_ids:', error);
+      return [];
+    }
+  };
+
+  // Helper function to get user count message for campaign start
+  const getStartCampaignMessage = (campaign) => {
+    if (!campaign) return '';
+    
+    if (campaign.target_type === 'selected' && campaign.target_user_ids) {
+      const targetIds = parseTargetUserIds(campaign.target_user_ids);
+      const count = targetIds.length;
+      return `Emails will be sent to ${count} selected employee${count !== 1 ? 's' : ''}.`;
+    }
+    return 'Emails will be sent to all employees.';
+  };
+
   const loadCampaigns = async () => {
     setLoading(true);
     try {
@@ -240,17 +263,8 @@ export default function AttestationPage() {
   };
 
   const handleEditCampaignClick = (campaign) => {
-    // Parse target_user_ids if it's a string
-    let targetUserIds = [];
-    if (campaign.target_type === 'selected' && campaign.target_user_ids) {
-      try {
-        targetUserIds = typeof campaign.target_user_ids === 'string' 
-          ? JSON.parse(campaign.target_user_ids) 
-          : campaign.target_user_ids;
-      } catch (error) {
-        console.error('Error parsing target_user_ids:', error);
-      }
-    }
+    // Parse target_user_ids using helper function
+    const targetUserIds = parseTargetUserIds(campaign.target_user_ids);
 
     setEditingCampaign(campaign);
     setFormData({
@@ -1089,25 +1103,8 @@ export default function AttestationPage() {
             <AlertDialogDescription>
               Are you sure you want to start the campaign "{campaignToStart?.name}"?
               {campaignToStart && (
-                <div className="mt-2 text-sm">
-                  {campaignToStart.target_type === 'selected' && campaignToStart.target_user_ids ? (
-                    (() => {
-                      try {
-                        const targetCount = typeof campaignToStart.target_user_ids === 'string'
-                          ? JSON.parse(campaignToStart.target_user_ids).length
-                          : campaignToStart.target_user_ids.length;
-                        return (
-                          <span className="font-medium">
-                            Emails will be sent to {targetCount} selected employee{targetCount !== 1 ? 's' : ''}.
-                          </span>
-                        );
-                      } catch (error) {
-                        return <span className="font-medium">Emails will be sent to selected employees.</span>;
-                      }
-                    })()
-                  ) : (
-                    <span className="font-medium">Emails will be sent to all employees.</span>
-                  )}
+                <div className="mt-2 text-sm font-medium">
+                  {getStartCampaignMessage(campaignToStart)}
                 </div>
               )}
             </AlertDialogDescription>
