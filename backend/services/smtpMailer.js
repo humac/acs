@@ -208,3 +208,93 @@ export const verifyConnection = async () => {
     };
   }
 };
+
+/**
+ * Sends a password reset email with a reset link
+ * @param {string} recipient - Email address to send the reset email to
+ * @param {string} resetToken - Password reset token
+ * @param {string} resetUrl - Full URL for password reset (including token)
+ * @returns {Promise<Object>} Result object with success status and message
+ */
+export const sendPasswordResetEmail = async (recipient, resetToken, resetUrl) => {
+  try {
+    const settings = await smtpSettingsDb.get();
+    
+    if (!settings || !settings.enabled) {
+      return {
+        success: false,
+        error: 'SMTP settings are not enabled. Please enable them first.'
+      };
+    }
+    
+    if (!settings.from_email) {
+      return {
+        success: false,
+        error: 'From email address is not configured'
+      };
+    }
+    
+    const transport = await createTransport();
+    
+    // Get branding settings for email customization
+    const branding = await brandingSettingsDb.get();
+    const siteName = branding?.site_name || 'KARS';
+    
+    const emailContent = `
+      <h2 style="color: #333;">Password Reset Request</h2>
+      <p>You recently requested to reset your password for your <strong>${siteName}</strong> account.</p>
+      <p>Click the button below to reset your password. This link will expire in 1 hour.</p>
+      <div style="margin: 30px 0; text-align: center;">
+        <a href="${resetUrl}" style="background-color: #3B82F6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">Reset Password</a>
+      </div>
+      <p style="color: #666; font-size: 14px;">
+        If the button doesn't work, copy and paste this link into your browser:<br>
+        <a href="${resetUrl}" style="color: #3B82F6; word-break: break-all;">${resetUrl}</a>
+      </p>
+      <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+      <p style="color: #999; font-size: 12px;">
+        If you didn't request a password reset, please ignore this email or contact support if you have concerns.<br>
+        This link will expire in 1 hour for security reasons.
+      </p>
+    `;
+    
+    const mailOptions = {
+      from: `"${settings.from_name || `${siteName} Notifications`}" <${settings.from_email}>`,
+      to: recipient,
+      subject: `Password Reset Request - ${siteName}`,
+      text: `You recently requested to reset your password for your ${siteName} account.
+
+Click the link below to reset your password. This link will expire in 1 hour.
+
+${resetUrl}
+
+If you didn't request a password reset, please ignore this email or contact support if you have concerns.`,
+      html: buildEmailHtml(branding, siteName, emailContent)
+    };
+    
+    const info = await transport.sendMail(mailOptions);
+    
+    return {
+      success: true,
+      message: `Password reset email sent successfully to ${recipient}`,
+      messageId: info.messageId
+    };
+  } catch (error) {
+    // Parse common SMTP errors into user-friendly messages
+    let errorMessage = error.message;
+    
+    if (error.code === 'ECONNREFUSED') {
+      errorMessage = `Connection refused. Please check that the SMTP server is running and the host/port are correct.`;
+    } else if (error.code === 'ETIMEDOUT' || error.code === 'ESOCKET') {
+      errorMessage = `Connection timed out. Please check your network connection and firewall settings.`;
+    } else if (error.code === 'EAUTH' || error.responseCode === 535) {
+      errorMessage = `Authentication failed. Please check your username and password.`;
+    }
+    
+    return {
+      success: false,
+      error: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    };
+  }
+};

@@ -634,6 +634,27 @@ const initDb = async () => {
     )
   `;
 
+  const passwordResetTokensTable = isPostgres ? `
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token TEXT NOT NULL UNIQUE,
+      expires_at TIMESTAMP NOT NULL,
+      used INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  ` : `
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      token TEXT NOT NULL UNIQUE,
+      expires_at TEXT NOT NULL,
+      used INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `;
+
   // Create tables in dependency order to satisfy foreign key constraints
   await dbRun(usersTable);           // 1. Create users first (no dependencies)
   await dbRun(companiesTable);       // 2. Create companies (no dependencies)
@@ -646,6 +667,7 @@ const initDb = async () => {
   await dbRun(hubspotSettingsTable); // 9. Create HubSpot settings table
   await dbRun(hubspotSyncLogTable);  // 10. Create HubSpot sync log table
   await dbRun(smtpSettingsTable);    // 11. Create SMTP settings table
+  await dbRun(passwordResetTokensTable); // 12. Create password reset tokens table (depends on users)
 
   // === Migration: company_name -> company_id ===
   // Check if assets table has old schema (company_name) instead of new schema (company_id)
@@ -2402,6 +2424,62 @@ export const importSqliteDatabase = async (sqlitePath) => {
   } finally {
     sqlite.close();
     client.release();
+  }
+};
+
+export const passwordResetTokenDb = {
+  create: async (userId, token, expiresAt) => {
+    const now = new Date().toISOString();
+    if (isPostgres) {
+      const result = await dbRun(
+        'INSERT INTO password_reset_tokens (user_id, token, expires_at, created_at) VALUES ($1, $2, $3, $4) RETURNING id',
+        [userId, token, expiresAt, now]
+      );
+      return { id: result.rows[0].id };
+    } else {
+      const result = await dbRun(
+        'INSERT INTO password_reset_tokens (user_id, token, expires_at, created_at) VALUES (?, ?, ?, ?)',
+        [userId, token, expiresAt, now]
+      );
+      return { id: result.lastInsertRowid };
+    }
+  },
+  
+  findByToken: async (token) => {
+    const resetToken = await dbGet(
+      'SELECT * FROM password_reset_tokens WHERE token = ?',
+      [token]
+    );
+    if (resetToken) {
+      return {
+        ...resetToken,
+        expires_at: normalizeDates(resetToken.expires_at),
+        created_at: normalizeDates(resetToken.created_at)
+      };
+    }
+    return null;
+  },
+  
+  markAsUsed: async (tokenId) => {
+    await dbRun(
+      'UPDATE password_reset_tokens SET used = 1 WHERE id = ?',
+      [tokenId]
+    );
+  },
+  
+  deleteExpired: async () => {
+    const now = new Date().toISOString();
+    await dbRun(
+      'DELETE FROM password_reset_tokens WHERE expires_at < ?',
+      [now]
+    );
+  },
+  
+  deleteByUserId: async (userId) => {
+    await dbRun(
+      'DELETE FROM password_reset_tokens WHERE user_id = ?',
+      [userId]
+    );
   }
 };
 

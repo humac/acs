@@ -37,6 +37,8 @@ import Profile from '@/components/Profile';
 import AuthPage from '@/components/AuthPage';
 import OIDCCallback from '@/components/OIDCCallback';
 import CompleteProfile from '@/components/CompleteProfile';
+import ForgotPassword from '@/components/ForgotPassword';
+import ResetPassword from '@/components/ResetPassword';
 
 function AppNew() {
   const { user, logout, loading, isAuthenticated } = useAuth();
@@ -132,6 +134,15 @@ function AppNew() {
   // Handle OIDC callback route (no authentication required)
   if (location.pathname === '/auth/callback') {
     return <OIDCCallback />;
+  }
+
+  // Handle password reset routes (no authentication required)
+  if (location.pathname === '/forgot-password') {
+    return <ForgotPassword />;
+  }
+
+  if (location.pathname.startsWith('/reset-password/')) {
+    return <ResetPassword />;
   }
 
   if (loading) {

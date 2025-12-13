@@ -1,13 +1,13 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { assetDb, companyDb, auditDb, userDb, oidcSettingsDb, brandingSettingsDb, passkeySettingsDb, databaseSettings, databaseEngine, importSqliteDatabase, passkeyDb, hubspotSettingsDb, hubspotSyncLogDb, smtpSettingsDb, syncAssetOwnership } from './database.js';
+import { assetDb, companyDb, auditDb, userDb, oidcSettingsDb, brandingSettingsDb, passkeySettingsDb, databaseSettings, databaseEngine, importSqliteDatabase, passkeyDb, hubspotSettingsDb, hubspotSyncLogDb, smtpSettingsDb, passwordResetTokenDb, syncAssetOwnership } from './database.js';
 import { authenticate, authorize, hashPassword, comparePassword, generateToken } from './auth.js';
 import { initializeOIDC, getAuthorizationUrl, handleCallback, getUserInfo, extractUserData, isOIDCEnabled } from './oidc.js';
 import { generateMFASecret, verifyTOTP, generateBackupCodes, formatBackupCode } from './mfa.js';
 import { testHubSpotConnection, syncCompaniesToKARS } from './hubspot.js';
 import { encryptValue, decryptValue } from './utils/encryption.js';
-import { sendTestEmail } from './services/smtpMailer.js';
+import { sendTestEmail, sendPasswordResetEmail } from './services/smtpMailer.js';
 import { randomBytes, webcrypto as nodeWebcrypto } from 'crypto';
 import multer from 'multer';
 import { readFile, unlink } from 'fs/promises';
@@ -483,6 +483,213 @@ app.post('/api/auth/login', async (req, res) => {
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Failed to login' });
+  }
+});
+
+// Request password reset
+app.post('/api/auth/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Find user
+    const user = await userDb.getByEmail(email);
+    
+    // Always return success to prevent email enumeration
+    // Even if user doesn't exist, we return success but don't send email
+    if (!user) {
+      return res.json({ 
+        success: true, 
+        message: 'If an account with that email exists, a password reset link has been sent.' 
+      });
+    }
+
+    // Generate secure random token
+    const resetToken = randomBytes(32).toString('hex');
+    
+    // Token expires in 1 hour
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    
+    // Delete any existing tokens for this user
+    await passwordResetTokenDb.deleteByUserId(user.id);
+    
+    // Create new reset token
+    await passwordResetTokenDb.create(user.id, resetToken, expiresAt);
+    
+    // Build reset URL - use configured origin or default to localhost for development
+    // Only use request origin if it's explicitly allowed for security
+    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
+    const requestOrigin = req.get('origin');
+    let baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+    
+    // If request origin is in allowed list, use it
+    if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
+      baseUrl = requestOrigin;
+    }
+    
+    const resetUrl = `${baseUrl}/reset-password/${resetToken}`;
+    
+    // Send email
+    const emailResult = await sendPasswordResetEmail(user.email, resetToken, resetUrl);
+    
+    if (!emailResult.success) {
+      console.error('Failed to send password reset email:', emailResult.error);
+      return res.status(500).json({ 
+        success: false,
+        error: 'Failed to send password reset email. Please contact support or try again later.' 
+      });
+    }
+
+    // Log audit
+    await auditDb.log(
+      'password_reset_requested',
+      'user',
+      user.id,
+      user.email,
+      { email: user.email },
+      user.email
+    );
+
+    res.json({ 
+      success: true, 
+      message: 'If an account with that email exists, a password reset link has been sent.' 
+    });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ error: 'Failed to process password reset request' });
+  }
+});
+
+// Verify reset token
+app.get('/api/auth/verify-reset-token/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+
+    if (!token) {
+      return res.status(400).json({ error: 'Token is required' });
+    }
+
+    // Find token
+    const resetToken = await passwordResetTokenDb.findByToken(token);
+    
+    if (!resetToken) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Invalid or expired reset token' 
+      });
+    }
+
+    // Check if token has been used
+    if (resetToken.used) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'This reset token has already been used' 
+      });
+    }
+
+    // Check if token has expired
+    const now = new Date();
+    const expiresAt = new Date(resetToken.expires_at);
+    
+    if (now > expiresAt) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'This reset token has expired' 
+      });
+    }
+
+    res.json({ 
+      success: true,
+      message: 'Token is valid' 
+    });
+  } catch (error) {
+    console.error('Verify reset token error:', error);
+    res.status(500).json({ error: 'Failed to verify reset token' });
+  }
+});
+
+// Reset password with token
+app.post('/api/auth/reset-password', async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({ error: 'Token and password are required' });
+    }
+
+    // Validate password strength
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+    }
+
+    // Find token
+    const resetToken = await passwordResetTokenDb.findByToken(token);
+    
+    if (!resetToken) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Invalid or expired reset token' 
+      });
+    }
+
+    // Check if token has been used
+    if (resetToken.used) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'This reset token has already been used' 
+      });
+    }
+
+    // Check if token has expired
+    const now = new Date();
+    const expiresAt = new Date(resetToken.expires_at);
+    
+    if (now > expiresAt) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'This reset token has expired' 
+      });
+    }
+
+    // Get user
+    const user = await userDb.getById(resetToken.user_id);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Hash new password
+    const password_hash = await hashPassword(password);
+    
+    // Update password
+    await userDb.updatePassword(user.id, password_hash);
+    
+    // Mark token as used
+    await passwordResetTokenDb.markAsUsed(resetToken.id);
+    
+    // Delete all other tokens for this user
+    await passwordResetTokenDb.deleteByUserId(user.id);
+    
+    // Log audit
+    await auditDb.log(
+      'password_reset_completed',
+      'user',
+      user.id,
+      user.email,
+      { email: user.email },
+      user.email
+    );
+
+    res.json({ 
+      success: true,
+      message: 'Password has been reset successfully' 
+    });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ error: 'Failed to reset password' });
   }
 });
 

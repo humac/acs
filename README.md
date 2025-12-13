@@ -35,6 +35,11 @@ A comprehensive SOC2-compliant web application for tracking and managing client 
   - Database-backed configuration (admin UI)
 - **Password Security** - bcrypt hashing (10 rounds)
 - **Password Management** - Change password from profile settings
+- **Password Reset** - Email-based password reset flow with secure tokens
+  - Request reset link from login page
+  - Time-limited tokens (1-hour expiration)
+  - One-time use tokens with automatic cleanup
+  - Audit logging for all password reset events
 - **Role-Based Access Control** - Three roles with distinct permissions (see detailed matrix below):
   - **Employee**: View/edit own assets and audit logs only
   - **Manager**: View all assets and audit logs; bulk import assets; read-only access to users page; cannot edit other users' assets or access admin settings
@@ -204,6 +209,7 @@ npm run dev   # starts UI on http://localhost:5173
 - Passkeys require the frontend origin to match `PASSKEY_ORIGIN` (default `http://localhost:5173`).
 - Enable OIDC/SSO from the admin UI after setting issuer/client credentials.
 - For email notifications, set `KARS_MASTER_KEY` environment variable for password encryption (see below).
+- For password reset emails, configure `BASE_URL` (application URL) and optionally `ALLOWED_ORIGINS` (comma-separated list of allowed origins for security).
 
 ### Manual Backup
 
@@ -227,7 +233,7 @@ docker run --rm \
 
 ### Configure Email Notifications
 
-Email notifications require SMTP configuration accessible from **Admin Settings → Notifications**.
+Email notifications (including password reset emails) require SMTP configuration accessible from **Admin Settings → Notifications**.
 
 1. **Generate Master Encryption Key** (required for password encryption at rest):
    ```bash
