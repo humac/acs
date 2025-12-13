@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { assetDb, companyDb, auditDb, userDb, oidcSettingsDb, brandingSettingsDb, passkeySettingsDb, databaseSettings, databaseEngine, importSqliteDatabase, passkeyDb, hubspotSettingsDb, hubspotSyncLogDb, smtpSettingsDb, passwordResetTokenDb, syncAssetOwnership } from './database.js';
+import { assetDb, companyDb, auditDb, userDb, oidcSettingsDb, brandingSettingsDb, passkeySettingsDb, databaseSettings, databaseEngine, importSqliteDatabase, passkeyDb, hubspotSettingsDb, hubspotSyncLogDb, smtpSettingsDb, passwordResetTokenDb, syncAssetOwnership, attestationCampaignDb, attestationRecordDb, attestationAssetDb, attestationNewAssetDb } from './database.js';
 import { authenticate, authorize, hashPassword, comparePassword, generateToken } from './auth.js';
 import { initializeOIDC, getAuthorizationUrl, handleCallback, getUserInfo, extractUserData, isOIDCEnabled } from './oidc.js';
 import { generateMFASecret, verifyTOTP, generateBackupCodes, formatBackupCode } from './mfa.js';
@@ -3838,6 +3838,492 @@ app.get('/api/reports/summary', authenticate, async (req, res) => {
   } catch (error) {
     console.error('Error generating summary report:', error);
     res.status(500).json({ error: 'Failed to generate summary report' });
+  }
+});
+
+// ===== ATTESTATION CAMPAIGN ROUTES =====
+
+// Create new attestation campaign (Admin only)
+app.post('/api/attestation/campaigns', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { name, description, start_date, end_date, reminder_days, escalation_days } = req.body;
+    
+    if (!name || !start_date) {
+      return res.status(400).json({ error: 'Campaign name and start date are required' });
+    }
+    
+    const campaign = {
+      name,
+      description,
+      start_date,
+      end_date,
+      status: 'draft',
+      reminder_days: reminder_days || 7,
+      escalation_days: escalation_days || 10,
+      created_by: req.user.id
+    };
+    
+    const result = await attestationCampaignDb.create(campaign);
+    
+    await auditDb.create({
+      action: 'CREATE',
+      resource_type: 'attestation_campaign',
+      resource_id: result.id.toString(),
+      user_email: req.user.email,
+      details: `Created attestation campaign: ${name}`
+    });
+    
+    res.json({ success: true, campaignId: result.id });
+  } catch (error) {
+    console.error('Error creating attestation campaign:', error);
+    res.status(500).json({ error: 'Failed to create attestation campaign' });
+  }
+});
+
+// Get all attestation campaigns (Admin only)
+app.get('/api/attestation/campaigns', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const campaigns = await attestationCampaignDb.getAll();
+    res.json({ success: true, campaigns });
+  } catch (error) {
+    console.error('Error fetching attestation campaigns:', error);
+    res.status(500).json({ error: 'Failed to fetch attestation campaigns' });
+  }
+});
+
+// Get specific campaign details with stats (Admin only)
+app.get('/api/attestation/campaigns/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const campaign = await attestationCampaignDb.getById(req.params.id);
+    
+    if (!campaign) {
+      return res.status(404).json({ error: 'Campaign not found' });
+    }
+    
+    // Get all records for this campaign
+    const records = await attestationRecordDb.getByCampaignId(campaign.id);
+    
+    // Calculate stats
+    const stats = {
+      total: records.length,
+      completed: records.filter(r => r.status === 'completed').length,
+      in_progress: records.filter(r => r.status === 'in_progress').length,
+      pending: records.filter(r => r.status === 'pending').length,
+      reminders_sent: records.filter(r => r.reminder_sent_at).length,
+      escalations_sent: records.filter(r => r.escalation_sent_at).length
+    };
+    
+    res.json({ success: true, campaign, stats });
+  } catch (error) {
+    console.error('Error fetching campaign details:', error);
+    res.status(500).json({ error: 'Failed to fetch campaign details' });
+  }
+});
+
+// Update campaign (Admin only)
+app.put('/api/attestation/campaigns/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { name, description, start_date, end_date, reminder_days, escalation_days, status } = req.body;
+    
+    const updates = {};
+    if (name !== undefined) updates.name = name;
+    if (description !== undefined) updates.description = description;
+    if (start_date !== undefined) updates.start_date = start_date;
+    if (end_date !== undefined) updates.end_date = end_date;
+    if (reminder_days !== undefined) updates.reminder_days = reminder_days;
+    if (escalation_days !== undefined) updates.escalation_days = escalation_days;
+    if (status !== undefined) updates.status = status;
+    
+    await attestationCampaignDb.update(req.params.id, updates);
+    
+    await auditDb.create({
+      action: 'UPDATE',
+      resource_type: 'attestation_campaign',
+      resource_id: req.params.id,
+      user_email: req.user.email,
+      details: `Updated attestation campaign`
+    });
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating campaign:', error);
+    res.status(500).json({ error: 'Failed to update campaign' });
+  }
+});
+
+// Start campaign - creates records for all employees and sends emails (Admin only)
+app.post('/api/attestation/campaigns/:id/start', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const campaign = await attestationCampaignDb.getById(req.params.id);
+    
+    if (!campaign) {
+      return res.status(404).json({ error: 'Campaign not found' });
+    }
+    
+    if (campaign.status !== 'draft') {
+      return res.status(400).json({ error: 'Campaign has already been started' });
+    }
+    
+    // Get all users
+    const users = await userDb.getAll();
+    
+    // Create attestation records for all users
+    let recordsCreated = 0;
+    let emailsSent = 0;
+    
+    for (const user of users) {
+      // Create record for this user
+      await attestationRecordDb.create({
+        campaign_id: campaign.id,
+        user_id: user.id,
+        status: 'pending'
+      });
+      recordsCreated++;
+      
+      // Send email notification (only if SMTP is configured)
+      if (user.email) {
+        try {
+          const { sendAttestationLaunchEmail } = await import('./services/smtpMailer.js');
+          const attestationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/my-attestations`;
+          const result = await sendAttestationLaunchEmail(user.email, campaign, attestationUrl);
+          if (result.success) {
+            emailsSent++;
+          }
+        } catch (emailError) {
+          console.error(`Failed to send email to ${user.email}:`, emailError);
+        }
+      }
+    }
+    
+    // Update campaign status to active
+    await attestationCampaignDb.update(campaign.id, {
+      status: 'active',
+      start_date: new Date().toISOString()
+    });
+    
+    await auditDb.create({
+      action: 'START',
+      resource_type: 'attestation_campaign',
+      resource_id: campaign.id.toString(),
+      user_email: req.user.email,
+      details: `Started attestation campaign: ${campaign.name}. Created ${recordsCreated} records, sent ${emailsSent} emails`
+    });
+    
+    res.json({ success: true, recordsCreated, emailsSent });
+  } catch (error) {
+    console.error('Error starting campaign:', error);
+    res.status(500).json({ error: 'Failed to start campaign' });
+  }
+});
+
+// Cancel campaign (Admin only)
+app.post('/api/attestation/campaigns/:id/cancel', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    await attestationCampaignDb.update(req.params.id, { status: 'cancelled' });
+    
+    await auditDb.create({
+      action: 'CANCEL',
+      resource_type: 'attestation_campaign',
+      resource_id: req.params.id,
+      user_email: req.user.email,
+      details: 'Cancelled attestation campaign'
+    });
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error cancelling campaign:', error);
+    res.status(500).json({ error: 'Failed to cancel campaign' });
+  }
+});
+
+// Get campaign dashboard with detailed employee records (Admin only)
+app.get('/api/attestation/campaigns/:id/dashboard', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const campaign = await attestationCampaignDb.getById(req.params.id);
+    
+    if (!campaign) {
+      return res.status(404).json({ error: 'Campaign not found' });
+    }
+    
+    // Get all records with user details
+    const records = await attestationRecordDb.getByCampaignId(campaign.id);
+    const detailedRecords = [];
+    
+    for (const record of records) {
+      const user = await userDb.getById(record.user_id);
+      if (user) {
+        detailedRecords.push({
+          ...record,
+          user_email: user.email,
+          user_name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.name,
+          user_role: user.role
+        });
+      }
+    }
+    
+    res.json({ success: true, campaign, records: detailedRecords });
+  } catch (error) {
+    console.error('Error fetching campaign dashboard:', error);
+    res.status(500).json({ error: 'Failed to fetch campaign dashboard' });
+  }
+});
+
+// Export campaign report as CSV (Admin only)
+app.get('/api/attestation/campaigns/:id/export', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const campaign = await attestationCampaignDb.getById(req.params.id);
+    
+    if (!campaign) {
+      return res.status(404).json({ error: 'Campaign not found' });
+    }
+    
+    const records = await attestationRecordDb.getByCampaignId(campaign.id);
+    
+    // Build CSV
+    let csv = 'Employee Name,Email,Status,Started,Completed,Reminder Sent,Escalation Sent\n';
+    
+    for (const record of records) {
+      const user = await userDb.getById(record.user_id);
+      if (user) {
+        const name = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.name;
+        csv += `"${name}","${user.email}","${record.status}","${record.started_at || ''}","${record.completed_at || ''}","${record.reminder_sent_at || ''}","${record.escalation_sent_at || ''}"\n`;
+      }
+    }
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="attestation-${campaign.name.replace(/[^a-z0-9]/gi, '-')}.csv"`);
+    res.send(csv);
+  } catch (error) {
+    console.error('Error exporting campaign:', error);
+    res.status(500).json({ error: 'Failed to export campaign' });
+  }
+});
+
+// Get current user's attestations (All authenticated users)
+app.get('/api/attestation/my-attestations', authenticate, async (req, res) => {
+  try {
+    const records = await attestationRecordDb.getByUserId(req.user.id);
+    const detailedRecords = [];
+    
+    for (const record of records) {
+      const campaign = await attestationCampaignDb.getById(record.campaign_id);
+      if (campaign && campaign.status === 'active') {
+        detailedRecords.push({
+          ...record,
+          campaign
+        });
+      }
+    }
+    
+    res.json({ success: true, attestations: detailedRecords });
+  } catch (error) {
+    console.error('Error fetching user attestations:', error);
+    res.status(500).json({ error: 'Failed to fetch attestations' });
+  }
+});
+
+// Get specific attestation record with assets (All authenticated users)
+app.get('/api/attestation/records/:id', authenticate, async (req, res) => {
+  try {
+    const record = await attestationRecordDb.getById(req.params.id);
+    
+    if (!record) {
+      return res.status(404).json({ error: 'Attestation record not found' });
+    }
+    
+    // Verify user has access to this record
+    if (record.user_id !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    const campaign = await attestationCampaignDb.getById(record.campaign_id);
+    
+    // Get user's assets
+    const allAssets = await assetDb.getAll();
+    const userAssets = allAssets.filter(a => a.employee_email === req.user.email);
+    
+    // Get attested assets for this record
+    const attestedAssets = await attestationAssetDb.getByRecordId(record.id);
+    
+    // Get new assets added during attestation
+    const newAssets = await attestationNewAssetDb.getByRecordId(record.id);
+    
+    res.json({ 
+      success: true, 
+      record, 
+      campaign,
+      assets: userAssets,
+      attestedAssets,
+      newAssets
+    });
+  } catch (error) {
+    console.error('Error fetching attestation record:', error);
+    res.status(500).json({ error: 'Failed to fetch attestation record' });
+  }
+});
+
+// Update asset attestation status (All authenticated users)
+app.put('/api/attestation/records/:id/assets/:assetId', authenticate, async (req, res) => {
+  try {
+    const record = await attestationRecordDb.getById(req.params.id);
+    
+    if (!record) {
+      return res.status(404).json({ error: 'Attestation record not found' });
+    }
+    
+    // Verify user has access
+    if (record.user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    const { attested_status, notes } = req.body;
+    const asset = await assetDb.getById(req.params.assetId);
+    
+    if (!asset) {
+      return res.status(404).json({ error: 'Asset not found' });
+    }
+    
+    // Create or update attestation asset record
+    await attestationAssetDb.create({
+      attestation_record_id: record.id,
+      asset_id: asset.id,
+      attested_status,
+      previous_status: asset.status,
+      notes,
+      attested_at: new Date().toISOString()
+    });
+    
+    // Update record status to in_progress if it was pending
+    if (record.status === 'pending') {
+      await attestationRecordDb.update(record.id, {
+        status: 'in_progress',
+        started_at: new Date().toISOString()
+      });
+    }
+    
+    // If attested_status changed, update the asset
+    if (attested_status && attested_status !== asset.status) {
+      await assetDb.update(asset.id, { status: attested_status });
+      
+      await auditDb.create({
+        action: 'UPDATE',
+        resource_type: 'asset',
+        resource_id: asset.id.toString(),
+        user_email: req.user.email,
+        details: `Updated asset status during attestation: ${asset.status} -> ${attested_status}`
+      });
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating asset attestation:', error);
+    res.status(500).json({ error: 'Failed to update asset attestation' });
+  }
+});
+
+// Add new asset during attestation (All authenticated users)
+app.post('/api/attestation/records/:id/assets/new', authenticate, async (req, res) => {
+  try {
+    const record = await attestationRecordDb.getById(req.params.id);
+    
+    if (!record) {
+      return res.status(404).json({ error: 'Attestation record not found' });
+    }
+    
+    // Verify user has access
+    if (record.user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    const { asset_type, make, model, serial_number, asset_tag, company_id, notes } = req.body;
+    
+    if (!asset_type || !serial_number || !asset_tag) {
+      return res.status(400).json({ error: 'Asset type, serial number, and asset tag are required' });
+    }
+    
+    // Create new asset record
+    await attestationNewAssetDb.create({
+      attestation_record_id: record.id,
+      asset_type,
+      make,
+      model,
+      serial_number,
+      asset_tag,
+      company_id,
+      notes
+    });
+    
+    // Update record status to in_progress if it was pending
+    if (record.status === 'pending') {
+      await attestationRecordDb.update(record.id, {
+        status: 'in_progress',
+        started_at: new Date().toISOString()
+      });
+    }
+    
+    await auditDb.create({
+      action: 'CREATE',
+      resource_type: 'attestation_new_asset',
+      resource_id: record.id.toString(),
+      user_email: req.user.email,
+      details: `Added new asset during attestation: ${asset_type} - ${serial_number}`
+    });
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error adding new asset during attestation:', error);
+    res.status(500).json({ error: 'Failed to add new asset' });
+  }
+});
+
+// Complete attestation (All authenticated users)
+app.post('/api/attestation/records/:id/complete', authenticate, async (req, res) => {
+  try {
+    const record = await attestationRecordDb.getById(req.params.id);
+    
+    if (!record) {
+      return res.status(404).json({ error: 'Attestation record not found' });
+    }
+    
+    // Verify user has access
+    if (record.user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    
+    // Mark as completed
+    await attestationRecordDb.update(record.id, {
+      status: 'completed',
+      completed_at: new Date().toISOString()
+    });
+    
+    const campaign = await attestationCampaignDb.getById(record.campaign_id);
+    
+    await auditDb.create({
+      action: 'COMPLETE',
+      resource_type: 'attestation_record',
+      resource_id: record.id.toString(),
+      user_email: req.user.email,
+      details: `Completed attestation for campaign: ${campaign.name}`
+    });
+    
+    // Send notification to admins
+    try {
+      const admins = await userDb.getByRole('admin');
+      const adminEmails = admins.map(a => a.email).filter(Boolean);
+      
+      if (adminEmails.length > 0) {
+        const { sendAttestationCompleteAdminNotification } = await import('./services/smtpMailer.js');
+        const employeeName = `${req.user.first_name || ''} ${req.user.last_name || ''}`.trim() || req.user.name;
+        await sendAttestationCompleteAdminNotification(adminEmails, employeeName, req.user.email, campaign);
+      }
+    } catch (emailError) {
+      console.error('Failed to send admin notification:', emailError);
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error completing attestation:', error);
+    res.status(500).json({ error: 'Failed to complete attestation' });
   }
 });
 

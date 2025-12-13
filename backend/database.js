@@ -655,6 +655,125 @@ const initDb = async () => {
     )
   `;
 
+  const attestationCampaignsTable = isPostgres ? `
+    CREATE TABLE IF NOT EXISTS attestation_campaigns (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      start_date TIMESTAMP NOT NULL,
+      end_date TIMESTAMP,
+      status TEXT NOT NULL DEFAULT 'draft',
+      reminder_days INTEGER DEFAULT 7,
+      escalation_days INTEGER DEFAULT 10,
+      created_by INTEGER NOT NULL REFERENCES users(id),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  ` : `
+    CREATE TABLE IF NOT EXISTS attestation_campaigns (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      description TEXT,
+      start_date TEXT NOT NULL,
+      end_date TEXT,
+      status TEXT NOT NULL DEFAULT 'draft',
+      reminder_days INTEGER DEFAULT 7,
+      escalation_days INTEGER DEFAULT 10,
+      created_by INTEGER NOT NULL,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(created_by) REFERENCES users(id)
+    )
+  `;
+
+  const attestationRecordsTable = isPostgres ? `
+    CREATE TABLE IF NOT EXISTS attestation_records (
+      id SERIAL PRIMARY KEY,
+      campaign_id INTEGER NOT NULL REFERENCES attestation_campaigns(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      status TEXT NOT NULL DEFAULT 'pending',
+      started_at TIMESTAMP,
+      completed_at TIMESTAMP,
+      reminder_sent_at TIMESTAMP,
+      escalation_sent_at TIMESTAMP,
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(campaign_id, user_id)
+    )
+  ` : `
+    CREATE TABLE IF NOT EXISTS attestation_records (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      campaign_id INTEGER NOT NULL,
+      user_id INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      started_at TEXT,
+      completed_at TEXT,
+      reminder_sent_at TEXT,
+      escalation_sent_at TEXT,
+      notes TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(campaign_id) REFERENCES attestation_campaigns(id) ON DELETE CASCADE,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+      UNIQUE(campaign_id, user_id)
+    )
+  `;
+
+  const attestationAssetsTable = isPostgres ? `
+    CREATE TABLE IF NOT EXISTS attestation_assets (
+      id SERIAL PRIMARY KEY,
+      attestation_record_id INTEGER NOT NULL REFERENCES attestation_records(id) ON DELETE CASCADE,
+      asset_id INTEGER NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
+      attested_status TEXT,
+      previous_status TEXT,
+      notes TEXT,
+      attested_at TIMESTAMP
+    )
+  ` : `
+    CREATE TABLE IF NOT EXISTS attestation_assets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      attestation_record_id INTEGER NOT NULL,
+      asset_id INTEGER NOT NULL,
+      attested_status TEXT,
+      previous_status TEXT,
+      notes TEXT,
+      attested_at TEXT,
+      FOREIGN KEY(attestation_record_id) REFERENCES attestation_records(id) ON DELETE CASCADE,
+      FOREIGN KEY(asset_id) REFERENCES assets(id) ON DELETE CASCADE
+    )
+  `;
+
+  const attestationNewAssetsTable = isPostgres ? `
+    CREATE TABLE IF NOT EXISTS attestation_new_assets (
+      id SERIAL PRIMARY KEY,
+      attestation_record_id INTEGER NOT NULL REFERENCES attestation_records(id) ON DELETE CASCADE,
+      asset_type TEXT NOT NULL,
+      make TEXT,
+      model TEXT,
+      serial_number TEXT NOT NULL,
+      asset_tag TEXT NOT NULL,
+      company_id INTEGER REFERENCES companies(id),
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  ` : `
+    CREATE TABLE IF NOT EXISTS attestation_new_assets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      attestation_record_id INTEGER NOT NULL,
+      asset_type TEXT NOT NULL,
+      make TEXT,
+      model TEXT,
+      serial_number TEXT NOT NULL,
+      asset_tag TEXT NOT NULL,
+      company_id INTEGER,
+      notes TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(attestation_record_id) REFERENCES attestation_records(id) ON DELETE CASCADE,
+      FOREIGN KEY(company_id) REFERENCES companies(id)
+    )
+  `;
+
   // Create tables in dependency order to satisfy foreign key constraints
   await dbRun(usersTable);           // 1. Create users first (no dependencies)
   await dbRun(companiesTable);       // 2. Create companies (no dependencies)
@@ -668,6 +787,10 @@ const initDb = async () => {
   await dbRun(hubspotSyncLogTable);  // 10. Create HubSpot sync log table
   await dbRun(smtpSettingsTable);    // 11. Create SMTP settings table
   await dbRun(passwordResetTokensTable); // 12. Create password reset tokens table (depends on users)
+  await dbRun(attestationCampaignsTable); // 13. Create attestation campaigns table (depends on users)
+  await dbRun(attestationRecordsTable); // 14. Create attestation records table (depends on campaigns and users)
+  await dbRun(attestationAssetsTable); // 15. Create attestation assets table (depends on attestation_records and assets)
+  await dbRun(attestationNewAssetsTable); // 16. Create attestation new assets table (depends on attestation_records)
 
   // === Migration: company_name -> company_id ===
   // Check if assets table has old schema (company_name) instead of new schema (company_id)
@@ -1836,6 +1959,19 @@ export const userDb = {
       created_at: normalizeDates(row.created_at),
       last_login: normalizeDates(row.last_login)
     }));
+  },
+  /**
+   * Get all users with a specific role
+   * @param {string} role - The role to filter by (e.g., 'admin', 'manager', 'employee')
+   * @returns {Promise<Array>} Array of user objects with the specified role
+   */
+  getByRole: async (role) => {
+    const rows = await dbAll('SELECT * FROM users WHERE role = ?', [role]);
+    return rows.map((row) => ({
+      ...row,
+      created_at: normalizeDates(row.created_at),
+      last_login: normalizeDates(row.last_login)
+    }));
   }
 };
 
@@ -2480,6 +2616,306 @@ export const passwordResetTokenDb = {
       'DELETE FROM password_reset_tokens WHERE user_id = ?',
       [userId]
     );
+  }
+};
+
+export const attestationCampaignDb = {
+  create: async (campaign) => {
+    const now = new Date().toISOString();
+    if (isPostgres) {
+      const result = await dbRun(
+        `INSERT INTO attestation_campaigns (name, description, start_date, end_date, status, reminder_days, escalation_days, created_by, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
+        [campaign.name, campaign.description, campaign.start_date, campaign.end_date, campaign.status || 'draft', 
+         campaign.reminder_days || 7, campaign.escalation_days || 10, campaign.created_by, now, now]
+      );
+      return { id: result.rows[0].id };
+    } else {
+      const result = await dbRun(
+        `INSERT INTO attestation_campaigns (name, description, start_date, end_date, status, reminder_days, escalation_days, created_by, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [campaign.name, campaign.description, campaign.start_date, campaign.end_date, campaign.status || 'draft',
+         campaign.reminder_days || 7, campaign.escalation_days || 10, campaign.created_by, now, now]
+      );
+      return { id: result.lastInsertRowid };
+    }
+  },
+
+  getAll: async () => {
+    const campaigns = await dbAll('SELECT * FROM attestation_campaigns ORDER BY created_at DESC');
+    return campaigns.map(c => ({
+      ...c,
+      start_date: normalizeDates(c.start_date),
+      end_date: normalizeDates(c.end_date),
+      created_at: normalizeDates(c.created_at),
+      updated_at: normalizeDates(c.updated_at)
+    }));
+  },
+
+  getById: async (id) => {
+    const campaign = await dbGet('SELECT * FROM attestation_campaigns WHERE id = ?', [id]);
+    if (campaign) {
+      return {
+        ...campaign,
+        start_date: normalizeDates(campaign.start_date),
+        end_date: normalizeDates(campaign.end_date),
+        created_at: normalizeDates(campaign.created_at),
+        updated_at: normalizeDates(campaign.updated_at)
+      };
+    }
+    return null;
+  },
+
+  update: async (id, updates) => {
+    const now = new Date().toISOString();
+    const fields = [];
+    const params = [];
+    
+    if (updates.name !== undefined) {
+      fields.push(isPostgres ? `name = $${fields.length + 1}` : 'name = ?');
+      params.push(updates.name);
+    }
+    if (updates.description !== undefined) {
+      fields.push(isPostgres ? `description = $${fields.length + 1}` : 'description = ?');
+      params.push(updates.description);
+    }
+    if (updates.start_date !== undefined) {
+      fields.push(isPostgres ? `start_date = $${fields.length + 1}` : 'start_date = ?');
+      params.push(updates.start_date);
+    }
+    if (updates.end_date !== undefined) {
+      fields.push(isPostgres ? `end_date = $${fields.length + 1}` : 'end_date = ?');
+      params.push(updates.end_date);
+    }
+    if (updates.status !== undefined) {
+      fields.push(isPostgres ? `status = $${fields.length + 1}` : 'status = ?');
+      params.push(updates.status);
+    }
+    if (updates.reminder_days !== undefined) {
+      fields.push(isPostgres ? `reminder_days = $${fields.length + 1}` : 'reminder_days = ?');
+      params.push(updates.reminder_days);
+    }
+    if (updates.escalation_days !== undefined) {
+      fields.push(isPostgres ? `escalation_days = $${fields.length + 1}` : 'escalation_days = ?');
+      params.push(updates.escalation_days);
+    }
+    
+    fields.push(isPostgres ? `updated_at = $${fields.length + 1}` : 'updated_at = ?');
+    params.push(now);
+    params.push(id);
+    
+    await dbRun(
+      `UPDATE attestation_campaigns SET ${fields.join(', ')} WHERE id = ${isPostgres ? `$${params.length}` : '?'}`,
+      params
+    );
+  },
+
+  delete: async (id) => {
+    await dbRun('DELETE FROM attestation_campaigns WHERE id = ?', [id]);
+  }
+};
+
+export const attestationRecordDb = {
+  create: async (record) => {
+    const now = new Date().toISOString();
+    if (isPostgres) {
+      const result = await dbRun(
+        `INSERT INTO attestation_records (campaign_id, user_id, status, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+        [record.campaign_id, record.user_id, record.status || 'pending', now, now]
+      );
+      return { id: result.rows[0].id };
+    } else {
+      const result = await dbRun(
+        `INSERT INTO attestation_records (campaign_id, user_id, status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)`,
+        [record.campaign_id, record.user_id, record.status || 'pending', now, now]
+      );
+      return { id: result.lastInsertRowid };
+    }
+  },
+
+  getByCampaignId: async (campaignId) => {
+    const records = await dbAll('SELECT * FROM attestation_records WHERE campaign_id = ?', [campaignId]);
+    return records.map(r => ({
+      ...r,
+      started_at: normalizeDates(r.started_at),
+      completed_at: normalizeDates(r.completed_at),
+      reminder_sent_at: normalizeDates(r.reminder_sent_at),
+      escalation_sent_at: normalizeDates(r.escalation_sent_at),
+      created_at: normalizeDates(r.created_at),
+      updated_at: normalizeDates(r.updated_at)
+    }));
+  },
+
+  getById: async (id) => {
+    const record = await dbGet('SELECT * FROM attestation_records WHERE id = ?', [id]);
+    if (record) {
+      return {
+        ...record,
+        started_at: normalizeDates(record.started_at),
+        completed_at: normalizeDates(record.completed_at),
+        reminder_sent_at: normalizeDates(record.reminder_sent_at),
+        escalation_sent_at: normalizeDates(record.escalation_sent_at),
+        created_at: normalizeDates(record.created_at),
+        updated_at: normalizeDates(record.updated_at)
+      };
+    }
+    return null;
+  },
+
+  getByUserAndCampaign: async (userId, campaignId) => {
+    const record = await dbGet(
+      'SELECT * FROM attestation_records WHERE user_id = ? AND campaign_id = ?',
+      [userId, campaignId]
+    );
+    if (record) {
+      return {
+        ...record,
+        started_at: normalizeDates(record.started_at),
+        completed_at: normalizeDates(record.completed_at),
+        reminder_sent_at: normalizeDates(record.reminder_sent_at),
+        escalation_sent_at: normalizeDates(record.escalation_sent_at),
+        created_at: normalizeDates(record.created_at),
+        updated_at: normalizeDates(record.updated_at)
+      };
+    }
+    return null;
+  },
+
+  getByUserId: async (userId) => {
+    const records = await dbAll('SELECT * FROM attestation_records WHERE user_id = ?', [userId]);
+    return records.map(r => ({
+      ...r,
+      started_at: normalizeDates(r.started_at),
+      completed_at: normalizeDates(r.completed_at),
+      reminder_sent_at: normalizeDates(r.reminder_sent_at),
+      escalation_sent_at: normalizeDates(r.escalation_sent_at),
+      created_at: normalizeDates(r.created_at),
+      updated_at: normalizeDates(r.updated_at)
+    }));
+  },
+
+  update: async (id, updates) => {
+    const now = new Date().toISOString();
+    const fields = [];
+    const params = [];
+    
+    if (updates.status !== undefined) {
+      fields.push(isPostgres ? `status = $${fields.length + 1}` : 'status = ?');
+      params.push(updates.status);
+    }
+    if (updates.started_at !== undefined) {
+      fields.push(isPostgres ? `started_at = $${fields.length + 1}` : 'started_at = ?');
+      params.push(updates.started_at);
+    }
+    if (updates.completed_at !== undefined) {
+      fields.push(isPostgres ? `completed_at = $${fields.length + 1}` : 'completed_at = ?');
+      params.push(updates.completed_at);
+    }
+    if (updates.reminder_sent_at !== undefined) {
+      fields.push(isPostgres ? `reminder_sent_at = $${fields.length + 1}` : 'reminder_sent_at = ?');
+      params.push(updates.reminder_sent_at);
+    }
+    if (updates.escalation_sent_at !== undefined) {
+      fields.push(isPostgres ? `escalation_sent_at = $${fields.length + 1}` : 'escalation_sent_at = ?');
+      params.push(updates.escalation_sent_at);
+    }
+    if (updates.notes !== undefined) {
+      fields.push(isPostgres ? `notes = $${fields.length + 1}` : 'notes = ?');
+      params.push(updates.notes);
+    }
+    
+    fields.push(isPostgres ? `updated_at = $${fields.length + 1}` : 'updated_at = ?');
+    params.push(now);
+    params.push(id);
+    
+    await dbRun(
+      `UPDATE attestation_records SET ${fields.join(', ')} WHERE id = ${isPostgres ? `$${params.length}` : '?'}`,
+      params
+    );
+  }
+};
+
+export const attestationAssetDb = {
+  create: async (asset) => {
+    if (isPostgres) {
+      const result = await dbRun(
+        `INSERT INTO attestation_assets (attestation_record_id, asset_id, attested_status, previous_status, notes, attested_at)
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+        [asset.attestation_record_id, asset.asset_id, asset.attested_status, asset.previous_status, asset.notes, asset.attested_at]
+      );
+      return { id: result.rows[0].id };
+    } else {
+      const result = await dbRun(
+        `INSERT INTO attestation_assets (attestation_record_id, asset_id, attested_status, previous_status, notes, attested_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [asset.attestation_record_id, asset.asset_id, asset.attested_status, asset.previous_status, asset.notes, asset.attested_at]
+      );
+      return { id: result.lastInsertRowid };
+    }
+  },
+
+  getByRecordId: async (recordId) => {
+    const assets = await dbAll('SELECT * FROM attestation_assets WHERE attestation_record_id = ?', [recordId]);
+    return assets.map(a => ({
+      ...a,
+      attested_at: normalizeDates(a.attested_at)
+    }));
+  },
+
+  update: async (id, updates) => {
+    const fields = [];
+    const params = [];
+    
+    if (updates.attested_status !== undefined) {
+      fields.push(isPostgres ? `attested_status = $${fields.length + 1}` : 'attested_status = ?');
+      params.push(updates.attested_status);
+    }
+    if (updates.notes !== undefined) {
+      fields.push(isPostgres ? `notes = $${fields.length + 1}` : 'notes = ?');
+      params.push(updates.notes);
+    }
+    if (updates.attested_at !== undefined) {
+      fields.push(isPostgres ? `attested_at = $${fields.length + 1}` : 'attested_at = ?');
+      params.push(updates.attested_at);
+    }
+    
+    params.push(id);
+    
+    await dbRun(
+      `UPDATE attestation_assets SET ${fields.join(', ')} WHERE id = ${isPostgres ? `$${params.length}` : '?'}`,
+      params
+    );
+  }
+};
+
+export const attestationNewAssetDb = {
+  create: async (asset) => {
+    const now = new Date().toISOString();
+    if (isPostgres) {
+      const result = await dbRun(
+        `INSERT INTO attestation_new_assets (attestation_record_id, asset_type, make, model, serial_number, asset_tag, company_id, notes, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
+        [asset.attestation_record_id, asset.asset_type, asset.make, asset.model, asset.serial_number, asset.asset_tag, asset.company_id, asset.notes, now]
+      );
+      return { id: result.rows[0].id };
+    } else {
+      const result = await dbRun(
+        `INSERT INTO attestation_new_assets (attestation_record_id, asset_type, make, model, serial_number, asset_tag, company_id, notes, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [asset.attestation_record_id, asset.asset_type, asset.make, asset.model, asset.serial_number, asset.asset_tag, asset.company_id, asset.notes, now]
+      );
+      return { id: result.lastInsertRowid };
+    }
+  },
+
+  getByRecordId: async (recordId) => {
+    const assets = await dbAll('SELECT * FROM attestation_new_assets WHERE attestation_record_id = ?', [recordId]);
+    return assets.map(a => ({
+      ...a,
+      created_at: normalizeDates(a.created_at)
+    }));
   }
 };
 

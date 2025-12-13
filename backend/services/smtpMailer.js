@@ -298,3 +298,235 @@ If you didn't request a password reset, please ignore this email or contact supp
     };
   }
 };
+
+/**
+ * Sends attestation campaign launch email to an employee
+ * @param {string} recipient - Employee email address
+ * @param {Object} campaign - Campaign object with name and description
+ * @param {string} attestationUrl - Full URL to the attestation page
+ * @returns {Promise<Object>} Result object with success status and message
+ */
+export const sendAttestationLaunchEmail = async (recipient, campaign, attestationUrl) => {
+  try {
+    const settings = await smtpSettingsDb.get();
+    
+    if (!settings || !settings.enabled) {
+      return { success: false, error: 'SMTP settings are not enabled' };
+    }
+    
+    if (!settings.from_email) {
+      return { success: false, error: 'From email address is not configured' };
+    }
+    
+    const transport = await createTransport();
+    const branding = await brandingSettingsDb.get();
+    const siteName = branding?.site_name || 'KARS';
+    
+    const emailContent = `
+      <h2 style="color: #333;">Asset Attestation Required</h2>
+      <p>A new asset attestation campaign has been launched: <strong>${campaign.name}</strong></p>
+      ${campaign.description ? `<p>${campaign.description}</p>` : ''}
+      <p>Please review and attest to the status of all your registered assets. You can also add any missing assets that aren't currently registered.</p>
+      <div style="margin: 30px 0; text-align: center;">
+        <a href="${attestationUrl}" style="background-color: #3B82F6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">Complete Attestation</a>
+      </div>
+      <p style="color: #666; font-size: 14px;">
+        If the button doesn't work, copy and paste this link into your browser:<br>
+        <a href="${attestationUrl}" style="color: #3B82F6; word-break: break-all;">${attestationUrl}</a>
+      </p>
+      <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+      <p style="color: #999; font-size: 12px;">
+        This attestation is required to maintain accurate asset records. Please complete it at your earliest convenience.
+      </p>
+    `;
+    
+    const mailOptions = {
+      from: `"${settings.from_name || `${siteName} Notifications`}" <${settings.from_email}>`,
+      to: recipient,
+      subject: `Action Required: Asset Attestation - ${campaign.name}`,
+      text: `A new asset attestation campaign has been launched: ${campaign.name}
+${campaign.description ? '\n' + campaign.description + '\n' : ''}
+Please review and attest to the status of all your registered assets. You can also add any missing assets that aren't currently registered.
+
+Complete your attestation here: ${attestationUrl}`,
+      html: buildEmailHtml(branding, siteName, emailContent)
+    };
+    
+    await transport.sendMail(mailOptions);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send attestation launch email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Sends attestation reminder email to an employee
+ * @param {string} recipient - Employee email address
+ * @param {Object} campaign - Campaign object with name
+ * @param {string} attestationUrl - Full URL to the attestation page
+ * @returns {Promise<Object>} Result object with success status and message
+ */
+export const sendAttestationReminderEmail = async (recipient, campaign, attestationUrl) => {
+  try {
+    const settings = await smtpSettingsDb.get();
+    
+    if (!settings || !settings.enabled) {
+      return { success: false, error: 'SMTP settings are not enabled' };
+    }
+    
+    if (!settings.from_email) {
+      return { success: false, error: 'From email address is not configured' };
+    }
+    
+    const transport = await createTransport();
+    const branding = await brandingSettingsDb.get();
+    const siteName = branding?.site_name || 'KARS';
+    
+    const emailContent = `
+      <h2 style="color: #333;">Reminder: Asset Attestation Pending</h2>
+      <p>This is a friendly reminder that you have a pending asset attestation for: <strong>${campaign.name}</strong></p>
+      <p>Please complete your attestation as soon as possible to help us maintain accurate asset records.</p>
+      <div style="margin: 30px 0; text-align: center;">
+        <a href="${attestationUrl}" style="background-color: #3B82F6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">Complete Attestation Now</a>
+      </div>
+      <p style="color: #666; font-size: 14px;">
+        If the button doesn't work, copy and paste this link into your browser:<br>
+        <a href="${attestationUrl}" style="color: #3B82F6; word-break: break-all;">${attestationUrl}</a>
+      </p>
+    `;
+    
+    const mailOptions = {
+      from: `"${settings.from_name || `${siteName} Notifications`}" <${settings.from_email}>`,
+      to: recipient,
+      subject: `Reminder: Asset Attestation Pending - ${campaign.name}`,
+      text: `This is a friendly reminder that you have a pending asset attestation for: ${campaign.name}
+
+Please complete your attestation as soon as possible to help us maintain accurate asset records.
+
+Complete your attestation here: ${attestationUrl}`,
+      html: buildEmailHtml(branding, siteName, emailContent)
+    };
+    
+    await transport.sendMail(mailOptions);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send attestation reminder email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Sends attestation escalation email to a manager
+ * @param {string} managerEmail - Manager email address
+ * @param {string} employeeName - Employee name who hasn't completed attestation
+ * @param {string} employeeEmail - Employee email address
+ * @param {Object} campaign - Campaign object with name
+ * @returns {Promise<Object>} Result object with success status and message
+ */
+export const sendAttestationEscalationEmail = async (managerEmail, employeeName, employeeEmail, campaign) => {
+  try {
+    const settings = await smtpSettingsDb.get();
+    
+    if (!settings || !settings.enabled) {
+      return { success: false, error: 'SMTP settings are not enabled' };
+    }
+    
+    if (!settings.from_email) {
+      return { success: false, error: 'From email address is not configured' };
+    }
+    
+    const transport = await createTransport();
+    const branding = await brandingSettingsDb.get();
+    const siteName = branding?.site_name || 'KARS';
+    
+    const emailContent = `
+      <h2 style="color: #333;">Action Required: Team Member Attestation Outstanding</h2>
+      <p>This is a notification that one of your team members has not yet completed their asset attestation.</p>
+      <div style="background-color: #f3f4f6; padding: 15px; border-radius: 6px; margin: 20px 0;">
+        <p style="margin: 5px 0;"><strong>Employee:</strong> ${employeeName} (${employeeEmail})</p>
+        <p style="margin: 5px 0;"><strong>Campaign:</strong> ${campaign.name}</p>
+      </div>
+      <p>Please follow up with this team member to ensure they complete their asset attestation promptly.</p>
+      <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+      <p style="color: #999; font-size: 12px;">
+        This is an automated escalation notification sent because the attestation has been outstanding for ${campaign.escalation_days} days.
+      </p>
+    `;
+    
+    const mailOptions = {
+      from: `"${settings.from_name || `${siteName} Notifications`}" <${settings.from_email}>`,
+      to: managerEmail,
+      subject: `Team Attestation Outstanding: ${employeeName} - ${campaign.name}`,
+      text: `This is a notification that one of your team members has not yet completed their asset attestation.
+
+Employee: ${employeeName} (${employeeEmail})
+Campaign: ${campaign.name}
+
+Please follow up with this team member to ensure they complete their asset attestation promptly.
+
+This is an automated escalation notification sent because the attestation has been outstanding for ${campaign.escalation_days} days.`,
+      html: buildEmailHtml(branding, siteName, emailContent)
+    };
+    
+    await transport.sendMail(mailOptions);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send attestation escalation email:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Sends attestation completion notification to admins
+ * @param {string[]} adminEmails - Array of admin email addresses
+ * @param {string} employeeName - Employee name who completed attestation
+ * @param {string} employeeEmail - Employee email address
+ * @param {Object} campaign - Campaign object with name
+ * @returns {Promise<Object>} Result object with success status and message
+ */
+export const sendAttestationCompleteAdminNotification = async (adminEmails, employeeName, employeeEmail, campaign) => {
+  try {
+    const settings = await smtpSettingsDb.get();
+    
+    if (!settings || !settings.enabled) {
+      return { success: false, error: 'SMTP settings are not enabled' };
+    }
+    
+    if (!settings.from_email) {
+      return { success: false, error: 'From email address is not configured' };
+    }
+    
+    const transport = await createTransport();
+    const branding = await brandingSettingsDb.get();
+    const siteName = branding?.site_name || 'KARS';
+    
+    const emailContent = `
+      <h2 style="color: #333;">Asset Attestation Completed</h2>
+      <p>An employee has completed their asset attestation.</p>
+      <div style="background-color: #f3f4f6; padding: 15px; border-radius: 6px; margin: 20px 0;">
+        <p style="margin: 5px 0;"><strong>Employee:</strong> ${employeeName} (${employeeEmail})</p>
+        <p style="margin: 5px 0;"><strong>Campaign:</strong> ${campaign.name}</p>
+        <p style="margin: 5px 0;"><strong>Completed:</strong> ${new Date().toLocaleString()}</p>
+      </div>
+    `;
+    
+    const mailOptions = {
+      from: `"${settings.from_name || `${siteName} Notifications`}" <${settings.from_email}>`,
+      to: adminEmails.join(', '),
+      subject: `Attestation Completed: ${employeeName} - ${campaign.name}`,
+      text: `An employee has completed their asset attestation.
+
+Employee: ${employeeName} (${employeeEmail})
+Campaign: ${campaign.name}
+Completed: ${new Date().toLocaleString()}`,
+      html: buildEmailHtml(branding, siteName, emailContent)
+    };
+    
+    await transport.sendMail(mailOptions);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send attestation completion notification:', error);
+    return { success: false, error: error.message };
+  }
+};
