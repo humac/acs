@@ -37,6 +37,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export default function AttestationPage() {
   const { getAuthHeaders, user } = useAuth();
@@ -54,8 +56,14 @@ export default function AttestationPage() {
     start_date: new Date().toISOString().split('T')[0],
     end_date: '',
     reminder_days: 7,
-    escalation_days: 10
+    escalation_days: 10,
+    target_type: 'all',
+    target_user_ids: []
   });
+  
+  const [wizardStep, setWizardStep] = useState(1);
+  const [availableUsers, setAvailableUsers] = useState([]);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
 
   const loadCampaigns = async () => {
     setLoading(true);
@@ -84,6 +92,24 @@ export default function AttestationPage() {
     }
   }, [user]);
 
+  const loadUsers = async () => {
+    try {
+      const res = await fetch('/api/users', {
+        headers: { ...getAuthHeaders() }
+      });
+      if (!res.ok) throw new Error('Failed to load users');
+      const data = await res.json();
+      setAvailableUsers(data.users || []);
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: 'Error',
+        description: 'Failed to load users',
+        variant: 'destructive'
+      });
+    }
+  };
+
   const handleCreateCampaign = async () => {
     try {
       const res = await fetch('/api/attestation/campaigns', {
@@ -100,14 +126,18 @@ export default function AttestationPage() {
       });
 
       setShowCreateModal(false);
+      setWizardStep(1);
       setFormData({
         name: '',
         description: '',
         start_date: new Date().toISOString().split('T')[0],
         end_date: '',
         reminder_days: 7,
-        escalation_days: 10
+        escalation_days: 10,
+        target_type: 'all',
+        target_user_ids: []
       });
+      setUserSearchQuery('');
       loadCampaigns();
     } catch (err) {
       console.error(err);
@@ -120,7 +150,27 @@ export default function AttestationPage() {
   };
 
   const handleStartCampaign = async (campaignId) => {
-    if (!confirm('Are you sure you want to start this campaign? Emails will be sent to all employees.')) {
+    const campaign = campaigns.find(c => c.id === campaignId);
+    let confirmMessage = 'Are you sure you want to start this campaign? ';
+    
+    if (campaign?.target_type === 'selected' && campaign?.target_user_ids) {
+      try {
+        // Validate target_user_ids is a string before parsing
+        if (typeof campaign.target_user_ids === 'string') {
+          const targetCount = JSON.parse(campaign.target_user_ids).length;
+          confirmMessage += `Emails will be sent to ${targetCount} selected employee${targetCount !== 1 ? 's' : ''}.`;
+        } else {
+          confirmMessage += 'Emails will be sent to selected employees.';
+        }
+      } catch (error) {
+        console.error('Error parsing target_user_ids:', error);
+        confirmMessage += 'Emails will be sent to selected employees.';
+      }
+    } else {
+      confirmMessage += 'Emails will be sent to all employees.';
+    }
+    
+    if (!confirm(confirmMessage)) {
       return;
     }
 
@@ -382,91 +432,221 @@ export default function AttestationPage() {
         </CardContent>
       </Card>
 
-      {/* Create Campaign Modal */}
-      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-        <DialogContent>
+      {/* Create Campaign Modal - Multi-Step Wizard */}
+      <Dialog open={showCreateModal} onOpenChange={(open) => {
+        setShowCreateModal(open);
+        if (!open) {
+          setWizardStep(1);
+          setUserSearchQuery('');
+        }
+      }}>
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Create Attestation Campaign</DialogTitle>
+            <DialogTitle>Create Attestation Campaign - Step {wizardStep} of 2</DialogTitle>
             <DialogDescription>
-              Create a new campaign to request employees attest to their assets
+              {wizardStep === 1 ? 'Configure campaign details' : 'Select target employees'}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="name">Campaign Name *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., Q1 2025 Asset Attestation"
-              />
-            </div>
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Provide additional context for employees..."
-                rows={3}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+          
+          {/* Step 1: Campaign Details */}
+          {wizardStep === 1 && (
+            <div className="space-y-4">
               <div>
-                <Label htmlFor="start_date">Start Date *</Label>
+                <Label htmlFor="name">Campaign Name *</Label>
                 <Input
-                  id="start_date"
-                  type="date"
-                  value={formData.start_date}
-                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="e.g., Q1 2025 Asset Attestation"
                 />
               </div>
               <div>
-                <Label htmlFor="end_date">End Date (Optional)</Label>
-                <Input
-                  id="end_date"
-                  type="date"
-                  value={formData.end_date}
-                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Provide additional context for employees..."
+                  rows={3}
                 />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="start_date">Start Date *</Label>
+                  <Input
+                    id="start_date"
+                    type="date"
+                    value={formData.start_date}
+                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="end_date">End Date (Optional)</Label>
+                  <Input
+                    id="end_date"
+                    type="date"
+                    value={formData.end_date}
+                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="reminder_days">Reminder (days)</Label>
+                  <Input
+                    id="reminder_days"
+                    type="number"
+                    min="1"
+                    value={formData.reminder_days}
+                    onChange={(e) => setFormData({ ...formData, reminder_days: parseInt(e.target.value) || 7 })}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Send reminder after X days
+                  </p>
+                </div>
+                <div>
+                  <Label htmlFor="escalation_days">Escalation (days)</Label>
+                  <Input
+                    id="escalation_days"
+                    type="number"
+                    min="1"
+                    value={formData.escalation_days}
+                    onChange={(e) => setFormData({ ...formData, escalation_days: parseInt(e.target.value) || 10 })}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Notify manager after X days
+                  </p>
+                </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="reminder_days">Reminder (days)</Label>
-                <Input
-                  id="reminder_days"
-                  type="number"
-                  min="1"
-                  value={formData.reminder_days}
-                  onChange={(e) => setFormData({ ...formData, reminder_days: parseInt(e.target.value) || 7 })}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Send reminder after X days
-                </p>
-              </div>
-              <div>
-                <Label htmlFor="escalation_days">Escalation (days)</Label>
-                <Input
-                  id="escalation_days"
-                  type="number"
-                  min="1"
-                  value={formData.escalation_days}
-                  onChange={(e) => setFormData({ ...formData, escalation_days: parseInt(e.target.value) || 10 })}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Notify manager after X days
-                </p>
-              </div>
+          )}
+          
+          {/* Step 2: Target Selection */}
+          {wizardStep === 2 && (
+            <div className="space-y-4">
+              <RadioGroup
+                value={formData.target_type}
+                onValueChange={(value) => {
+                  setFormData({ ...formData, target_type: value, target_user_ids: [] });
+                  if (value === 'selected' && availableUsers.length === 0) {
+                    loadUsers();
+                  }
+                }}
+              >
+                <div className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-muted/50">
+                  <RadioGroupItem value="all" id="target-all" />
+                  <Label htmlFor="target-all" className="flex-1 cursor-pointer">
+                    <div className="font-medium">All Employees (System-wide)</div>
+                    <div className="text-sm text-muted-foreground">
+                      Send attestation request to all registered users
+                    </div>
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-muted/50">
+                  <RadioGroupItem value="selected" id="target-selected" />
+                  <Label htmlFor="target-selected" className="flex-1 cursor-pointer">
+                    <div className="font-medium">Select Specific Employees</div>
+                    <div className="text-sm text-muted-foreground">
+                      Choose individual employees to receive the attestation request
+                    </div>
+                  </Label>
+                </div>
+              </RadioGroup>
+              
+              {formData.target_type === 'selected' && (
+                <div className="space-y-3 mt-4">
+                  <div>
+                    <Label htmlFor="user-search">Search Employees</Label>
+                    <Input
+                      id="user-search"
+                      type="text"
+                      placeholder="Search by name or email..."
+                      value={userSearchQuery}
+                      onChange={(e) => setUserSearchQuery(e.target.value)}
+                    />
+                  </div>
+                  
+                  {availableUsers.length === 0 ? (
+                    <div className="flex items-center justify-center py-8 text-muted-foreground">
+                      <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                      Loading users...
+                    </div>
+                  ) : (
+                    <div className="border rounded-lg max-h-64 overflow-y-auto">
+                      <div className="p-2 space-y-1">
+                        {availableUsers
+                          .filter(u => 
+                            userSearchQuery === '' ||
+                            u.name?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+                            u.email?.toLowerCase().includes(userSearchQuery.toLowerCase())
+                          )
+                          .map((u) => (
+                            <div
+                              key={u.id}
+                              className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded cursor-pointer"
+                              onClick={() => {
+                                const isSelected = formData.target_user_ids.includes(u.id);
+                                setFormData({
+                                  ...formData,
+                                  target_user_ids: isSelected
+                                    ? formData.target_user_ids.filter(id => id !== u.id)
+                                    : [...formData.target_user_ids, u.id]
+                                });
+                              }}
+                            >
+                              <Checkbox
+                                checked={formData.target_user_ids.includes(u.id)}
+                                readOnly
+                              />
+                              <div className="flex-1">
+                                <div className="font-medium text-sm">{u.name}</div>
+                                <div className="text-xs text-muted-foreground">{u.email}</div>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {formData.target_user_ids.length > 0 && (
+                    <div className="text-sm text-muted-foreground">
+                      Selected: {formData.target_user_ids.length} employee{formData.target_user_ids.length !== 1 ? 's' : ''}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          </div>
+          )}
+          
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateModal(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleCreateCampaign} disabled={!formData.name || !formData.start_date}>
-              Create Campaign
-            </Button>
+            {wizardStep === 1 ? (
+              <>
+                <Button variant="outline" onClick={() => {
+                  setShowCreateModal(false);
+                  setWizardStep(1);
+                }}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={() => setWizardStep(2)} 
+                  disabled={!formData.name || !formData.start_date}
+                >
+                  Next
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => setWizardStep(1)}>
+                  Back
+                </Button>
+                <Button 
+                  onClick={handleCreateCampaign}
+                  disabled={formData.target_type === 'selected' && formData.target_user_ids.length === 0}
+                >
+                  Create Campaign
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

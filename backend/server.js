@@ -519,13 +519,13 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     // Create new reset token
     await passwordResetTokenDb.create(user.id, resetToken, expiresAt);
     
-    // Build reset URL - use configured origin or default to localhost for development
-    // Only use request origin if it's explicitly allowed for security
+    // Build reset URL - use app_url with fallbacks
+    const { getAppUrl } = await import('./services/smtpMailer.js');
     const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
     const requestOrigin = req.get('origin');
-    let baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+    let baseUrl = await getAppUrl();
     
-    // If request origin is in allowed list, use it
+    // If request origin is in allowed list, use it (takes precedence for security)
     if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
       baseUrl = requestOrigin;
     }
@@ -2024,7 +2024,8 @@ app.put('/api/admin/branding', authenticate, authorize('admin'), async (req, res
       favicon_filename,
       favicon_content_type,
       primary_color,
-      include_logo_in_emails
+      include_logo_in_emails,
+      app_url
     } = req.body;
 
     console.log('[Branding] Update request received:', {
@@ -2037,7 +2038,8 @@ app.put('/api/admin/branding', authenticate, authorize('admin'), async (req, res
       sub_title,
       favicon_filename,
       primary_color,
-      include_logo_in_emails
+      include_logo_in_emails,
+      app_url
     });
 
     // Validate logo data if provided
@@ -2068,7 +2070,8 @@ app.put('/api/admin/branding', authenticate, authorize('admin'), async (req, res
       favicon_filename,
       favicon_content_type,
       primary_color,
-      include_logo_in_emails
+      include_logo_in_emails,
+      app_url
     }, req.user.email);
 
     console.log('[Branding] Settings updated successfully in database');
@@ -2081,6 +2084,7 @@ app.put('/api/admin/branding', authenticate, authorize('admin'), async (req, res
     if (sub_title) changes.push(`Subtitle: ${sub_title}`);
     if (primary_color) changes.push(`Color: ${primary_color}`);
     if (include_logo_in_emails !== undefined) changes.push(`Email logo: ${include_logo_in_emails ? 'enabled' : 'disabled'}`);
+    if (app_url !== undefined) changes.push(`App URL: ${app_url || 'cleared'}`);
 
     await auditDb.log(
       'update',
@@ -3846,10 +3850,20 @@ app.get('/api/reports/summary', authenticate, async (req, res) => {
 // Create new attestation campaign (Admin only)
 app.post('/api/attestation/campaigns', authenticate, authorize('admin'), async (req, res) => {
   try {
-    const { name, description, start_date, end_date, reminder_days, escalation_days } = req.body;
+    const { name, description, start_date, end_date, reminder_days, escalation_days, target_type, target_user_ids } = req.body;
     
     if (!name || !start_date) {
       return res.status(400).json({ error: 'Campaign name and start date are required' });
+    }
+    
+    // Validate target_type
+    if (target_type && !['all', 'selected'].includes(target_type)) {
+      return res.status(400).json({ error: 'Invalid target_type. Must be "all" or "selected"' });
+    }
+    
+    // Validate target_user_ids if target_type is 'selected'
+    if (target_type === 'selected' && (!target_user_ids || !Array.isArray(target_user_ids) || target_user_ids.length === 0)) {
+      return res.status(400).json({ error: 'target_user_ids is required when target_type is "selected"' });
     }
     
     const campaign = {
@@ -3860,6 +3874,8 @@ app.post('/api/attestation/campaigns', authenticate, authorize('admin'), async (
       status: 'draft',
       reminder_days: reminder_days || 7,
       escalation_days: escalation_days || 10,
+      target_type: target_type || 'all',
+      target_user_ids: target_type === 'selected' ? JSON.stringify(target_user_ids) : null,
       created_by: req.user.id
     };
     
@@ -3870,7 +3886,7 @@ app.post('/api/attestation/campaigns', authenticate, authorize('admin'), async (
       resource_type: 'attestation_campaign',
       resource_id: result.id.toString(),
       user_email: req.user.email,
-      details: `Created attestation campaign: ${name}`
+      details: `Created attestation campaign: ${name} (targeting: ${campaign.target_type}${target_type === 'selected' ? `, ${target_user_ids.length} users` : ''})`
     });
     
     res.json({ success: true, campaignId: result.id });
@@ -3964,10 +3980,21 @@ app.post('/api/attestation/campaigns/:id/start', authenticate, authorize('admin'
       return res.status(400).json({ error: 'Campaign has already been started' });
     }
     
-    // Get all users
-    const users = await userDb.getAll();
+    // Get users based on targeting
+    let users = await userDb.getAll();
     
-    // Create attestation records for all users
+    // Filter users if target_type is 'selected'
+    if (campaign.target_type === 'selected' && campaign.target_user_ids) {
+      try {
+        const targetIds = JSON.parse(campaign.target_user_ids);
+        users = users.filter(u => targetIds.includes(u.id));
+      } catch (parseError) {
+        console.error('Error parsing target_user_ids:', parseError);
+        return res.status(500).json({ error: 'Invalid target user IDs format' });
+      }
+    }
+    
+    // Create attestation records for targeted users
     let recordsCreated = 0;
     let emailsSent = 0;
     
@@ -3984,8 +4011,8 @@ app.post('/api/attestation/campaigns/:id/start', authenticate, authorize('admin'
       if (user.email) {
         try {
           const { sendAttestationLaunchEmail } = await import('./services/smtpMailer.js');
-          const attestationUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/my-attestations`;
-          const result = await sendAttestationLaunchEmail(user.email, campaign, attestationUrl);
+          // Email function will use branding app_url with fallbacks
+          const result = await sendAttestationLaunchEmail(user.email, campaign);
           if (result.success) {
             emailsSent++;
           }
@@ -4006,7 +4033,7 @@ app.post('/api/attestation/campaigns/:id/start', authenticate, authorize('admin'
       resource_type: 'attestation_campaign',
       resource_id: campaign.id.toString(),
       user_email: req.user.email,
-      details: `Started attestation campaign: ${campaign.name}. Created ${recordsCreated} records, sent ${emailsSent} emails`
+      details: `Started attestation campaign: ${campaign.name} (targeting: ${campaign.target_type}). Created ${recordsCreated} records, sent ${emailsSent} emails`
     });
     
     res.json({ success: true, recordsCreated, emailsSent });
