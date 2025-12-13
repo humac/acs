@@ -61,14 +61,12 @@ function AppNew() {
         setBrandingLogo(data.logo_data);
       }
       
-      // Set primary color as CSS variable
+      // Set primary color as CSS variable (convert hex to HSL for Tailwind compatibility)
       if (data.primary_color) {
-        document.documentElement.style.setProperty('--primary', data.primary_color);
-        // Convert hex to HSL for Tailwind compatibility
         const hex = data.primary_color.replace('#', '');
-        const r = parseInt(hex.substr(0, 2), 16) / 255;
-        const g = parseInt(hex.substr(2, 2), 16) / 255;
-        const b = parseInt(hex.substr(4, 2), 16) / 255;
+        const r = parseInt(hex.substring(0, 2), 16) / 255;
+        const g = parseInt(hex.substring(2, 4), 16) / 255;
+        const b = parseInt(hex.substring(4, 6), 16) / 255;
         const max = Math.max(r, g, b);
         const min = Math.min(r, g, b);
         let h = 0, s = 0, l = (max + min) / 2;

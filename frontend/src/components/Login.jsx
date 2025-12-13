@@ -99,9 +99,9 @@ const LoginNew = ({ onSwitchToRegister }) => {
         if (data.primary_color) {
           // Apply primary color
           const hex = data.primary_color.replace('#', '');
-          const r = parseInt(hex.substr(0, 2), 16) / 255;
-          const g = parseInt(hex.substr(2, 2), 16) / 255;
-          const b = parseInt(hex.substr(4, 2), 16) / 255;
+          const r = parseInt(hex.substring(0, 2), 16) / 255;
+          const g = parseInt(hex.substring(2, 4), 16) / 255;
+          const b = parseInt(hex.substring(4, 6), 16) / 255;
           const max = Math.max(r, g, b);
           const min = Math.min(r, g, b);
           let h = 0, s = 0, l = (max + min) / 2;

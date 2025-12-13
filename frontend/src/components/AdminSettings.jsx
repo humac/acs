@@ -17,6 +17,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Separator } from '@/components/ui/separator';
 import TablePaginationControls from '@/components/TablePaginationControls';
 import { cn } from '@/lib/utils';
 import { Settings, Database, Trash2, Loader2, AlertTriangle, Shield, Image, Plug, Bell } from 'lucide-react';
@@ -369,7 +370,7 @@ const AdminSettingsNew = () => {
                             )}
                           </div>
                           <div className="flex-1 space-y-2">
-                            <Input id="favicon-upload" type="file" accept=".ico,.png,image/x-icon,image/png" onChange={handleFaviconUpload} className="hidden" />
+                            <Input id="favicon-upload" type="file" accept=".ico,.png" onChange={handleFaviconUpload} className="hidden" />
                             <div className="flex items-center gap-2 flex-wrap">
                               <Button
                                 type="button"
