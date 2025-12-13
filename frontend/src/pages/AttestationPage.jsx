@@ -63,6 +63,7 @@ export default function AttestationPage() {
   const [selectedCampaign, setSelectedCampaign] = useState(null);
   const [dashboardData, setDashboardData] = useState(null);
   const [loadingDashboard, setLoadingDashboard] = useState(false);
+  const [campaignStats, setCampaignStats] = useState({});
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -115,7 +116,38 @@ export default function AttestationPage() {
       });
       if (!res.ok) throw new Error('Failed to load campaigns');
       const data = await res.json();
-      setCampaigns(data.campaigns || []);
+      const campaignsData = data.campaigns || [];
+      setCampaigns(campaignsData);
+      
+      // Load stats for active campaigns in parallel
+      const activeCampaigns = campaignsData.filter(c => c.status === 'active');
+      const statsPromises = activeCampaigns.map(async (campaign) => {
+        try {
+          const statsRes = await fetch(`/api/attestation/campaigns/${campaign.id}/dashboard`, {
+            headers: { ...getAuthHeaders() }
+          });
+          if (statsRes.ok) {
+            const statsData = await statsRes.json();
+            const records = statsData.records || [];
+            const completed = records.filter(r => r.status === 'completed').length;
+            const total = records.length;
+            const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+            return { id: campaign.id, stats: { completed, total, percentage } };
+          }
+        } catch (err) {
+          console.error(`Error loading stats for campaign ${campaign.id}:`, err);
+        }
+        return null;
+      });
+      
+      const statsResults = await Promise.all(statsPromises);
+      const stats = {};
+      statsResults.forEach(result => {
+        if (result) {
+          stats[result.id] = result.stats;
+        }
+      });
+      setCampaignStats(stats);
     } catch (err) {
       console.error(err);
       toast({
@@ -448,6 +480,7 @@ export default function AttestationPage() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Progress</TableHead>
                   <TableHead>Start Date</TableHead>
                   <TableHead>End Date</TableHead>
                   <TableHead>Reminder</TableHead>
@@ -456,10 +489,29 @@ export default function AttestationPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {campaigns.map((campaign) => (
+                {campaigns.map((campaign) => {
+                  const stats = campaignStats[campaign.id];
+                  return (
                   <TableRow key={campaign.id}>
                     <TableCell className="font-medium">{campaign.name}</TableCell>
                     <TableCell>{getStatusBadge(campaign.status)}</TableCell>
+                    <TableCell>
+                      {campaign.status === 'active' && stats ? (
+                        <div className="space-y-1 w-44">
+                          <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <span>{stats.completed}/{stats.total} - {stats.percentage}% Complete</span>
+                          </div>
+                          <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                            <div 
+                              className="bg-primary h-full transition-all duration-300 rounded-full"
+                              style={{ width: `${stats.percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
                     <TableCell>
                       {new Date(campaign.start_date).toLocaleDateString()}
                     </TableCell>
@@ -533,7 +585,8 @@ export default function AttestationPage() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           )}

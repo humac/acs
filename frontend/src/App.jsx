@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Navigate, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePendingAttestations } from '@/hooks/use-pending-attestations';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -45,6 +46,7 @@ import MyAttestationsPage from '@/pages/MyAttestationsPage';
 
 function AppNew() {
   const { user, logout, loading, isAuthenticated } = useAuth();
+  const { pendingCount } = usePendingAttestations();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [brandingLogo, setBrandingLogo] = useState(null);
   const [theme, setTheme] = useState(() => {
@@ -265,7 +267,7 @@ function AppNew() {
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
+                <Button variant="ghost" size="icon" className="rounded-full relative">
                   <Avatar className="h-8 w-8">
                     {user?.profile_image && (
                       <AvatarImage src={user.profile_image} alt="Profile" />
@@ -274,6 +276,9 @@ function AppNew() {
                       {user?.first_name?.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
+                  {pendingCount > 0 && (
+                    <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-background"></span>
+                  )}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
@@ -287,6 +292,13 @@ function AppNew() {
                 <DropdownMenuItem onClick={() => navigate('/profile')}>
                   <User className="mr-2 h-4 w-4" />
                   Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/my-attestations')}>
+                  <ClipboardCheck className="mr-2 h-4 w-4" />
+                  <span className="flex-1">My Attestations</span>
+                  {pendingCount > 0 && (
+                    <span className="w-2 h-2 bg-red-500 rounded-full ml-2"></span>
+                  )}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-destructive">
@@ -314,14 +326,19 @@ function AppNew() {
             <div className="container mx-auto px-4 md:px-6 py-4 space-y-4">
               {/* User Info */}
               <div className="flex items-center gap-3 pb-4 border-b">
-                <Avatar className="h-10 w-10">
-                  {user?.profile_image && (
-                    <AvatarImage src={user.profile_image} alt="Profile" />
+                <div className="relative">
+                  <Avatar className="h-10 w-10">
+                    {user?.profile_image && (
+                      <AvatarImage src={user.profile_image} alt="Profile" />
+                    )}
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      {user?.first_name?.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  {pendingCount > 0 && (
+                    <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-background"></span>
                   )}
-                  <AvatarFallback className="bg-primary text-primary-foreground">
-                    {user?.first_name?.charAt(0)}
-                  </AvatarFallback>
-                </Avatar>
+                </div>
                 <div className="flex-1">
                   <p className="font-medium">{user?.first_name} {user?.last_name}</p>
                   <p className="text-sm text-muted-foreground">{user?.email}</p>
@@ -374,6 +391,17 @@ function AppNew() {
                 >
                   <User className="h-4 w-4" />
                   Profile
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start gap-2 relative"
+                  onClick={() => handleNavigation('/my-attestations')}
+                >
+                  <ClipboardCheck className="h-4 w-4" />
+                  <span className="flex-1 text-left">My Attestations</span>
+                  {pendingCount > 0 && (
+                    <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                  )}
                 </Button>
                 <Button
                   variant="ghost"
