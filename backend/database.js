@@ -1960,6 +1960,11 @@ export const userDb = {
       last_login: normalizeDates(row.last_login)
     }));
   },
+  /**
+   * Get all users with a specific role
+   * @param {string} role - The role to filter by (e.g., 'admin', 'manager', 'employee')
+   * @returns {Promise<Array>} Array of user objects with the specified role
+   */
   getByRole: async (role) => {
     const rows = await dbAll('SELECT * FROM users WHERE role = ?', [role]);
     return rows.map((row) => ({
