@@ -338,8 +338,24 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
     }
   };
 
+  const hasActiveFilters = () => {
+    return searchTerm !== '' || 
+           statusFilter !== 'all' || 
+           companyFilter !== 'all' || 
+           employeeFilter !== 'all' || 
+           managerFilter !== 'all';
+  };
+
   const handleExportSelected = () => {
-    const selectedAssets = assets.filter(a => selectedIds.has(a.id));
+    const selectedAssets = filteredAssets.filter(a => selectedIds.has(a.id));
+    exportAssetsToCSV(selectedAssets, 'selected');
+  };
+
+  const handleExportFiltered = () => {
+    exportAssetsToCSV(filteredAssets, 'filtered');
+  };
+
+  const exportAssetsToCSV = (assetsToExport, exportType = 'export') => {
     const headers = [
       'employee_first_name',
       'employee_last_name',
@@ -360,7 +376,7 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
 
     const csvContent = [
       headers.join(','),
-      ...selectedAssets.map(asset =>
+      ...assetsToExport.map(asset =>
         headers.map(h => `"${(asset[h] || '').toString().replace(/"/g, '""')}"`).join(',')
       ),
     ].join('\n');
@@ -368,7 +384,7 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `assets_export_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `assets_${exportType}_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
   };
 
@@ -494,8 +510,21 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
 
           {/* Results Count and Bulk Actions */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div className="text-sm text-muted-foreground">
-              Showing {filteredAssets.length} of {assets.length} assets
+            <div className="flex items-center gap-2">
+              <div className="text-sm text-muted-foreground">
+                Showing {filteredAssets.length} of {assets.length} assets
+              </div>
+              {filteredAssets.length > 0 && hasActiveFilters() && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleExportFiltered}
+                  className="h-7"
+                >
+                  <Download className="h-3 w-3 mr-1" />
+                  Export Filtered ({filteredAssets.length})
+                </Button>
+              )}
             </div>
             {selectedIds.size > 0 && (
               <div className="flex items-center gap-2 sm:gap-3 rounded-lg border px-3 py-1.5 bg-muted/50">
