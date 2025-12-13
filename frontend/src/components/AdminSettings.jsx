@@ -38,6 +38,7 @@ const AdminSettingsNew = () => {
   
   // New branding fields
   const [siteName, setSiteName] = useState('KARS');
+  const [subTitle, setSubTitle] = useState('KeyData Asset Registration System');
   const [faviconPreview, setFaviconPreview] = useState(null);
   const [faviconFilename, setFaviconFilename] = useState('');
   const [primaryColor, setPrimaryColor] = useState('#3B82F6');
@@ -86,6 +87,7 @@ const AdminSettingsNew = () => {
       setLogoPreview(data.logo_data || null);
       setLogoFilename(data.logo_filename || '');
       setSiteName(data.site_name || 'KARS');
+      setSubTitle(data.sub_title || 'KeyData Asset Registration System');
       setFaviconPreview(data.favicon_data || null);
       setFaviconFilename(data.favicon_filename || '');
       setPrimaryColor(data.primary_color || '#3B82F6');
@@ -188,6 +190,7 @@ const AdminSettingsNew = () => {
           logo_filename: logoFilename || null,
           logo_content_type: brandingSettings.logo_content_type || null,
           site_name: siteName,
+          sub_title: subTitle,
           favicon_data: faviconPreview,
           favicon_filename: faviconFilename || null,
           favicon_content_type: brandingSettings.favicon_content_type || null,
@@ -411,7 +414,24 @@ const AdminSettingsNew = () => {
                           disabled={brandingLoading}
                           className="max-w-md"
                         />
-                        <p className="text-xs text-muted-foreground">Replaces "KARS" throughout the application</p>
+                        <p className="text-xs text-muted-foreground">Main application name displayed on login page and browser tab</p>
+                      </div>
+
+                      <Separator />
+
+                      {/* Subtitle */}
+                      <div className="space-y-2">
+                        <Label htmlFor="sub-title" className="text-sm font-semibold">Subtitle</Label>
+                        <Input
+                          id="sub-title"
+                          type="text"
+                          value={subTitle}
+                          onChange={(e) => setSubTitle(e.target.value)}
+                          placeholder="KeyData Asset Registration System"
+                          disabled={brandingLoading}
+                          className="max-w-md"
+                        />
+                        <p className="text-xs text-muted-foreground">Tagline or description shown on login page</p>
                       </div>
 
                       <Separator />

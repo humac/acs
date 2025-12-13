@@ -35,6 +35,7 @@ const LoginNew = ({ onSwitchToRegister }) => {
   });
   const [brandingLogo, setBrandingLogo] = useState(null);
   const [siteName, setSiteName] = useState('KARS');
+  const [subTitle, setSubTitle] = useState('KeyData Asset Registration System');
 
   // Dark mode state - default to light mode
   const [theme, setTheme] = useState(() => {
@@ -91,6 +92,9 @@ const LoginNew = ({ onSwitchToRegister }) => {
         if (data.site_name) {
           setSiteName(data.site_name);
           document.title = data.site_name;
+        }
+        if (data.sub_title) {
+          setSubTitle(data.sub_title);
         }
         if (data.primary_color) {
           // Apply primary color
@@ -344,7 +348,7 @@ const LoginNew = ({ onSwitchToRegister }) => {
                 <Laptop className="h-10 w-10 text-primary-foreground" />
               </div>
               <h1 className="text-3xl font-bold text-foreground mb-2">{siteName}</h1>
-              <p className="text-muted-foreground">KeyData Asset Registration System</p>
+              <p className="text-muted-foreground">{subTitle}</p>
             </>
           )}
         </div>
@@ -353,10 +357,10 @@ const LoginNew = ({ onSwitchToRegister }) => {
           <CardHeader className="space-y-2 pb-4">
             <CardTitle className="text-2xl text-center flex items-center justify-center gap-2">
               <UserCircle className="h-6 w-6" />
-              Welcome to {siteName}
+              {siteName}
             </CardTitle>
             <CardDescription className="text-center text-base">
-              Sign in to continue
+              {subTitle}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">

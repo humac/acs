@@ -499,6 +499,7 @@ const initDb = async () => {
       logo_filename TEXT,
       logo_content_type TEXT,
       site_name TEXT DEFAULT 'KARS',
+      sub_title TEXT DEFAULT 'KeyData Asset Registration System',
       favicon_data TEXT,
       favicon_filename TEXT,
       favicon_content_type TEXT,
@@ -514,6 +515,7 @@ const initDb = async () => {
       logo_filename TEXT,
       logo_content_type TEXT,
       site_name TEXT DEFAULT 'KARS',
+      sub_title TEXT DEFAULT 'KeyData Asset Registration System',
       favicon_data TEXT,
       favicon_filename TEXT,
       favicon_content_type TEXT,
@@ -819,6 +821,7 @@ const initDb = async () => {
       
       // Add new columns with defaults
       await dbRun("ALTER TABLE branding_settings ADD COLUMN site_name TEXT DEFAULT 'KARS'");
+      await dbRun("ALTER TABLE branding_settings ADD COLUMN sub_title TEXT DEFAULT 'KeyData Asset Registration System'");
       await dbRun("ALTER TABLE branding_settings ADD COLUMN favicon_data TEXT");
       await dbRun("ALTER TABLE branding_settings ADD COLUMN favicon_filename TEXT");
       await dbRun("ALTER TABLE branding_settings ADD COLUMN favicon_content_type TEXT");
@@ -826,7 +829,7 @@ const initDb = async () => {
       await dbRun("ALTER TABLE branding_settings ADD COLUMN include_logo_in_emails INTEGER DEFAULT 0");
       
       // Set defaults for existing row
-      await dbRun("UPDATE branding_settings SET site_name = 'KARS', primary_color = '#3B82F6', include_logo_in_emails = 0 WHERE id = 1");
+      await dbRun("UPDATE branding_settings SET site_name = 'KARS', sub_title = 'KeyData Asset Registration System', primary_color = '#3B82F6', include_logo_in_emails = 0 WHERE id = 1");
       
       console.log('Migration complete: Added new branding columns');
     }
@@ -840,8 +843,8 @@ const initDb = async () => {
   if (!checkBranding) {
     const now = new Date().toISOString();
     await dbRun(`
-      INSERT INTO branding_settings (id, site_name, primary_color, include_logo_in_emails, updated_at)
-      VALUES (1, 'KARS', '#3B82F6', 0, ?)
+      INSERT INTO branding_settings (id, site_name, sub_title, primary_color, include_logo_in_emails, updated_at)
+      VALUES (1, 'KARS', 'KeyData Asset Registration System', '#3B82F6', 0, ?)
     `, [now]);
   }
 
@@ -1921,6 +1924,7 @@ export const brandingSettingsDb = {
           logo_filename = ?,
           logo_content_type = ?,
           site_name = ?,
+          sub_title = ?,
           favicon_data = ?,
           favicon_filename = ?,
           favicon_content_type = ?,
@@ -1934,6 +1938,7 @@ export const brandingSettingsDb = {
       settings.logo_filename !== undefined ? settings.logo_filename : null,
       settings.logo_content_type !== undefined ? settings.logo_content_type : null,
       settings.site_name !== undefined ? settings.site_name : 'KARS',
+      settings.sub_title !== undefined ? settings.sub_title : 'KeyData Asset Registration System',
       settings.favicon_data !== undefined ? settings.favicon_data : null,
       settings.favicon_filename !== undefined ? settings.favicon_filename : null,
       settings.favicon_content_type !== undefined ? settings.favicon_content_type : null,

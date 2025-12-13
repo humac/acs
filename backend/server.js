@@ -1812,6 +1812,7 @@ app.put('/api/admin/branding', authenticate, authorize('admin'), async (req, res
       logo_filename, 
       logo_content_type,
       site_name,
+      sub_title,
       favicon_data,
       favicon_filename,
       favicon_content_type,
@@ -1826,6 +1827,7 @@ app.put('/api/admin/branding', authenticate, authorize('admin'), async (req, res
       data_length: logo_data ? logo_data.length : 0,
       data_prefix: logo_data ? logo_data.substring(0, 50) : 'null',
       site_name,
+      sub_title,
       favicon_filename,
       primary_color,
       include_logo_in_emails
@@ -1854,6 +1856,7 @@ app.put('/api/admin/branding', authenticate, authorize('admin'), async (req, res
       logo_filename,
       logo_content_type,
       site_name,
+      sub_title,
       favicon_data,
       favicon_filename,
       favicon_content_type,
@@ -1868,6 +1871,7 @@ app.put('/api/admin/branding', authenticate, authorize('admin'), async (req, res
     if (logo_filename) changes.push(`Logo: ${logo_filename}`);
     if (favicon_filename) changes.push(`Favicon: ${favicon_filename}`);
     if (site_name) changes.push(`Site name: ${site_name}`);
+    if (sub_title) changes.push(`Subtitle: ${sub_title}`);
     if (primary_color) changes.push(`Color: ${primary_color}`);
     if (include_logo_in_emails !== undefined) changes.push(`Email logo: ${include_logo_in_emails ? 'enabled' : 'disabled'}`);
 
