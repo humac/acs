@@ -3850,10 +3850,20 @@ app.get('/api/reports/summary', authenticate, async (req, res) => {
 // Create new attestation campaign (Admin only)
 app.post('/api/attestation/campaigns', authenticate, authorize('admin'), async (req, res) => {
   try {
-    const { name, description, start_date, end_date, reminder_days, escalation_days } = req.body;
+    const { name, description, start_date, end_date, reminder_days, escalation_days, target_type, target_user_ids } = req.body;
     
     if (!name || !start_date) {
       return res.status(400).json({ error: 'Campaign name and start date are required' });
+    }
+    
+    // Validate target_type
+    if (target_type && !['all', 'selected'].includes(target_type)) {
+      return res.status(400).json({ error: 'Invalid target_type. Must be "all" or "selected"' });
+    }
+    
+    // Validate target_user_ids if target_type is 'selected'
+    if (target_type === 'selected' && (!target_user_ids || !Array.isArray(target_user_ids) || target_user_ids.length === 0)) {
+      return res.status(400).json({ error: 'target_user_ids is required when target_type is "selected"' });
     }
     
     const campaign = {
@@ -3864,6 +3874,8 @@ app.post('/api/attestation/campaigns', authenticate, authorize('admin'), async (
       status: 'draft',
       reminder_days: reminder_days || 7,
       escalation_days: escalation_days || 10,
+      target_type: target_type || 'all',
+      target_user_ids: target_type === 'selected' ? JSON.stringify(target_user_ids) : null,
       created_by: req.user.id
     };
     
@@ -3874,7 +3886,7 @@ app.post('/api/attestation/campaigns', authenticate, authorize('admin'), async (
       resource_type: 'attestation_campaign',
       resource_id: result.id.toString(),
       user_email: req.user.email,
-      details: `Created attestation campaign: ${name}`
+      details: `Created attestation campaign: ${name} (targeting: ${campaign.target_type}${target_type === 'selected' ? `, ${target_user_ids.length} users` : ''})`
     });
     
     res.json({ success: true, campaignId: result.id });
@@ -3968,10 +3980,21 @@ app.post('/api/attestation/campaigns/:id/start', authenticate, authorize('admin'
       return res.status(400).json({ error: 'Campaign has already been started' });
     }
     
-    // Get all users
-    const users = await userDb.getAll();
+    // Get users based on targeting
+    let users = await userDb.getAll();
     
-    // Create attestation records for all users
+    // Filter users if target_type is 'selected'
+    if (campaign.target_type === 'selected' && campaign.target_user_ids) {
+      try {
+        const targetIds = JSON.parse(campaign.target_user_ids);
+        users = users.filter(u => targetIds.includes(u.id));
+      } catch (parseError) {
+        console.error('Error parsing target_user_ids:', parseError);
+        return res.status(500).json({ error: 'Invalid target user IDs format' });
+      }
+    }
+    
+    // Create attestation records for targeted users
     let recordsCreated = 0;
     let emailsSent = 0;
     
@@ -4010,7 +4033,7 @@ app.post('/api/attestation/campaigns/:id/start', authenticate, authorize('admin'
       resource_type: 'attestation_campaign',
       resource_id: campaign.id.toString(),
       user_email: req.user.email,
-      details: `Started attestation campaign: ${campaign.name}. Created ${recordsCreated} records, sent ${emailsSent} emails`
+      details: `Started attestation campaign: ${campaign.name} (targeting: ${campaign.target_type}). Created ${recordsCreated} records, sent ${emailsSent} emails`
     });
     
     res.json({ success: true, recordsCreated, emailsSent });

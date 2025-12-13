@@ -667,6 +667,8 @@ const initDb = async () => {
       status TEXT NOT NULL DEFAULT 'draft',
       reminder_days INTEGER DEFAULT 7,
       escalation_days INTEGER DEFAULT 10,
+      target_type TEXT NOT NULL DEFAULT 'all',
+      target_user_ids TEXT,
       created_by INTEGER NOT NULL REFERENCES users(id),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -681,6 +683,8 @@ const initDb = async () => {
       status TEXT NOT NULL DEFAULT 'draft',
       reminder_days INTEGER DEFAULT 7,
       escalation_days INTEGER DEFAULT 10,
+      target_type TEXT NOT NULL DEFAULT 'all',
+      target_user_ids TEXT,
       created_by INTEGER NOT NULL,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
       updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -990,6 +994,28 @@ const initDb = async () => {
     }
   } catch (err) {
     console.error('Migration error (branding columns):', err.message);
+    // Don't fail initialization
+  }
+
+  // Add target_type and target_user_ids columns to attestation_campaigns table if they don't exist
+  try {
+    const campaignCols = isPostgres
+      ? await dbAll(`
+          SELECT column_name as name
+          FROM information_schema.columns
+          WHERE table_name = 'attestation_campaigns'
+        `)
+      : await dbAll("PRAGMA table_info(attestation_campaigns)");
+
+    const hasTargetType = campaignCols.some(col => col.name === 'target_type');
+    if (!hasTargetType) {
+      console.log('Migrating attestation_campaigns table: adding targeting columns...');
+      await dbRun("ALTER TABLE attestation_campaigns ADD COLUMN target_type TEXT NOT NULL DEFAULT 'all'");
+      await dbRun("ALTER TABLE attestation_campaigns ADD COLUMN target_user_ids TEXT");
+      console.log('Migration complete: Added target_type and target_user_ids columns');
+    }
+  } catch (err) {
+    console.error('Migration error (attestation_campaigns targeting columns):', err.message);
     // Don't fail initialization
   }
 
@@ -2636,18 +2662,18 @@ export const attestationCampaignDb = {
     const now = new Date().toISOString();
     if (isPostgres) {
       const result = await dbRun(
-        `INSERT INTO attestation_campaigns (name, description, start_date, end_date, status, reminder_days, escalation_days, created_by, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
+        `INSERT INTO attestation_campaigns (name, description, start_date, end_date, status, reminder_days, escalation_days, target_type, target_user_ids, created_by, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
         [campaign.name, campaign.description, campaign.start_date, campaign.end_date, campaign.status || 'draft', 
-         campaign.reminder_days || 7, campaign.escalation_days || 10, campaign.created_by, now, now]
+         campaign.reminder_days || 7, campaign.escalation_days || 10, campaign.target_type || 'all', campaign.target_user_ids || null, campaign.created_by, now, now]
       );
       return { id: result.rows[0].id };
     } else {
       const result = await dbRun(
-        `INSERT INTO attestation_campaigns (name, description, start_date, end_date, status, reminder_days, escalation_days, created_by, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO attestation_campaigns (name, description, start_date, end_date, status, reminder_days, escalation_days, target_type, target_user_ids, created_by, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [campaign.name, campaign.description, campaign.start_date, campaign.end_date, campaign.status || 'draft',
-         campaign.reminder_days || 7, campaign.escalation_days || 10, campaign.created_by, now, now]
+         campaign.reminder_days || 7, campaign.escalation_days || 10, campaign.target_type || 'all', campaign.target_user_ids || null, campaign.created_by, now, now]
       );
       return { id: result.lastInsertRowid };
     }
