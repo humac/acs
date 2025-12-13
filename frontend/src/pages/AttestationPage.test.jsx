@@ -138,13 +138,13 @@ describe('AttestationPage - loadUsers', () => {
 
     // Verify that /api/auth/users was called
     // The fix ensures the correct endpoint is used and data is used directly (not data.users)
+    let usersCall;
     await waitFor(() => {
-      const usersCall = global.fetch.mock.calls.find(call => call[0] === '/api/auth/users');
+      usersCall = global.fetch.mock.calls.find(call => call[0] === '/api/auth/users');
       expect(usersCall).toBeDefined();
     });
     
     // Verify the call was made with auth headers
-    const usersCall = global.fetch.mock.calls.find(call => call[0] === '/api/auth/users');
     expect(usersCall[1]).toEqual(
       expect.objectContaining({
         headers: expect.objectContaining({
