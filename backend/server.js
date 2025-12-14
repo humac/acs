@@ -4262,8 +4262,8 @@ app.get('/api/reports/summary-enhanced', authenticate, async (req, res) => {
     const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
     const sixtyDaysAgo = new Date(now - 60 * 24 * 60 * 60 * 1000);
 
-    const currentAssets = assets.filter(a => new Date(a.created_date) <= now);
-    const previousAssets = assets.filter(a => new Date(a.created_date) <= thirtyDaysAgo);
+    const currentAssets = assets.filter(a => a.registration_date && new Date(a.registration_date) <= now);
+    const previousAssets = assets.filter(a => a.registration_date && new Date(a.registration_date) <= thirtyDaysAgo);
     
     const totalChange = currentAssets.length - previousAssets.length;
 
