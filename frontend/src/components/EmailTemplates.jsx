@@ -43,11 +43,26 @@ const EmailTemplates = () => {
         const data = await response.json();
         setTemplates(data.templates || []);
       } else {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to load email templates (${response.status})`);
+        // Try to parse error response, but handle cases where it's not JSON
+        let errorMessage = 'Failed to load email templates';
+        try {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorMessage;
+          }
+        } catch (parseError) {
+          // If JSON parsing fails, use generic message
+          console.error('Failed to parse error response:', parseError);
+        }
+        throw new Error(errorMessage);
       }
     } catch (err) {
-      toast({ title: "Error", description: err.message || 'Failed to load email templates', variant: "destructive" });
+      // Use generic error message for better security
+      const userMessage = err.message === 'Failed to fetch' 
+        ? 'Unable to connect to server. Please check your connection.'
+        : 'Failed to load email templates. Please try again.';
+      toast({ title: "Error", description: userMessage, variant: "destructive" });
     } finally {
       setLoading(false);
     }
