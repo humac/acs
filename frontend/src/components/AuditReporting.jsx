@@ -36,6 +36,7 @@ const AuditReportingNew = () => {
     action: '', entityType: '', startDate: '', endDate: '', userEmail: '', limit: '100'
   });
 
+  // Fetch data when active view changes
   useEffect(() => {
     if (activeView === 'logs') fetchLogs();
     else if (activeView === 'summary') { fetchSummary(); fetchSummaryEnhanced(); }
@@ -43,6 +44,20 @@ const AuditReportingNew = () => {
     else if (activeView === 'compliance') fetchCompliance();
     else if (activeView === 'trends') fetchTrends();
   }, [activeView]);
+
+  // Auto-fetch stats when period changes (Issue 2 fix)
+  useEffect(() => {
+    if (activeView === 'stats') {
+      fetchStatsEnhanced();
+    }
+  }, [statsPeriod]);
+
+  // Auto-fetch trends when period changes (Issue 3 fix)
+  useEffect(() => {
+    if (activeView === 'trends') {
+      fetchTrends();
+    }
+  }, [trendsPeriod]);
 
   const fetchLogs = async () => {
     setLoading(true);
