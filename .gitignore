@@ -14,6 +14,10 @@ dist/
 build/
 *.log
 
+# Test coverage
+coverage/
+.nyc_output/
+
 # Environment variables
 .env
 .env.local
