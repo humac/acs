@@ -29,6 +29,16 @@ const EmailTemplates = () => {
     text_body: ''
   });
 
+  // Constants
+  const MAX_ERROR_MESSAGE_LENGTH = 200;
+
+  // Helper function for consistent error handling
+  const getErrorMessage = (err, defaultMessage) => {
+    return err instanceof TypeError
+      ? 'Unable to connect to server. Please check your connection.'
+      : defaultMessage;
+  };
+
   useEffect(() => {
     fetchTemplates();
   }, []);
@@ -51,7 +61,7 @@ const EmailTemplates = () => {
             const errorData = await response.json();
             // Sanitize error message: ensure it's a string and limit length
             if (errorData.error && typeof errorData.error === 'string') {
-              errorMessage = errorData.error.substring(0, 200);
+              errorMessage = errorData.error.substring(0, MAX_ERROR_MESSAGE_LENGTH);
             }
           }
         } catch (parseError) {
@@ -61,11 +71,7 @@ const EmailTemplates = () => {
         throw new Error(errorMessage);
       }
     } catch (err) {
-      // Use generic error message for better security
-      // Check for network errors using TypeError (thrown by fetch for network issues)
-      const userMessage = err instanceof TypeError
-        ? 'Unable to connect to server. Please check your connection.'
-        : 'Failed to load email templates. Please try again.';
+      const userMessage = getErrorMessage(err, 'Failed to load email templates. Please try again.');
       toast({ title: "Error", description: userMessage, variant: "destructive" });
     } finally {
       setLoading(false);
@@ -111,9 +117,7 @@ const EmailTemplates = () => {
         throw new Error('Failed to update template');
       }
     } catch (err) {
-      const userMessage = err instanceof TypeError
-        ? 'Unable to connect to server. Please check your connection.'
-        : 'Failed to save template. Please try again.';
+      const userMessage = getErrorMessage(err, 'Failed to save template. Please try again.');
       toast({ title: "Error", description: userMessage, variant: "destructive" });
     } finally {
       setSaving(false);
@@ -137,9 +141,7 @@ const EmailTemplates = () => {
         throw new Error('Failed to reset template');
       }
     } catch (err) {
-      const userMessage = err instanceof TypeError
-        ? 'Unable to connect to server. Please check your connection.'
-        : 'Failed to reset template. Please try again.';
+      const userMessage = getErrorMessage(err, 'Failed to reset template. Please try again.');
       toast({ title: "Error", description: userMessage, variant: "destructive" });
     } finally {
       setSaving(false);
@@ -166,9 +168,7 @@ const EmailTemplates = () => {
         throw new Error('Failed to generate preview');
       }
     } catch (err) {
-      const userMessage = err instanceof TypeError
-        ? 'Unable to connect to server. Please check your connection.'
-        : 'Failed to generate preview. Please try again.';
+      const userMessage = getErrorMessage(err, 'Failed to generate preview. Please try again.');
       toast({ title: "Error", description: userMessage, variant: "destructive" });
     } finally {
       setPreviewing(false);
