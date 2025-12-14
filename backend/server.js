@@ -4009,8 +4009,16 @@ app.get('/api/reports/summary', authenticate, async (req, res) => {
       total: assets.length,
       by_status: {},
       by_company: {},
-      by_manager: {}
+      by_manager: {},
+      by_type: {}
     };
+
+    // Get asset type display names
+    const assetTypes = await assetTypeDb.getAll();
+    const typeDisplayMap = {};
+    assetTypes.forEach(type => {
+      typeDisplayMap[type.name] = type.display_name;
+    });
 
     assets.forEach(asset => {
       // Status breakdown
@@ -4024,6 +4032,11 @@ app.get('/api/reports/summary', authenticate, async (req, res) => {
         ? `${asset.manager_first_name} ${asset.manager_last_name}` 
         : 'No Manager';
       summary.by_manager[managerFullName] = (summary.by_manager[managerFullName] || 0) + 1;
+
+      // Type breakdown
+      const typeName = asset.asset_type || 'other';
+      const displayName = typeDisplayMap[typeName] || typeName;
+      summary.by_type[displayName] = (summary.by_type[displayName] || 0) + 1;
     });
 
     res.json(summary);
@@ -4093,11 +4106,18 @@ app.get('/api/reports/summary-enhanced', authenticate, async (req, res) => {
       })
       .sort((a, b) => b.count - a.count);
 
-    // Type breakdown
+    // Type breakdown - use display names from asset_types table
+    const assetTypes = await assetTypeDb.getAll();
+    const typeDisplayMap = {};
+    assetTypes.forEach(type => {
+      typeDisplayMap[type.name] = type.display_name;
+    });
+    
     const typeMap = {};
     currentAssets.forEach(asset => {
-      const type = asset.asset_type || 'other';
-      typeMap[type] = (typeMap[type] || 0) + 1;
+      const typeName = asset.asset_type || 'other';
+      const displayName = typeDisplayMap[typeName] || typeName;
+      typeMap[displayName] = (typeMap[displayName] || 0) + 1;
     });
 
     // Calculate compliance score (simplified)
