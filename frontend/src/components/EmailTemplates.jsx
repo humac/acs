@@ -38,13 +38,16 @@ const EmailTemplates = () => {
       const response = await fetch('/api/admin/email-templates', {
         headers: getAuthHeaders()
       });
-
+      
       if (response.ok) {
         const data = await response.json();
         setTemplates(data.templates || []);
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to load email templates (${response.status})`);
       }
     } catch (err) {
-      toast({ title: "Error", description: 'Failed to load email templates', variant: "destructive" });
+      toast({ title: "Error", description: err.message || 'Failed to load email templates', variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -183,34 +186,42 @@ const EmailTemplates = () => {
       </div>
 
       <div className="grid gap-3">
-        {templates.map((template) => (
-          <div key={template.id} className="rounded-lg border p-4">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <h4 className="text-sm font-medium">{template.name}</h4>
-                  {template.is_custom ? (
-                    <Badge variant="secondary" className="text-xs">Custom</Badge>
-                  ) : (
-                    <Badge variant="outline" className="text-xs">Default</Badge>
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground">{template.description}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  <strong>Subject:</strong> {template.subject}
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleEdit(template)}
-              >
-                <Edit className="h-4 w-4 mr-1" />
-                Edit
-              </Button>
-            </div>
+        {templates.length === 0 ? (
+          <div className="rounded-lg border border-dashed p-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              No email templates found. Please check your configuration or refresh the page.
+            </p>
           </div>
-        ))}
+        ) : (
+          templates.map((template) => (
+            <div key={template.id} className="rounded-lg border p-4">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className="text-sm font-medium">{template.name}</h4>
+                    {template.is_custom ? (
+                      <Badge variant="secondary" className="text-xs">Custom</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-xs">Default</Badge>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground">{template.description}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    <strong>Subject:</strong> {template.subject}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleEdit(template)}
+                >
+                  <Edit className="h-4 w-4 mr-1" />
+                  Edit
+                </Button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Edit Dialog */}
