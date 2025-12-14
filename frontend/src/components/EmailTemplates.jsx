@@ -108,11 +108,13 @@ const EmailTemplates = () => {
         setEditDialogOpen(false);
         fetchTemplates();
       } else {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to update template');
+        throw new Error('Failed to update template');
       }
     } catch (err) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      const userMessage = err instanceof TypeError
+        ? 'Unable to connect to server. Please check your connection.'
+        : 'Failed to save template. Please try again.';
+      toast({ title: "Error", description: userMessage, variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -132,11 +134,13 @@ const EmailTemplates = () => {
         setEditDialogOpen(false);
         fetchTemplates();
       } else {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to reset template');
+        throw new Error('Failed to reset template');
       }
     } catch (err) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      const userMessage = err instanceof TypeError
+        ? 'Unable to connect to server. Please check your connection.'
+        : 'Failed to reset template. Please try again.';
+      toast({ title: "Error", description: userMessage, variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -159,11 +163,13 @@ const EmailTemplates = () => {
         setPreview(data.preview);
         setPreviewDialogOpen(true);
       } else {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to generate preview');
+        throw new Error('Failed to generate preview');
       }
     } catch (err) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      const userMessage = err instanceof TypeError
+        ? 'Unable to connect to server. Please check your connection.'
+        : 'Failed to generate preview. Please try again.';
+      toast({ title: "Error", description: userMessage, variant: "destructive" });
     } finally {
       setPreviewing(false);
     }
