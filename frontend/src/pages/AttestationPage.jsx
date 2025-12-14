@@ -479,25 +479,23 @@ export default function AttestationPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between border-b pb-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <ClipboardCheck className="h-6 w-6" />
-            Attestation Campaigns
-          </h1>
-          <p className="text-muted-foreground mt-2">
+      <Card>
+        <CardHeader className="space-y-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-2">
+              <ClipboardCheck className="h-5 w-5 text-primary" />
+              <CardTitle>Attestation Campaigns ({campaigns.length})</CardTitle>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <Button onClick={() => setShowCreateModal(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Campaign
+              </Button>
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground">
             Manage asset attestation campaigns and track employee compliance
           </p>
-        </div>
-        <Button onClick={() => setShowCreateModal(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Campaign
-        </Button>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>All Campaigns</CardTitle>
         </CardHeader>
         <CardContent>
           {campaigns.length === 0 ? (

@@ -250,19 +250,20 @@ export default function MyAttestationsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="border-b pb-4">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <ClipboardCheck className="h-6 w-6" />
-          My Attestations
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Review and attest to the status of your registered assets
-        </p>
-      </div>
-
-      {attestations.length === 0 ? (
-        <Card>
-          <CardContent className="pt-6">
+      <Card>
+        <CardHeader className="space-y-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-2">
+              <ClipboardCheck className="h-5 w-5 text-primary" />
+              <CardTitle>My Attestations ({attestations.length})</CardTitle>
+            </div>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Review and attest to the status of your registered assets
+          </p>
+        </CardHeader>
+        <CardContent>
+          {attestations.length === 0 ? (
             <div className="text-center py-12">
               <ClipboardCheck className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">No pending attestations</h3>
@@ -270,48 +271,53 @@ export default function MyAttestationsPage() {
                 You don't have any pending asset attestations at this time
               </p>
             </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-3">
-          {attestations.map((attestation) => (
-            <Card key={attestation.id}>
-              <CardHeader className="py-3 px-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>{attestation.campaign?.name}</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {attestation.campaign?.description}
-                    </p>
-                  </div>
-                  {getStatusBadge(attestation.status)}
-                </div>
-              </CardHeader>
-              <CardContent className="py-2 px-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1 text-sm">
-                    <p>
-                      <span className="font-medium">Started:</span>{' '}
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Campaign</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Started</TableHead>
+                  <TableHead className="hidden md:table-cell">Completed</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {attestations.map((attestation) => (
+                  <TableRow key={attestation.id}>
+                    <TableCell>
+                      <div className="space-y-1">
+                        <div className="font-medium">{attestation.campaign?.name}</div>
+                        <div className="text-sm text-muted-foreground hidden md:block">
+                          {attestation.campaign?.description}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {getStatusBadge(attestation.status)}
+                    </TableCell>
+                    <TableCell>
                       {new Date(attestation.campaign?.start_date).toLocaleDateString()}
-                    </p>
-                    {attestation.completed_at && (
-                      <p>
-                        <span className="font-medium">Completed:</span>{' '}
-                        {new Date(attestation.completed_at).toLocaleDateString()}
-                      </p>
-                    )}
-                  </div>
-                  {attestation.status !== 'completed' && (
-                    <Button onClick={() => handleStartAttestation(attestation)}>
-                      {attestation.status === 'pending' ? 'Start Attestation' : 'Continue Attestation'}
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {attestation.completed_at 
+                        ? new Date(attestation.completed_at).toLocaleDateString()
+                        : '-'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {attestation.status !== 'completed' && (
+                        <Button onClick={() => handleStartAttestation(attestation)}>
+                          {attestation.status === 'pending' ? 'Start Attestation' : 'Continue Attestation'}
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Attestation Modal */}
       <Dialog open={showAttestationModal} onOpenChange={setShowAttestationModal}>
