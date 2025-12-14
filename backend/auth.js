@@ -75,7 +75,11 @@ export const authorize = (...allowedRoles) => {
       return res.status(401).json({ error: 'Not authenticated' });
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    // Normalize allowed roles and user role to lowercase for case-insensitive comparison
+    const normalizedAllowedRoles = allowedRoles.map(role => role.toLowerCase());
+    const userRole = req.user.role.toLowerCase();
+
+    if (!normalizedAllowedRoles.includes(userRole)) {
       return res.status(403).json({ error: 'Insufficient permissions' });
     }
 

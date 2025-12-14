@@ -1707,7 +1707,7 @@ app.delete('/api/auth/passkeys/:id', authenticate, async (req, res) => {
 });
 
 // Get all users (admin only)
-app.get('/api/auth/users', authenticate, authorize('admin'), async (req, res) => {
+app.get('/api/auth/users', authenticate, authorize('admin', 'manager'), async (req, res) => {
   try {
     const users = await userDb.getAll();
     res.json(users);

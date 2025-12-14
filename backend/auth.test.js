@@ -218,4 +218,180 @@ describe('Auth Module', () => {
       expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
   });
+
+  describe('authenticate middleware', () => {
+    let req, res, next, jsonMock, statusMock;
+
+    beforeEach(() => {
+      jsonMock = jest.fn();
+      statusMock = jest.fn(() => ({ json: jsonMock }));
+      req = {
+        headers: {}
+      };
+      res = {
+        status: statusMock,
+        json: jsonMock
+      };
+      next = jest.fn();
+    });
+
+    it('should return 401 when no authorization header is present', () => {
+      authenticate(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(401);
+      expect(jsonMock).toHaveBeenCalledWith({ error: 'No token provided' });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('should return 401 when authorization header does not start with Bearer', () => {
+      req.headers.authorization = 'Basic sometoken';
+
+      authenticate(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(401);
+      expect(jsonMock).toHaveBeenCalledWith({ error: 'No token provided' });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('should return 401 when token is invalid', () => {
+      req.headers.authorization = 'Bearer invalid-token';
+
+      authenticate(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(401);
+      expect(jsonMock).toHaveBeenCalledWith({ error: 'Invalid or expired token' });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('should attach user to request and call next() when token is valid', () => {
+      const user = {
+        id: 1,
+        email: 'test@example.com',
+        name: 'Test User',
+        role: 'admin'
+      };
+
+      const token = generateToken(user);
+      req.headers.authorization = `Bearer ${token}`;
+
+      authenticate(req, res, next);
+
+      expect(req.user).toBeDefined();
+      expect(req.user.id).toBe(user.id);
+      expect(req.user.email).toBe(user.email);
+      expect(req.user.role).toBe(user.role);
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(statusMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('authorize middleware', () => {
+    let req, res, next, jsonMock, statusMock;
+
+    beforeEach(() => {
+      jsonMock = jest.fn();
+      statusMock = jest.fn(() => ({ json: jsonMock }));
+      req = {
+        user: null
+      };
+      res = {
+        status: statusMock,
+        json: jsonMock
+      };
+      next = jest.fn();
+    });
+
+    it('should return 401 when user is not authenticated', () => {
+      const middleware = authorize('admin');
+      middleware(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(401);
+      expect(jsonMock).toHaveBeenCalledWith({ error: 'Not authenticated' });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('should allow access when user has the required role', () => {
+      req.user = { id: 1, email: 'admin@example.com', role: 'admin' };
+      const middleware = authorize('admin');
+      middleware(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(statusMock).not.toHaveBeenCalled();
+    });
+
+    it('should return 403 when user role is not in allowed roles', () => {
+      req.user = { id: 1, email: 'user@example.com', role: 'employee' };
+      const middleware = authorize('admin');
+      middleware(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(403);
+      expect(jsonMock).toHaveBeenCalledWith({ error: 'Insufficient permissions' });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('should allow access when user has one of multiple allowed roles (admin)', () => {
+      req.user = { id: 1, email: 'admin@example.com', role: 'admin' };
+      const middleware = authorize('admin', 'manager');
+      middleware(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(statusMock).not.toHaveBeenCalled();
+    });
+
+    it('should allow access when user has one of multiple allowed roles (manager)', () => {
+      req.user = { id: 2, email: 'manager@example.com', role: 'manager' };
+      const middleware = authorize('admin', 'manager');
+      middleware(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(statusMock).not.toHaveBeenCalled();
+    });
+
+    it('should return 403 when user role is not in multiple allowed roles', () => {
+      req.user = { id: 3, email: 'employee@example.com', role: 'employee' };
+      const middleware = authorize('admin', 'manager');
+      middleware(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(403);
+      expect(jsonMock).toHaveBeenCalledWith({ error: 'Insufficient permissions' });
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it('should perform case-insensitive role matching (lowercase user role)', () => {
+      req.user = { id: 1, email: 'admin@example.com', role: 'admin' };
+      const middleware = authorize('Admin', 'Manager');
+      middleware(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(statusMock).not.toHaveBeenCalled();
+    });
+
+    it('should perform case-insensitive role matching (uppercase user role)', () => {
+      req.user = { id: 1, email: 'admin@example.com', role: 'ADMIN' };
+      const middleware = authorize('admin', 'manager');
+      middleware(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(statusMock).not.toHaveBeenCalled();
+    });
+
+    it('should perform case-insensitive role matching (mixed case)', () => {
+      req.user = { id: 2, email: 'manager@example.com', role: 'Manager' };
+      const middleware = authorize('admin', 'manager');
+      middleware(req, res, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(statusMock).not.toHaveBeenCalled();
+    });
+
+    it('should reject manager when only admin is allowed', () => {
+      req.user = { id: 2, email: 'manager@example.com', role: 'manager' };
+      const middleware = authorize('admin');
+      middleware(req, res, next);
+
+      expect(statusMock).toHaveBeenCalledWith(403);
+      expect(jsonMock).toHaveBeenCalledWith({ error: 'Insufficient permissions' });
+      expect(next).not.toHaveBeenCalled();
+    });
+  });
 });
