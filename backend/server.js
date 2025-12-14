@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { assetDb, companyDb, auditDb, userDb, oidcSettingsDb, brandingSettingsDb, passkeySettingsDb, databaseSettings, databaseEngine, importSqliteDatabase, passkeyDb, hubspotSettingsDb, hubspotSyncLogDb, smtpSettingsDb, passwordResetTokenDb, syncAssetOwnership, attestationCampaignDb, attestationRecordDb, attestationAssetDb, attestationNewAssetDb, sanitizeDateValue } from './database.js';
+import { assetDb, companyDb, auditDb, userDb, oidcSettingsDb, brandingSettingsDb, passkeySettingsDb, databaseSettings, databaseEngine, importSqliteDatabase, passkeyDb, hubspotSettingsDb, hubspotSyncLogDb, smtpSettingsDb, passwordResetTokenDb, syncAssetOwnership, attestationCampaignDb, attestationRecordDb, attestationAssetDb, attestationNewAssetDb, assetTypeDb, sanitizeDateValue } from './database.js';
 import { authenticate, authorize, hashPassword, comparePassword, generateToken } from './auth.js';
 import { initializeOIDC, getAuthorizationUrl, handleCallback, getUserInfo, extractUserData, isOIDCEnabled } from './oidc.js';
 import { generateMFASecret, verifyTOTP, generateBackupCodes, formatBackupCode } from './mfa.js';
@@ -3679,6 +3679,194 @@ app.delete('/api/companies/:id', authenticate, authorize('admin'), async (req, r
   } catch (error) {
     console.error('Error deleting company:', error);
     res.status(500).json({ error: 'Failed to delete company' });
+  }
+});
+
+// ===== Asset Type Endpoints =====
+
+// Get active asset types (any authenticated user)
+app.get('/api/asset-types', authenticate, async (req, res) => {
+  try {
+    const assetTypes = await assetTypeDb.getActive();
+    res.json(assetTypes);
+  } catch (error) {
+    console.error('Error fetching active asset types:', error);
+    res.status(500).json({ error: 'Failed to fetch asset types' });
+  }
+});
+
+// Get all asset types including inactive (admin only)
+app.get('/api/admin/asset-types', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const assetTypes = await assetTypeDb.getAll();
+    
+    // Get usage count for each type
+    const assetTypesWithUsage = await Promise.all(
+      assetTypes.map(async (type) => {
+        const usageCount = await assetTypeDb.getUsageCount(type.id);
+        return { ...type, usage_count: usageCount };
+      })
+    );
+    
+    res.json(assetTypesWithUsage);
+  } catch (error) {
+    console.error('Error fetching all asset types:', error);
+    res.status(500).json({ error: 'Failed to fetch asset types' });
+  }
+});
+
+// Create new asset type (admin only)
+app.post('/api/admin/asset-types', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { name, display_name, description, is_active, sort_order } = req.body;
+    
+    // Validation
+    if (!name || !display_name) {
+      return res.status(400).json({ error: 'name and display_name are required' });
+    }
+    
+    // Check if name already exists
+    const existing = await assetTypeDb.getByName(name);
+    if (existing) {
+      return res.status(409).json({ error: 'Asset type with this name already exists' });
+    }
+    
+    const result = await assetTypeDb.create({
+      name,
+      display_name,
+      description,
+      is_active: is_active !== undefined ? is_active : 1,
+      sort_order: sort_order || 0
+    });
+    
+    const newAssetType = await assetTypeDb.getById(result.id);
+    
+    // Log audit
+    await auditDb.log(
+      'create',
+      'asset_type',
+      result.id,
+      display_name,
+      { name, display_name, description },
+      req.user.email
+    );
+    
+    res.status(201).json(newAssetType);
+  } catch (error) {
+    console.error('Error creating asset type:', error);
+    res.status(500).json({ error: 'Failed to create asset type' });
+  }
+});
+
+// Update asset type (admin only)
+app.put('/api/admin/asset-types/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { name, display_name, description, is_active, sort_order } = req.body;
+    
+    const assetType = await assetTypeDb.getById(id);
+    if (!assetType) {
+      return res.status(404).json({ error: 'Asset type not found' });
+    }
+    
+    // If name is being changed, check if new name already exists
+    if (name && name !== assetType.name) {
+      const existing = await assetTypeDb.getByName(name);
+      if (existing) {
+        return res.status(409).json({ error: 'Asset type with this name already exists' });
+      }
+    }
+    
+    const updates = {};
+    if (name !== undefined) updates.name = name;
+    if (display_name !== undefined) updates.display_name = display_name;
+    if (description !== undefined) updates.description = description;
+    if (is_active !== undefined) updates.is_active = is_active;
+    if (sort_order !== undefined) updates.sort_order = sort_order;
+    
+    await assetTypeDb.update(id, updates);
+    const updatedAssetType = await assetTypeDb.getById(id);
+    
+    // Log audit
+    await auditDb.log(
+      'update',
+      'asset_type',
+      id,
+      updatedAssetType.display_name,
+      updates,
+      req.user.email
+    );
+    
+    res.json(updatedAssetType);
+  } catch (error) {
+    console.error('Error updating asset type:', error);
+    res.status(500).json({ error: 'Failed to update asset type' });
+  }
+});
+
+// Delete asset type (admin only, only if not in use)
+app.delete('/api/admin/asset-types/:id', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    
+    const assetType = await assetTypeDb.getById(id);
+    if (!assetType) {
+      return res.status(404).json({ error: 'Asset type not found' });
+    }
+    
+    // Check if asset type is in use
+    const usageCount = await assetTypeDb.getUsageCount(id);
+    if (usageCount > 0) {
+      return res.status(409).json({
+        error: `Cannot delete asset type that is in use by ${usageCount} asset(s)`,
+        usage_count: usageCount
+      });
+    }
+    
+    await assetTypeDb.delete(id);
+    
+    // Log audit
+    await auditDb.log(
+      'delete',
+      'asset_type',
+      id,
+      assetType.display_name,
+      { name: assetType.name },
+      req.user.email
+    );
+    
+    res.json({ message: 'Asset type deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting asset type:', error);
+    res.status(500).json({ error: 'Failed to delete asset type' });
+  }
+});
+
+// Update asset types sort order (admin only)
+app.put('/api/admin/asset-types/reorder', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const { orderedIds } = req.body;
+    
+    if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
+      return res.status(400).json({ error: 'orderedIds must be a non-empty array' });
+    }
+    
+    await assetTypeDb.reorder(orderedIds);
+    
+    // Log audit
+    await auditDb.log(
+      'reorder',
+      'asset_type',
+      null,
+      'Asset Types',
+      { orderedIds },
+      req.user.email
+    );
+    
+    res.json({ message: 'Asset types reordered successfully' });
+  } catch (error) {
+    console.error('Error reordering asset types:', error);
+    res.status(500).json({ error: 'Failed to reorder asset types' });
   }
 });
 

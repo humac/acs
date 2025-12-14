@@ -780,6 +780,30 @@ const initDb = async () => {
     )
   `;
 
+  const assetTypesTable = isPostgres ? `
+    CREATE TABLE IF NOT EXISTS asset_types (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      display_name TEXT NOT NULL,
+      description TEXT,
+      is_active INTEGER DEFAULT 1,
+      sort_order INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  ` : `
+    CREATE TABLE IF NOT EXISTS asset_types (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      display_name TEXT NOT NULL,
+      description TEXT,
+      is_active INTEGER DEFAULT 1,
+      sort_order INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+
   // Create tables in dependency order to satisfy foreign key constraints
   await dbRun(usersTable);           // 1. Create users first (no dependencies)
   await dbRun(companiesTable);       // 2. Create companies (no dependencies)
@@ -797,6 +821,7 @@ const initDb = async () => {
   await dbRun(attestationRecordsTable); // 14. Create attestation records table (depends on campaigns and users)
   await dbRun(attestationAssetsTable); // 15. Create attestation assets table (depends on attestation_records and assets)
   await dbRun(attestationNewAssetsTable); // 16. Create attestation new assets table (depends on attestation_records)
+  await dbRun(assetTypesTable);      // 17. Create asset types table (no dependencies)
 
   // === Migration: company_name -> company_id ===
   // Check if assets table has old schema (company_name) instead of new schema (company_id)
@@ -1047,6 +1072,40 @@ const initDb = async () => {
       INSERT INTO smtp_settings (id, enabled, created_at, updated_at)
       VALUES (1, 0, ?, ?)
     `, [now, now]);
+  }
+
+  // Seed default asset types if table is empty
+  const existingTypes = await dbAll('SELECT COUNT(*) as count FROM asset_types');
+  const typeCount = existingTypes[0]?.count || 0;
+  
+  if (typeCount === 0) {
+    console.log('Seeding default asset types...');
+    const now = new Date().toISOString();
+    const defaultTypes = [
+      { name: 'laptop', display_name: 'Laptop', description: 'Portable computer', sort_order: 1 },
+      { name: 'desktop', display_name: 'Desktop', description: 'Desktop computer', sort_order: 2 },
+      { name: 'monitor', display_name: 'Monitor', description: 'Display screen', sort_order: 3 },
+      { name: 'mobile_phone', display_name: 'Mobile Phone', description: 'Smartphone or mobile device', sort_order: 4 },
+      { name: 'tablet', display_name: 'Tablet', description: 'Tablet computer', sort_order: 5 },
+      { name: 'printer', display_name: 'Printer', description: 'Printing device', sort_order: 6 },
+      { name: 'scanner', display_name: 'Scanner', description: 'Document scanner', sort_order: 7 },
+      { name: 'network_equipment', display_name: 'Network Equipment', description: 'Routers, switches, access points', sort_order: 8 },
+      { name: 'storage_device', display_name: 'Storage Device', description: 'External drives, NAS', sort_order: 9 },
+      { name: 'peripheral', display_name: 'Peripheral', description: 'Keyboard, mouse, webcam, etc.', sort_order: 10 },
+      { name: 'software_license', display_name: 'Software License', description: 'Software subscription or license', sort_order: 11 },
+      { name: 'other', display_name: 'Other', description: 'Other type of asset', sort_order: 12 }
+    ];
+
+    for (const type of defaultTypes) {
+      const insertQuery = isPostgres
+        ? `INSERT INTO asset_types (name, display_name, description, is_active, sort_order, created_at, updated_at)
+           VALUES ($1, $2, $3, 1, $4, $5, $6)`
+        : `INSERT INTO asset_types (name, display_name, description, is_active, sort_order, created_at, updated_at)
+           VALUES (?, ?, ?, 1, ?, ?, ?)`;
+      
+      await dbRun(insertQuery, [type.name, type.display_name, type.description, type.sort_order, now, now]);
+    }
+    console.log(`Seeded ${defaultTypes.length} default asset types`);
   }
 
   // Indexes
@@ -2967,6 +3026,125 @@ export const attestationNewAssetDb = {
       ...a,
       created_at: normalizeDates(a.created_at)
     }));
+  }
+};
+
+export const assetTypeDb = {
+  getAll: async () => {
+    const rows = await dbAll('SELECT * FROM asset_types ORDER BY sort_order ASC, display_name ASC');
+    return rows.map((row) => ({
+      ...row,
+      created_at: normalizeDates(row.created_at),
+      updated_at: normalizeDates(row.updated_at)
+    }));
+  },
+
+  getActive: async () => {
+    const rows = await dbAll('SELECT * FROM asset_types WHERE is_active = 1 ORDER BY sort_order ASC, display_name ASC');
+    return rows.map((row) => ({
+      ...row,
+      created_at: normalizeDates(row.created_at),
+      updated_at: normalizeDates(row.updated_at)
+    }));
+  },
+
+  getById: async (id) => {
+    const row = await dbGet('SELECT * FROM asset_types WHERE id = ?', [id]);
+    return row ? {
+      ...row,
+      created_at: normalizeDates(row.created_at),
+      updated_at: normalizeDates(row.updated_at)
+    } : null;
+  },
+
+  getByName: async (name) => {
+    const row = await dbGet('SELECT * FROM asset_types WHERE name = ?', [name]);
+    return row ? {
+      ...row,
+      created_at: normalizeDates(row.created_at),
+      updated_at: normalizeDates(row.updated_at)
+    } : null;
+  },
+
+  create: async (assetType) => {
+    const now = new Date().toISOString();
+    const insertQuery = `
+      INSERT INTO asset_types (name, display_name, description, is_active, sort_order, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      ${isPostgres ? 'RETURNING id' : ''}
+    `;
+    const result = await dbRun(insertQuery, [
+      assetType.name,
+      assetType.display_name,
+      assetType.description || null,
+      assetType.is_active !== undefined ? assetType.is_active : 1,
+      assetType.sort_order || 0,
+      now,
+      now
+    ]);
+    const id = isPostgres ? result.rows?.[0]?.id : result.lastInsertRowid;
+    return { id };
+  },
+
+  update: async (id, assetType) => {
+    const now = new Date().toISOString();
+    const fields = [];
+    const params = [];
+
+    if (assetType.name !== undefined) {
+      fields.push(isPostgres ? `name = $${fields.length + 1}` : 'name = ?');
+      params.push(assetType.name);
+    }
+    if (assetType.display_name !== undefined) {
+      fields.push(isPostgres ? `display_name = $${fields.length + 1}` : 'display_name = ?');
+      params.push(assetType.display_name);
+    }
+    if (assetType.description !== undefined) {
+      fields.push(isPostgres ? `description = $${fields.length + 1}` : 'description = ?');
+      params.push(assetType.description);
+    }
+    if (assetType.is_active !== undefined) {
+      fields.push(isPostgres ? `is_active = $${fields.length + 1}` : 'is_active = ?');
+      params.push(assetType.is_active);
+    }
+    if (assetType.sort_order !== undefined) {
+      fields.push(isPostgres ? `sort_order = $${fields.length + 1}` : 'sort_order = ?');
+      params.push(assetType.sort_order);
+    }
+
+    fields.push(isPostgres ? `updated_at = $${fields.length + 1}` : 'updated_at = ?');
+    params.push(now);
+
+    params.push(id);
+
+    await dbRun(
+      `UPDATE asset_types SET ${fields.join(', ')} WHERE id = ${isPostgres ? `$${params.length}` : '?'}`,
+      params
+    );
+  },
+
+  delete: async (id) => {
+    await dbRun('DELETE FROM asset_types WHERE id = ?', [id]);
+  },
+
+  getUsageCount: async (id) => {
+    const assetType = await dbGet('SELECT name FROM asset_types WHERE id = ?', [id]);
+    if (!assetType) return 0;
+
+    // Count assets with this type
+    const assetCount = await dbGet('SELECT COUNT(*) as count FROM assets WHERE asset_type = ?', [assetType.name]);
+    
+    // Count attestation new assets with this type
+    const attestationCount = await dbGet('SELECT COUNT(*) as count FROM attestation_new_assets WHERE asset_type = ?', [assetType.name]);
+    
+    return (assetCount?.count || 0) + (attestationCount?.count || 0);
+  },
+
+  reorder: async (orderedIds) => {
+    // Update sort_order for each asset type based on array index
+    for (let i = 0; i < orderedIds.length; i++) {
+      await dbRun('UPDATE asset_types SET sort_order = ? WHERE id = ?', [i, orderedIds[i]]);
+    }
   }
 };
 
