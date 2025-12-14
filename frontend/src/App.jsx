@@ -172,10 +172,10 @@ function AppNew() {
 
   const navItems = [
     { label: 'Assets', icon: Laptop, path: '/assets' },
-    { label: 'Companies', icon: Building2, path: '/companies', roles: ['admin'] },
+    { label: 'Attestation', icon: ClipboardCheck, path: '/attestation', roles: ['admin', 'manager'] },
+    { label: 'Companies', icon: Building2, path: '/companies', roles: ['admin', 'manager'] },
     { label: 'Users', icon: Users, path: '/users', roles: ['admin', 'manager'] },
     { label: 'Audit & Reports', icon: FileBarChart, path: '/audit' },
-    { label: 'Attestation', icon: ClipboardCheck, path: '/attestation', roles: ['admin'] },
     { label: 'Admin Settings', icon: Settings, path: '/admin', roles: ['admin'] },
   ];
 
@@ -423,14 +423,14 @@ function AppNew() {
           <Route path="/" element={<Navigate to="/assets" replace />} />
           <Route path="/assets" element={<AssetsPage />} />
           <Route path="/assets/dashboard" element={<Dashboard />} />
-          {user?.role === 'admin' && (
+          {(user?.role === 'admin' || user?.role === 'manager') && (
             <Route path="/companies" element={<CompanyManagement />} />
           )}
           {(user?.role === 'admin' || user?.role === 'manager') && (
             <Route path="/users" element={<UserManagement />} />
           )}
           <Route path="/audit" element={<AuditReporting />} />
-          {user?.role === 'admin' && (
+          {(user?.role === 'admin' || user?.role === 'manager') && (
             <Route path="/attestation" element={<AttestationPage />} />
           )}
           {user?.role === 'admin' && (

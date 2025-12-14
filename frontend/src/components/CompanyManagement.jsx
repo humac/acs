@@ -18,8 +18,9 @@ import { cn } from '@/lib/utils';
 import { Building2, Plus, Edit, Trash2, Upload, Download, Loader2, Search, Sparkles } from 'lucide-react';
 
 const CompanyManagementNew = () => {
-  const { getAuthHeaders } = useAuth();
+  const { getAuthHeaders, user } = useAuth();
   const { toast } = useToast();
+  const canManageCompanies = user?.role === 'admin';
   const [companies, setCompanies] = useState([]);
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -256,6 +257,19 @@ const CompanyManagementNew = () => {
 
   return (
     <div className="space-y-6">
+      {!canManageCompanies && (
+        <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+            <div>
+              <h3 className="font-semibold text-blue-900 dark:text-blue-100">Read-Only Access</h3>
+              <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                You have read-only access to company information.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       <Card>
         <CardHeader className="space-y-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -263,14 +277,16 @@ const CompanyManagementNew = () => {
               <Building2 className="h-5 w-5 text-primary" />
               <CardTitle>Company Management ({companies.length})</CardTitle>
             </div>
-            <div className="flex gap-2 flex-wrap">
-              <Button variant="outline" onClick={() => setShowImportModal(true)}>
-                <Upload className="h-4 w-4 mr-2" />Bulk Import
-              </Button>
-              <Button onClick={handleAddClick}>
-                <Plus className="h-4 w-4 mr-2" />Add Company
-              </Button>
-            </div>
+            {canManageCompanies && (
+              <div className="flex gap-2 flex-wrap">
+                <Button variant="outline" onClick={() => setShowImportModal(true)}>
+                  <Upload className="h-4 w-4 mr-2" />Bulk Import
+                </Button>
+                <Button onClick={handleAddClick}>
+                  <Plus className="h-4 w-4 mr-2" />Add Company
+                </Button>
+              </div>
+            )}
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="relative max-w-md w-full">
@@ -282,7 +298,7 @@ const CompanyManagementNew = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            {selectedIds.size > 0 && (
+            {canManageCompanies && selectedIds.size > 0 && (
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 rounded-lg border px-3 py-2 bg-muted/50">
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-primary" />
@@ -318,14 +334,16 @@ const CompanyManagementNew = () => {
                     key={company.id}
                     className={cn(
                       "border rounded-lg p-4 flex gap-3",
-                      selectedIds.has(company.id) && "bg-primary/5 border-primary/50 shadow-[0_0_0_1px_hsl(var(--primary))]"
+                      canManageCompanies && selectedIds.has(company.id) && "bg-primary/5 border-primary/50 shadow-[0_0_0_1px_hsl(var(--primary))]"
                     )}
                   >
-                    <Checkbox
-                      checked={selectedIds.has(company.id)}
-                      onCheckedChange={() => toggleSelect(company.id)}
-                      className="mt-1"
-                    />
+                    {canManageCompanies && (
+                      <Checkbox
+                        checked={selectedIds.has(company.id)}
+                        onCheckedChange={() => toggleSelect(company.id)}
+                        className="mt-1"
+                      />
+                    )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div>
@@ -338,10 +356,12 @@ const CompanyManagementNew = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="flex flex-col gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(company)}><Edit className="h-4 w-4" /></Button>
-                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setDeleteDialog({ open: true, company })}><Trash2 className="h-4 w-4" /></Button>
-                    </div>
+                    {canManageCompanies && (
+                      <div className="flex flex-col gap-2">
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(company)}><Edit className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setDeleteDialog({ open: true, company })}><Trash2 className="h-4 w-4" /></Button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -349,41 +369,47 @@ const CompanyManagementNew = () => {
               <Table wrapperClassName="hidden md:block">
                 <TableHeader>
                   <TableRow className="bg-muted/50">
-                    <TableHead className="w-12">
+                    {canManageCompanies && (
+                      <TableHead className="w-12">
                         <Checkbox
                           checked={isAllSelected ? true : isSomeSelected ? "indeterminate" : false}
                           onCheckedChange={toggleSelectAll}
                         />
                       </TableHead>
+                    )}
                       <TableHead>Company Name</TableHead>
                       <TableHead className="hidden md:table-cell">Description</TableHead>
                       <TableHead className="hidden md:table-cell text-center">Assets</TableHead>
                       <TableHead className="hidden md:table-cell">Created</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      {canManageCompanies && <TableHead className="text-right">Actions</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {paginatedCompanies.map((company) => (
                       <TableRow
                         key={company.id}
-                        data-state={selectedIds.has(company.id) ? "selected" : undefined}
-                        className={cn(selectedIds.has(company.id) && "bg-primary/5 border-primary/40")}
+                        data-state={canManageCompanies && selectedIds.has(company.id) ? "selected" : undefined}
+                        className={cn(canManageCompanies && selectedIds.has(company.id) && "bg-primary/5 border-primary/40")}
                       >
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedIds.has(company.id)}
-                            onCheckedChange={() => toggleSelect(company.id)}
-                          />
-                        </TableCell>
+                        {canManageCompanies && (
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedIds.has(company.id)}
+                              onCheckedChange={() => toggleSelect(company.id)}
+                            />
+                          </TableCell>
+                        )}
                         <TableCell className="font-medium">{company.name}</TableCell>
                         <TableCell className="hidden md:table-cell text-muted-foreground">{company.description || '-'}</TableCell>
                         <TableCell className="hidden md:table-cell text-center">{assetCountByCompany[company.name] || 0}</TableCell>
                         <TableCell className="hidden md:table-cell">{formatDate(company.created_date)}</TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => handleEdit(company)}><Edit className="h-4 w-4" /></Button>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setDeleteDialog({ open: true, company })}><Trash2 className="h-4 w-4" /></Button>
-                          </div>
+                          {canManageCompanies && (
+                            <div className="flex justify-end gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => handleEdit(company)}><Edit className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setDeleteDialog({ open: true, company })}><Trash2 className="h-4 w-4" /></Button>
+                            </div>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}

@@ -163,8 +163,10 @@ export default function AttestationPage() {
     }
   };
 
+  const canManageCampaigns = user?.role === 'admin';
+
   useEffect(() => {
-    if (user?.role === 'admin') {
+    if (user?.role === 'admin' || user?.role === 'manager') {
       loadCampaigns();
     }
   }, [user]);
@@ -479,6 +481,19 @@ export default function AttestationPage() {
 
   return (
     <div className="space-y-6">
+      {!canManageCampaigns && (
+        <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+            <div>
+              <h3 className="font-semibold text-blue-900 dark:text-blue-100">Read-Only Access</h3>
+              <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+                You have read-only access to attestation campaigns. Contact an admin to create or modify campaigns.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       <Card>
         <CardHeader className="space-y-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -486,12 +501,14 @@ export default function AttestationPage() {
               <ClipboardCheck className="h-5 w-5 text-primary" />
               <CardTitle>Attestation Campaigns ({campaigns.length})</CardTitle>
             </div>
-            <div className="flex gap-2 flex-wrap">
-              <Button onClick={() => setShowCreateModal(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Campaign
-              </Button>
-            </div>
+            {canManageCampaigns && (
+              <div className="flex gap-2 flex-wrap">
+                <Button onClick={() => setShowCreateModal(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Campaign
+                </Button>
+              </div>
+            )}
           </div>
           <p className="text-sm text-muted-foreground">
             Manage asset attestation campaigns and track employee compliance
@@ -503,12 +520,16 @@ export default function AttestationPage() {
               <ClipboardCheck className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">No campaigns yet</h3>
               <p className="text-muted-foreground mb-4">
-                Create your first attestation campaign to get started
+                {canManageCampaigns 
+                  ? 'Create your first attestation campaign to get started'
+                  : 'No attestation campaigns have been created yet'}
               </p>
-              <Button onClick={() => setShowCreateModal(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Campaign
-              </Button>
+              {canManageCampaigns && (
+                <Button onClick={() => setShowCreateModal(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Campaign
+                </Button>
+              )}
             </div>
           ) : (
             <Table>
@@ -562,30 +583,34 @@ export default function AttestationPage() {
                       <div className="flex justify-end gap-2">
                         {campaign.status === 'draft' && (
                           <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEditCampaignClick(campaign)}
-                            >
-                              <Edit className="h-4 w-4 mr-1" />
-                              Edit
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleStartCampaignClick(campaign)}
-                            >
-                              <PlayCircle className="h-4 w-4 mr-1" />
-                              Start
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleDeleteCampaignClick(campaign)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Delete
-                            </Button>
+                            {canManageCampaigns && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleEditCampaignClick(campaign)}
+                                >
+                                  <Edit className="h-4 w-4 mr-1" />
+                                  Edit
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleStartCampaignClick(campaign)}
+                                >
+                                  <PlayCircle className="h-4 w-4 mr-1" />
+                                  Start
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => handleDeleteCampaignClick(campaign)}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-1" />
+                                  Delete
+                                </Button>
+                              </>
+                            )}
                           </>
                         )}
                         {campaign.status === 'active' && (
@@ -606,14 +631,16 @@ export default function AttestationPage() {
                               <Download className="h-4 w-4 mr-1" />
                               Export
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleCancelCampaignClick(campaign)}
-                            >
-                              <XCircle className="h-4 w-4 mr-1" />
-                              Cancel
-                            </Button>
+                            {canManageCampaigns && (
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleCancelCampaignClick(campaign)}
+                              >
+                                <XCircle className="h-4 w-4 mr-1" />
+                                Cancel
+                              </Button>
+                            )}
                           </>
                         )}
                         {(campaign.status === 'completed' || campaign.status === 'cancelled') && (
@@ -626,14 +653,16 @@ export default function AttestationPage() {
                               <Download className="h-4 w-4 mr-1" />
                               Export
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleDeleteCampaignClick(campaign)}
-                            >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Delete
-                            </Button>
+                            {canManageCampaigns && (
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleDeleteCampaignClick(campaign)}
+                              >
+                                <Trash2 className="h-4 w-4 mr-1" />
+                                Delete
+                              </Button>
+                            )}
                           </>
                         )}
                       </div>
