@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,10 @@ const AuditReportingNew = () => {
     action: '', entityType: '', startDate: '', endDate: '', userEmail: '', limit: '100'
   });
 
+  // Track previous period values to avoid duplicate fetches
+  const prevStatsPeriod = useRef(statsPeriod);
+  const prevTrendsPeriod = useRef(trendsPeriod);
+
   // Fetch data when active view changes
   useEffect(() => {
     if (activeView === 'logs') fetchLogs();
@@ -47,17 +51,21 @@ const AuditReportingNew = () => {
 
   // Auto-fetch stats when period changes (Issue 2 fix)
   useEffect(() => {
-    if (activeView === 'stats') {
+    // Only fetch if period actually changed (not on mount or tab switch)
+    if (activeView === 'stats' && prevStatsPeriod.current !== statsPeriod) {
       fetchStatsEnhanced();
     }
-  }, [statsPeriod]);
+    prevStatsPeriod.current = statsPeriod;
+  }, [statsPeriod, activeView]);
 
   // Auto-fetch trends when period changes (Issue 3 fix)
   useEffect(() => {
-    if (activeView === 'trends') {
+    // Only fetch if period actually changed (not on mount or tab switch)
+    if (activeView === 'trends' && prevTrendsPeriod.current !== trendsPeriod) {
       fetchTrends();
     }
-  }, [trendsPeriod]);
+    prevTrendsPeriod.current = trendsPeriod;
+  }, [trendsPeriod, activeView]);
 
   const fetchLogs = async () => {
     setLoading(true);
