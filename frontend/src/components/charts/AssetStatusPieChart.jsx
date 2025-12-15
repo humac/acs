@@ -31,7 +31,7 @@ export default function AssetStatusPieChart({ data, title = 'Asset Status Distri
         x={x}
         y={y}
         fill="white"
-        textAnchor={x > cx ? 'start' : 'end'}
+        textAnchor="middle"
         dominantBaseline="central"
         className="text-xs font-semibold"
       >
