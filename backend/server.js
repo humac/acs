@@ -5239,7 +5239,7 @@ app.post('/api/attestation/records/:id/complete', authenticate, async (req, res)
     // Transfer new assets to the main assets table
     for (const newAsset of newAssets) {
       try {
-        await assetDb.create({
+        const createdAsset = await assetDb.create({
           employee_email: req.user.email,
           employee_first_name: req.user.first_name || '',
           employee_last_name: req.user.last_name || '',
@@ -5254,14 +5254,19 @@ app.post('/api/attestation/records/:id/complete', authenticate, async (req, res)
           notes: newAsset.notes || ''
         });
         
-        await auditDb.log(
-          'create',
-          'asset',
-          newAsset.serial_number,
-          `${newAsset.asset_type} - ${newAsset.serial_number}`,
-          `Asset created from attestation: ${newAsset.asset_type} - ${newAsset.serial_number}`,
-          req.user.email
-        );
+        // Log audit trail (wrapped in try-catch to not block asset creation on audit failure)
+        try {
+          await auditDb.log(
+            'create',
+            'asset',
+            newAsset.serial_number,
+            `${newAsset.asset_type} - ${newAsset.serial_number}`,
+            `Asset created from attestation: ${newAsset.asset_type} - ${newAsset.serial_number}`,
+            req.user.email
+          );
+        } catch (auditError) {
+          console.error('Failed to log asset creation audit:', auditError);
+        }
       } catch (assetError) {
         console.error('Error creating asset from attestation:', assetError);
         // Continue with other assets even if one fails
