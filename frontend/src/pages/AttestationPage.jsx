@@ -216,7 +216,7 @@ export default function AttestationPage() {
       });
       if (!res.ok) throw new Error('Failed to load companies');
       const data = await res.json();
-      setAvailableCompanies(data.companies || []);
+      setAvailableCompanies(data || []);
     } catch (err) {
       console.error(err);
       toast({
