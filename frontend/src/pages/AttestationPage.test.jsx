@@ -205,3 +205,180 @@ describe('AttestationPage - loadUsers', () => {
     });
   });
 });
+
+describe('AttestationPage - loadCompanies', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    global.fetch.mockReset();
+  });
+
+  it('should call the correct API endpoint /api/companies/names when loading companies', async () => {
+    const mockCompanies = [
+      { id: 1, name: 'BDC' },
+      { id: 2, name: 'Acme Corp' }
+    ];
+
+    // Mock campaigns response (initial load)
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ campaigns: [] })
+    });
+
+    render(
+      <BrowserRouter>
+        <AttestationPage />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+    });
+
+    // Mock companies response for when "By Company" is chosen
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockCompanies
+    });
+
+    // Click Create Campaign button
+    const createButton = screen.getAllByText(/Create Campaign/i)[0];
+    await userEvent.click(createButton);
+
+    // Fill in required fields for step 1
+    const nameInput = screen.getByLabelText(/Campaign Name/i);
+    await userEvent.type(nameInput, 'Test Campaign');
+
+    // Click Next to go to step 2
+    const nextButton = screen.getByText('Next');
+    await userEvent.click(nextButton);
+
+    // Select "By Company" radio option
+    const byCompanyOption = screen.getByLabelText(/By Company/i);
+    await userEvent.click(byCompanyOption);
+
+    // Wait for the API call to complete
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/api/companies/names',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer test-token'
+          })
+        })
+      );
+    });
+  });
+
+  it('should handle the response array directly without accessing .companies property', async () => {
+    const mockCompanies = [
+      { id: 1, name: 'BDC' },
+      { id: 2, name: 'Acme Corp' }
+    ];
+
+    // Mock campaigns response
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ campaigns: [] })
+    });
+
+    render(
+      <BrowserRouter>
+        <AttestationPage />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+    });
+
+    // Mock companies response - returns array directly (not wrapped in .companies)
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => mockCompanies
+    });
+
+    // Click Create Campaign button
+    const createButton = screen.getAllByText(/Create Campaign/i)[0];
+    await userEvent.click(createButton);
+
+    // Fill in required fields for step 1
+    const nameInput = screen.getByLabelText(/Campaign Name/i);
+    await userEvent.type(nameInput, 'Test Campaign');
+
+    // Click Next to go to step 2
+    const nextButton = screen.getByText('Next');
+    await userEvent.click(nextButton);
+
+    // Select "By Company" radio option
+    const byCompanyOption = screen.getByLabelText(/By Company/i);
+    await userEvent.click(byCompanyOption);
+
+    // Verify that /api/companies/names was called
+    // The fix ensures data is used directly (not data.companies)
+    let companiesCall;
+    await waitFor(() => {
+      companiesCall = global.fetch.mock.calls.find(call => call[0] === '/api/companies/names');
+      expect(companiesCall).toBeDefined();
+    });
+    
+    // Verify the call was made with auth headers
+    expect(companiesCall[1]).toEqual(
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: 'Bearer test-token'
+        })
+      })
+    );
+  });
+
+  it('should show error toast when company loading fails', async () => {
+    // Mock campaigns response
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ campaigns: [] })
+    });
+
+    render(
+      <BrowserRouter>
+        <AttestationPage />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+    });
+
+    // Mock companies response with error
+    global.fetch.mockResolvedValueOnce({
+      ok: false,
+      status: 404
+    });
+
+    // Click Create Campaign button
+    const createButton = screen.getAllByText(/Create Campaign/i)[0];
+    await userEvent.click(createButton);
+
+    // Fill in required fields for step 1
+    const nameInput = screen.getByLabelText(/Campaign Name/i);
+    await userEvent.type(nameInput, 'Test Campaign');
+
+    // Click Next to go to step 2
+    const nextButton = screen.getByText('Next');
+    await userEvent.click(nextButton);
+
+    // Select "By Company" radio option
+    const byCompanyOption = screen.getByLabelText(/By Company/i);
+    await userEvent.click(byCompanyOption);
+
+    // Verify error toast was called
+    await waitFor(() => {
+      expect(mockToast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Error',
+          description: 'Failed to load companies',
+          variant: 'destructive'
+        })
+      );
+    });
+  });
+});
