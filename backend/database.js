@@ -470,7 +470,7 @@ If your organization uses Single Sign-On (SSO), you can also use that option whe
 This attestation campaign {{#if endDate}}runs until {{endDate}}{{else}}is currently active{{/if}}.
 
 If you have any questions, please contact your administrator.`,
-    variables: JSON.stringify(['siteName', 'firstName', 'lastName', 'assetCount', 'campaignName', 'endDate', 'registerUrl'])
+    variables: JSON.stringify(['siteName', 'firstName', 'lastName', 'assetCount', 'campaignName', 'campaignDescription', 'endDate', 'registerUrl'])
   },
   {
     template_key: 'attestation_unregistered_reminder',
@@ -499,7 +499,7 @@ Register here: {{registerUrl}}
 If your organization uses Single Sign-On (SSO), you can also use that option when you reach the registration page.
 
 {{#if endDate}}Deadline: {{endDate}}{{/if}}`,
-    variables: JSON.stringify(['siteName', 'firstName', 'lastName', 'assetCount', 'campaignName', 'endDate', 'registerUrl'])
+    variables: JSON.stringify(['siteName', 'firstName', 'lastName', 'assetCount', 'campaignName', 'campaignDescription', 'endDate', 'registerUrl'])
   },
   {
     template_key: 'attestation_unregistered_escalation',
@@ -555,7 +555,7 @@ Complete your attestation here: {{attestationUrl}}
 {{#if endDate}}Deadline: {{endDate}}{{/if}}
 
 If you have any questions, please contact your administrator.`,
-    variables: JSON.stringify(['siteName', 'firstName', 'campaignName', 'endDate', 'attestationUrl'])
+    variables: JSON.stringify(['siteName', 'firstName', 'campaignName', 'campaignDescription', 'endDate', 'attestationUrl'])
   }
 ];
 
@@ -1521,6 +1521,62 @@ const initDb = async () => {
     console.log(`Seeded ${seededCount} missing email template(s)`);
   } else {
     console.log('All email templates already exist');
+  }
+
+  // Migration: Update variables for existing templates that may have NULL or incomplete variables
+  console.log('Checking for email templates with missing or incomplete variables...');
+  let updatedCount = 0;
+  
+  for (const template of DEFAULT_EMAIL_TEMPLATES) {
+    try {
+      const selectQuery = isPostgres
+        ? 'SELECT id, variables FROM email_templates WHERE template_key = $1'
+        : 'SELECT id, variables FROM email_templates WHERE template_key = ?';
+      
+      const existing = await dbGet(selectQuery, [template.template_key]);
+      
+      // Check if variables need updating
+      let needsUpdate = false;
+      if (!existing) {
+        continue; // Template doesn't exist, skip
+      }
+      
+      if (!existing.variables || existing.variables === 'null') {
+        needsUpdate = true;
+      } else {
+        // Try to parse and validate
+        try {
+          const parsed = JSON.parse(existing.variables);
+          if (!Array.isArray(parsed) || parsed.length === 0) {
+            needsUpdate = true;
+          } else if (existing.variables !== template.variables) {
+            needsUpdate = true;
+          }
+        } catch {
+          // Invalid JSON, needs update
+          needsUpdate = true;
+        }
+      }
+      
+      if (needsUpdate) {
+        const updateQuery = isPostgres
+          ? 'UPDATE email_templates SET variables = $1 WHERE template_key = $2'
+          : 'UPDATE email_templates SET variables = ? WHERE template_key = ?';
+        
+        await dbRun(updateQuery, [template.variables, template.template_key]);
+        console.log(`Updated variables for email template: ${template.template_key}`);
+        updatedCount++;
+      }
+    } catch (err) {
+      console.error(`Error updating variables for template ${template.template_key}:`, err);
+      // Continue with other templates even if one fails
+    }
+  }
+  
+  if (updatedCount > 0) {
+    console.log(`Updated variables for ${updatedCount} email template(s)`);
+  } else {
+    console.log('All email template variables are up to date');
   }
 
   // Indexes
