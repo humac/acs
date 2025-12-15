@@ -200,7 +200,7 @@ Docker images are automatically built for both platforms during CI/CD.
 ## 📋 Prerequisites
 
 **For Development:**
-- **Node.js 18.x** (required for backend native modules like better-sqlite3)
+- **Node.js 22.x LTS** (required for backend native modules like better-sqlite3)
 - npm or yarn package manager
 - Git
 
@@ -357,6 +357,44 @@ docker-compose up -d
 ```
 
 **More:** See the [wiki](../../wiki) for deployment and admin guides.
+
+---
+
+## 📦 Dependency Upgrade Roadmap
+
+This section tracks planned dependency upgrades. Since KARS is currently in beta, we're taking a phased approach to upgrades.
+
+### ✅ Completed (Phase 1 - December 2024)
+
+| Component | Previous | Current | Notes |
+|-----------|----------|---------|-------|
+| Node.js | 18 LTS | **22 LTS** | Supported until April 2027 |
+| better-sqlite3 | ^9.2.2 | **^11.0.0** | Node 22 compatibility |
+| Vite | ^5.0.8 | **^6.0.0** | Faster builds |
+
+### 🟡 Planned (Phase 2 - Q1 2025)
+
+| Component | Current | Target | Notes |
+|-----------|---------|--------|-------|
+| Vitest | ^1.1.0 | ^2.x | Testing framework update |
+
+### 🟠 Under Consideration (Phase 3 - Post-Beta)
+
+| Component | Current | Target | Risk Level | Notes |
+|-----------|---------|--------|------------|-------|
+| Express | ^4.18.2 | 5.x | Medium | API changes - requires testing |
+| React | ^18.2.0 | 19.x | Medium | New patterns (Server Components, Actions) |
+| Tailwind CSS | ^3.4.18 | 4.x | Medium | New config format |
+
+### Version Support Timeline
+
+| Runtime | Version | Status | End of Life |
+|---------|---------|--------|-------------|
+| Node.js | 22 LTS | ✅ Current | April 2027 |
+| Node.js | 20 LTS | Active | April 2026 |
+| Node.js | 18 LTS | Maintenance | April 2025 |
+
+**Last Updated:** December 2024
 
 ---
 
