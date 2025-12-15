@@ -4412,7 +4412,7 @@ app.get('/api/reports/summary-enhanced', authenticate, async (req, res) => {
 });
 
 // Enhanced statistics with time series data
-app.get('/api/reports/statistics-enhanced', authenticate, async (req, res) => {
+app.get('/api/reports/statistics-enhanced', authenticate, authorize('admin', 'manager'), async (req, res) => {
   try {
     const period = parseInt(req.query.period) || 30;
     const startDate = new Date(Date.now() - period * 24 * 60 * 60 * 1000);
@@ -4484,7 +4484,7 @@ app.get('/api/reports/statistics-enhanced', authenticate, async (req, res) => {
 });
 
 // Compliance metrics
-app.get('/api/reports/compliance', authenticate, async (req, res) => {
+app.get('/api/reports/compliance', authenticate, authorize('admin', 'manager'), async (req, res) => {
   try {
     const user = await userDb.getById(req.user.id);
     const allAssets = await assetDb.getAll();
@@ -4630,7 +4630,7 @@ app.get('/api/reports/compliance', authenticate, async (req, res) => {
 });
 
 // Trend data with period comparison
-app.get('/api/reports/trends', authenticate, async (req, res) => {
+app.get('/api/reports/trends', authenticate, authorize('admin', 'manager'), async (req, res) => {
   try {
     const user = await userDb.getById(req.user.id);
     const period = parseInt(req.query.period) || 30;

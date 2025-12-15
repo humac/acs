@@ -17,7 +17,7 @@ import { AssetStatusPieChart, CompanyBarChart, ActivityAreaChart, TrendLineChart
 import { KPICard, RiskIndicatorList, ComplianceChecklist, MetricsComparison } from '@/components/widgets';
 
 const AuditReportingNew = () => {
-  const { getAuthHeaders } = useAuth();
+  const { getAuthHeaders, user } = useAuth();
   const [activeView, setActiveView] = useState('summary');
   const [logs, setLogs] = useState([]);
   const [summary, setSummary] = useState(null);
@@ -35,6 +35,9 @@ const AuditReportingNew = () => {
   const [filters, setFilters] = useState({
     action: '', entityType: '', startDate: '', endDate: '', userEmail: '', limit: '100'
   });
+
+  // Check if user can access advanced reports (admin and manager only)
+  const canAccessReports = user && (user.role === 'admin' || user.role === 'manager');
 
   // Track previous period values to avoid duplicate fetches
   const prevStatsPeriod = useRef(statsPeriod);
@@ -213,9 +216,9 @@ const AuditReportingNew = () => {
           <Tabs value={activeView} onValueChange={setActiveView}>
             <TabsList className="mb-6">
               <TabsTrigger value="summary" className="gap-2"><BarChart3 className="h-4 w-4" />Summary</TabsTrigger>
-              <TabsTrigger value="stats" className="gap-2"><Activity className="h-4 w-4" />Statistics</TabsTrigger>
-              <TabsTrigger value="compliance" className="gap-2"><Shield className="h-4 w-4" />Compliance</TabsTrigger>
-              <TabsTrigger value="trends" className="gap-2"><TrendingUp className="h-4 w-4" />Trends</TabsTrigger>
+              {canAccessReports && <TabsTrigger value="stats" className="gap-2"><Activity className="h-4 w-4" />Statistics</TabsTrigger>}
+              {canAccessReports && <TabsTrigger value="compliance" className="gap-2"><Shield className="h-4 w-4" />Compliance</TabsTrigger>}
+              {canAccessReports && <TabsTrigger value="trends" className="gap-2"><TrendingUp className="h-4 w-4" />Trends</TabsTrigger>}
               <TabsTrigger value="logs" className="gap-2"><FileText className="h-4 w-4" />Audit Logs</TabsTrigger>
             </TabsList>
 
@@ -382,7 +385,7 @@ const AuditReportingNew = () => {
               ) : null}
             </TabsContent>
 
-            <TabsContent value="stats" className="space-y-4">
+            {canAccessReports && <TabsContent value="stats" className="space-y-4">
               <div className="flex gap-2 flex-wrap items-center">
                 <span className="text-sm text-muted-foreground">Period:</span>
                 <Button
@@ -481,9 +484,9 @@ const AuditReportingNew = () => {
                   </div>
                 </div>
               ) : null}
-            </TabsContent>
+            </TabsContent>}
 
-            <TabsContent value="compliance" className="space-y-6">
+            {canAccessReports && <TabsContent value="compliance" className="space-y-6">
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -556,9 +559,9 @@ const AuditReportingNew = () => {
                   </div>
                 </>
               ) : null}
-            </TabsContent>
+            </TabsContent>}
 
-            <TabsContent value="trends" className="space-y-6">
+            {canAccessReports && <TabsContent value="trends" className="space-y-6">
               <div className="flex gap-2 flex-wrap items-center">
                 <span className="text-sm text-muted-foreground">Period:</span>
                 <Button
@@ -614,7 +617,7 @@ const AuditReportingNew = () => {
                   )}
                 </div>
               ) : null}
-            </TabsContent>
+            </TabsContent>}
           </Tabs>
         </CardContent>
       </Card>

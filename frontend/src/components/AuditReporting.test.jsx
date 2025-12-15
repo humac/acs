@@ -8,6 +8,7 @@ global.fetch = vi.fn();
 
 // Mock useAuth hook
 const mockGetAuthHeaders = vi.fn(() => ({ Authorization: 'Bearer test-token' }));
+let mockUser = { id: 1, email: 'admin@test.com', role: 'admin' };
 
 vi.mock('../contexts/AuthContext', async () => {
   const actual = await vi.importActual('../contexts/AuthContext');
@@ -15,6 +16,7 @@ vi.mock('../contexts/AuthContext', async () => {
     ...actual,
     useAuth: () => ({
       getAuthHeaders: mockGetAuthHeaders,
+      user: mockUser,
     }),
   };
 });
@@ -242,6 +244,99 @@ describe('AuditReporting', () => {
           expect.any(Object)
         );
       });
+    });
+  });
+
+  describe('Role-Based Tab Visibility', () => {
+    beforeEach(() => {
+      // Reset mock user to admin before each test
+      mockUser = { id: 1, email: 'admin@test.com', role: 'admin' };
+    });
+
+    it('should show all tabs for admin users', async () => {
+      mockUser = { id: 1, email: 'admin@test.com', role: 'admin' };
+      
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ total: 10 }),
+      }).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ total: 100 }),
+      });
+
+      render(<AuditReportingNew />);
+
+      expect(screen.getByRole('tab', { name: /summary/i })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /statistics/i })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /compliance/i })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /trends/i })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /audit logs/i })).toBeInTheDocument();
+    });
+
+    it('should show all tabs for manager users', async () => {
+      mockUser = { id: 2, email: 'manager@test.com', role: 'manager' };
+      
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ total: 10 }),
+      }).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ total: 100 }),
+      });
+
+      render(<AuditReportingNew />);
+
+      expect(screen.getByRole('tab', { name: /summary/i })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /statistics/i })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /compliance/i })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /trends/i })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /audit logs/i })).toBeInTheDocument();
+    });
+
+    it('should hide Statistics, Compliance, and Trends tabs for employee users', async () => {
+      mockUser = { id: 3, email: 'employee@test.com', role: 'employee' };
+      
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ total: 10 }),
+      }).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ total: 100 }),
+      });
+
+      render(<AuditReportingNew />);
+
+      // Should show Summary and Audit Logs
+      expect(screen.getByRole('tab', { name: /summary/i })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /audit logs/i })).toBeInTheDocument();
+
+      // Should NOT show Statistics, Compliance, or Trends
+      expect(screen.queryByRole('tab', { name: /statistics/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('tab', { name: /compliance/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('tab', { name: /trends/i })).not.toBeInTheDocument();
+    });
+
+    it('should hide all tabs when user is null', async () => {
+      mockUser = null;
+      
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ total: 10 }),
+      }).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ total: 100 }),
+      });
+
+      render(<AuditReportingNew />);
+
+      // Should show Summary and Audit Logs (accessible to authenticated users)
+      expect(screen.getByRole('tab', { name: /summary/i })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: /audit logs/i })).toBeInTheDocument();
+
+      // Should NOT show restricted tabs
+      expect(screen.queryByRole('tab', { name: /statistics/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('tab', { name: /compliance/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('tab', { name: /trends/i })).not.toBeInTheDocument();
     });
   });
 });
