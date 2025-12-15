@@ -364,7 +364,7 @@ docker-compose up -d
 
 This section tracks planned dependency upgrades. Since KARS is currently in beta, we're taking a phased approach to upgrades.
 
-### ✅ Completed (Phase 1 - December 2024)
+### ✅ Completed (Phase 1 - December 2025)
 
 | Component | Previous | Current | Notes |
 |-----------|----------|---------|-------|
@@ -372,7 +372,7 @@ This section tracks planned dependency upgrades. Since KARS is currently in beta
 | better-sqlite3 | ^9.2.2 | **^11.0.0** | Node 22 compatibility |
 | Vite | ^5.0.8 | **^6.0.0** | Faster builds |
 
-### 🟡 Planned (Phase 2 - Q1 2025)
+### 🟡 Planned (Phase 2 - Q1 2026)
 
 | Component | Current | Target | Notes |
 |-----------|---------|--------|-------|
