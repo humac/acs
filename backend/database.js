@@ -1291,7 +1291,8 @@ const initDb = async () => {
 
   // Seed default email templates if table is empty
   const existingTemplates = await dbAll('SELECT COUNT(*) as count FROM email_templates');
-  const templateCount = existingTemplates[0]?.count || 0;
+  // Ensure count is a number (handles both SQLite and PostgreSQL return types)
+  const templateCount = parseInt(existingTemplates[0]?.count) || 0;
   
   if (templateCount === 0) {
     console.log('Seeding default email templates...');
@@ -1316,6 +1317,8 @@ const initDb = async () => {
       ]);
     }
     console.log(`Seeded ${DEFAULT_EMAIL_TEMPLATES.length} default email templates`);
+  } else {
+    console.log(`Email templates already exist (${templateCount} found), skipping seeding`);
   }
 
   // Indexes
