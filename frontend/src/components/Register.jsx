@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { UserPlus, Loader2, AlertCircle, Laptop, User, Briefcase, Lock } from 'lucide-react';
+import { UserPlus, Loader2, AlertCircle, Laptop, User, Briefcase, Lock, CheckCircle } from 'lucide-react';
 
 const RegisterNew = ({ onSwitchToLogin }) => {
   const { register } = useAuth();
@@ -22,6 +22,9 @@ const RegisterNew = ({ onSwitchToLogin }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [brandingLogo, setBrandingLogo] = useState(null);
+  const [inviteData, setInviteData] = useState(null);
+  const [oidcConfig, setOidcConfig] = useState(null);
+  const [loadingInvite, setLoadingInvite] = useState(false);
 
   useEffect(() => {
     // Fetch branding settings
@@ -33,6 +36,46 @@ const RegisterNew = ({ onSwitchToLogin }) => {
         }
       })
       .catch(err => console.error('Failed to fetch branding:', err));
+
+    // Check for invite token in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    
+    if (token) {
+      setLoadingInvite(true);
+      // Validate the invite token
+      fetch(`/api/attestation/validate-invite/${token}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.valid) {
+            setInviteData(data);
+            // Pre-fill the form with invite data
+            setFormData(prev => ({
+              ...prev,
+              email: data.email || '',
+              first_name: data.firstName || '',
+              last_name: data.lastName || ''
+            }));
+          } else {
+            setError(data.error || 'Invalid or expired invite token');
+          }
+        })
+        .catch(err => {
+          console.error('Failed to validate invite:', err);
+          setError('Failed to validate invite token');
+        })
+        .finally(() => setLoadingInvite(false));
+    }
+
+    // Fetch OIDC config
+    fetch('/api/auth/oidc/config')
+      .then(res => res.json())
+      .then(data => {
+        if (data.enabled) {
+          setOidcConfig(data);
+        }
+      })
+      .catch(err => console.error('Failed to fetch OIDC config:', err));
   }, []);
 
   const handleChange = (e) => {
@@ -118,6 +161,55 @@ const RegisterNew = ({ onSwitchToLogin }) => {
               </div>
             )}
 
+            {loadingInvite && (
+              <div className="flex items-center justify-center p-4">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-sm text-muted-foreground">Validating invite...</span>
+              </div>
+            )}
+
+            {inviteData && (
+              <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 animate-slide-up">
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">Asset Attestation Required</h4>
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      You have <strong>{inviteData.assetCount}</strong> {inviteData.assetCount === 1 ? 'asset' : 'assets'} awaiting attestation for "{inviteData.campaignName}"
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {inviteData && oidcConfig && (
+              <>
+                <div className="space-y-4">
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground mb-3">Sign in with SSO to automatically create your account</p>
+                    <Button
+                      type="button"
+                      onClick={() => window.location.href = '/api/auth/oidc/login'}
+                      className="w-full bg-green-600 hover:bg-green-700 text-white"
+                      size="lg"
+                    >
+                      🔐 {oidcConfig.buttonText || 'Sign In with SSO'}
+                    </Button>
+                    <p className="text-xs text-muted-foreground mt-2">Your account will be created automatically</p>
+                  </div>
+                </div>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">Or register manually</span>
+                  </div>
+                </div>
+              </>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Personal Information */}
               <div className="space-y-4">
@@ -160,6 +252,9 @@ const RegisterNew = ({ onSwitchToLogin }) => {
                     onChange={handleChange}
                     placeholder="you@company.com"
                     autoComplete="email"
+                    readOnly={!!inviteData}
+                    disabled={!!inviteData}
+                    className={inviteData ? 'bg-muted cursor-not-allowed' : ''}
                     required
                   />
                 </div>

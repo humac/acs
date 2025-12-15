@@ -18,6 +18,11 @@ describe('Register Component', () => {
       ok: true,
       json: async () => ({ logo_data: null }),
     });
+    // Mock OIDC config fetch
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ enabled: false }),
+    });
 
     const mockSwitchToLogin = vi.fn();
 
@@ -44,6 +49,11 @@ describe('Register Component', () => {
       ok: true,
       json: async () => ({ logo_data: mockLogoData }),
     });
+    // Mock OIDC config fetch
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ enabled: false }),
+    });
 
     const mockSwitchToLogin = vi.fn();
 
@@ -66,6 +76,11 @@ describe('Register Component', () => {
   it('handles branding fetch error gracefully', async () => {
     // Mock branding fetch failure
     global.fetch.mockRejectedValueOnce(new Error('Network error'));
+    // Mock OIDC config fetch
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ enabled: false }),
+    });
 
     const mockSwitchToLogin = vi.fn();
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -96,6 +111,11 @@ describe('Register Component', () => {
       ok: true,
       json: async () => ({ logo_data: null }),
     });
+    // Mock OIDC config fetch
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ enabled: false }),
+    });
 
     const mockSwitchToLogin = vi.fn();
     const user = userEvent.setup();
@@ -125,6 +145,11 @@ describe('Register Component', () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ logo_data: null }),
+    });
+    // Mock OIDC config fetch
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ enabled: false }),
     });
 
     const mockSwitchToLogin = vi.fn();

@@ -391,6 +391,42 @@ app.post('/api/auth/register', async (req, res) => {
       // Don't fail registration if role assignment fails
     }
 
+    // Check for pending attestation invites and convert them
+    try {
+      const pendingInvites = await attestationPendingInviteDb.getActiveByEmail(newUser.email);
+      for (const invite of pendingInvites) {
+        // Only convert if campaign is still active
+        const campaign = await attestationCampaignDb.getById(invite.campaign_id);
+        if (campaign && campaign.status === 'active') {
+          // Create attestation record
+          const record = await attestationRecordDb.create({
+            campaign_id: invite.campaign_id,
+            user_id: newUser.id,
+            status: 'pending'
+          });
+          
+          // Update invite
+          await attestationPendingInviteDb.update(invite.id, {
+            registered_at: new Date().toISOString(),
+            converted_record_id: record.id
+          });
+          
+          // Send "attestation ready" email
+          try {
+            const { sendAttestationReadyEmail } = await import('./services/smtpMailer.js');
+            await sendAttestationReadyEmail(newUser.email, newUser.first_name, campaign);
+          } catch (emailError) {
+            console.error(`Failed to send attestation ready email to ${newUser.email}:`, emailError);
+          }
+          
+          console.log(`Converted pending invite to attestation record for ${newUser.email} in campaign ${campaign.name}`);
+        }
+      }
+    } catch (inviteError) {
+      console.error('Error converting pending attestation invites:', inviteError);
+      // Don't fail registration if invite conversion fails
+    }
+
     // Return user info (without password hash)
     res.status(201).json({
       message: 'User registered successfully',
@@ -2925,6 +2961,42 @@ app.get('/api/auth/oidc/callback', async (req, res) => {
     // Update last login
     await userDb.updateLastLogin(user.id);
 
+    // Check for pending attestation invites and convert them
+    try {
+      const pendingInvites = await attestationPendingInviteDb.getActiveByEmail(user.email);
+      for (const invite of pendingInvites) {
+        // Only convert if campaign is still active
+        const campaign = await attestationCampaignDb.getById(invite.campaign_id);
+        if (campaign && campaign.status === 'active') {
+          // Create attestation record
+          const record = await attestationRecordDb.create({
+            campaign_id: invite.campaign_id,
+            user_id: user.id,
+            status: 'pending'
+          });
+          
+          // Update invite
+          await attestationPendingInviteDb.update(invite.id, {
+            registered_at: new Date().toISOString(),
+            converted_record_id: record.id
+          });
+          
+          // Send "attestation ready" email
+          try {
+            const { sendAttestationReadyEmail } = await import('./services/smtpMailer.js');
+            await sendAttestationReadyEmail(user.email, user.first_name, campaign);
+          } catch (emailError) {
+            console.error(`Failed to send attestation ready email to ${user.email}:`, emailError);
+          }
+          
+          console.log(`Converted pending invite to attestation record for ${user.email} in campaign ${campaign.name}`);
+        }
+      }
+    } catch (inviteError) {
+      console.error('Error converting pending attestation invites:', inviteError);
+      // Don't fail login if invite conversion fails
+    }
+
     // Generate JWT token
     const token = generateToken(user);
 
@@ -4838,6 +4910,7 @@ app.post('/api/attestation/campaigns/:id/start', authenticate, authorize('admin'
     
     // Get users based on targeting
     let users = [];
+    let unregisteredOwners = [];
     
     if (campaign.target_type === 'companies' && campaign.target_company_ids) {
       // Get users who own assets in the specified companies
@@ -4855,8 +4928,11 @@ app.post('/api/attestation/campaigns/:id/start', authenticate, authorize('admin'
         // Get registered owners by company IDs
         users = await assetDb.getRegisteredOwnersByCompanyIds(validCompanyIds);
         
-        if (users.length === 0) {
-          return res.status(400).json({ error: 'No users with assets found in the selected companies' });
+        // Get unregistered owners by company IDs
+        unregisteredOwners = await assetDb.getUnregisteredOwnersByCompanyIds(validCompanyIds);
+        
+        if (users.length === 0 && unregisteredOwners.length === 0) {
+          return res.status(400).json({ error: 'No asset owners found in the selected companies' });
         }
       } catch (parseError) {
         console.error('Error parsing target_company_ids:', parseError);
@@ -4868,16 +4944,18 @@ app.post('/api/attestation/campaigns/:id/start', authenticate, authorize('admin'
         const targetIds = JSON.parse(campaign.target_user_ids);
         const allUsers = await userDb.getAll();
         users = allUsers.filter(u => targetIds.includes(u.id));
+        // For selected users, we don't include unregistered owners
       } catch (parseError) {
         console.error('Error parsing target_user_ids:', parseError);
         return res.status(500).json({ error: 'Invalid target user IDs format' });
       }
     } else {
-      // Default: all users
+      // Default: all users and unregistered owners
       users = await userDb.getAll();
+      unregisteredOwners = await assetDb.getUnregisteredOwners();
     }
     
-    // Create attestation records for targeted users
+    // Create attestation records for registered users
     let recordsCreated = 0;
     let emailsSent = 0;
     
@@ -4905,6 +4983,52 @@ app.post('/api/attestation/campaigns/:id/start', authenticate, authorize('admin'
       }
     }
     
+    // Create pending invites for unregistered owners
+    let pendingInvitesCreated = 0;
+    let inviteEmailsSent = 0;
+    
+    // Get OIDC settings for SSO info
+    const oidcSettings = await oidcSettingsDb.get();
+    const ssoEnabled = oidcSettings?.enabled || false;
+    const ssoButtonText = oidcSettings?.button_text || 'Sign In with SSO';
+    
+    for (const owner of unregisteredOwners) {
+      // Generate unique invite token
+      const crypto = await import('crypto');
+      const inviteToken = crypto.randomBytes(32).toString('hex');
+      
+      // Create pending invite
+      await attestationPendingInviteDb.create({
+        campaign_id: campaign.id,
+        employee_email: owner.employee_email,
+        employee_first_name: owner.employee_first_name,
+        employee_last_name: owner.employee_last_name,
+        invite_token: inviteToken,
+        invite_sent_at: new Date().toISOString()
+      });
+      pendingInvitesCreated++;
+      
+      // Send invitation email
+      try {
+        const { sendAttestationRegistrationInvite } = await import('./services/smtpMailer.js');
+        const result = await sendAttestationRegistrationInvite(
+          owner.employee_email,
+          owner.employee_first_name,
+          owner.employee_last_name,
+          campaign,
+          inviteToken,
+          owner.asset_count,
+          ssoEnabled,
+          ssoButtonText
+        );
+        if (result.success) {
+          inviteEmailsSent++;
+        }
+      } catch (emailError) {
+        console.error(`Failed to send invite email to ${owner.employee_email}:`, emailError);
+      }
+    }
+    
     // Update campaign status to active
     await attestationCampaignDb.update(campaign.id, {
       status: 'active',
@@ -4916,11 +5040,18 @@ app.post('/api/attestation/campaigns/:id/start', authenticate, authorize('admin'
       'attestation_campaign',
       campaign.id,
       campaign.name,
-      `Started attestation campaign: ${campaign.name} (targeting: ${campaign.target_type}). Created ${recordsCreated} records, sent ${emailsSent} emails`,
+      `Started attestation campaign: ${campaign.name} (targeting: ${campaign.target_type}). Created ${recordsCreated} records, sent ${emailsSent} emails. Created ${pendingInvitesCreated} pending invites, sent ${inviteEmailsSent} invite emails`,
       req.user.email
     );
     
-    res.json({ success: true, recordsCreated, emailsSent });
+    res.json({ 
+      success: true, 
+      message: 'Campaign started',
+      recordsCreated, 
+      emailsSent,
+      pendingInvitesCreated,
+      inviteEmailsSent
+    });
   } catch (error) {
     console.error('Error starting campaign:', error);
     res.status(500).json({ error: 'Failed to start campaign' });
@@ -5308,6 +5439,167 @@ app.post('/api/attestation/records/:id/complete', authenticate, async (req, res)
   } catch (error) {
     console.error('Error completing attestation:', error);
     res.status(500).json({ error: 'Failed to complete attestation' });
+  }
+});
+
+// Validate attestation invite token (Public endpoint)
+app.get('/api/attestation/validate-invite/:token', async (req, res) => {
+  try {
+    const invite = await attestationPendingInviteDb.getByToken(req.params.token);
+    
+    if (!invite) {
+      return res.json({ valid: false, error: 'Invalid invite token' });
+    }
+    
+    // Check if already registered
+    if (invite.registered_at) {
+      return res.json({ valid: false, error: 'Invite has already been used' });
+    }
+    
+    // Check if campaign is still active
+    const campaign = await attestationCampaignDb.getById(invite.campaign_id);
+    if (!campaign) {
+      return res.json({ valid: false, error: 'Campaign not found' });
+    }
+    
+    if (campaign.status !== 'active') {
+      return res.json({ valid: false, error: 'Campaign is no longer active' });
+    }
+    
+    // Get asset count for this employee
+    const assets = await assetDb.getByEmployee(invite.employee_email);
+    const assetCount = assets.length;
+    
+    // Check if SSO is enabled
+    const oidcSettings = await oidcSettingsDb.get();
+    const ssoEnabled = oidcSettings?.enabled || false;
+    const ssoButtonText = oidcSettings?.button_text || 'Sign In with SSO';
+    
+    res.json({
+      valid: true,
+      email: invite.employee_email,
+      firstName: invite.employee_first_name,
+      lastName: invite.employee_last_name,
+      campaignName: campaign.name,
+      campaignDescription: campaign.description,
+      assetCount,
+      ssoEnabled,
+      ssoButtonText
+    });
+  } catch (error) {
+    console.error('Error validating invite token:', error);
+    res.status(500).json({ error: 'Failed to validate invite token' });
+  }
+});
+
+// Get pending invites for campaign (Admin only)
+app.get('/api/attestation/campaigns/:id/pending-invites', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const campaign = await attestationCampaignDb.getById(req.params.id);
+    
+    if (!campaign) {
+      return res.status(404).json({ error: 'Campaign not found' });
+    }
+    
+    const pendingInvites = await attestationPendingInviteDb.getByCampaignId(req.params.id);
+    
+    // Enrich with asset counts
+    const enrichedInvites = await Promise.all(
+      pendingInvites.map(async (invite) => {
+        const assets = await assetDb.getByEmployee(invite.employee_email);
+        return {
+          ...invite,
+          asset_count: assets.length
+        };
+      })
+    );
+    
+    res.json({ success: true, invites: enrichedInvites });
+  } catch (error) {
+    console.error('Error fetching pending invites:', error);
+    res.status(500).json({ error: 'Failed to fetch pending invites' });
+  }
+});
+
+// Resend invites (Admin only)
+app.post('/api/attestation/campaigns/:id/resend-invites', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const campaign = await attestationCampaignDb.getById(req.params.id);
+    
+    if (!campaign) {
+      return res.status(404).json({ error: 'Campaign not found' });
+    }
+    
+    if (campaign.status !== 'active') {
+      return res.status(400).json({ error: 'Campaign is not active' });
+    }
+    
+    const { inviteIds } = req.body;
+    
+    // Get invites to resend
+    let invitesToResend;
+    if (inviteIds && inviteIds.length > 0) {
+      // Resend specific invites
+      invitesToResend = await Promise.all(
+        inviteIds.map(id => attestationPendingInviteDb.getById(id))
+      );
+      invitesToResend = invitesToResend.filter(inv => inv && !inv.registered_at);
+    } else {
+      // Resend all unregistered invites
+      const allInvites = await attestationPendingInviteDb.getByCampaignId(req.params.id);
+      invitesToResend = allInvites.filter(inv => !inv.registered_at);
+    }
+    
+    // Get OIDC settings
+    const oidcSettings = await oidcSettingsDb.get();
+    const ssoEnabled = oidcSettings?.enabled || false;
+    const ssoButtonText = oidcSettings?.button_text || 'Sign In with SSO';
+    
+    let emailsSent = 0;
+    
+    for (const invite of invitesToResend) {
+      // Get asset count
+      const assets = await assetDb.getByEmployee(invite.employee_email);
+      const assetCount = assets.length;
+      
+      try {
+        const { sendAttestationRegistrationInvite } = await import('./services/smtpMailer.js');
+        const result = await sendAttestationRegistrationInvite(
+          invite.employee_email,
+          invite.employee_first_name,
+          invite.employee_last_name,
+          campaign,
+          invite.invite_token,
+          assetCount,
+          ssoEnabled,
+          ssoButtonText
+        );
+        
+        if (result.success) {
+          emailsSent++;
+          // Update invite_sent_at
+          await attestationPendingInviteDb.update(invite.id, {
+            invite_sent_at: new Date().toISOString()
+          });
+        }
+      } catch (emailError) {
+        console.error(`Failed to resend invite to ${invite.employee_email}:`, emailError);
+      }
+    }
+    
+    await auditDb.log(
+      'resend_invites',
+      'attestation_campaign',
+      campaign.id,
+      campaign.name,
+      `Resent ${emailsSent} attestation invites for campaign: ${campaign.name}`,
+      req.user.email
+    );
+    
+    res.json({ success: true, emailsSent });
+  } catch (error) {
+    console.error('Error resending invites:', error);
+    res.status(500).json({ error: 'Failed to resend invites' });
   }
 });
 

@@ -932,6 +932,40 @@ const initDb = async () => {
     )
   `;
 
+  const attestationPendingInvitesTable = isPostgres ? `
+    CREATE TABLE IF NOT EXISTS attestation_pending_invites (
+      id SERIAL PRIMARY KEY,
+      campaign_id INTEGER NOT NULL REFERENCES attestation_campaigns(id) ON DELETE CASCADE,
+      employee_email TEXT NOT NULL,
+      employee_first_name TEXT,
+      employee_last_name TEXT,
+      invite_token TEXT UNIQUE NOT NULL,
+      invite_sent_at TIMESTAMP,
+      reminder_sent_at TIMESTAMP,
+      escalation_sent_at TIMESTAMP,
+      registered_at TIMESTAMP,
+      converted_record_id INTEGER REFERENCES attestation_records(id),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  ` : `
+    CREATE TABLE IF NOT EXISTS attestation_pending_invites (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      campaign_id INTEGER NOT NULL,
+      employee_email TEXT NOT NULL,
+      employee_first_name TEXT,
+      employee_last_name TEXT,
+      invite_token TEXT UNIQUE NOT NULL,
+      invite_sent_at TEXT,
+      reminder_sent_at TEXT,
+      escalation_sent_at TEXT,
+      registered_at TEXT,
+      converted_record_id INTEGER,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(campaign_id) REFERENCES attestation_campaigns(id) ON DELETE CASCADE,
+      FOREIGN KEY(converted_record_id) REFERENCES attestation_records(id)
+    )
+  `;
+
   const assetTypesTable = isPostgres ? `
     CREATE TABLE IF NOT EXISTS asset_types (
       id SERIAL PRIMARY KEY,
@@ -1003,8 +1037,9 @@ const initDb = async () => {
   await dbRun(attestationRecordsTable); // 14. Create attestation records table (depends on campaigns and users)
   await dbRun(attestationAssetsTable); // 15. Create attestation assets table (depends on attestation_records and assets)
   await dbRun(attestationNewAssetsTable); // 16. Create attestation new assets table (depends on attestation_records)
-  await dbRun(assetTypesTable);      // 17. Create asset types table (no dependencies)
-  await dbRun(emailTemplatesTable);  // 18. Create email templates table (no dependencies)
+  await dbRun(attestationPendingInvitesTable); // 17. Create attestation pending invites table (depends on campaigns and records)
+  await dbRun(assetTypesTable);      // 18. Create asset types table (no dependencies)
+  await dbRun(emailTemplatesTable);  // 19. Create email templates table (no dependencies)
 
   // === Migration: company_name -> company_id ===
   // Check if assets table has old schema (company_name) instead of new schema (company_id)
@@ -1230,8 +1265,32 @@ const initDb = async () => {
       await dbRun("ALTER TABLE attestation_campaigns ADD COLUMN target_company_ids TEXT");
       console.log('Migration complete: Added target_company_ids column');
     }
+    
+    // Add unregistered_reminder_days column
+    const hasUnregisteredReminderDays = campaignCols.some(col => col.name === 'unregistered_reminder_days');
+    if (!hasUnregisteredReminderDays) {
+      console.log('Migrating attestation_campaigns table: adding unregistered_reminder_days column...');
+      await dbRun("ALTER TABLE attestation_campaigns ADD COLUMN unregistered_reminder_days INTEGER DEFAULT 7");
+      console.log('Migration complete: Added unregistered_reminder_days column');
+    }
   } catch (err) {
     console.error('Migration error (attestation_campaigns targeting columns):', err.message);
+    // Don't fail initialization
+  }
+
+  // Create indexes for attestation_pending_invites table
+  try {
+    if (isPostgres) {
+      await dbRun('CREATE INDEX IF NOT EXISTS idx_pending_invites_email ON attestation_pending_invites(employee_email)');
+      await dbRun('CREATE INDEX IF NOT EXISTS idx_pending_invites_token ON attestation_pending_invites(invite_token)');
+      await dbRun('CREATE INDEX IF NOT EXISTS idx_pending_invites_campaign ON attestation_pending_invites(campaign_id)');
+    } else {
+      await dbRun('CREATE INDEX IF NOT EXISTS idx_pending_invites_email ON attestation_pending_invites(employee_email)');
+      await dbRun('CREATE INDEX IF NOT EXISTS idx_pending_invites_token ON attestation_pending_invites(invite_token)');
+      await dbRun('CREATE INDEX IF NOT EXISTS idx_pending_invites_campaign ON attestation_pending_invites(campaign_id)');
+    }
+  } catch (err) {
+    console.error('Error creating pending invites indexes:', err.message);
     // Don't fail initialization
   }
 
@@ -1903,6 +1962,55 @@ export const assetDb = {
       registration_date: normalizeDates(row.registration_date),
       last_updated: normalizeDates(row.last_updated)
     }));
+  },
+  getUnregisteredOwners: async () => {
+    // Get unique employee emails that have assets but no user account
+    const query = `
+      SELECT DISTINCT 
+        assets.employee_email,
+        assets.employee_first_name,
+        assets.employee_last_name,
+        COUNT(assets.id) as asset_count
+      FROM assets
+      LEFT JOIN users ON LOWER(assets.employee_email) = LOWER(users.email)
+      WHERE assets.employee_email IS NOT NULL 
+        AND assets.employee_email != ''
+        AND users.id IS NULL
+      GROUP BY assets.employee_email, assets.employee_first_name, assets.employee_last_name
+      ORDER BY assets.employee_email
+    `;
+    return dbAll(query);
+  },
+  getUnregisteredOwnersByCompanyIds: async (companyIds) => {
+    // Get unique unregistered employee emails who own assets in the specified companies
+    if (!companyIds || companyIds.length === 0) {
+      return [];
+    }
+    
+    // Validate that all company IDs are valid integers
+    const validatedIds = companyIds.filter(id => Number.isInteger(Number(id)) && Number(id) > 0);
+    if (validatedIds.length === 0) {
+      return [];
+    }
+    
+    const placeholders = validatedIds.map((_, i) => isPostgres ? `$${i + 1}` : '?').join(', ');
+    const query = `
+      SELECT DISTINCT 
+        assets.employee_email,
+        assets.employee_first_name,
+        assets.employee_last_name,
+        COUNT(assets.id) as asset_count
+      FROM assets
+      LEFT JOIN users ON LOWER(assets.employee_email) = LOWER(users.email)
+      WHERE assets.company_id IN (${placeholders})
+        AND assets.employee_email IS NOT NULL 
+        AND assets.employee_email != ''
+        AND users.id IS NULL
+      GROUP BY assets.employee_email, assets.employee_first_name, assets.employee_last_name
+      ORDER BY assets.employee_email
+    `;
+    
+    return dbAll(query, validatedIds);
   }
 };
 
@@ -2985,18 +3093,18 @@ export const attestationCampaignDb = {
     
     if (isPostgres) {
       const result = await dbRun(
-        `INSERT INTO attestation_campaigns (name, description, start_date, end_date, status, reminder_days, escalation_days, target_type, target_user_ids, target_company_ids, created_by, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id`,
+        `INSERT INTO attestation_campaigns (name, description, start_date, end_date, status, reminder_days, escalation_days, target_type, target_user_ids, target_company_ids, unregistered_reminder_days, created_by, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id`,
         [campaign.name, campaign.description, campaign.start_date, endDate, campaign.status || 'draft', 
-         campaign.reminder_days || 7, campaign.escalation_days || 10, campaign.target_type || 'all', campaign.target_user_ids || null, campaign.target_company_ids || null, campaign.created_by, now, now]
+         campaign.reminder_days || 7, campaign.escalation_days || 10, campaign.target_type || 'all', campaign.target_user_ids || null, campaign.target_company_ids || null, campaign.unregistered_reminder_days || 7, campaign.created_by, now, now]
       );
       return { id: result.rows[0].id };
     } else {
       const result = await dbRun(
-        `INSERT INTO attestation_campaigns (name, description, start_date, end_date, status, reminder_days, escalation_days, target_type, target_user_ids, target_company_ids, created_by, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO attestation_campaigns (name, description, start_date, end_date, status, reminder_days, escalation_days, target_type, target_user_ids, target_company_ids, unregistered_reminder_days, created_by, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [campaign.name, campaign.description, campaign.start_date, endDate, campaign.status || 'draft',
-         campaign.reminder_days || 7, campaign.escalation_days || 10, campaign.target_type || 'all', campaign.target_user_ids || null, campaign.target_company_ids || null, campaign.created_by, now, now]
+         campaign.reminder_days || 7, campaign.escalation_days || 10, campaign.target_type || 'all', campaign.target_user_ids || null, campaign.target_company_ids || null, campaign.unregistered_reminder_days || 7, campaign.created_by, now, now]
       );
       return { id: result.lastInsertRowid };
     }
@@ -3071,6 +3179,10 @@ export const attestationCampaignDb = {
     if (updates.target_company_ids !== undefined) {
       fields.push(isPostgres ? `target_company_ids = $${fields.length + 1}` : 'target_company_ids = ?');
       params.push(updates.target_company_ids);
+    }
+    if (updates.unregistered_reminder_days !== undefined) {
+      fields.push(isPostgres ? `unregistered_reminder_days = $${fields.length + 1}` : 'unregistered_reminder_days = ?');
+      params.push(updates.unregistered_reminder_days);
     }
     
     fields.push(isPostgres ? `updated_at = $${fields.length + 1}` : 'updated_at = ?');
@@ -3289,6 +3401,141 @@ export const attestationNewAssetDb = {
       ...a,
       created_at: normalizeDates(a.created_at)
     }));
+  }
+};
+
+export const attestationPendingInviteDb = {
+  create: async (invite) => {
+    const now = new Date().toISOString();
+    if (isPostgres) {
+      const result = await dbRun(
+        `INSERT INTO attestation_pending_invites (campaign_id, employee_email, employee_first_name, employee_last_name, invite_token, invite_sent_at, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+        [invite.campaign_id, invite.employee_email, invite.employee_first_name, invite.employee_last_name, invite.invite_token, invite.invite_sent_at || null, now]
+      );
+      return { id: result.rows[0].id };
+    } else {
+      const result = await dbRun(
+        `INSERT INTO attestation_pending_invites (campaign_id, employee_email, employee_first_name, employee_last_name, invite_token, invite_sent_at, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [invite.campaign_id, invite.employee_email, invite.employee_first_name, invite.employee_last_name, invite.invite_token, invite.invite_sent_at || null, now]
+      );
+      return { id: result.lastInsertRowid };
+    }
+  },
+
+  getById: async (id) => {
+    const invite = await dbGet('SELECT * FROM attestation_pending_invites WHERE id = ?', [id]);
+    if (invite) {
+      return {
+        ...invite,
+        invite_sent_at: normalizeDates(invite.invite_sent_at),
+        reminder_sent_at: normalizeDates(invite.reminder_sent_at),
+        escalation_sent_at: normalizeDates(invite.escalation_sent_at),
+        registered_at: normalizeDates(invite.registered_at),
+        created_at: normalizeDates(invite.created_at)
+      };
+    }
+    return null;
+  },
+
+  getByToken: async (token) => {
+    const invite = await dbGet('SELECT * FROM attestation_pending_invites WHERE invite_token = ?', [token]);
+    if (invite) {
+      return {
+        ...invite,
+        invite_sent_at: normalizeDates(invite.invite_sent_at),
+        reminder_sent_at: normalizeDates(invite.reminder_sent_at),
+        escalation_sent_at: normalizeDates(invite.escalation_sent_at),
+        registered_at: normalizeDates(invite.registered_at),
+        created_at: normalizeDates(invite.created_at)
+      };
+    }
+    return null;
+  },
+
+  getByEmail: async (email) => {
+    const invites = await dbAll('SELECT * FROM attestation_pending_invites WHERE LOWER(employee_email) = LOWER(?)', [email]);
+    return invites.map(invite => ({
+      ...invite,
+      invite_sent_at: normalizeDates(invite.invite_sent_at),
+      reminder_sent_at: normalizeDates(invite.reminder_sent_at),
+      escalation_sent_at: normalizeDates(invite.escalation_sent_at),
+      registered_at: normalizeDates(invite.registered_at),
+      created_at: normalizeDates(invite.created_at)
+    }));
+  },
+
+  getByCampaignId: async (campaignId) => {
+    const invites = await dbAll('SELECT * FROM attestation_pending_invites WHERE campaign_id = ?', [campaignId]);
+    return invites.map(invite => ({
+      ...invite,
+      invite_sent_at: normalizeDates(invite.invite_sent_at),
+      reminder_sent_at: normalizeDates(invite.reminder_sent_at),
+      escalation_sent_at: normalizeDates(invite.escalation_sent_at),
+      registered_at: normalizeDates(invite.registered_at),
+      created_at: normalizeDates(invite.created_at)
+    }));
+  },
+
+  getActiveByEmail: async (email) => {
+    // Get invites for active campaigns that haven't been registered yet
+    const query = `
+      SELECT pi.* 
+      FROM attestation_pending_invites pi
+      INNER JOIN attestation_campaigns c ON pi.campaign_id = c.id
+      WHERE LOWER(pi.employee_email) = LOWER(?)
+        AND pi.registered_at IS NULL
+        AND c.status = 'active'
+    `;
+    const invites = await dbAll(query, [email]);
+    return invites.map(invite => ({
+      ...invite,
+      invite_sent_at: normalizeDates(invite.invite_sent_at),
+      reminder_sent_at: normalizeDates(invite.reminder_sent_at),
+      escalation_sent_at: normalizeDates(invite.escalation_sent_at),
+      registered_at: normalizeDates(invite.registered_at),
+      created_at: normalizeDates(invite.created_at)
+    }));
+  },
+
+  update: async (id, updates) => {
+    const fields = [];
+    const params = [];
+    
+    if (updates.invite_sent_at !== undefined) {
+      fields.push(isPostgres ? `invite_sent_at = $${fields.length + 1}` : 'invite_sent_at = ?');
+      params.push(updates.invite_sent_at);
+    }
+    if (updates.reminder_sent_at !== undefined) {
+      fields.push(isPostgres ? `reminder_sent_at = $${fields.length + 1}` : 'reminder_sent_at = ?');
+      params.push(updates.reminder_sent_at);
+    }
+    if (updates.escalation_sent_at !== undefined) {
+      fields.push(isPostgres ? `escalation_sent_at = $${fields.length + 1}` : 'escalation_sent_at = ?');
+      params.push(updates.escalation_sent_at);
+    }
+    if (updates.registered_at !== undefined) {
+      fields.push(isPostgres ? `registered_at = $${fields.length + 1}` : 'registered_at = ?');
+      params.push(updates.registered_at);
+    }
+    if (updates.converted_record_id !== undefined) {
+      fields.push(isPostgres ? `converted_record_id = $${fields.length + 1}` : 'converted_record_id = ?');
+      params.push(updates.converted_record_id);
+    }
+    
+    if (fields.length === 0) return;
+    
+    params.push(id);
+    
+    await dbRun(
+      `UPDATE attestation_pending_invites SET ${fields.join(', ')} WHERE id = ${isPostgres ? `$${params.length}` : '?'}`,
+      params
+    );
+  },
+
+  delete: async (id) => {
+    await dbRun('DELETE FROM attestation_pending_invites WHERE id = ?', [id]);
   }
 };
 

@@ -347,3 +347,189 @@ describe('Attestation DB Tables', () => {
     expect(completedRecord.completed_at).toBeTruthy();
   });
 });
+
+describe('Attestation Pending Invites', () => {
+  it('should create pending invites and convert them on registration', async () => {
+    const { attestationPendingInviteDb } = await import('./database.js');
+    const timestamp = Date.now();
+    
+    // Create admin user
+    const admin = await userDb.create({
+      email: `admin-pi-${timestamp}@test.com`,
+      password_hash: 'hash',
+      name: 'Test Admin',
+      role: 'admin'
+    });
+    
+    // Create company
+    const company = await companyDb.create({
+      name: `Test Company PI ${timestamp}`,
+      description: 'Test Company for Pending Invites'
+    });
+    
+    // Create campaign
+    const campaign = await attestationCampaignDb.create({
+      name: `Test Campaign PI ${timestamp}`,
+      description: 'Test Pending Invites',
+      start_date: new Date().toISOString(),
+      end_date: null,
+      reminder_days: 7,
+      escalation_days: 10,
+      unregistered_reminder_days: 7,
+      status: 'active',
+      created_by: admin.id
+    });
+    expect(campaign.id).toBeDefined();
+    
+    // Create an asset with unregistered owner
+    const unregisteredEmail = `unregistered-${timestamp}@test.com`;
+    const asset = await assetDb.create({
+      employee_first_name: 'John',
+      employee_last_name: 'Unregistered',
+      employee_email: unregisteredEmail,
+      manager_first_name: 'Manager',
+      manager_last_name: 'Test',
+      manager_email: `manager-${timestamp}@test.com`,
+      company_id: company.id,
+      asset_type: 'Laptop',
+      make: 'Dell',
+      model: 'XPS 13',
+      serial_number: `SN-UNREG-${timestamp}`,
+      asset_tag: `TAG-UNREG-${timestamp}`,
+      status: 'active'
+    });
+    expect(asset.id).toBeDefined();
+    
+    // Verify asset shows up as unregistered owner
+    const unregisteredOwners = await assetDb.getUnregisteredOwners();
+    const found = unregisteredOwners.find(o => o.employee_email === unregisteredEmail);
+    expect(found).toBeDefined();
+    expect(found.asset_count).toBe(1);
+    
+    // Create pending invite
+    const inviteToken = 'test-token-' + timestamp;
+    const invite = await attestationPendingInviteDb.create({
+      campaign_id: campaign.id,
+      employee_email: unregisteredEmail,
+      employee_first_name: 'John',
+      employee_last_name: 'Unregistered',
+      invite_token: inviteToken,
+      invite_sent_at: new Date().toISOString()
+    });
+    expect(invite.id).toBeDefined();
+    
+    // Retrieve invite by token
+    const retrievedInvite = await attestationPendingInviteDb.getByToken(inviteToken);
+    expect(retrievedInvite).toBeDefined();
+    expect(retrievedInvite.employee_email).toBe(unregisteredEmail);
+    expect(retrievedInvite.registered_at).toBeNull();
+    
+    // Get active invites for this email
+    const activeInvites = await attestationPendingInviteDb.getActiveByEmail(unregisteredEmail);
+    expect(activeInvites.length).toBe(1);
+    expect(activeInvites[0].campaign_id).toBe(campaign.id);
+    
+    // Simulate user registration
+    const newUser = await userDb.create({
+      email: unregisteredEmail,
+      password_hash: 'hash',
+      name: 'John Unregistered',
+      first_name: 'John',
+      last_name: 'Unregistered',
+      role: 'employee',
+      manager_first_name: 'Manager',
+      manager_last_name: 'Test',
+      manager_email: `manager-${timestamp}@test.com`
+    });
+    expect(newUser.id).toBeDefined();
+    
+    // Create attestation record (simulating conversion)
+    const record = await attestationRecordDb.create({
+      campaign_id: campaign.id,
+      user_id: newUser.id,
+      status: 'pending'
+    });
+    expect(record.id).toBeDefined();
+    
+    // Update invite as registered
+    await attestationPendingInviteDb.update(invite.id, {
+      registered_at: new Date().toISOString(),
+      converted_record_id: record.id
+    });
+    
+    // Verify invite was marked as registered
+    const updatedInvite = await attestationPendingInviteDb.getById(invite.id);
+    expect(updatedInvite.registered_at).toBeTruthy();
+    expect(updatedInvite.converted_record_id).toBe(record.id);
+    
+    // Verify no more active invites
+    const activeInvitesAfter = await attestationPendingInviteDb.getActiveByEmail(unregisteredEmail);
+    expect(activeInvitesAfter.length).toBe(0);
+    
+    // Verify attestation record exists
+    const records = await attestationRecordDb.getByCampaignId(campaign.id);
+    expect(records.length).toBe(1);
+    expect(records[0].user_id).toBe(newUser.id);
+  });
+  
+  it('should handle pending invites for company-scoped campaigns', async () => {
+    const { attestationPendingInviteDb } = await import('./database.js');
+    const timestamp = Date.now();
+    
+    // Create admin
+    const admin = await userDb.create({
+      email: `admin-cs-${timestamp}@test.com`,
+      password_hash: 'hash',
+      name: 'Test Admin',
+      role: 'admin'
+    });
+    
+    // Create two companies
+    const company1 = await companyDb.create({
+      name: `Company A ${timestamp}`,
+      description: 'Company A'
+    });
+    
+    const company2 = await companyDb.create({
+      name: `Company B ${timestamp}`,
+      description: 'Company B'
+    });
+    
+    // Create assets for unregistered owners in different companies
+    const unreg1 = `unreg1-${timestamp}@test.com`;
+    const unreg2 = `unreg2-${timestamp}@test.com`;
+    
+    await assetDb.create({
+      employee_email: unreg1,
+      employee_first_name: 'User',
+      employee_last_name: 'One',
+      manager_email: `manager-${timestamp}@test.com`,
+      company_id: company1.id,
+      asset_type: 'Laptop',
+      serial_number: `SN1-${timestamp}`,
+      asset_tag: `TAG1-${timestamp}`,
+      status: 'active'
+    });
+    
+    await assetDb.create({
+      employee_email: unreg2,
+      employee_first_name: 'User',
+      employee_last_name: 'Two',
+      manager_email: `manager-${timestamp}@test.com`,
+      company_id: company2.id,
+      asset_type: 'Laptop',
+      serial_number: `SN2-${timestamp}`,
+      asset_tag: `TAG2-${timestamp}`,
+      status: 'active'
+    });
+    
+    // Get unregistered owners for company1 only
+    const unregCompany1 = await assetDb.getUnregisteredOwnersByCompanyIds([company1.id]);
+    expect(unregCompany1.length).toBe(1);
+    expect(unregCompany1[0].employee_email).toBe(unreg1);
+    
+    // Get unregistered owners for both companies
+    const unregBoth = await assetDb.getUnregisteredOwnersByCompanyIds([company1.id, company2.id]);
+    expect(unregBoth.length).toBe(2);
+  });
+});
