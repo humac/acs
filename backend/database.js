@@ -1484,31 +1484,36 @@ const initDb = async () => {
   let seededCount = 0;
 
   for (const template of DEFAULT_EMAIL_TEMPLATES) {
-    const selectQuery = isPostgres
-      ? 'SELECT id FROM email_templates WHERE template_key = $1'
-      : 'SELECT id FROM email_templates WHERE template_key = ?';
-    
-    const existing = await dbGet(selectQuery, [template.template_key]);
-    
-    if (!existing) {
-      const insertQuery = isPostgres
-        ? `INSERT INTO email_templates (template_key, name, description, subject, html_body, text_body, variables, is_custom, updated_at)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, 0, $8)`
-        : `INSERT INTO email_templates (template_key, name, description, subject, html_body, text_body, variables, is_custom, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)`;
+    try {
+      const selectQuery = isPostgres
+        ? 'SELECT id FROM email_templates WHERE template_key = $1'
+        : 'SELECT id FROM email_templates WHERE template_key = ?';
       
-      await dbRun(insertQuery, [
-        template.template_key,
-        template.name,
-        template.description,
-        template.subject,
-        template.html_body,
-        template.text_body,
-        template.variables,
-        now
-      ]);
-      console.log(`Seeded missing email template: ${template.template_key}`);
-      seededCount++;
+      const existing = await dbGet(selectQuery, [template.template_key]);
+      
+      if (!existing) {
+        const insertQuery = isPostgres
+          ? `INSERT INTO email_templates (template_key, name, description, subject, html_body, text_body, variables, is_custom, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, 0, $8)`
+          : `INSERT INTO email_templates (template_key, name, description, subject, html_body, text_body, variables, is_custom, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)`;
+        
+        await dbRun(insertQuery, [
+          template.template_key,
+          template.name,
+          template.description,
+          template.subject,
+          template.html_body,
+          template.text_body,
+          template.variables,
+          now
+        ]);
+        console.log(`Seeded missing email template: ${template.template_key}`);
+        seededCount++;
+      }
+    } catch (err) {
+      console.error(`Error seeding email template ${template.template_key}:`, err.message);
+      // Continue with other templates even if one fails
     }
   }
   
