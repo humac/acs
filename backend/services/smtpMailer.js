@@ -707,3 +707,377 @@ Completed: ${new Date().toLocaleString()}`;
     return { success: false, error: error.message };
   }
 };
+
+/**
+ * Send attestation invitation to unregistered asset owner
+ * @param {string} email - Recipient email
+ * @param {string} firstName - Recipient first name
+ * @param {string} lastName - Recipient last name  
+ * @param {Object} campaign - Campaign object
+ * @param {string} inviteToken - Secure registration token
+ * @param {number} assetCount - Number of assets requiring attestation
+ * @param {boolean} ssoEnabled - Whether SSO is enabled
+ * @param {string} ssoButtonText - SSO button text from settings
+ * @returns {Promise<Object>} Result object with success status and message
+ */
+export const sendAttestationRegistrationInvite = async (email, firstName, lastName, campaign, inviteToken, assetCount, ssoEnabled = false, ssoButtonText = 'Sign In with SSO') => {
+  try {
+    const settings = await smtpSettingsDb.get();
+    
+    if (!settings || !settings.enabled) {
+      return { success: false, error: 'SMTP settings are not enabled' };
+    }
+    
+    if (!settings.from_email) {
+      return { success: false, error: 'From email address is not configured' };
+    }
+    
+    const transport = await createTransport();
+    const branding = await brandingSettingsDb.get();
+    const siteName = branding?.site_name || 'KARS';
+    
+    // Construct registration URLs
+    const baseUrl = await getAppUrl();
+    const manualRegisterUrl = `${baseUrl}/register?token=${inviteToken}`;
+    const ssoLoginUrl = `${baseUrl}/login`;
+    
+    const fullName = `${firstName || ''} ${lastName || ''}`.trim() || 'there';
+    const assetText = assetCount === 1 ? '1 asset' : `${assetCount} assets`;
+    
+    const subject = `Action Required: Register for Asset Attestation - ${campaign.name}`;
+    
+    const ssoSection = ssoEnabled ? `
+      <div style="margin: 30px 0;">
+        <h3 style="color: #333; font-size: 18px; margin-bottom: 15px;">Option 1: Sign in with SSO (Recommended)</h3>
+        <p>Your account will be created automatically when you sign in:</p>
+        <div style="text-align: center; margin: 20px 0;">
+          <a href="${ssoLoginUrl}" style="background-color: #10B981; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600; font-size: 16px;">🔐 ${ssoButtonText}</a>
+        </div>
+        <p style="color: #666; font-size: 14px; text-align: center; margin-top: 10px;">
+          Your account will be created automatically
+        </p>
+      </div>
+      <div style="margin: 30px 0; text-align: center;">
+        <div style="border-top: 1px solid #ddd; padding-top: 20px;">
+          <span style="background: white; padding: 0 15px; color: #666;">OR</span>
+        </div>
+      </div>
+      <div style="margin: 30px 0;">
+        <h3 style="color: #333; font-size: 18px; margin-bottom: 15px;">Option 2: Register Manually</h3>
+        <div style="text-align: center; margin: 20px 0;">
+          <a href="${manualRegisterUrl}" style="background-color: #3B82F6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600; font-size: 16px;">Create Account</a>
+        </div>
+      </div>
+    ` : `
+      <div style="margin: 30px 0; text-align: center;">
+        <a href="${manualRegisterUrl}" style="background-color: #3B82F6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600; font-size: 16px;">Create Your Account</a>
+      </div>
+    `;
+    
+    const emailContent = `
+      <h2 style="color: #333;">Asset Attestation Required</h2>
+      <p>Hello ${fullName},</p>
+      <p>You have been identified as the owner of <strong>${assetText}</strong> that require attestation for the campaign: <strong>${campaign.name}</strong></p>
+      ${campaign.description ? `<p style="color: #666;">${campaign.description}</p>` : ''}
+      <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0;">
+        <p style="margin: 0; color: #92400E;"><strong>📋 What is attestation?</strong></p>
+        <p style="margin: 5px 0 0 0; color: #92400E;">Asset attestation is a process where you review and confirm the status of all assets assigned to you. This helps us maintain accurate records of company equipment.</p>
+      </div>
+      <p>To complete your attestation, you'll need to register for a ${siteName} account first:</p>
+      ${ssoSection}
+      <p style="color: #666; font-size: 14px;">
+        If the buttons don't work, you can copy and paste these links into your browser:<br>
+        ${ssoEnabled ? `<strong>SSO Login:</strong> <a href="${ssoLoginUrl}" style="color: #3B82F6; word-break: break-all;">${ssoLoginUrl}</a><br>` : ''}
+        <strong>Manual Registration:</strong> <a href="${manualRegisterUrl}" style="color: #3B82F6; word-break: break-all;">${manualRegisterUrl}</a>
+      </p>
+      <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+      <p style="color: #999; font-size: 12px;">
+        This invitation is valid until the campaign ends${campaign.end_date ? ` on ${new Date(campaign.end_date).toLocaleDateString()}` : ''}. Please register and complete your attestation as soon as possible.
+      </p>
+    `;
+    
+    const textContent = `Asset Attestation Required
+
+Hello ${fullName},
+
+You have been identified as the owner of ${assetText} that require attestation for the campaign: ${campaign.name}
+${campaign.description ? '\n' + campaign.description + '\n' : ''}
+What is attestation?
+Asset attestation is a process where you review and confirm the status of all assets assigned to you. This helps us maintain accurate records of company equipment.
+
+To complete your attestation, you'll need to register for a ${siteName} account first:
+
+${ssoEnabled ? `Option 1: Sign in with SSO (Recommended)
+Your account will be created automatically when you sign in: ${ssoLoginUrl}
+
+OR
+
+Option 2: Register Manually
+` : ''}Create your account here: ${manualRegisterUrl}
+
+This invitation is valid until the campaign ends${campaign.end_date ? ` on ${new Date(campaign.end_date).toLocaleDateString()}` : ''}. Please register and complete your attestation as soon as possible.`;
+    
+    const mailOptions = {
+      from: `"${settings.from_name || `${siteName} Notifications`}" <${settings.from_email}>`,
+      to: email,
+      subject,
+      text: textContent,
+      html: buildEmailHtml(branding, siteName, emailContent)
+    };
+    
+    await transport.sendMail(mailOptions);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send attestation registration invite:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Send reminder email to unregistered asset owner
+ * @param {string} email - Recipient email
+ * @param {string} firstName - Recipient first name
+ * @param {string} lastName - Recipient last name
+ * @param {Object} campaign - Campaign object
+ * @param {string} inviteToken - Secure registration token
+ * @param {number} assetCount - Number of assets requiring attestation
+ * @param {boolean} ssoEnabled - Whether SSO is enabled
+ * @param {string} ssoButtonText - SSO button text from settings
+ * @returns {Promise<Object>} Result object with success status and message
+ */
+export const sendAttestationUnregisteredReminder = async (email, firstName, lastName, campaign, inviteToken, assetCount, ssoEnabled = false, ssoButtonText = 'Sign In with SSO') => {
+  try {
+    const settings = await smtpSettingsDb.get();
+    
+    if (!settings || !settings.enabled) {
+      return { success: false, error: 'SMTP settings are not enabled' };
+    }
+    
+    if (!settings.from_email) {
+      return { success: false, error: 'From email address is not configured' };
+    }
+    
+    const transport = await createTransport();
+    const branding = await brandingSettingsDb.get();
+    const siteName = branding?.site_name || 'KARS';
+    
+    // Construct registration URLs
+    const baseUrl = await getAppUrl();
+    const manualRegisterUrl = `${baseUrl}/register?token=${inviteToken}`;
+    const ssoLoginUrl = `${baseUrl}/login`;
+    
+    const fullName = `${firstName || ''} ${lastName || ''}`.trim() || 'there';
+    const assetText = assetCount === 1 ? '1 asset' : `${assetCount} assets`;
+    
+    const subject = `Reminder: Register for Asset Attestation - ${campaign.name}`;
+    
+    const ssoSection = ssoEnabled ? `
+      <div style="margin: 30px 0; text-align: center;">
+        <a href="${ssoLoginUrl}" style="background-color: #10B981; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600; font-size: 16px; margin: 0 10px;">🔐 ${ssoButtonText}</a>
+        <a href="${manualRegisterUrl}" style="background-color: #3B82F6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600; font-size: 16px; margin: 0 10px;">Register Manually</a>
+      </div>
+    ` : `
+      <div style="margin: 30px 0; text-align: center;">
+        <a href="${manualRegisterUrl}" style="background-color: #3B82F6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600; font-size: 16px;">Register Now</a>
+      </div>
+    `;
+    
+    const emailContent = `
+      <h2 style="color: #333;">⏰ Attestation Reminder</h2>
+      <p>Hello ${fullName},</p>
+      <p>This is a friendly reminder that you still need to register to complete your asset attestation.</p>
+      <div style="background-color: #DBEAFE; border-left: 4px solid #3B82F6; padding: 15px; margin: 20px 0;">
+        <p style="margin: 0; color: #1E40AF;"><strong>Campaign:</strong> ${campaign.name}</p>
+        <p style="margin: 5px 0 0 0; color: #1E40AF;"><strong>Assets awaiting attestation:</strong> ${assetText}</p>
+        ${campaign.end_date ? `<p style="margin: 5px 0 0 0; color: #1E40AF;"><strong>Deadline:</strong> ${new Date(campaign.end_date).toLocaleDateString()}</p>` : ''}
+      </div>
+      <p>Please register for your ${siteName} account to complete your attestation:</p>
+      ${ssoSection}
+      <p style="color: #666; font-size: 14px;">
+        If the buttons don't work, you can copy and paste these links:<br>
+        ${ssoEnabled ? `SSO: <a href="${ssoLoginUrl}" style="color: #3B82F6;">${ssoLoginUrl}</a><br>` : ''}
+        Manual: <a href="${manualRegisterUrl}" style="color: #3B82F6;">${manualRegisterUrl}</a>
+      </p>
+    `;
+    
+    const textContent = `Attestation Reminder
+
+Hello ${fullName},
+
+This is a friendly reminder that you still need to register to complete your asset attestation.
+
+Campaign: ${campaign.name}
+Assets awaiting attestation: ${assetText}
+${campaign.end_date ? `Deadline: ${new Date(campaign.end_date).toLocaleDateString()}` : ''}
+
+Please register for your ${siteName} account to complete your attestation:
+
+${ssoEnabled ? `SSO Login: ${ssoLoginUrl}\n\n` : ''}Register Manually: ${manualRegisterUrl}`;
+    
+    const mailOptions = {
+      from: `"${settings.from_name || `${siteName} Notifications`}" <${settings.from_email}>`,
+      to: email,
+      subject,
+      text: textContent,
+      html: buildEmailHtml(branding, siteName, emailContent)
+    };
+    
+    await transport.sendMail(mailOptions);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send attestation unregistered reminder:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Send escalation email to manager about unregistered employee
+ * @param {string} managerEmail - Manager's email address
+ * @param {string} managerName - Manager's name
+ * @param {string} employeeEmail - Employee's email
+ * @param {string} employeeName - Employee's name
+ * @param {Object} campaign - Campaign object
+ * @param {number} assetCount - Number of assets requiring attestation
+ * @returns {Promise<Object>} Result object with success status and message
+ */
+export const sendAttestationUnregisteredEscalation = async (managerEmail, managerName, employeeEmail, employeeName, campaign, assetCount) => {
+  try {
+    const settings = await smtpSettingsDb.get();
+    
+    if (!settings || !settings.enabled) {
+      return { success: false, error: 'SMTP settings are not enabled' };
+    }
+    
+    if (!settings.from_email) {
+      return { success: false, error: 'From email address is not configured' };
+    }
+    
+    const transport = await createTransport();
+    const branding = await brandingSettingsDb.get();
+    const siteName = branding?.site_name || 'KARS';
+    
+    const assetText = assetCount === 1 ? '1 asset' : `${assetCount} assets`;
+    
+    const subject = `Manager Alert: Team Member Not Registered for Attestation - ${campaign.name}`;
+    
+    const emailContent = `
+      <h2 style="color: #333;">👤 Team Member Registration Required</h2>
+      <p>Hello ${managerName || 'Manager'},</p>
+      <p>One of your team members has not yet registered for ${siteName} to complete their asset attestation.</p>
+      <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; margin: 20px 0;">
+        <p style="margin: 0; color: #92400E;"><strong>Team Member:</strong> ${employeeName} (${employeeEmail})</p>
+        <p style="margin: 5px 0 0 0; color: #92400E;"><strong>Campaign:</strong> ${campaign.name}</p>
+        <p style="margin: 5px 0 0 0; color: #92400E;"><strong>Assets pending attestation:</strong> ${assetText}</p>
+      </div>
+      <p>Please remind <strong>${employeeName}</strong> to register and complete their asset attestation. They should have received an invitation email with registration instructions.</p>
+      <p style="color: #666; font-size: 14px;">If they did not receive the invitation email, they can contact support or use the registration link provided in the campaign details.</p>
+      <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+      <p style="color: #999; font-size: 12px;">
+        This is an automated escalation notification to help ensure timely completion of asset attestations.
+      </p>
+    `;
+    
+    const textContent = `Team Member Registration Required
+
+Hello ${managerName || 'Manager'},
+
+One of your team members has not yet registered for ${siteName} to complete their asset attestation.
+
+Team Member: ${employeeName} (${employeeEmail})
+Campaign: ${campaign.name}
+Assets pending attestation: ${assetText}
+
+Please remind ${employeeName} to register and complete their asset attestation. They should have received an invitation email with registration instructions.
+
+This is an automated escalation notification to help ensure timely completion of asset attestations.`;
+    
+    const mailOptions = {
+      from: `"${settings.from_name || `${siteName} Notifications`}" <${settings.from_email}>`,
+      to: managerEmail,
+      subject,
+      text: textContent,
+      html: buildEmailHtml(branding, siteName, emailContent)
+    };
+    
+    await transport.sendMail(mailOptions);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send attestation unregistered escalation:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Send confirmation email after registration that attestation is ready
+ * @param {string} email - User's email address
+ * @param {string} firstName - User's first name
+ * @param {Object} campaign - Campaign object
+ * @returns {Promise<Object>} Result object with success status and message
+ */
+export const sendAttestationReadyEmail = async (email, firstName, campaign) => {
+  try {
+    const settings = await smtpSettingsDb.get();
+    
+    if (!settings || !settings.enabled) {
+      return { success: false, error: 'SMTP settings are not enabled' };
+    }
+    
+    if (!settings.from_email) {
+      return { success: false, error: 'From email address is not configured' };
+    }
+    
+    const transport = await createTransport();
+    const branding = await brandingSettingsDb.get();
+    const siteName = branding?.site_name || 'KARS';
+    
+    // Construct attestation URL
+    const baseUrl = await getAppUrl();
+    const attestationUrl = `${baseUrl}/my-attestations`;
+    
+    const subject = `Welcome! Your Attestation is Ready - ${campaign.name}`;
+    
+    const emailContent = `
+      <h2 style="color: #333;">✅ Account Created Successfully</h2>
+      <p>Welcome ${firstName}!</p>
+      <p>Your ${siteName} account has been created and your pending attestation is now ready to complete.</p>
+      <div style="background-color: #D1FAE5; border-left: 4px solid #10B981; padding: 15px; margin: 20px 0;">
+        <p style="margin: 0; color: #065F46;"><strong>Campaign:</strong> ${campaign.name}</p>
+        ${campaign.description ? `<p style="margin: 5px 0 0 0; color: #065F46;">${campaign.description}</p>` : ''}
+        ${campaign.end_date ? `<p style="margin: 5px 0 0 0; color: #065F46;"><strong>Deadline:</strong> ${new Date(campaign.end_date).toLocaleDateString()}</p>` : ''}
+      </div>
+      <p>You can now log in and complete your asset attestation:</p>
+      <div style="margin: 30px 0; text-align: center;">
+        <a href="${attestationUrl}" style="background-color: #3B82F6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600; font-size: 16px;">Complete Attestation</a>
+      </div>
+      <p style="color: #666; font-size: 14px;">
+        If the button doesn't work, copy and paste this link:<br>
+        <a href="${attestationUrl}" style="color: #3B82F6; word-break: break-all;">${attestationUrl}</a>
+      </p>
+    `;
+    
+    const textContent = `Account Created Successfully
+
+Welcome ${firstName}!
+
+Your ${siteName} account has been created and your pending attestation is now ready to complete.
+
+Campaign: ${campaign.name}
+${campaign.description ? campaign.description + '\n' : ''}${campaign.end_date ? `Deadline: ${new Date(campaign.end_date).toLocaleDateString()}` : ''}
+
+You can now log in and complete your asset attestation: ${attestationUrl}`;
+    
+    const mailOptions = {
+      from: `"${settings.from_name || `${siteName} Notifications`}" <${settings.from_email}>`,
+      to: email,
+      subject,
+      text: textContent,
+      html: buildEmailHtml(branding, siteName, emailContent)
+    };
+    
+    await transport.sendMail(mailOptions);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send attestation ready email:', error);
+    return { success: false, error: error.message };
+  }
+};
