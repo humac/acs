@@ -1535,7 +1535,30 @@ const initDb = async () => {
       
       const existing = await dbGet(selectQuery, [template.template_key]);
       
-      if (existing && (!existing.variables || existing.variables === '[]' || existing.variables === 'null' || existing.variables !== template.variables)) {
+      // Check if variables need updating
+      let needsUpdate = false;
+      if (!existing) {
+        continue; // Template doesn't exist, skip
+      }
+      
+      if (!existing.variables || existing.variables === 'null') {
+        needsUpdate = true;
+      } else {
+        // Try to parse and validate
+        try {
+          const parsed = JSON.parse(existing.variables);
+          if (!Array.isArray(parsed) || parsed.length === 0) {
+            needsUpdate = true;
+          } else if (existing.variables !== template.variables) {
+            needsUpdate = true;
+          }
+        } catch {
+          // Invalid JSON, needs update
+          needsUpdate = true;
+        }
+      }
+      
+      if (needsUpdate) {
         const updateQuery = isPostgres
           ? 'UPDATE email_templates SET variables = $1 WHERE template_key = $2'
           : 'UPDATE email_templates SET variables = ? WHERE template_key = ?';
@@ -1545,7 +1568,7 @@ const initDb = async () => {
         updatedCount++;
       }
     } catch (err) {
-      console.error(`Error updating variables for template ${template.template_key}:`, err.message);
+      console.error(`Error updating variables for template ${template.template_key}:`, err);
       // Continue with other templates even if one fails
     }
   }
