@@ -557,7 +557,7 @@ Complete your attestation here: ${attestationUrl}`;
  * @param {Object} campaign - Campaign object with name
  * @returns {Promise<Object>} Result object with success status and message
  */
-export const sendAttestationEscalationEmail = async (managerEmail, employeeName, employeeEmail, campaign) => {
+export const sendAttestationEscalationEmail = async (managerEmail, employeeName, employeeEmail, campaign, customMessage = null) => {
   try {
     const settings = await smtpSettingsDb.get();
     
@@ -582,7 +582,8 @@ export const sendAttestationEscalationEmail = async (managerEmail, employeeName,
       campaignName: campaign.name,
       employeeName,
       employeeEmail,
-      escalationDays: campaign.escalation_days || 10
+      escalationDays: campaign.escalation_days || 10,
+      customMessage: customMessage || ''
     };
     
     // Use template if available, otherwise fall back to hardcoded default
@@ -595,6 +596,16 @@ export const sendAttestationEscalationEmail = async (managerEmail, employeeName,
     } else {
       // Fallback to hardcoded template
       subject = `Team Attestation Outstanding: ${employeeName} - ${campaign.name}`;
+      
+      // Add custom message section if provided
+      const customMessageHtml = customMessage 
+        ? `<div style="padding: 12px; background-color: #fff3cd; border-left: 4px solid #ffc107; margin: 16px 0;"><strong>Additional Note:</strong> ${customMessage}</div>`
+        : '';
+      
+      const customMessageText = customMessage
+        ? `\n\nAdditional Note: ${customMessage}\n`
+        : '';
+      
       emailContent = `
         <h2 style="color: #333;">Action Required: Team Member Attestation Outstanding</h2>
         <p>This is a notification that one of your team members has not yet completed their asset attestation.</p>
@@ -602,6 +613,7 @@ export const sendAttestationEscalationEmail = async (managerEmail, employeeName,
           <p style="margin: 5px 0;"><strong>Employee:</strong> ${employeeName} (${employeeEmail})</p>
           <p style="margin: 5px 0;"><strong>Campaign:</strong> ${campaign.name}</p>
         </div>
+        ${customMessageHtml}
         <p>Please follow up with this team member to ensure they complete their asset attestation promptly.</p>
         <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
         <p style="color: #999; font-size: 12px;">
@@ -612,7 +624,7 @@ export const sendAttestationEscalationEmail = async (managerEmail, employeeName,
 
 Employee: ${employeeName} (${employeeEmail})
 Campaign: ${campaign.name}
-
+${customMessageText}
 Please follow up with this team member to ensure they complete their asset attestation promptly.
 
 This is an automated escalation notification sent because the attestation has been outstanding for ${campaign.escalation_days} days.`;

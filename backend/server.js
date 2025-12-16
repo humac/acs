@@ -5522,8 +5522,8 @@ app.get('/api/attestation/validate-invite/:token', async (req, res) => {
   }
 });
 
-// Get pending invites for campaign (Admin only)
-app.get('/api/attestation/campaigns/:id/pending-invites', authenticate, authorize('admin'), async (req, res) => {
+// Get pending invites for campaign (Admin and Manager)
+app.get('/api/attestation/campaigns/:id/pending-invites', authenticate, authorize('admin', 'manager'), async (req, res) => {
   try {
     const campaign = await attestationCampaignDb.getById(req.params.id);
     
@@ -5531,20 +5531,26 @@ app.get('/api/attestation/campaigns/:id/pending-invites', authenticate, authoriz
       return res.status(404).json({ error: 'Campaign not found' });
     }
     
-    const pendingInvites = await attestationPendingInviteDb.getByCampaignId(req.params.id);
+    const allInvites = await attestationPendingInviteDb.getByCampaignId(req.params.id);
     
-    // Enrich with asset counts
-    const enrichedInvites = await Promise.all(
-      pendingInvites.map(async (invite) => {
-        const assets = await assetDb.getByEmployeeEmail(invite.employee_email);
-        return {
-          ...invite,
-          asset_count: assets.length
-        };
-      })
-    );
+    // Filter to only pending invites (not yet registered)
+    const pendingInvites = allInvites.filter(invite => !invite.registered_at);
     
-    res.json({ success: true, invites: enrichedInvites });
+    // Format response to match spec
+    const formattedInvites = pendingInvites.map(invite => ({
+      id: invite.id,
+      email: invite.employee_email,
+      token: invite.invite_token,
+      invite_sent_at: invite.invite_sent_at,
+      registered_at: invite.registered_at
+    }));
+    
+    res.json({ 
+      success: true, 
+      campaign_id: campaign.id,
+      campaign_name: campaign.name,
+      pending_invites: formattedInvites
+    });
   } catch (error) {
     console.error('Error fetching pending invites:', error);
     res.status(500).json({ error: 'Failed to fetch pending invites' });
@@ -5630,6 +5636,248 @@ app.post('/api/attestation/campaigns/:id/resend-invites', authenticate, authoriz
   } catch (error) {
     console.error('Error resending invites:', error);
     res.status(500).json({ error: 'Failed to resend invites' });
+  }
+});
+
+// Manual reminder for specific attestation record (Admin and Manager)
+app.post('/api/attestation/records/:id/remind', authenticate, authorize('admin', 'manager'), async (req, res) => {
+  try {
+    const record = await attestationRecordDb.getById(req.params.id);
+    if (!record) {
+      return res.status(404).json({ error: 'Record not found' });
+    }
+    
+    const campaign = await attestationCampaignDb.getById(record.campaign_id);
+    const user = await userDb.getById(record.user_id);
+    
+    if (!user || !campaign) {
+      return res.status(404).json({ error: 'Campaign or user not found' });
+    }
+    
+    // Send reminder email
+    const { sendAttestationReminderEmail } = await import('./services/smtpMailer.js');
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const attestationUrl = `${frontendUrl}/my-attestations`;
+    await sendAttestationReminderEmail(user.email, campaign, attestationUrl);
+    
+    // Update reminder timestamp
+    await attestationRecordDb.update(record.id, {
+      reminder_sent_at: new Date().toISOString()
+    });
+    
+    // Log action
+    await auditDb.log(
+      'reminder_sent',
+      'attestation_record',
+      record.id,
+      `${user.email} - ${campaign.name}`,
+      `Manual reminder sent to ${user.email}`,
+      req.user.email
+    );
+    
+    res.json({ success: true, message: 'Reminder sent successfully' });
+  } catch (error) {
+    console.error('Error sending reminder:', error);
+    res.status(500).json({ error: 'Failed to send reminder' });
+  }
+});
+
+// Bulk reminder for multiple attestation records (Admin and Manager)
+app.post('/api/attestation/campaigns/:id/bulk-remind', authenticate, authorize('admin', 'manager'), async (req, res) => {
+  try {
+    const campaign = await attestationCampaignDb.getById(req.params.id);
+    if (!campaign) {
+      return res.status(404).json({ error: 'Campaign not found' });
+    }
+    
+    const { record_ids } = req.body;
+    if (!record_ids || !Array.isArray(record_ids) || record_ids.length === 0) {
+      return res.status(400).json({ error: 'record_ids array is required' });
+    }
+    
+    const { sendAttestationReminderEmail } = await import('./services/smtpMailer.js');
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const attestationUrl = `${frontendUrl}/my-attestations`;
+    
+    let sent = 0;
+    let failed = 0;
+    
+    for (const recordId of record_ids) {
+      try {
+        const record = await attestationRecordDb.getById(recordId);
+        if (!record || record.campaign_id !== campaign.id) {
+          failed++;
+          continue;
+        }
+        
+        const user = await userDb.getById(record.user_id);
+        if (!user) {
+          failed++;
+          continue;
+        }
+        
+        // Send reminder email
+        const result = await sendAttestationReminderEmail(user.email, campaign, attestationUrl);
+        
+        if (result.success) {
+          // Update reminder timestamp
+          await attestationRecordDb.update(record.id, {
+            reminder_sent_at: new Date().toISOString()
+          });
+          sent++;
+        } else {
+          failed++;
+        }
+      } catch (error) {
+        console.error(`Error sending reminder for record ${recordId}:`, error);
+        failed++;
+      }
+    }
+    
+    // Log bulk action
+    await auditDb.log(
+      'bulk_reminder_sent',
+      'attestation_campaign',
+      campaign.id,
+      campaign.name,
+      `Bulk reminder sent: ${sent} successful, ${failed} failed`,
+      req.user.email
+    );
+    
+    res.json({ success: true, sent, failed });
+  } catch (error) {
+    console.error('Error sending bulk reminders:', error);
+    res.status(500).json({ error: 'Failed to send bulk reminders' });
+  }
+});
+
+// Resend single pending invite (Admin only)
+app.post('/api/attestation/pending-invites/:id/resend', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const invite = await attestationPendingInviteDb.getById(req.params.id);
+    
+    if (!invite) {
+      return res.status(404).json({ error: 'Invite not found' });
+    }
+    
+    // Verify user hasn't registered yet
+    if (invite.registered_at) {
+      return res.status(400).json({ error: 'User has already registered' });
+    }
+    
+    const campaign = await attestationCampaignDb.getById(invite.campaign_id);
+    if (!campaign) {
+      return res.status(404).json({ error: 'Campaign not found' });
+    }
+    
+    // Get asset count
+    const assets = await assetDb.getByEmployeeEmail(invite.employee_email);
+    const assetCount = assets.length;
+    
+    // Get OIDC settings
+    const oidcSettings = await oidcSettingsDb.get();
+    const ssoEnabled = oidcSettings?.enabled || false;
+    const ssoButtonText = oidcSettings?.button_text || 'Sign In with SSO';
+    
+    // Resend registration invite email
+    const { sendAttestationRegistrationInvite } = await import('./services/smtpMailer.js');
+    const result = await sendAttestationRegistrationInvite(
+      invite.employee_email,
+      invite.employee_first_name,
+      invite.employee_last_name,
+      campaign,
+      invite.invite_token,
+      assetCount,
+      ssoEnabled,
+      ssoButtonText
+    );
+    
+    if (result.success) {
+      // Update invite_sent_at timestamp
+      await attestationPendingInviteDb.update(invite.id, {
+        invite_sent_at: new Date().toISOString()
+      });
+      
+      // Log action
+      await auditDb.log(
+        'resend_invite',
+        'attestation_pending_invite',
+        invite.id,
+        invite.employee_email,
+        `Resent registration invite to ${invite.employee_email} for campaign: ${campaign.name}`,
+        req.user.email
+      );
+      
+      res.json({ success: true, message: 'Invite resent successfully' });
+    } else {
+      res.status(500).json({ error: result.error || 'Failed to send invite' });
+    }
+  } catch (error) {
+    console.error('Error resending invite:', error);
+    res.status(500).json({ error: 'Failed to resend invite' });
+  }
+});
+
+// Manual escalation for specific attestation record (Admin only)
+app.post('/api/attestation/records/:id/escalate', authenticate, authorize('admin'), async (req, res) => {
+  try {
+    const record = await attestationRecordDb.getById(req.params.id);
+    if (!record) {
+      return res.status(404).json({ error: 'Record not found' });
+    }
+    
+    const campaign = await attestationCampaignDb.getById(record.campaign_id);
+    const user = await userDb.getById(record.user_id);
+    
+    if (!user || !campaign) {
+      return res.status(404).json({ error: 'Campaign or user not found' });
+    }
+    
+    // Validate manager email exists
+    if (!user.manager_email) {
+      return res.status(400).json({ error: 'User does not have a manager assigned' });
+    }
+    
+    const { custom_message } = req.body;
+    
+    // Send escalation email to manager
+    const { sendAttestationEscalationEmail } = await import('./services/smtpMailer.js');
+    const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.name || user.email;
+    const result = await sendAttestationEscalationEmail(
+      user.manager_email,
+      userName,
+      user.email,
+      campaign,
+      custom_message || null
+    );
+    
+    if (result.success) {
+      // Update escalation timestamp
+      await attestationRecordDb.update(record.id, {
+        escalation_sent_at: new Date().toISOString()
+      });
+      
+      // Log action
+      const details = custom_message 
+        ? `Manual escalation sent to manager ${user.manager_email} with custom message: ${custom_message}`
+        : `Manual escalation sent to manager ${user.manager_email}`;
+      
+      await auditDb.log(
+        'escalation_sent',
+        'attestation_record',
+        record.id,
+        `${user.email} - ${campaign.name}`,
+        details,
+        req.user.email
+      );
+      
+      res.json({ success: true, message: 'Escalation sent successfully' });
+    } else {
+      res.status(500).json({ error: result.error || 'Failed to send escalation' });
+    }
+  } catch (error) {
+    console.error('Error sending escalation:', error);
+    res.status(500).json({ error: 'Failed to send escalation' });
   }
 });
 
