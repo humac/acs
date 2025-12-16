@@ -1272,7 +1272,7 @@ export default function AttestationPage() {
           }
         }}
       >
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Campaign Dashboard: {selectedCampaign?.name}</DialogTitle>
             <DialogDescription>
@@ -1284,9 +1284,9 @@ export default function AttestationPage() {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : dashboardData ? (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Stats Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -1432,7 +1432,7 @@ export default function AttestationPage() {
               {/* Employee Records Table */}
               <div>
                 <h3 className="text-lg font-semibold mb-4">Employee Records</h3>
-                <div className="border rounded-md">
+                <div className="max-h-[400px] overflow-y-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
