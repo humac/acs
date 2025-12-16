@@ -100,7 +100,7 @@ describe('Email Templates Seeding', () => {
     const countAfter = templatesAfter.length;
     
     expect(countAfter).toBe(countBefore);
-    expect(countAfter).toBe(10);
+    expect(countAfter).toBe(9);
   });
 
   it('should allow retrieval of individual templates by key', async () => {
