@@ -161,7 +161,9 @@ export default function AttestationPage() {
     if (!startDate) return 0;
     const start = new Date(startDate);
     const now = new Date();
-    const diffTime = Math.abs(now - start);
+    const diffTime = now - start;
+    // If campaign hasn't started yet (future date), return 0
+    if (diffTime < 0) return 0;
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
     return diffDays;
   };
@@ -1238,7 +1240,11 @@ export default function AttestationPage() {
                   <TabsTrigger value="overdue" className="flex items-center gap-2">
                     <span>Overdue ({overdueCount})</span>
                     {overdueCount > 0 && (
-                      <Badge variant="destructive" className="ml-1 h-5 w-5 p-0 flex items-center justify-center">
+                      <Badge 
+                        variant="destructive" 
+                        className="ml-1 h-5 w-5 p-0 flex items-center justify-center"
+                        aria-label="Has overdue items"
+                      >
                         !
                       </Badge>
                     )}
@@ -1265,6 +1271,7 @@ export default function AttestationPage() {
                     className="pl-9"
                     value={dashboardSearchQuery}
                     onChange={(e) => setDashboardSearchQuery(e.target.value)}
+                    aria-label="Search employees by name or email"
                   />
                 </div>
                 <div className="text-sm text-muted-foreground">
