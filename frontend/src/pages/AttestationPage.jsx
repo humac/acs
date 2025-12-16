@@ -19,7 +19,8 @@ import {
   AlertCircle,
   Edit,
   Trash2,
-  Search
+  Search,
+  Bell
 } from 'lucide-react';
 import {
   Table,
@@ -97,6 +98,14 @@ export default function AttestationPage() {
   // Dashboard search and filter states
   const [dashboardSearchQuery, setDashboardSearchQuery] = useState('');
   const [dashboardFilterTab, setDashboardFilterTab] = useState('all');
+
+  // Manual and bulk reminder states
+  const [selectedRecordIds, setSelectedRecordIds] = useState(new Set());
+  const [sendingReminder, setSendingReminder] = useState(new Set());
+  const [sendingBulkReminder, setSendingBulkReminder] = useState(false);
+
+  // Table column count constant for colSpan calculations
+  const DASHBOARD_TABLE_COLUMNS = 8; // Checkbox, Employee, Email, Status, Completed, Reminder, Escalation, Actions
 
   // Helper function to parse target_user_ids
   const parseTargetUserIds = (targetUserIds) => {
@@ -510,6 +519,107 @@ export default function AttestationPage() {
         description: 'Failed to update campaign',
         variant: 'destructive'
       });
+    }
+  };
+
+  // Send manual reminder to single employee
+  const handleSendReminder = async (recordId) => {
+    setSendingReminder(prev => new Set(prev).add(recordId));
+    
+    try {
+      const res = await fetch(`/api/attestation/records/${recordId}/remind`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders() }
+      });
+      
+      if (!res.ok) throw new Error('Failed to send reminder');
+      
+      toast({
+        title: 'Reminder Sent',
+        description: 'Email reminder sent to employee'
+      });
+      
+      // Refresh dashboard data
+      handleViewDashboard(selectedCampaign);
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: 'Error',
+        description: 'Failed to send reminder',
+        variant: 'destructive'
+      });
+    } finally {
+      setSendingReminder(prev => {
+        const next = new Set(prev);
+        next.delete(recordId);
+        return next;
+      });
+    }
+  };
+
+  // Handle individual record selection
+  const handleSelectRecord = (recordId) => {
+    setSelectedRecordIds(prev => {
+      const next = new Set(prev);
+      if (next.has(recordId)) {
+        next.delete(recordId);
+      } else {
+        next.add(recordId);
+      }
+      return next;
+    });
+  };
+
+  // Handle select all toggle
+  const handleSelectAll = (checked) => {
+    if (checked) {
+      const incomplete = filteredRecords
+        .filter(r => r.status !== 'completed')
+        .map(r => r.id);
+      setSelectedRecordIds(new Set(incomplete));
+    } else {
+      setSelectedRecordIds(new Set());
+    }
+  };
+
+  // Send bulk reminders
+  const handleBulkRemind = async () => {
+    if (selectedRecordIds.size === 0) return;
+    
+    setSendingBulkReminder(true);
+    
+    try {
+      const res = await fetch(`/api/attestation/campaigns/${selectedCampaign.id}/bulk-remind`, {
+        method: 'POST',
+        headers: { 
+          ...getAuthHeaders(), 
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify({ 
+          record_ids: Array.from(selectedRecordIds) 
+        })
+      });
+      
+      if (!res.ok) throw new Error('Failed to send bulk reminders');
+      
+      const data = await res.json();
+      
+      toast({
+        title: 'Bulk Reminders Sent',
+        description: `${data.sent} sent successfully${data.failed > 0 ? `, ${data.failed} failed` : ''}`
+      });
+      
+      setSelectedRecordIds(new Set());
+      handleViewDashboard(selectedCampaign);
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: 'Error',
+        description: 'Failed to send bulk reminders',
+        variant: 'destructive'
+      });
+    } finally {
+      setSendingBulkReminder(false);
     }
   };
 
@@ -1153,7 +1263,15 @@ export default function AttestationPage() {
       </Dialog>
 
       {/* Dashboard Modal */}
-      <Dialog open={showDashboardModal} onOpenChange={setShowDashboardModal}>
+      <Dialog 
+        open={showDashboardModal} 
+        onOpenChange={(open) => {
+          setShowDashboardModal(open);
+          if (!open) {
+            setSelectedRecordIds(new Set());
+          }
+        }}
+      >
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Campaign Dashboard: {selectedCampaign?.name}</DialogTitle>
@@ -1278,6 +1396,39 @@ export default function AttestationPage() {
                 </div>
               </div>
 
+              {/* Bulk Actions Toolbar */}
+              {selectedRecordIds.size > 0 && (
+                <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
+                  <span className="text-sm font-medium">
+                    {selectedRecordIds.size} selected
+                  </span>
+                  <Button 
+                    size="sm" 
+                    onClick={handleBulkRemind}
+                    disabled={sendingBulkReminder}
+                  >
+                    {sendingBulkReminder ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Bell className="h-4 w-4 mr-2" />
+                        Send Reminders
+                      </>
+                    )}
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => setSelectedRecordIds(new Set())}
+                  >
+                    Clear Selection
+                  </Button>
+                </div>
+              )}
+
               {/* Employee Records Table */}
               <div>
                 <h3 className="text-lg font-semibold mb-4">Employee Records</h3>
@@ -1285,18 +1436,26 @@ export default function AttestationPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-12">
+                          <Checkbox
+                            checked={selectedRecordIds.size > 0 && 
+                                     selectedRecordIds.size === filteredRecords.filter(r => r.status !== 'completed').length}
+                            onCheckedChange={handleSelectAll}
+                          />
+                        </TableHead>
                         <TableHead>Employee</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Completed</TableHead>
                         <TableHead>Reminder</TableHead>
                         <TableHead>Escalation</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredRecords.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                          <TableCell colSpan={DASHBOARD_TABLE_COLUMNS} className="text-center py-8 text-muted-foreground">
                             {dashboardSearchQuery || dashboardFilterTab !== 'all'
                               ? 'No employees match your filters'
                               : 'No records found'}
@@ -1305,6 +1464,14 @@ export default function AttestationPage() {
                       ) : (
                         filteredRecords.map((record) => (
                           <TableRow key={record.id}>
+                            <TableCell>
+                              {record.status !== 'completed' && (
+                                <Checkbox
+                                  checked={selectedRecordIds.has(record.id)}
+                                  onCheckedChange={() => handleSelectRecord(record.id)}
+                                />
+                              )}
+                            </TableCell>
                             <TableCell className="font-medium">{record.user_name}</TableCell>
                             <TableCell>{record.user_email}</TableCell>
                             <TableCell>
@@ -1334,6 +1501,23 @@ export default function AttestationPage() {
                                 <AlertCircle className="h-4 w-4 text-orange-600" />
                               ) : (
                                 '-'
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {record.status !== 'completed' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleSendReminder(record.id)}
+                                  disabled={sendingReminder.has(record.id)}
+                                  title="Send reminder email"
+                                >
+                                  {sendingReminder.has(record.id) ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Bell className="h-4 w-4" />
+                                  )}
+                                </Button>
                               )}
                             </TableCell>
                           </TableRow>
