@@ -296,16 +296,16 @@ Run scheduler functions manually for testing:
 
 ```javascript
 // In backend directory
-node -e "import('./services/attestationScheduler.js').then(s => s.processReminders())"
-node -e "import('./services/attestationScheduler.js').then(s => s.processEscalations())"
-node -e "import('./services/attestationScheduler.js').then(s => s.processUnregisteredReminders())"
-node -e "import('./services/attestationScheduler.js').then(s => s.processUnregisteredEscalations())"
-node -e "import('./services/attestationScheduler.js').then(s => s.autoCloseExpiredCampaigns())"
+node -e "import('./services/attestationScheduler.js').then(s => s.processReminders()).catch(e => console.error('Error:', e))"
+node -e "import('./services/attestationScheduler.js').then(s => s.processEscalations()).catch(e => console.error('Error:', e))"
+node -e "import('./services/attestationScheduler.js').then(s => s.processUnregisteredReminders()).catch(e => console.error('Error:', e))"
+node -e "import('./services/attestationScheduler.js').then(s => s.processUnregisteredEscalations()).catch(e => console.error('Error:', e))"
+node -e "import('./services/attestationScheduler.js').then(s => s.autoCloseExpiredCampaigns()).catch(e => console.error('Error:', e))"
 ```
 
 Or run all tasks at once:
 ```javascript
-node -e "import('./services/attestationScheduler.js').then(s => s.runScheduledTasks())"
+node -e "import('./services/attestationScheduler.js').then(s => s.runScheduledTasks()).catch(e => console.error('Error:', e))"
 ```
 
 #### Testing with Mock SMTP

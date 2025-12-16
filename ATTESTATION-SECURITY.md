@@ -306,7 +306,7 @@ if (campaign.status !== 'active' || (campaign.end_date && new Date() > new Date(
 **Option 2: Time-Based Expiration**
 ```javascript
 // Add expires_at column to attestation_pending_invites
-const EXPIRATION_DAYS = 30;
+const EXPIRATION_DAYS = 30; // Recommended: 30 days for invite tokens
 const expiresAt = new Date();
 expiresAt.setDate(expiresAt.getDate() + EXPIRATION_DAYS);
 
@@ -321,7 +321,12 @@ if (invite.expires_at && new Date() > new Date(invite.expires_at)) {
 }
 ```
 
-**Recommendation:** Implement Option 1 immediately (campaign-based) as it requires no schema changes. Consider Option 2 for future enhancement.
+**Recommended Expiration Periods:**
+- **Invite tokens:** 30 days (sufficient time for new hires/onboarding)
+- **Password reset tokens:** 24 hours (for comparison - more urgent)
+- **Campaign-based:** Until campaign end_date (automatic via Option 1)
+
+**Recommendation:** Implement Option 1 immediately (campaign-based) as it requires no schema changes. Consider Option 2 for future enhancement with 30-day expiration.
 
 ## Rate Limiting Recommendations
 
