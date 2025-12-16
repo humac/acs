@@ -3747,7 +3747,7 @@ app.delete('/api/assets/:id', authenticate, async (req, res) => {
 // ===== Company Management Endpoints =====
 
 // Get all companies (admin only - full details)
-app.get('/api/companies', authenticate, authorize('admin'), async (req, res) => {
+app.get('/api/companies', authenticate, authorize('admin', 'manager'), async (req, res) => {
   try {
     const companies = await companyDb.getAll();
     res.json(companies);
@@ -4816,7 +4816,7 @@ app.post('/api/attestation/campaigns', authenticate, authorize('admin'), async (
 });
 
 // Get all attestation campaigns (Admin only)
-app.get('/api/attestation/campaigns', authenticate, authorize('admin'), async (req, res) => {
+app.get('/api/attestation/campaigns', authenticate, authorize('admin', 'manager'), async (req, res) => {
   try {
     const campaigns = await attestationCampaignDb.getAll();
     
@@ -4835,7 +4835,7 @@ app.get('/api/attestation/campaigns', authenticate, authorize('admin'), async (r
 });
 
 // Get specific campaign details with stats (Admin only)
-app.get('/api/attestation/campaigns/:id', authenticate, authorize('admin'), async (req, res) => {
+app.get('/api/attestation/campaigns/:id', authenticate, authorize('admin', 'manager'), async (req, res) => {
   try {
     const campaign = await attestationCampaignDb.getById(req.params.id);
     
@@ -5117,7 +5117,7 @@ app.delete('/api/attestation/campaigns/:id', authenticate, authorize('admin'), a
 });
 
 // Get campaign dashboard with detailed employee records (Admin only)
-app.get('/api/attestation/campaigns/:id/dashboard', authenticate, authorize('admin'), async (req, res) => {
+app.get('/api/attestation/campaigns/:id/dashboard', authenticate, authorize('admin', 'manager'), async (req, res) => {
   try {
     const campaign = await attestationCampaignDb.getById(req.params.id);
     
