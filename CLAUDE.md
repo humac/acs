@@ -1,7 +1,7 @@
 # CLAUDE.md - AI Assistant Guide for KARS
 
 **KARS (KeyData Asset Registration System)** - A web application that supports organizational SOC2 compliance by tracking client assets with multi-factor authentication, role-based access control, and comprehensive audit logging.
-
+-
 This document provides AI assistants with comprehensive guidance for working with this codebase effectively.
 
 ---
