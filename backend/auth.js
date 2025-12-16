@@ -44,7 +44,7 @@ export const comparePassword = async (password, hash) => {
 };
 
 // Authentication middleware
-export const authenticate = (req, res, next) => {
+export const authenticate = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -59,8 +59,21 @@ export const authenticate = (req, res, next) => {
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
 
-    // Attach user info to request
-    req.user = decoded;
+    // Fetch fresh user data from database to ensure role is up-to-date
+    // This allows role changes to take effect without requiring re-login
+    const user = await userDb.getById(decoded.id);
+    
+    if (!user) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+
+    // Attach fresh user info to request with updated role
+    req.user = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role
+    };
     next();
   } catch (error) {
     console.error('Authentication error:', error);
