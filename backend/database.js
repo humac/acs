@@ -452,6 +452,10 @@ Completed: {{completedAt}}`,
 <div style="margin: 30px 0; text-align: center;">
   <a href="{{registerUrl}}" style="display: inline-block; padding: 12px 24px; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">Register to Complete Attestation</a>
 </div>
+<p style="color: #666; font-size: 14px;">
+  If the button doesn't work, copy and paste this link into your browser:<br>
+  <a href="{{registerUrl}}" style="color: #3B82F6; word-break: break-all;">{{registerUrl}}</a>
+</p>
 <p style="color: #666; font-size: 14px;">If your organization uses Single Sign-On (SSO), you can also use that option when you reach the registration page.</p>
 <p>This attestation campaign {{endDateText}}.</p>
 <p>If you have any questions, please contact your administrator.</p>`,
@@ -464,6 +468,9 @@ You have {{assetCount}} asset(s) assigned to you that require attestation as par
 To complete your attestation, you'll need to create an account in {{siteName}}.
 
 Register here: {{registerUrl}}
+
+If the button doesn't work, copy and paste this link into your browser:
+{{registerUrl}}
 
 If your organization uses Single Sign-On (SSO), you can also use that option when you reach the registration page.
 
@@ -484,6 +491,10 @@ If you have any questions, please contact your administrator.`,
 <div style="margin: 30px 0; text-align: center;">
   <a href="{{registerUrl}}" style="display: inline-block; padding: 12px 24px; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">Register Now</a>
 </div>
+<p style="color: #666; font-size: 14px;">
+  If the button doesn't work, copy and paste this link into your browser:<br>
+  <a href="{{registerUrl}}" style="color: #3B82F6; word-break: break-all;">{{registerUrl}}</a>
+</p>
 <p style="color: #666; font-size: 14px;">If your organization uses Single Sign-On (SSO), you can also use that option when you reach the registration page.</p>
 {{deadlineHtml}}`,
     text_body: `Reminder: Asset Attestation Pending
@@ -495,6 +506,9 @@ This is a reminder that you have {{assetCount}} asset(s) requiring attestation f
 You have not yet registered your account. Please register as soon as possible to complete your attestation.
 
 Register here: {{registerUrl}}
+
+If the button doesn't work, copy and paste this link into your browser:
+{{registerUrl}}
 
 If your organization uses Single Sign-On (SSO), you can also use that option when you reach the registration page.
 
@@ -541,7 +555,13 @@ Please remind them to register their account so they can complete their asset at
     html_body: `<h2>Welcome! Your Attestation is Ready</h2>
 <p>Hello {{firstName}},</p>
 <p>Thank you for registering your account. You can now complete your asset attestation for the "<strong>{{campaignName}}</strong>" campaign.</p>
-<p><a href="{{attestationUrl}}" style="display: inline-block; padding: 12px 24px; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 6px;">Complete Your Attestation</a></p>
+<div style="margin: 30px 0; text-align: center;">
+  <a href="{{attestationUrl}}" style="display: inline-block; padding: 12px 24px; background-color: #3b82f6; color: white; text-decoration: none; border-radius: 6px; font-weight: 600;">Complete Your Attestation</a>
+</div>
+<p style="color: #666; font-size: 14px;">
+  If the button doesn't work, copy and paste this link into your browser:<br>
+  <a href="{{attestationUrl}}" style="color: #3B82F6; word-break: break-all;">{{attestationUrl}}</a>
+</p>
 {{deadlineHtml}}
 <p>If you have any questions, please contact your administrator.</p>`,
     text_body: `Welcome! Your Attestation is Ready
@@ -551,6 +571,9 @@ Hello {{firstName}},
 Thank you for registering your account. You can now complete your asset attestation for the "{{campaignName}}" campaign.
 
 Complete your attestation here: {{attestationUrl}}
+
+If the button doesn't work, copy and paste this link into your browser:
+{{attestationUrl}}
 
 {{deadlineText}}
 
@@ -1651,6 +1674,60 @@ const initDb = async () => {
   
   if (migratedCount > 0) {
     console.log(`Migrated ${migratedCount} email template(s) to remove Handlebars conditionals`);
+  }
+
+  // Migration: Add fallback URLs to email templates
+  console.log('Checking for email templates that need fallback URL sections...');
+  const templatesNeedingFallbackUrls = [
+    'attestation_registration_invite',
+    'attestation_unregistered_reminder',
+    'attestation_ready'
+  ];
+  
+  let fallbackUrlUpdatedCount = 0;
+  for (const templateKey of templatesNeedingFallbackUrls) {
+    try {
+      const selectQuery = isPostgres
+        ? 'SELECT id, html_body, text_body FROM email_templates WHERE template_key = $1'
+        : 'SELECT id, html_body, text_body FROM email_templates WHERE template_key = ?';
+      
+      const existing = await dbGet(selectQuery, [templateKey]);
+      
+      if (existing && existing.html_body) {
+        // Check if template already has fallback URL text
+        const hasFallbackUrl = existing.html_body.includes('If the button doesn\'t work, copy and paste this link');
+        
+        if (!hasFallbackUrl) {
+          // Template needs fallback URL, update it
+          const defaultTemplate = DEFAULT_EMAIL_TEMPLATES.find(t => t.template_key === templateKey);
+          
+          if (defaultTemplate) {
+            const updateQuery = isPostgres
+              ? `UPDATE email_templates SET html_body = $1, text_body = $2, variables = $3, updated_at = $4 WHERE template_key = $5`
+              : `UPDATE email_templates SET html_body = ?, text_body = ?, variables = ?, updated_at = ? WHERE template_key = ?`;
+            
+            await dbRun(updateQuery, [
+              defaultTemplate.html_body,
+              defaultTemplate.text_body,
+              defaultTemplate.variables,
+              new Date().toISOString(),
+              templateKey
+            ]);
+            console.log(`Added fallback URL to email template: ${templateKey}`);
+            fallbackUrlUpdatedCount++;
+          }
+        }
+      }
+    } catch (err) {
+      console.error(`Error adding fallback URL to email template ${templateKey}:`, err.message);
+      // Continue with other templates even if one fails
+    }
+  }
+  
+  if (fallbackUrlUpdatedCount > 0) {
+    console.log(`Added fallback URLs to ${fallbackUrlUpdatedCount} email template(s)`);
+  } else {
+    console.log('All email templates already have fallback URLs');
   }
 
   // Indexes

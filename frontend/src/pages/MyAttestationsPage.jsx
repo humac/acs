@@ -50,6 +50,8 @@ export default function MyAttestationsPage() {
   const [attestationDetails, setAttestationDetails] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [attestedAssetIds, setAttestedAssetIds] = useState(new Set());
+  const [certifiedAssetIds, setCertifiedAssetIds] = useState(new Set());
+  const [selectedStatuses, setSelectedStatuses] = useState({});
   const [newAssetForm, setNewAssetForm] = useState({
     asset_type: '',
     make: '',
@@ -192,6 +194,14 @@ export default function MyAttestationsPage() {
       // Track which assets have been attested
       const attestedIds = new Set(data.attestedAssets?.map(a => a.asset_id) || []);
       setAttestedAssetIds(attestedIds);
+      setCertifiedAssetIds(attestedIds); // Already attested assets are considered certified
+      
+      // Initialize selected statuses with current asset statuses
+      const statuses = {};
+      data.assets?.forEach(asset => {
+        statuses[asset.id] = asset.status;
+      });
+      setSelectedStatuses(statuses);
     } catch (err) {
       console.error(err);
       toast({
@@ -204,8 +214,11 @@ export default function MyAttestationsPage() {
     }
   };
 
-  const handleAttestAsset = async (asset, status) => {
+  const handleCertifyAsset = async (asset) => {
     try {
+      // Get the selected status for this asset (or use current status if not changed)
+      const status = selectedStatuses[asset.id] || asset.status;
+      
       const res = await fetch(`/api/attestation/records/${selectedAttestation.id}/assets/${asset.id}`, {
         method: 'PUT',
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
@@ -215,15 +228,16 @@ export default function MyAttestationsPage() {
         })
       });
 
-      if (!res.ok) throw new Error('Failed to attest asset');
+      if (!res.ok) throw new Error('Failed to certify asset');
 
       toast({
         title: 'Success',
-        description: 'Asset status confirmed'
+        description: 'Asset certified successfully'
       });
 
-      // Mark this asset as attested
+      // Mark this asset as attested and certified
       setAttestedAssetIds(prev => new Set([...prev, asset.id]));
+      setCertifiedAssetIds(prev => new Set([...prev, asset.id]));
 
       // Reload details to get updated info
       handleStartAttestation(selectedAttestation);
@@ -231,10 +245,17 @@ export default function MyAttestationsPage() {
       console.error(err);
       toast({
         title: 'Error',
-        description: 'Failed to attest asset',
+        description: err.message || 'Failed to certify asset',
         variant: 'destructive'
       });
     }
+  };
+
+  const handleStatusChange = (assetId, newStatus) => {
+    setSelectedStatuses(prev => ({
+      ...prev,
+      [assetId]: newStatus
+    }));
   };
 
   const handleAddNewAsset = async () => {
@@ -294,15 +315,6 @@ export default function MyAttestationsPage() {
   };
 
   const handleCompleteAttestation = async () => {
-    // Check if all assets have been attested
-    const allAssetsAttested = attestationDetails?.assets?.every(a => attestedAssetIds.has(a.id));
-
-    if (!allAssetsAttested) {
-      if (!confirm('Not all assets have been attested. Are you sure you want to complete?')) {
-        return;
-      }
-    }
-
     try {
       const res = await fetch(`/api/attestation/records/${selectedAttestation.id}/complete`, {
         method: 'POST',
@@ -317,6 +329,8 @@ export default function MyAttestationsPage() {
       });
 
       setShowAttestationModal(false);
+      setCertifiedAssetIds(new Set());
+      setSelectedStatuses({});
       loadAttestations();
     } catch (err) {
       console.error(err);
@@ -463,15 +477,17 @@ export default function MyAttestationsPage() {
                           <TableHead>Type</TableHead>
                           <TableHead>Make/Model</TableHead>
                           <TableHead>Serial Number</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="text-right">Action</TableHead>
+                          <TableHead>Current Status</TableHead>
+                          <TableHead>Update Status</TableHead>
+                          <TableHead className="text-right">Certification</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {attestationDetails.assets?.map((asset) => {
-                          const isAttested = attestedAssetIds.has(asset.id);
+                          const isCertified = certifiedAssetIds.has(asset.id);
+                          const selectedStatus = selectedStatuses[asset.id] || asset.status;
                           return (
-                            <TableRow key={asset.id} className={isAttested ? 'bg-green-50 dark:bg-green-950' : ''}>
+                            <TableRow key={asset.id} className={isCertified ? 'bg-green-50 dark:bg-green-950' : ''}>
                               <TableCell className="font-medium">{asset.asset_type}</TableCell>
                               <TableCell>
                                 {asset.make} {asset.model}
@@ -480,30 +496,40 @@ export default function MyAttestationsPage() {
                               <TableCell>
                                 <Badge variant="secondary">{asset.status}</Badge>
                               </TableCell>
+                              <TableCell>
+                                {isCertified ? (
+                                  <Badge variant="outline">{selectedStatus}</Badge>
+                                ) : (
+                                  <Select
+                                    value={selectedStatus}
+                                    onValueChange={(value) => handleStatusChange(asset.id, value)}
+                                  >
+                                    <SelectTrigger className="w-[180px]">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="active">Active</SelectItem>
+                                      <SelectItem value="lost">Lost</SelectItem>
+                                      <SelectItem value="stolen">Stolen</SelectItem>
+                                      <SelectItem value="decommissioned">Decommissioned</SelectItem>
+                                      <SelectItem value="transferred">Transferred</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                )}
+                              </TableCell>
                               <TableCell className="text-right">
-                                {isAttested ? (
+                                {isCertified ? (
                                   <div className="flex items-center justify-end gap-2 text-green-600">
                                     <CheckCircle2 className="h-4 w-4" />
-                                    <span className="text-sm">Confirmed</span>
+                                    <span className="text-sm font-medium">Certified</span>
                                   </div>
                                 ) : (
-                                  <div className="flex justify-end gap-2">
-                                    <Select
-                                      value={asset.status}
-                                      onValueChange={(value) => handleAttestAsset(asset, value)}
-                                    >
-                                      <SelectTrigger className="w-[180px]">
-                                        <SelectValue />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        <SelectItem value="active">Active (Confirmed)</SelectItem>
-                                        <SelectItem value="lost">Lost</SelectItem>
-                                        <SelectItem value="stolen">Stolen</SelectItem>
-                                        <SelectItem value="decommissioned">Decommissioned</SelectItem>
-                                        <SelectItem value="transferred">Transferred</SelectItem>
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleCertifyAsset(asset)}
+                                  >
+                                    Certify
+                                  </Button>
                                 )}
                               </TableCell>
                             </TableRow>
@@ -547,14 +573,34 @@ export default function MyAttestationsPage() {
               )}
 
               {/* Complete Button */}
-              <div className="flex justify-end gap-2 pt-4 border-t">
-                <Button variant="outline" onClick={() => setShowAttestationModal(false)}>
-                  Close
-                </Button>
-                <Button onClick={handleCompleteAttestation}>
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                  Complete Attestation
-                </Button>
+              <div className="pt-4 border-t space-y-3">
+                {attestationDetails.assets?.length > 0 && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">
+                      Progress: <span className="font-semibold text-foreground">
+                        {certifiedAssetIds.size} of {attestationDetails.assets.length} assets certified
+                      </span>
+                    </span>
+                    {certifiedAssetIds.size < attestationDetails.assets.length && (
+                      <span className="text-orange-600 flex items-center gap-1">
+                        <AlertCircle className="h-4 w-4" />
+                        Certify all assets to complete
+                      </span>
+                    )}
+                  </div>
+                )}
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setShowAttestationModal(false)}>
+                    Close
+                  </Button>
+                  <Button 
+                    onClick={handleCompleteAttestation}
+                    disabled={attestationDetails.assets?.length > 0 && certifiedAssetIds.size < attestationDetails.assets.length}
+                  >
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Complete Attestation
+                  </Button>
+                </div>
               </div>
             </div>
           ) : null}
