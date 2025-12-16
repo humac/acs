@@ -4646,7 +4646,7 @@ app.get('/api/reports/trends', authenticate, authorize('admin', 'manager'), asyn
     
     // Sort assets by creation date once
     const sortedAssets = [...assets].sort((a, b) => 
-      new Date(a.created_date) - new Date(b.created_date)
+      new Date(a.registration_date) - new Date(b.registration_date)
     );
     
     const sampleInterval = Math.max(1, Math.floor(period / 30));
@@ -4662,7 +4662,7 @@ app.get('/api/reports/trends', authenticate, authorize('admin', 'manager'), asyn
       
       // Count assets up to this date using sorted array
       while (assetIndex < sortedAssets.length && 
-             new Date(sortedAssets[assetIndex].created_date) <= date) {
+             new Date(sortedAssets[assetIndex].registration_date) <= date) {
         assetIndex++;
       }
       
@@ -4680,7 +4680,7 @@ app.get('/api/reports/trends', authenticate, authorize('admin', 'manager'), asyn
       
       // Count only assets created before or on this date
       for (const asset of assets) {
-        if (new Date(asset.created_date) <= date) {
+        if (new Date(asset.registration_date) <= date) {
           if (statusCount.hasOwnProperty(asset.status)) {
             statusCount[asset.status]++;
           }
@@ -4696,17 +4696,17 @@ app.get('/api/reports/trends', authenticate, authorize('admin', 'manager'), asyn
     const previousPeriodEnd = currentPeriodStart;
 
     const currentAssets = assets.filter(a => {
-      const createdDate = new Date(a.created_date);
-      return createdDate >= currentPeriodStart && createdDate <= now;
+      const registrationDate = new Date(a.registration_date);
+      return registrationDate >= currentPeriodStart && registrationDate <= now;
     });
 
     const previousAssets = assets.filter(a => {
-      const createdDate = new Date(a.created_date);
-      return createdDate >= previousPeriodStart && createdDate < previousPeriodEnd;
+      const registrationDate = new Date(a.registration_date);
+      return registrationDate >= previousPeriodStart && registrationDate < previousPeriodEnd;
     });
 
-    const allCurrentAssets = assets.filter(a => new Date(a.created_date) <= now);
-    const allPreviousAssets = assets.filter(a => new Date(a.created_date) < previousPeriodEnd);
+    const allCurrentAssets = assets.filter(a => new Date(a.registration_date) <= now);
+    const allPreviousAssets = assets.filter(a => new Date(a.registration_date) < previousPeriodEnd);
 
     const currentActiveCount = allCurrentAssets.filter(a => a.status === 'active').length;
     const previousActiveCount = allPreviousAssets.filter(a => a.status === 'active').length;
