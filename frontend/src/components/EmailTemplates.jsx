@@ -197,7 +197,11 @@ const EmailTemplates = () => {
       attestation_launch: ['siteName', 'campaignName', 'campaignDescription', 'attestationUrl'],
       attestation_reminder: ['siteName', 'campaignName', 'attestationUrl'],
       attestation_escalation: ['siteName', 'campaignName', 'employeeName', 'employeeEmail', 'escalationDays'],
-      attestation_complete: ['siteName', 'campaignName', 'employeeName', 'employeeEmail', 'completedAt']
+      attestation_complete: ['siteName', 'campaignName', 'employeeName', 'employeeEmail', 'completedAt'],
+      attestation_registration_invite: ['siteName', 'firstName', 'lastName', 'assetCount', 'campaignName', 'campaignDescription', 'endDate', 'endDateText', 'endDateTextPlain', 'registerUrl'],
+      attestation_unregistered_reminder: ['siteName', 'firstName', 'lastName', 'assetCount', 'campaignName', 'campaignDescription', 'endDate', 'deadlineHtml', 'deadlineText', 'registerUrl'],
+      attestation_unregistered_escalation: ['siteName', 'managerName', 'employeeName', 'employeeEmail', 'campaignName', 'assetCount', 'endDate', 'deadlineHtml', 'deadlineText'],
+      attestation_ready: ['siteName', 'firstName', 'campaignName', 'campaignDescription', 'endDate', 'deadlineHtml', 'deadlineText', 'attestationUrl']
     };
     return variableMap[templateKey] || [];
   };
