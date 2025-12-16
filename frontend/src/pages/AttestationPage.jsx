@@ -1432,7 +1432,7 @@ export default function AttestationPage() {
               {/* Employee Records Table */}
               <div>
                 <h3 className="text-lg font-semibold mb-4">Employee Records</h3>
-                <div className="max-h-[400px] overflow-y-auto rounded-md border">
+                <div className="max-h-[400px] overflow-y-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
