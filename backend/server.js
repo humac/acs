@@ -5293,7 +5293,7 @@ app.put('/api/attestation/records/:id/assets/:assetId', authenticate, async (req
     
     // If attested_status changed, update the asset
     if (attested_status && attested_status !== asset.status) {
-      await assetDb.update(asset.id, { status: attested_status });
+      await assetDb.updateStatus(asset.id, attested_status, notes);
       
       await auditDb.log(
         'update',
