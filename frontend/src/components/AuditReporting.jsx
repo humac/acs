@@ -36,8 +36,8 @@ const AuditReportingNew = () => {
     action: '', entityType: '', startDate: '', endDate: '', userEmail: '', limit: '100'
   });
 
-  // Check if user can access advanced reports (admin and manager only)
-  const canAccessReports = user && (user.role === 'admin' || user.role === 'manager');
+  // Check if user can access advanced reports (admin, manager, and attestation_coordinator)
+  const canAccessReports = user && (user.role === 'admin' || user.role === 'manager' || user.role === 'attestation_coordinator');
 
   // Track previous period values to avoid duplicate fetches
   const prevStatsPeriod = useRef(statsPeriod);
