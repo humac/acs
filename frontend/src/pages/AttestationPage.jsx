@@ -666,7 +666,7 @@ export default function AttestationPage() {
                               <>
                                 <Button
                                   size="icon"
-                                  variant="outline"
+                                  variant="ghost"
                                   onClick={() => handleEditCampaignClick(campaign)}
                                   title="Edit"
                                 >
@@ -674,7 +674,7 @@ export default function AttestationPage() {
                                 </Button>
                                 <Button
                                   size="icon"
-                                  variant="outline"
+                                  variant="ghost"
                                   onClick={() => handleStartCampaignClick(campaign)}
                                   title="Start"
                                 >
@@ -682,7 +682,8 @@ export default function AttestationPage() {
                                 </Button>
                                 <Button
                                   size="icon"
-                                  variant="destructive"
+                                  variant="ghost"
+                                  className="text-destructive hover:text-destructive"
                                   onClick={() => handleDeleteCampaignClick(campaign)}
                                   title="Delete"
                                 >
@@ -696,7 +697,7 @@ export default function AttestationPage() {
                           <>
                             <Button
                               size="icon"
-                              variant="outline"
+                              variant="ghost"
                               onClick={() => handleViewDashboard(campaign)}
                               title="View Dashboard"
                             >
@@ -704,7 +705,7 @@ export default function AttestationPage() {
                             </Button>
                             <Button
                               size="icon"
-                              variant="outline"
+                              variant="ghost"
                               onClick={() => handleExportCampaign(campaign.id, campaign.name)}
                               title="Export"
                             >
@@ -713,7 +714,8 @@ export default function AttestationPage() {
                             {canManageCampaigns && (
                               <Button
                                 size="icon"
-                                variant="destructive"
+                                variant="ghost"
+                                className="text-destructive hover:text-destructive"
                                 onClick={() => handleCancelCampaignClick(campaign)}
                                 title="Cancel"
                               >
@@ -726,7 +728,7 @@ export default function AttestationPage() {
                           <>
                             <Button
                               size="icon"
-                              variant="outline"
+                              variant="ghost"
                               onClick={() => handleExportCampaign(campaign.id, campaign.name)}
                               title="Export"
                             >
@@ -735,7 +737,8 @@ export default function AttestationPage() {
                             {canManageCampaigns && (
                               <Button
                                 size="icon"
-                                variant="destructive"
+                                variant="ghost"
+                                className="text-destructive hover:text-destructive"
                                 onClick={() => handleDeleteCampaignClick(campaign)}
                                 title="Delete"
                               >
