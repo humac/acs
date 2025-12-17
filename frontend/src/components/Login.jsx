@@ -36,7 +36,7 @@ const LoginNew = ({ onSwitchToRegister }) => {
   const [brandingLogo, setBrandingLogo] = useState(null);
   const [siteName, setSiteName] = useState('KARS');
   const [subTitle, setSubTitle] = useState('KeyData Asset Registration System');
-  const [footerLabel, setFooterLabel] = useState('SOC2 Compliance - Track and manage company assets');
+  const [footerLabel, setFooterLabel] = useState('SOC2 Compliance - KeyData Asset Registration System');
 
   // Dark mode state - default to light mode
   const [theme, setTheme] = useState(() => {

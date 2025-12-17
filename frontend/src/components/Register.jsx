@@ -26,7 +26,7 @@ const RegisterNew = ({ onSwitchToLogin }) => {
   const [oidcConfig, setOidcConfig] = useState(null);
   const [loadingInvite, setLoadingInvite] = useState(false);
   const [oidcLoading, setOidcLoading] = useState(false);
-  const [footerLabel, setFooterLabel] = useState('SOC2 Compliance • Secure Asset Management');
+  const [footerLabel, setFooterLabel] = useState('SOC2 Compliance - KeyData Asset Registration System');
 
   useEffect(() => {
     // Fetch branding settings
