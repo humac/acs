@@ -356,6 +356,7 @@ const AssetTypesSettings = () => {
                       <Button
                         variant="ghost"
                         size="sm"
+                        className="text-destructive hover:text-destructive"
                         onClick={() => handleDelete(type)}
                         disabled={loading || (type.usage_count && type.usage_count > 0)}
                       >
