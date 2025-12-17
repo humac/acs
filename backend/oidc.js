@@ -64,6 +64,7 @@ let OIDC_CONFIG = {
     admin: 'admin',
     manager: 'manager',
     employee: 'employee',
+    attestation_coordinator: 'attestation_coordinator',
   },
   defaultRole: 'employee',
 };
@@ -96,6 +97,7 @@ async function initializeOIDC(settings = null) {
         admin: 'admin',
         manager: 'manager',
         employee: 'employee',
+        attestation_coordinator: 'attestation_coordinator',
       },
       defaultRole: settings.default_role || 'employee',
     };

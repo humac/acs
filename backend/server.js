@@ -1761,7 +1761,7 @@ app.delete('/api/auth/passkeys/:id', authenticate, async (req, res) => {
 });
 
 // Get all users (admin only)
-app.get('/api/auth/users', authenticate, authorize('admin', 'manager'), async (req, res) => {
+app.get('/api/auth/users', authenticate, authorize('admin', 'attestation_coordinator', 'manager'), async (req, res) => {
   try {
     const users = await userDb.getAll();
     res.json(users);
@@ -3766,7 +3766,7 @@ app.delete('/api/assets/:id', authenticate, async (req, res) => {
 // ===== Company Management Endpoints =====
 
 // Get all companies (admin and manager read-only - full details)
-app.get('/api/companies', authenticate, authorize('admin', 'manager'), async (req, res) => {
+app.get('/api/companies', authenticate, authorize('admin', 'attestation_coordinator', 'manager'), async (req, res) => {
   try {
     const companies = await companyDb.getAll();
     res.json(companies);
@@ -4772,7 +4772,7 @@ app.get('/api/reports/trends', authenticate, authorize('admin', 'manager'), asyn
 // ===== ATTESTATION CAMPAIGN ROUTES =====
 
 // Create new attestation campaign (Admin only)
-app.post('/api/attestation/campaigns', authenticate, authorize('admin'), async (req, res) => {
+app.post('/api/attestation/campaigns', authenticate, authorize('admin', 'attestation_coordinator'), async (req, res) => {
   try {
     const { name, description, start_date, end_date, reminder_days, escalation_days, target_type, target_user_ids, target_company_ids } = req.body;
     
@@ -4835,7 +4835,7 @@ app.post('/api/attestation/campaigns', authenticate, authorize('admin'), async (
 });
 
 // Get all attestation campaigns (Admin and Manager read-only)
-app.get('/api/attestation/campaigns', authenticate, authorize('admin', 'manager'), async (req, res) => {
+app.get('/api/attestation/campaigns', authenticate, authorize('admin', 'attestation_coordinator', 'manager'), async (req, res) => {
   try {
     const campaigns = await attestationCampaignDb.getAll();
     
@@ -4854,7 +4854,7 @@ app.get('/api/attestation/campaigns', authenticate, authorize('admin', 'manager'
 });
 
 // Get specific campaign details with stats (Admin and Manager read-only)
-app.get('/api/attestation/campaigns/:id', authenticate, authorize('admin', 'manager'), async (req, res) => {
+app.get('/api/attestation/campaigns/:id', authenticate, authorize('admin', 'attestation_coordinator', 'manager'), async (req, res) => {
   try {
     const campaign = await attestationCampaignDb.getById(req.params.id);
     
@@ -4883,7 +4883,7 @@ app.get('/api/attestation/campaigns/:id', authenticate, authorize('admin', 'mana
 });
 
 // Update campaign (Admin only)
-app.put('/api/attestation/campaigns/:id', authenticate, authorize('admin'), async (req, res) => {
+app.put('/api/attestation/campaigns/:id', authenticate, authorize('admin', 'attestation_coordinator'), async (req, res) => {
   try {
     const { name, description, start_date, end_date, reminder_days, escalation_days, status, target_type, target_user_ids, target_company_ids } = req.body;
     
@@ -4923,7 +4923,7 @@ app.put('/api/attestation/campaigns/:id', authenticate, authorize('admin'), asyn
 });
 
 // Start campaign - creates records for all employees and sends emails (Admin only)
-app.post('/api/attestation/campaigns/:id/start', authenticate, authorize('admin'), async (req, res) => {
+app.post('/api/attestation/campaigns/:id/start', authenticate, authorize('admin', 'attestation_coordinator'), async (req, res) => {
   try {
     const campaign = await attestationCampaignDb.getById(req.params.id);
     
@@ -5086,7 +5086,7 @@ app.post('/api/attestation/campaigns/:id/start', authenticate, authorize('admin'
 });
 
 // Cancel campaign (Admin only)
-app.post('/api/attestation/campaigns/:id/cancel', authenticate, authorize('admin'), async (req, res) => {
+app.post('/api/attestation/campaigns/:id/cancel', authenticate, authorize('admin', 'attestation_coordinator'), async (req, res) => {
   try {
     const campaign = await attestationCampaignDb.getById(req.params.id);
     await attestationCampaignDb.update(req.params.id, { status: 'cancelled' });
@@ -5108,7 +5108,7 @@ app.post('/api/attestation/campaigns/:id/cancel', authenticate, authorize('admin
 });
 
 // Delete campaign (Admin only)
-app.delete('/api/attestation/campaigns/:id', authenticate, authorize('admin'), async (req, res) => {
+app.delete('/api/attestation/campaigns/:id', authenticate, authorize('admin', 'attestation_coordinator'), async (req, res) => {
   try {
     const campaign = await attestationCampaignDb.getById(req.params.id);
     
@@ -5136,7 +5136,7 @@ app.delete('/api/attestation/campaigns/:id', authenticate, authorize('admin'), a
 });
 
 // Get campaign dashboard with detailed employee records (Admin and Manager read-only)
-app.get('/api/attestation/campaigns/:id/dashboard', authenticate, authorize('admin', 'manager'), async (req, res) => {
+app.get('/api/attestation/campaigns/:id/dashboard', authenticate, authorize('admin', 'attestation_coordinator', 'manager'), async (req, res) => {
   try {
     const campaign = await attestationCampaignDb.getById(req.params.id);
     
@@ -5169,7 +5169,7 @@ app.get('/api/attestation/campaigns/:id/dashboard', authenticate, authorize('adm
 });
 
 // Export campaign report as CSV (Admin only)
-app.get('/api/attestation/campaigns/:id/export', authenticate, authorize('admin'), async (req, res) => {
+app.get('/api/attestation/campaigns/:id/export', authenticate, authorize('admin', 'attestation_coordinator'), async (req, res) => {
   try {
     const campaign = await attestationCampaignDb.getById(req.params.id);
     
@@ -5549,7 +5549,7 @@ app.get('/api/attestation/validate-invite/:token', async (req, res) => {
 });
 
 // Get pending invites for campaign (Admin and Manager)
-app.get('/api/attestation/campaigns/:id/pending-invites', authenticate, authorize('admin', 'manager'), async (req, res) => {
+app.get('/api/attestation/campaigns/:id/pending-invites', authenticate, authorize('admin', 'attestation_coordinator', 'manager'), async (req, res) => {
   try {
     const campaign = await attestationCampaignDb.getById(req.params.id);
     
@@ -5584,7 +5584,7 @@ app.get('/api/attestation/campaigns/:id/pending-invites', authenticate, authoriz
 });
 
 // Resend invites (Admin only)
-app.post('/api/attestation/campaigns/:id/resend-invites', authenticate, authorize('admin'), async (req, res) => {
+app.post('/api/attestation/campaigns/:id/resend-invites', authenticate, authorize('admin', 'attestation_coordinator'), async (req, res) => {
   try {
     const campaign = await attestationCampaignDb.getById(req.params.id);
     
@@ -5666,7 +5666,7 @@ app.post('/api/attestation/campaigns/:id/resend-invites', authenticate, authoriz
 });
 
 // Manual reminder for specific attestation record (Admin and Manager)
-app.post('/api/attestation/records/:id/remind', authenticate, authorize('admin', 'manager'), async (req, res) => {
+app.post('/api/attestation/records/:id/remind', authenticate, authorize('admin', 'attestation_coordinator', 'manager'), async (req, res) => {
   try {
     const record = await attestationRecordDb.getById(req.params.id);
     if (!record) {
@@ -5709,7 +5709,7 @@ app.post('/api/attestation/records/:id/remind', authenticate, authorize('admin',
 });
 
 // Bulk reminder for multiple attestation records (Admin and Manager)
-app.post('/api/attestation/campaigns/:id/bulk-remind', authenticate, authorize('admin', 'manager'), async (req, res) => {
+app.post('/api/attestation/campaigns/:id/bulk-remind', authenticate, authorize('admin', 'attestation_coordinator', 'manager'), async (req, res) => {
   try {
     const campaign = await attestationCampaignDb.getById(req.params.id);
     if (!campaign) {
@@ -5780,7 +5780,7 @@ app.post('/api/attestation/campaigns/:id/bulk-remind', authenticate, authorize('
 });
 
 // Resend single pending invite (Admin only)
-app.post('/api/attestation/pending-invites/:id/resend', authenticate, authorize('admin'), async (req, res) => {
+app.post('/api/attestation/pending-invites/:id/resend', authenticate, authorize('admin', 'attestation_coordinator'), async (req, res) => {
   try {
     const invite = await attestationPendingInviteDb.getById(req.params.id);
     
@@ -5847,7 +5847,7 @@ app.post('/api/attestation/pending-invites/:id/resend', authenticate, authorize(
 });
 
 // Manual escalation for specific attestation record (Admin only)
-app.post('/api/attestation/records/:id/escalate', authenticate, authorize('admin'), async (req, res) => {
+app.post('/api/attestation/records/:id/escalate', authenticate, authorize('admin', 'attestation_coordinator'), async (req, res) => {
   try {
     const record = await attestationRecordDb.getById(req.params.id);
     if (!record) {
