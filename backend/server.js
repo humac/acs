@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import { assetDb, companyDb, auditDb, userDb, oidcSettingsDb, brandingSettingsDb, passkeySettingsDb, databaseSettings, databaseEngine, importSqliteDatabase, passkeyDb, hubspotSettingsDb, hubspotSyncLogDb, smtpSettingsDb, passwordResetTokenDb, syncAssetOwnership, attestationCampaignDb, attestationRecordDb, attestationAssetDb, attestationNewAssetDb, assetTypeDb, emailTemplateDb, sanitizeDateValue, attestationPendingInviteDb } from './database.js';
 import { authenticate, authorize, hashPassword, comparePassword, generateToken } from './auth.js';
 import { initializeOIDC, getAuthorizationUrl, handleCallback, getUserInfo, extractUserData, isOIDCEnabled } from './oidc.js';
@@ -111,6 +112,24 @@ const parseCSVFile = async (filePath) => {
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Rate limiting for authentication endpoints
+const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 attempts per window
+  message: { error: 'Too many attempts, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Stricter rate limiting for password reset (prevent email spam)
+const passwordResetRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // 5 attempts per hour
+  message: { error: 'Too many password reset requests, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 const pendingMFALogins = new Map();
 const pendingPasskeyRegistrations = new Map();
@@ -226,7 +245,7 @@ const autoAssignManagerRole = async (email, triggeredBy) => {
 // ===== Authentication Endpoints =====
 
 // Register new user
-app.post('/api/auth/register', async (req, res) => {
+app.post('/api/auth/register', authRateLimiter, async (req, res) => {
   try {
     let { email, password, name, first_name, last_name, manager_first_name, manager_last_name, manager_name, manager_email } = req.body;
 
@@ -470,7 +489,7 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 // Login
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authRateLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -541,7 +560,7 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // Request password reset
-app.post('/api/auth/forgot-password', async (req, res) => {
+app.post('/api/auth/forgot-password', passwordResetRateLimiter, async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -3076,7 +3095,7 @@ app.get('/api/assets', authenticate, async (req, res) => {
 });
 
 // Get single asset by ID
-app.get('/api/assets/:id', async (req, res) => {
+app.get('/api/assets/:id', authenticate, async (req, res) => {
   try {
     const asset = await assetDb.getById(req.params.id);
     if (!asset) {
@@ -3090,7 +3109,7 @@ app.get('/api/assets/:id', async (req, res) => {
 });
 
 // Search assets
-app.get('/api/assets/search', async (req, res) => {
+app.get('/api/assets/search', authenticate, async (req, res) => {
   try {
     const filters = {
       employee_name: req.query.employee,
@@ -3108,7 +3127,7 @@ app.get('/api/assets/search', async (req, res) => {
 });
 
 // Bulk import assets via CSV
-app.post('/api/assets/import', authenticate, upload.single('file'), async (req, res) => {
+app.post('/api/assets/import', authenticate, authorize('admin', 'manager'), upload.single('file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'CSV file is required' });
   }
@@ -3539,7 +3558,7 @@ app.patch('/api/assets/bulk/manager', authenticate, authorize('admin'), async (r
 });
 
 // Update asset status
-app.patch('/api/assets/:id/status', async (req, res) => {
+app.patch('/api/assets/:id/status', authenticate, async (req, res) => {
   try {
     const { status, notes } = req.body;
 

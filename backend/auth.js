@@ -2,12 +2,12 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { userDb } from './database.js';
 
-// Validate JWT_SECRET in production
-if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
-  throw new Error('JWT_SECRET must be set in production');
+// Validate JWT_SECRET is always set
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required. Set it in your .env file.');
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRES_IN = '7d';
 
 // Generate JWT token
