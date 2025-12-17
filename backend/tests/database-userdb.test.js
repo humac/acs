@@ -5,7 +5,7 @@
  */
 
 import { describe, test, expect, beforeAll, afterEach } from '@jest/globals';
-import { assetDb, userDb } from './database.js';
+import { assetDb, userDb } from '../database.js';
 import Database from 'better-sqlite3';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';

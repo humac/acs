@@ -1,5 +1,5 @@
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
-import { PKCE_VERIFIER_TIMEOUT_MS, MAX_VERIFIER_STORE_SIZE, LRUCache } from './oidc.js';
+import { PKCE_VERIFIER_TIMEOUT_MS, MAX_VERIFIER_STORE_SIZE, LRUCache } from '../oidc.js';
 
 /**
  * Tests for OIDC PKCE Verifier Store - Timeout Management

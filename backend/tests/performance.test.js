@@ -6,7 +6,7 @@
  */
 
 import { describe, test, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
-import { assetDb, userDb, auditDb, companyDb } from './database.js';
+import { assetDb, userDb, auditDb, companyDb } from '../database.js';
 
 describe('Performance Optimizations', () => {
   let testCompany;

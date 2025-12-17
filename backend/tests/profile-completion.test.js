@@ -1,10 +1,10 @@
 import { describe, test, expect, beforeAll, afterAll } from '@jest/globals';
-import { userDb, auditDb, assetDb, companyDb } from './database.js';
-import { generateToken } from './auth.js';
+import { userDb, auditDb, assetDb, companyDb } from '../database.js';
+import { generateToken } from '../auth.js';
 import request from 'supertest';
 import express from 'express';
 import cors from 'cors';
-import { authenticate } from './auth.js';
+import { authenticate } from '../auth.js';
 
 // Setup minimal Express app for testing
 const app = express();

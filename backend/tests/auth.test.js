@@ -1,6 +1,6 @@
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
-import { generateToken, verifyToken, hashPassword, comparePassword, authenticate, authorize, optionalAuth } from './auth.js';
-import { userDb } from './database.js';
+import { generateToken, verifyToken, hashPassword, comparePassword, authenticate, authorize, optionalAuth } from '../auth.js';
+import { userDb } from '../database.js';
 
 describe('Auth Module', () => {
   describe('JWT_SECRET validation', () => {

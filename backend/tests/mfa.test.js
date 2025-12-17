@@ -5,7 +5,7 @@ import {
   generateBackupCodes,
   formatBackupCode,
   isValidBackupCodeFormat,
-} from './mfa.js';
+} from '../mfa.js';
 
 describe('MFA Module', () => {
   describe('generateMFASecret', () => {

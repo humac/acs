@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
-import { assetDb, assetTypeDb, companyDb } from './database.js';
+import { assetDb, assetTypeDb, companyDb } from '../database.js';
 
 describe('Asset Type Usage Count', () => {
   let testCompany;

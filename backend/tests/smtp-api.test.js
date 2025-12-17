@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
-import { assetDb, smtpSettingsDb } from './database.js';
-import { generateToken } from './auth.js';
-import { generateMasterKey } from './utils/encryption.js';
+import { assetDb, smtpSettingsDb } from '../database.js';
+import { generateToken } from '../auth.js';
+import { generateMasterKey } from '../utils/encryption.js';
 
 // Set up test environment
 process.env.KARS_MASTER_KEY = generateMasterKey('base64');

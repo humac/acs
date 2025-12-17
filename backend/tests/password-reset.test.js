@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, jest } from '@jest/globals';
 import { randomBytes } from 'crypto';
-import { passwordResetTokenDb, userDb } from './database.js';
-import { hashPassword } from './auth.js';
+import { passwordResetTokenDb, userDb } from '../database.js';
+import { hashPassword } from '../auth.js';
 
 describe('Password Reset Token Management', () => {
   let testUserId;

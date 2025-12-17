@@ -8,7 +8,7 @@
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 import { rmSync, mkdirSync } from 'fs';
 import { join } from 'path';
-import { assetDb, emailTemplateDb } from './database.js';
+import { assetDb, emailTemplateDb } from '../database.js';
 
 const TEST_DB_DIR = join(process.cwd(), 'test-data-attestation-email-variables');
 const TEST_DB_PATH = join(TEST_DB_DIR, 'assets.db');

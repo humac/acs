@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
-import { userDb, assetDb } from './database.js';
-import { generateToken } from './auth.js';
+import { userDb, assetDb } from '../database.js';
+import { generateToken } from '../auth.js';
 import request from 'supertest';
 import express from 'express';
-import { authenticate, authorize } from './auth.js';
+import { authenticate, authorize } from '../auth.js';
 
 // Create minimal express app with the report endpoints for testing
 const app = express();

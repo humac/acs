@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
-import { assetDb, userDb, companyDb } from './database.js';
+import { assetDb, userDb, companyDb } from '../database.js';
 
 describe('Unregistered Manager Name Display', () => {
   let testAssetId;

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
-import { attestationCampaignDb, attestationRecordDb, attestationNewAssetDb, userDb, assetDb, companyDb } from './database.js';
+import { attestationCampaignDb, attestationRecordDb, attestationNewAssetDb, userDb, assetDb, companyDb } from '../database.js';
 import { unlinkSync, existsSync } from 'fs';
 import { resolve } from 'path';
 

@@ -6,7 +6,7 @@ import {
   userDb, 
   assetDb,
   companyDb 
-} from './database.js';
+} from '../database.js';
 import { unlinkSync, existsSync } from 'fs';
 import { resolve } from 'path';
 

@@ -1,7 +1,7 @@
 // Test for summary report endpoint - regression test for issue where summary showed zeros
 import { describe, it, expect, beforeAll } from '@jest/globals';
-import { assetDb, userDb, companyDb } from './database.js';
-import { hashPassword } from './auth.js';
+import { assetDb, userDb, companyDb } from '../database.js';
+import { hashPassword } from '../auth.js';
 
 describe('Summary Report Tests', () => {
   beforeAll(async () => {

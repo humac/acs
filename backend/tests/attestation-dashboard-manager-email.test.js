@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
-import { userDb, companyDb, attestationCampaignDb, attestationRecordDb } from './database.js';
-import { generateToken } from './auth.js';
+import { userDb, companyDb, attestationCampaignDb, attestationRecordDb } from '../database.js';
+import { generateToken } from '../auth.js';
 import request from 'supertest';
 import express from 'express';
-import { authenticate, authorize } from './auth.js';
+import { authenticate, authorize } from '../auth.js';
 
 // Import the actual server app to test the real endpoint
 import './server.js'; // This will load the server routes

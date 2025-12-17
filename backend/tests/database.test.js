@@ -12,7 +12,7 @@ import {
   auditDb,
   userDb,
   sanitizeDateValue
-} from './database.js';
+} from '../database.js';
 
 describe('Database Module', () => {
   beforeAll(async () => {

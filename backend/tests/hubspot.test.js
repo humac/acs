@@ -6,7 +6,7 @@
  */
 
 import { describe, test, expect, jest, beforeEach, afterEach } from '@jest/globals';
-import { testHubSpotConnection, fetchHubSpotCompanies, syncCompaniesToKARS } from './hubspot.js';
+import { testHubSpotConnection, fetchHubSpotCompanies, syncCompaniesToKARS } from '../hubspot.js';
 
 // Mock fetch globally
 global.fetch = jest.fn();

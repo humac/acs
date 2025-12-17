@@ -1,7 +1,7 @@
 // Test for trends report endpoint - ensures registration_date is used correctly
 import { describe, it, expect, beforeAll } from '@jest/globals';
-import { assetDb, userDb, companyDb } from './database.js';
-import { hashPassword } from './auth.js';
+import { assetDb, userDb, companyDb } from '../database.js';
+import { hashPassword } from '../auth.js';
 
 describe('Trends Report Tests', () => {
   beforeAll(async () => {

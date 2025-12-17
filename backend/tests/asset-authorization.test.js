@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
-import { assetDb, userDb, auditDb, companyDb } from './database.js';
+import { assetDb, userDb, auditDb, companyDb } from '../database.js';
 
 describe('Asset Authorization and Manager Sync', () => {
   let testDb;
