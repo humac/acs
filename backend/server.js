@@ -6,7 +6,7 @@ import { assetDb, companyDb, auditDb, userDb, oidcSettingsDb, brandingSettingsDb
 import { authenticate, authorize, hashPassword, comparePassword, generateToken } from './auth.js';
 import { initializeOIDC, getAuthorizationUrl, handleCallback, getUserInfo, extractUserData, isOIDCEnabled } from './oidc.js';
 import { generateMFASecret, verifyTOTP, generateBackupCodes, formatBackupCode } from './mfa.js';
-import { testHubSpotConnection, syncCompaniesToKARS } from './hubspot.js';
+import { testHubSpotConnection, syncCompaniesToACS } from './hubspot.js';
 import { encryptValue } from './utils/encryption.js';
 import { safeJsonParse, safeJsonParseArray } from './utils/json.js';
 import { sendTestEmail, sendPasswordResetEmail } from './services/smtpMailer.js';
@@ -33,7 +33,7 @@ if (!globalThis.crypto) {
 // Passkey configuration - will be loaded from database or environment variables
 let passkeyConfig = {
   rpID: process.env.PASSKEY_RP_ID || 'localhost',
-  rpName: process.env.PASSKEY_RP_NAME || 'KARS - KeyData Asset Registration System',
+  rpName: process.env.PASSKEY_RP_NAME || 'ACS - Asset Compliance System',
   defaultOrigin: process.env.PASSKEY_ORIGIN || 'http://localhost:5173'
 };
 
@@ -49,7 +49,7 @@ const getPasskeyConfig = async () => {
   if (process.env.PASSKEY_RP_ID || process.env.PASSKEY_RP_NAME || process.env.PASSKEY_ORIGIN) {
     return {
       rpID: process.env.PASSKEY_RP_ID || 'localhost',
-      rpName: process.env.PASSKEY_RP_NAME || 'KARS - KeyData Asset Registration System',
+      rpName: process.env.PASSKEY_RP_NAME || 'ACS - Asset Compliance System',
       defaultOrigin: process.env.PASSKEY_ORIGIN || 'http://localhost:5173'
     };
   }
@@ -60,7 +60,7 @@ const getPasskeyConfig = async () => {
     if (dbSettings) {
       return {
         rpID: dbSettings.rp_id || 'localhost',
-        rpName: dbSettings.rp_name || 'KARS - KeyData Asset Registration System',
+        rpName: dbSettings.rp_name || 'ACS - Asset Compliance System',
         defaultOrigin: dbSettings.origin || 'http://localhost:5173'
       };
     }
@@ -2473,7 +2473,7 @@ app.post('/api/admin/hubspot/sync-companies', authenticate, authorize('admin'), 
 
     try {
       // Perform the sync
-      const result = await syncCompaniesToKARS(
+      const result = await syncCompaniesToACS(
         accessToken,
         companyDb,
         auditDb,
@@ -5962,7 +5962,7 @@ const startServer = async () => {
     console.log(`Using ${databaseEngine.toUpperCase()} database backend`);
 
     app.listen(PORT, () => {
-    console.log(`KARS API running on http://localhost:${PORT}`);
+    console.log(`ACS API running on http://localhost:${PORT}`);
       console.log(`Health check: http://localhost:${PORT}/api/health`);
     });
   } catch (error) {

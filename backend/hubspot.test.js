@@ -2,11 +2,11 @@
  * HubSpot Integration Module Tests
  * 
  * Tests for HubSpot API integration functions including connection testing,
- * company fetching, and syncing to KARS database.
+ * company fetching, and syncing to ACS database.
  */
 
 import { describe, test, expect, jest, beforeEach, afterEach } from '@jest/globals';
-import { testHubSpotConnection, fetchHubSpotCompanies, syncCompaniesToKARS } from './hubspot.js';
+import { testHubSpotConnection, fetchHubSpotCompanies, syncCompaniesToACS } from './hubspot.js';
 
 // Mock fetch globally
 global.fetch = jest.fn();
@@ -162,7 +162,7 @@ describe('HubSpot Integration', () => {
     });
   });
 
-  describe('syncCompaniesToKARS', () => {
+  describe('syncCompaniesToACS', () => {
     let mockCompanyDb;
     let mockAuditDb;
 
@@ -194,7 +194,7 @@ describe('HubSpot Integration', () => {
       mockCompanyDb.getByName.mockResolvedValue(null);
       mockCompanyDb.createWithHubSpotId.mockResolvedValue({ id: 1 });
 
-      const result = await syncCompaniesToKARS('test-token', mockCompanyDb, mockAuditDb, 'admin@test.com');
+      const result = await syncCompaniesToACS('test-token', mockCompanyDb, mockAuditDb, 'admin@test.com');
 
       expect(result.companiesFound).toBe(1);
       expect(result.companiesCreated).toBe(1);
@@ -223,7 +223,7 @@ describe('HubSpot Integration', () => {
         description: 'Old Desc'
       });
 
-      const result = await syncCompaniesToKARS('test-token', mockCompanyDb, mockAuditDb, 'admin@test.com');
+      const result = await syncCompaniesToACS('test-token', mockCompanyDb, mockAuditDb, 'admin@test.com');
 
       expect(result.companiesFound).toBe(1);
       expect(result.companiesCreated).toBe(0);
@@ -247,7 +247,7 @@ describe('HubSpot Integration', () => {
       mockCompanyDb.getByHubSpotId.mockResolvedValue(null);
       mockCompanyDb.getByName.mockResolvedValue({ id: 1, name: 'Existing Company' });
 
-      const result = await syncCompaniesToKARS('test-token', mockCompanyDb, mockAuditDb, 'admin@test.com');
+      const result = await syncCompaniesToACS('test-token', mockCompanyDb, mockAuditDb, 'admin@test.com');
 
       expect(result.companiesFound).toBe(1);
       expect(result.companiesCreated).toBe(0);
@@ -276,7 +276,7 @@ describe('HubSpot Integration', () => {
         .mockResolvedValueOnce({ id: 1 })
         .mockRejectedValueOnce(new Error('Database error'));
 
-      const result = await syncCompaniesToKARS('test-token', mockCompanyDb, mockAuditDb, 'admin@test.com');
+      const result = await syncCompaniesToACS('test-token', mockCompanyDb, mockAuditDb, 'admin@test.com');
 
       expect(result.companiesFound).toBe(2);
       expect(result.companiesCreated).toBe(1);
@@ -292,7 +292,7 @@ describe('HubSpot Integration', () => {
       fetch.mockRejectedValueOnce(new Error('API error'));
 
       await expect(
-        syncCompaniesToKARS('test-token', mockCompanyDb, mockAuditDb, 'admin@test.com')
+        syncCompaniesToACS('test-token', mockCompanyDb, mockAuditDb, 'admin@test.com')
       ).rejects.toThrow('HubSpot sync failed: Failed to fetch companies from HubSpot: API error');
     });
 
@@ -310,7 +310,7 @@ describe('HubSpot Integration', () => {
       mockCompanyDb.getByName.mockResolvedValue(null);
       mockCompanyDb.createWithHubSpotId.mockResolvedValue({ id: 1 });
 
-      const result = await syncCompaniesToKARS('test-token', mockCompanyDb, mockAuditDb, 'admin@test.com');
+      const result = await syncCompaniesToACS('test-token', mockCompanyDb, mockAuditDb, 'admin@test.com');
 
       expect(result.companiesCreated).toBe(1);
       expect(mockCompanyDb.createWithHubSpotId).toHaveBeenCalledWith({

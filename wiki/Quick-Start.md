@@ -1,6 +1,6 @@
 # Quick Start Guide
 
-Get the KeyData Asset Registration System (KARS) running in minutes. Pick the section that matches your role.
+Get the Asset Compliance System (ACS) running in minutes. Pick the section that matches your role.
 
 ## For Users
 
@@ -76,11 +76,11 @@ npm run dev   # UI on http://localhost:5173
 
 ## Understanding Your Role
 
-KARS uses role-based access control (RBAC) to ensure appropriate access levels. Here's a quick overview of what each role can do:
+ACS uses role-based access control (RBAC) to ensure appropriate access levels. Here's a quick overview of what each role can do:
 
 ### 🔑 Quick Permissions Overview
 
-KARS has **four roles** with different access levels:
+ACS has **four roles** with different access levels:
 
 | Role | Primary Purpose |
 |------|----------------|

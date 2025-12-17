@@ -2,7 +2,7 @@
  * HubSpot CRM API Integration Module
  * 
  * This module provides functions to interact with the HubSpot CRM API
- * for syncing company data into KARS.
+ * for syncing company data into ACS.
  * 
  * HubSpot API Documentation:
  * - Base URL: https://api.hubapi.com
@@ -103,14 +103,14 @@ export const fetchHubSpotCompanies = async (accessToken) => {
 };
 
 /**
- * Sync companies from HubSpot to KARS database
+ * Sync companies from HubSpot to ACS database
  * @param {string} accessToken - HubSpot Private App Access Token
  * @param {Object} companyDb - Company database methods
  * @param {Object} auditDb - Audit log database methods
  * @param {string} userEmail - Email of user performing the sync
  * @returns {Promise<{companiesFound: number, companiesCreated: number, companiesUpdated: number, errors: Array}>}
  */
-export const syncCompaniesToKARS = async (accessToken, companyDb, auditDb, userEmail = null) => {
+export const syncCompaniesToACS = async (accessToken, companyDb, auditDb, userEmail = null) => {
   const result = {
     companiesFound: 0,
     companiesCreated: 0,

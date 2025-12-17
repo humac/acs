@@ -1,6 +1,6 @@
 # Features
 
-Complete feature overview of the KeyData Asset Registration System (KARS).
+Complete feature overview of the Asset Compliance System (ACS).
 
 ## 🎯 Core Features
 
@@ -211,7 +211,7 @@ The attestation scheduler runs daily automated tasks:
 
 **Four User Roles:**
 
-KARS implements a comprehensive role-based access control system with four distinct roles: **Employee**, **Manager**, **Attestation Coordinator**, and **Admin**. Each role has specific permissions designed to support different levels of system access and responsibility.
+ACS implements a comprehensive role-based access control system with four distinct roles: **Employee**, **Manager**, **Attestation Coordinator**, and **Admin**. Each role has specific permissions designed to support different levels of system access and responsibility.
 
 #### Role Descriptions
 

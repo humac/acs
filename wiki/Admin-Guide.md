@@ -459,7 +459,7 @@ The attestation scheduler (if enabled with `RUN_ATTESTATION_SCHEDULER=true`) run
 
 ## Email Notification Workflows
 
-KARS includes a comprehensive email notification system to support password reset workflows and attestation campaigns. All email notifications require SMTP configuration via **Admin Settings → Notifications**. Email templates are fully customizable via **Admin Settings → Notifications → Email Templates**.
+ACS includes a comprehensive email notification system to support password reset workflows and attestation campaigns. All email notifications require SMTP configuration via **Admin Settings → Notifications**. Email templates are fully customizable via **Admin Settings → Notifications → Email Templates**.
 
 **Scheduler Note:** When `RUN_ATTESTATION_SCHEDULER=true` is enabled, the scheduler runs daily automated checks for reminders, escalations, and campaign closures.
 
@@ -771,7 +771,7 @@ Access: **Audit & Reporting** → **Summary Report**
 
 ### SOC2 Compliance Support Features
 
-KARS provides evidence and controls to support your organization's SOC2 compliance:
+ACS provides evidence and controls to support your organization's SOC2 compliance:
 
 ✅ **Asset Tracking** - Complete laptop inventory
 ✅ **User Attribution** - Every action tied to a user

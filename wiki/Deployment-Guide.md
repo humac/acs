@@ -1,6 +1,6 @@
 # Deployment Guide
 
-Complete production deployment guide for the KeyData Asset Registration System (KARS).
+Complete production deployment guide for the Asset Compliance System (ACS).
 
 > **Quick Start:** For a condensed version, see [QUICKSTART-PORTAINER.md](../QUICKSTART-PORTAINER.md) in the repository.
 

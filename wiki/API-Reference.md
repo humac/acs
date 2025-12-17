@@ -1,6 +1,6 @@
 # API Reference
 
-Complete REST API documentation for the KeyData Asset Registration System (KARS).
+Complete REST API documentation for the Asset Compliance System (ACS).
 
 ## Base URL
 
@@ -441,7 +441,7 @@ Authorization: Bearer <token>
 {
   "challenge": "3Q2+7w...",
   "rp": {
-    "name": "KARS - KeyData Asset Registration System",
+    "name": "ACS - Asset Compliance System",
     "id": "localhost"
   },
   "user": {
