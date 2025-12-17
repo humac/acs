@@ -5151,7 +5151,8 @@ app.get('/api/attestation/campaigns/:id/dashboard', authenticate, authorize('adm
           ...record,
           user_email: user.email,
           user_name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.name,
-          user_role: user.role
+          user_role: user.role,
+          manager_email: user.manager_email || null
         });
       }
     }
