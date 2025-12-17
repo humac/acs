@@ -301,7 +301,7 @@ const UserManagement = () => {
   };
 
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Never';
-  const getRoleColor = (role) => ({ admin: 'destructive', manager: 'success', employee: 'default' }[role] || 'secondary');
+  const getRoleColor = (role) => ({ admin: 'destructive', manager: 'success', employee: 'default', attestation_coordinator: 'outline' }[role] || 'secondary');
 
   const filteredUsers = useMemo(() => {
     const term = searchTerm.toLowerCase();
@@ -361,11 +361,11 @@ const UserManagement = () => {
             <span className="text-sm text-muted-foreground">Total: {users.length}</span>
           </div>
           <CardDescription>
-            {isManager ? 'View user information (read-only access)' : 'Manage user accounts, roles, and permissions'}
+            {(isManager || user?.role === 'attestation_coordinator') ? 'View user information (read-only access)' : 'Manage user accounts, roles, and permissions'}
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-2">
-          {isManager && (
+          {(isManager || user?.role === 'attestation_coordinator') && (
             <Alert className="mb-4">
               <Info className="h-4 w-4" />
               <AlertDescription>
@@ -407,6 +407,7 @@ const UserManagement = () => {
                     <SelectContent>
                       <SelectItem value="employee">Employee</SelectItem>
                       <SelectItem value="manager">Manager</SelectItem>
+                      <SelectItem value="attestation_coordinator">Attestation Coordinator</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                     </SelectContent>
                   </Select>
@@ -533,6 +534,7 @@ const UserManagement = () => {
                               <SelectContent>
                                 <SelectItem value="employee">Employee</SelectItem>
                                 <SelectItem value="manager">Manager</SelectItem>
+                                <SelectItem value="attestation_coordinator">Attestation Coord.</SelectItem>
                                 <SelectItem value="admin">Admin</SelectItem>
                               </SelectContent>
                             </Select>
@@ -742,6 +744,7 @@ const UserManagement = () => {
                   <SelectContent>
                     <SelectItem value="employee">Employee</SelectItem>
                     <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="attestation_coordinator">Attestation Coordinator</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
