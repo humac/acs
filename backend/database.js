@@ -146,7 +146,7 @@ const isValidColumnName = (columnName) => {
  * @returns {string} Safe SQL SELECT expression
  * @throws {Error} If column name is invalid
  */
-const buildSafeColumnExpression = (columnName, alias = null) => {
+const _buildSafeColumnExpression = (columnName, alias = null) => {
   if (!isValidColumnName(columnName)) {
     throw new Error(`Invalid column name for SQL expression: "${columnName}"`);
   }

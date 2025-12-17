@@ -6,7 +6,7 @@ import { authenticate, authorize, hashPassword, comparePassword, generateToken }
 import { initializeOIDC, getAuthorizationUrl, handleCallback, getUserInfo, extractUserData, isOIDCEnabled } from './oidc.js';
 import { generateMFASecret, verifyTOTP, generateBackupCodes, formatBackupCode } from './mfa.js';
 import { testHubSpotConnection, syncCompaniesToKARS } from './hubspot.js';
-import { encryptValue, decryptValue } from './utils/encryption.js';
+import { encryptValue } from './utils/encryption.js';
 import { sendTestEmail, sendPasswordResetEmail } from './services/smtpMailer.js';
 import { randomBytes, webcrypto as nodeWebcrypto } from 'crypto';
 import multer from 'multer';
@@ -1695,7 +1695,7 @@ app.post('/api/auth/passkeys/verify-authentication', async (req, res) => {
 
     if (!pending) {
       // Search for challenge in passwordless flow storage
-      for (const [key, value] of pendingPasskeyLogins.entries()) {
+      for (const [_key, value] of pendingPasskeyLogins.entries()) {
         if (value.userId === null || value.userId === user.id) {
           pending = value;
           break;
@@ -3233,8 +3233,7 @@ app.post('/api/assets', authenticate, async (req, res) => {
       company_name,
       asset_type,
       serial_number, 
-      asset_tag, 
-      notes 
+      asset_tag 
     } = req.body;
 
     // Validation
@@ -3622,9 +3621,7 @@ app.put('/api/assets/:id', authenticate, async (req, res) => {
       company_name,
       asset_type,
       serial_number, 
-      asset_tag, 
-      status, 
-      notes 
+      asset_tag 
     } = req.body;
 
     // Employees can update the asset but cannot change their own name/email
@@ -3866,7 +3863,7 @@ app.get('/api/companies/:id', async (req, res) => {
 // Create new company (admin only)
 app.post('/api/companies', authenticate, authorize('admin'), async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { name } = req.body;
 
     // Validation
     if (!name || name.trim() === '') {
@@ -3911,7 +3908,7 @@ app.put('/api/companies/:id', authenticate, authorize('admin'), async (req, res)
       return res.status(404).json({ error: 'Company not found' });
     }
 
-    const { name, description } = req.body;
+    const { name } = req.body;
 
     if (!name || name.trim() === '') {
       return res.status(400).json({
@@ -4351,7 +4348,6 @@ app.get('/api/reports/summary-enhanced', authenticate, async (req, res) => {
     // Calculate current period stats
     const now = new Date();
     const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
-    const sixtyDaysAgo = new Date(now - 60 * 24 * 60 * 60 * 1000);
 
     const currentAssets = assets.filter(a => a.registration_date && new Date(a.registration_date) <= now);
     const previousAssets = assets.filter(a => a.registration_date && new Date(a.registration_date) <= thirtyDaysAgo);
@@ -4653,7 +4649,6 @@ app.get('/api/reports/trends', authenticate, authorize('admin', 'manager', 'atte
   try {
     const user = await userDb.getById(req.user.id);
     const period = parseInt(req.query.period) || 30;
-    const compareTo = req.query.compareTo || 'previous';
     
     const allAssets = await assetDb.getAll();
 
@@ -5436,7 +5431,7 @@ app.post('/api/attestation/records/:id/complete', authenticate, async (req, res)
     for (const newAsset of newAssets) {
       try {
         // Use employee/manager info from newAsset if available, otherwise fallback to current user
-        const createdAsset = await assetDb.create({
+        await assetDb.create({
           employee_email: newAsset.employee_email || req.user.email,
           employee_first_name: newAsset.employee_first_name || req.user.first_name || '',
           employee_last_name: newAsset.employee_last_name || req.user.last_name || '',

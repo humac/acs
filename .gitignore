@@ -18,6 +18,9 @@ build/
 coverage/
 .nyc_output/
 
+# ESLint
+.eslintcache
+
 # Environment variables
 .env
 .env.local
