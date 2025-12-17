@@ -1,12 +1,14 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import { assetDb, companyDb, auditDb, userDb, oidcSettingsDb, brandingSettingsDb, passkeySettingsDb, databaseSettings, databaseEngine, importSqliteDatabase, passkeyDb, hubspotSettingsDb, hubspotSyncLogDb, smtpSettingsDb, passwordResetTokenDb, syncAssetOwnership, attestationCampaignDb, attestationRecordDb, attestationAssetDb, attestationNewAssetDb, assetTypeDb, emailTemplateDb, sanitizeDateValue, attestationPendingInviteDb } from './database.js';
 import { authenticate, authorize, hashPassword, comparePassword, generateToken } from './auth.js';
 import { initializeOIDC, getAuthorizationUrl, handleCallback, getUserInfo, extractUserData, isOIDCEnabled } from './oidc.js';
 import { generateMFASecret, verifyTOTP, generateBackupCodes, formatBackupCode } from './mfa.js';
 import { testHubSpotConnection, syncCompaniesToKARS } from './hubspot.js';
 import { encryptValue } from './utils/encryption.js';
+import { safeJsonParse, safeJsonParseArray } from './utils/json.js';
 import { sendTestEmail, sendPasswordResetEmail } from './services/smtpMailer.js';
 import { randomBytes, webcrypto as nodeWebcrypto } from 'crypto';
 import multer from 'multer';
@@ -108,9 +110,45 @@ const parseCSVFile = async (filePath) => {
 };
 
 // Middleware
-app.use(cors());
+// Configure CORS with origin whitelist (uses ALLOWED_ORIGINS from .env)
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
+  : ['http://localhost:5173', 'http://localhost:3000']; // Default dev origins
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc.) in development
+    if (!origin && process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Rate limiting for authentication endpoints
+const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 attempts per window
+  message: { error: 'Too many attempts, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Stricter rate limiting for password reset (prevent email spam)
+const passwordResetRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // 5 attempts per hour
+  message: { error: 'Too many password reset requests, please try again later' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 const pendingMFALogins = new Map();
 const pendingPasskeyRegistrations = new Map();
@@ -153,7 +191,7 @@ app.get('/api/health', (req, res) => {
 
 const serializePasskey = (passkey) => ({
   ...passkey,
-  transports: passkey?.transports ? JSON.parse(passkey.transports) : [],
+  transports: safeJsonParseArray(passkey?.transports),
 });
 
 /**
@@ -226,7 +264,7 @@ const autoAssignManagerRole = async (email, triggeredBy) => {
 // ===== Authentication Endpoints =====
 
 // Register new user
-app.post('/api/auth/register', async (req, res) => {
+app.post('/api/auth/register', authRateLimiter, async (req, res) => {
   try {
     let { email, password, name, first_name, last_name, manager_first_name, manager_last_name, manager_name, manager_email } = req.body;
 
@@ -470,7 +508,7 @@ app.post('/api/auth/register', async (req, res) => {
 });
 
 // Login
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authRateLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -541,7 +579,7 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // Request password reset
-app.post('/api/auth/forgot-password', async (req, res) => {
+app.post('/api/auth/forgot-password', passwordResetRateLimiter, async (req, res) => {
   try {
     const { email } = req.body;
 
@@ -1124,7 +1162,7 @@ app.get('/api/auth/mfa/status', authenticate, async (req, res) => {
     const mfaStatus = await userDb.getMFAStatus(req.user.id);
     res.json({
       enabled: mfaStatus?.mfa_enabled === 1,
-      hasBackupCodes: mfaStatus?.mfa_backup_codes ? JSON.parse(mfaStatus.mfa_backup_codes).length > 0 : false
+      hasBackupCodes: safeJsonParseArray(mfaStatus?.mfa_backup_codes).length > 0
     });
   } catch (error) {
     console.error('Get MFA status error:', error);
@@ -1385,7 +1423,7 @@ app.post('/api/auth/passkeys/registration-options', authenticate, async (req, re
       excludeCredentials: validPasskeys.map((pk) => ({
         id: pk.credential_id,
         type: 'public-key',
-        transports: pk.transports ? JSON.parse(pk.transports) : undefined
+        transports: safeJsonParse(pk.transports, undefined)
       }))
     });
 
@@ -1604,7 +1642,7 @@ app.post('/api/auth/passkeys/auth-options', async (req, res) => {
       allowCredentials = validPasskeys.map((pk) => ({
         id: pk.credential_id,
         type: 'public-key',
-        transports: pk.transports ? JSON.parse(pk.transports) : undefined
+        transports: safeJsonParse(pk.transports, undefined)
       }));
 
       userId = user.id;
@@ -1719,7 +1757,7 @@ app.post('/api/auth/passkeys/verify-authentication', async (req, res) => {
         counter: typeof dbPasskey.counter === 'number' && Number.isFinite(dbPasskey.counter)
           ? dbPasskey.counter
           : 0,
-        transports: dbPasskey.transports ? JSON.parse(dbPasskey.transports) : []
+        transports: safeJsonParseArray(dbPasskey.transports)
       }
     });
 
@@ -3076,7 +3114,7 @@ app.get('/api/assets', authenticate, async (req, res) => {
 });
 
 // Get single asset by ID
-app.get('/api/assets/:id', async (req, res) => {
+app.get('/api/assets/:id', authenticate, async (req, res) => {
   try {
     const asset = await assetDb.getById(req.params.id);
     if (!asset) {
@@ -3090,7 +3128,7 @@ app.get('/api/assets/:id', async (req, res) => {
 });
 
 // Search assets
-app.get('/api/assets/search', async (req, res) => {
+app.get('/api/assets/search', authenticate, async (req, res) => {
   try {
     const filters = {
       employee_name: req.query.employee,
@@ -3108,7 +3146,7 @@ app.get('/api/assets/search', async (req, res) => {
 });
 
 // Bulk import assets via CSV
-app.post('/api/assets/import', authenticate, upload.single('file'), async (req, res) => {
+app.post('/api/assets/import', authenticate, authorize('admin', 'manager'), upload.single('file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'CSV file is required' });
   }
@@ -3539,7 +3577,7 @@ app.patch('/api/assets/bulk/manager', authenticate, authorize('admin'), async (r
 });
 
 // Update asset status
-app.patch('/api/assets/:id/status', async (req, res) => {
+app.patch('/api/assets/:id/status', authenticate, async (req, res) => {
   try {
     const { status, notes } = req.body;
 
