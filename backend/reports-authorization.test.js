@@ -10,21 +10,21 @@ const app = express();
 app.use(express.json());
 
 // Mock report endpoints with authorization
-app.get('/api/reports/statistics-enhanced', authenticate, authorize('admin', 'manager'), async (req, res) => {
+app.get('/api/reports/statistics-enhanced', authenticate, authorize('admin', 'manager', 'attestation_coordinator'), async (req, res) => {
   res.json({ success: true, data: { activityByDay: [], actionBreakdown: [], topUsers: [] } });
 });
 
-app.get('/api/reports/compliance', authenticate, authorize('admin', 'manager'), async (req, res) => {
+app.get('/api/reports/compliance', authenticate, authorize('admin', 'manager', 'attestation_coordinator'), async (req, res) => {
   res.json({ success: true, data: { score: 85, overdueAttestations: 0 } });
 });
 
-app.get('/api/reports/trends', authenticate, authorize('admin', 'manager'), async (req, res) => {
+app.get('/api/reports/trends', authenticate, authorize('admin', 'manager', 'attestation_coordinator'), async (req, res) => {
   res.json({ success: true, data: { assetGrowth: [], statusChanges: [] } });
 });
 
 describe('Reports Authorization', () => {
-  let adminUser, managerUser, employeeUser;
-  let adminToken, managerToken, employeeToken;
+  let adminUser, managerUser, employeeUser, attestationCoordinatorUser;
+  let adminToken, managerToken, employeeToken, attestationCoordinatorToken;
   let timestamp;
 
   beforeAll(async () => {
@@ -61,6 +61,15 @@ describe('Reports Authorization', () => {
     });
     employeeUser = await userDb.getByEmail(`employee-reports-${timestamp}@test.com`);
     employeeToken = generateToken(employeeUser);
+
+    await userDb.create({
+      email: `attcoord-reports-${timestamp}@test.com`,
+      name: 'Attestation Coordinator User',
+      password_hash: 'dummy-hash',
+      role: 'attestation_coordinator'
+    });
+    attestationCoordinatorUser = await userDb.getByEmail(`attcoord-reports-${timestamp}@test.com`);
+    attestationCoordinatorToken = generateToken(attestationCoordinatorUser);
   });
 
   afterAll(async () => {
@@ -69,6 +78,7 @@ describe('Reports Authorization', () => {
       if (adminUser?.id) await userDb.delete(adminUser.id);
       if (managerUser?.id) await userDb.delete(managerUser.id);
       if (employeeUser?.id) await userDb.delete(employeeUser.id);
+      if (attestationCoordinatorUser?.id) await userDb.delete(attestationCoordinatorUser.id);
     } catch (error) {
       // Ignore cleanup errors
     }
@@ -88,6 +98,15 @@ describe('Reports Authorization', () => {
       const response = await request(app)
         .get('/api/reports/statistics-enhanced?period=30')
         .set('Authorization', `Bearer ${managerToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+    });
+
+    it('should allow attestation coordinator access', async () => {
+      const response = await request(app)
+        .get('/api/reports/statistics-enhanced?period=30')
+        .set('Authorization', `Bearer ${attestationCoordinatorToken}`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);
@@ -129,6 +148,15 @@ describe('Reports Authorization', () => {
       expect(response.body.success).toBe(true);
     });
 
+    it('should allow attestation coordinator access', async () => {
+      const response = await request(app)
+        .get('/api/reports/compliance')
+        .set('Authorization', `Bearer ${attestationCoordinatorToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+    });
+
     it('should deny employee access with 403', async () => {
       const response = await request(app)
         .get('/api/reports/compliance')
@@ -160,6 +188,15 @@ describe('Reports Authorization', () => {
       const response = await request(app)
         .get('/api/reports/trends?period=30')
         .set('Authorization', `Bearer ${managerToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.success).toBe(true);
+    });
+
+    it('should allow attestation coordinator access', async () => {
+      const response = await request(app)
+        .get('/api/reports/trends?period=30')
+        .set('Authorization', `Bearer ${attestationCoordinatorToken}`);
 
       expect(response.status).toBe(200);
       expect(response.body.success).toBe(true);

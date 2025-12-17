@@ -190,7 +190,7 @@ function AppNew() {
     { label: 'Attestation', icon: ClipboardCheck, path: '/attestation', roles: ['admin', 'manager', 'attestation_coordinator'] },
     { label: 'Companies', icon: Building2, path: '/companies', roles: ['admin', 'manager', 'attestation_coordinator'] },
     { label: 'Users', icon: Users, path: '/users', roles: ['admin', 'manager', 'attestation_coordinator'] },
-    { label: 'Audit & Reports', icon: FileBarChart, path: '/audit' },
+    { label: 'Audit & Reports', icon: FileBarChart, path: '/audit', roles: ['admin', 'manager', 'attestation_coordinator'] },
     { label: 'Admin Settings', icon: Settings, path: '/admin', roles: ['admin'] },
   ];
 
@@ -446,7 +446,9 @@ function AppNew() {
           {(user?.role === 'admin' || user?.role === 'manager' || user?.role === 'attestation_coordinator') && (
             <Route path="/users" element={<UserManagement />} />
           )}
-          <Route path="/audit" element={<AuditReporting />} />
+          {(user?.role === 'admin' || user?.role === 'manager' || user?.role === 'attestation_coordinator') && (
+            <Route path="/audit" element={<AuditReporting />} />
+          )}
           {(user?.role === 'admin' || user?.role === 'manager' || user?.role === 'attestation_coordinator') && (
             <Route path="/attestation" element={<AttestationPage />} />
           )}
