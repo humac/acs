@@ -1888,9 +1888,9 @@ app.put('/api/auth/users/:id/role', authenticate, authorize('admin'), async (req
     const userId = parseInt(req.params.id);
 
     // Validation
-    if (!role || !['admin', 'manager', 'employee'].includes(role)) {
+    if (!role || !['admin', 'manager', 'attestation_coordinator', 'employee'].includes(role)) {
       return res.status(400).json({
-        error: 'Invalid role. Must be one of: admin, manager, employee'
+        error: 'Invalid role. Must be one of: admin, manager, attestation_coordinator, employee'
       });
     }
 

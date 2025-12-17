@@ -330,6 +330,11 @@ function mapRole(oidcRoles) {
     return 'admin';
   }
 
+  // Check for attestation_coordinator role (second priority)
+  if (oidcRoles.some(r => mapping.attestation_coordinator && r.toLowerCase() === mapping.attestation_coordinator.toLowerCase())) {
+    return 'attestation_coordinator';
+  }
+
   // Check for manager role
   if (oidcRoles.some(r => mapping.manager && r.toLowerCase() === mapping.manager.toLowerCase())) {
     return 'manager';
