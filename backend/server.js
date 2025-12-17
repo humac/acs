@@ -5151,12 +5151,24 @@ app.get('/api/attestation/campaigns/:id/dashboard', authenticate, authorize('adm
     for (const record of records) {
       const user = await userDb.getById(record.user_id);
       if (user) {
+        // Get companies from user's assets
+        const userAssets = await assetDb.getByEmployeeEmail(user.email);
+        const companyIds = [...new Set(userAssets.map(a => a.company_id).filter(Boolean))];
+        
+        // Fetch company names
+        const companies = [];
+        for (const companyId of companyIds) {
+          const company = await companyDb.getById(companyId);
+          if (company) companies.push(company.name);
+        }
+        
         detailedRecords.push({
           ...record,
           user_email: user.email,
           user_name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.name,
           user_role: user.role,
-          manager_email: user.manager_email || null
+          manager_email: user.manager_email || null,
+          companies: companies
         });
       }
     }

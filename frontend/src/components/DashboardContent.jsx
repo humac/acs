@@ -36,6 +36,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 export function DashboardContent({ campaign, compact = false, onClose = null }) {
@@ -51,6 +52,7 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const [showMyTeamOnly, setShowMyTeamOnly] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState('all');
   const [showPendingInvitesModal, setShowPendingInvitesModal] = useState(false);
   const [pendingInvites, setPendingInvites] = useState([]);
   const [loadingPendingInvites, setLoadingPendingInvites] = useState(false);
@@ -320,6 +322,24 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
     }
   };
 
+  // Calculate available companies with counts
+  const availableCompanies = useMemo(() => {
+    if (!dashboardData?.records) return [];
+    
+    const companyCountMap = new Map();
+    dashboardData.records.forEach(record => {
+      if (record.companies?.length > 0) {
+        record.companies.forEach(companyName => {
+          companyCountMap.set(companyName, (companyCountMap.get(companyName) || 0) + 1);
+        });
+      }
+    });
+    
+    return Array.from(companyCountMap.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [dashboardData]);
+
   // Compute filtered records and counts
   const filteredRecords = useMemo(() => {
     if (!dashboardData?.records) return [];
@@ -329,6 +349,11 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
     // Manager team filter (apply first, before other filters)
     if (user?.role === 'manager' && showMyTeamOnly) {
       records = records.filter(r => r.manager_email === user.email);
+    }
+    
+    // Company filter
+    if (selectedCompany !== 'all') {
+      records = records.filter(r => r.companies?.includes(selectedCompany));
     }
     
     // Apply tab filter
@@ -352,7 +377,7 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
     }
     
     return records;
-  }, [dashboardData, dashboardFilterTab, dashboardSearchQuery, campaign, showMyTeamOnly, user]);
+  }, [dashboardData, dashboardFilterTab, dashboardSearchQuery, campaign, showMyTeamOnly, selectedCompany, user]);
 
   // Compute counts
   const overdueCount = useMemo(() => {
@@ -489,6 +514,30 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
           <Label htmlFor="myTeamOnly" className="text-sm font-medium cursor-pointer">
             Show only my direct reports
           </Label>
+        </div>
+      )}
+
+      {/* Company Filter */}
+      {['manager', 'admin', 'attestation_coordinator'].includes(user?.role) && availableCompanies.length > 0 && (
+        <div className="space-y-2 p-3 bg-muted/50 rounded-lg">
+          <Label htmlFor="company-filter" className="text-sm font-medium">
+            Filter by Company
+          </Label>
+          <Select value={selectedCompany} onValueChange={setSelectedCompany}>
+            <SelectTrigger id="company-filter">
+              <SelectValue placeholder="All Companies" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">
+                All Companies ({dashboardData?.records?.length || 0} employees)
+              </SelectItem>
+              {availableCompanies.map(({ name, count }) => (
+                <SelectItem key={name} value={name}>
+                  {name} ({count} {count === 1 ? 'employee' : 'employees'})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       )}
 
