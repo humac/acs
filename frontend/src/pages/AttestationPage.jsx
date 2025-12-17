@@ -665,28 +665,28 @@ export default function AttestationPage() {
                             {canManageCampaigns && (
                               <>
                                 <Button
-                                  size="sm"
+                                  size="icon"
                                   variant="outline"
                                   onClick={() => handleEditCampaignClick(campaign)}
+                                  title="Edit"
                                 >
-                                  <Edit className="h-4 w-4 mr-1" />
-                                  Edit
+                                  <Edit className="h-4 w-4" />
                                 </Button>
                                 <Button
-                                  size="sm"
+                                  size="icon"
                                   variant="outline"
                                   onClick={() => handleStartCampaignClick(campaign)}
+                                  title="Start"
                                 >
-                                  <PlayCircle className="h-4 w-4 mr-1" />
-                                  Start
+                                  <PlayCircle className="h-4 w-4" />
                                 </Button>
                                 <Button
-                                  size="sm"
+                                  size="icon"
                                   variant="destructive"
                                   onClick={() => handleDeleteCampaignClick(campaign)}
+                                  title="Delete"
                                 >
-                                  <Trash2 className="h-4 w-4 mr-1" />
-                                  Delete
+                                  <Trash2 className="h-4 w-4" />
                                 </Button>
                               </>
                             )}
@@ -695,29 +695,29 @@ export default function AttestationPage() {
                         {campaign.status === 'active' && (
                           <>
                             <Button
-                              size="sm"
+                              size="icon"
                               variant="outline"
                               onClick={() => handleViewDashboard(campaign)}
+                              title="View Dashboard"
                             >
-                              <Eye className="h-4 w-4 mr-1" />
-                              View Dashboard
+                              <Eye className="h-4 w-4" />
                             </Button>
                             <Button
-                              size="sm"
+                              size="icon"
                               variant="outline"
                               onClick={() => handleExportCampaign(campaign.id, campaign.name)}
+                              title="Export"
                             >
-                              <Download className="h-4 w-4 mr-1" />
-                              Export
+                              <Download className="h-4 w-4" />
                             </Button>
                             {canManageCampaigns && (
                               <Button
-                                size="sm"
+                                size="icon"
                                 variant="destructive"
                                 onClick={() => handleCancelCampaignClick(campaign)}
+                                title="Cancel"
                               >
-                                <XCircle className="h-4 w-4 mr-1" />
-                                Cancel
+                                <XCircle className="h-4 w-4" />
                               </Button>
                             )}
                           </>
@@ -725,21 +725,21 @@ export default function AttestationPage() {
                         {(campaign.status === 'completed' || campaign.status === 'cancelled') && (
                           <>
                             <Button
-                              size="sm"
+                              size="icon"
                               variant="outline"
                               onClick={() => handleExportCampaign(campaign.id, campaign.name)}
+                              title="Export"
                             >
-                              <Download className="h-4 w-4 mr-1" />
-                              Export
+                              <Download className="h-4 w-4" />
                             </Button>
                             {canManageCampaigns && (
                               <Button
-                                size="sm"
+                                size="icon"
                                 variant="destructive"
                                 onClick={() => handleDeleteCampaignClick(campaign)}
+                                title="Delete"
                               >
-                                <Trash2 className="h-4 w-4 mr-1" />
-                                Delete
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             )}
                           </>
