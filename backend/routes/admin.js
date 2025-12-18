@@ -500,13 +500,14 @@ export default function createAdminRouter(deps) {
       await systemSettingsDb.update(settings, req.user.email);
       
       // Log the change
-      await auditDb.create({
-        action: 'UPDATE',
-        resource_type: 'system_settings',
-        resource_id: 'system',
-        user_email: req.user.email,
-        details: `Updated system settings`
-      });
+      await auditDb.log(
+        'update',
+        'system_settings',
+        1,
+        'System Configuration',
+        'System settings updated',
+        req.user.email
+      );
       
       // Return updated configuration
       const config = await getSystemConfig();

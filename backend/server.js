@@ -189,7 +189,9 @@ const authRateLimiter = rateLimit({
   keyGenerator: getClientIp,
   // Disable X-Forwarded-For validation - we use CF-Connecting-IP or trust proxy
   validate: {
-    xForwardedForHeader: false
+    xForwardedForHeader: false,
+    // Disable IPv6 fallback validation since we use custom keyGenerator
+    keyGeneratorIpFallback: false
   },
   standardHeaders: true,
   legacyHeaders: false,
@@ -203,7 +205,9 @@ const passwordResetRateLimiter = rateLimit({
   keyGenerator: getClientIp,
   // Disable X-Forwarded-For validation - we use CF-Connecting-IP or trust proxy
   validate: {
-    xForwardedForHeader: false
+    xForwardedForHeader: false,
+    // Disable IPv6 fallback validation since we use custom keyGenerator
+    keyGeneratorIpFallback: false
   },
   standardHeaders: true,
   legacyHeaders: false,
