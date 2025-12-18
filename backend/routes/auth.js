@@ -473,8 +473,188 @@ export default function createAuthRouter(deps) {
     }
   });
 
-  // Note: This file is getting long. The remaining routes will be added in the next part.
-  // Including: complete-profile, change-password, MFA routes, Passkey routes, User management, OIDC
+  // ===== Complete Profile (for OIDC users) =====
+
+  router.post('/complete-profile', authenticate, async (req, res) => {
+    try {
+      const { manager_first_name, manager_last_name, manager_email } = req.body;
+
+      // Validation
+      if (!manager_first_name || !manager_last_name || !manager_email) {
+        return res.status(400).json({
+          error: 'Manager first name, last name, and email are required'
+        });
+      }
+
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(manager_email)) {
+        return res.status(400).json({
+          error: 'Please provide a valid email address'
+        });
+      }
+
+      // Get current user
+      const user = await userDb.getById(req.user.id);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Update user with manager information and mark profile as complete
+      await userDb.completeProfile(req.user.id, {
+        manager_first_name,
+        manager_last_name,
+        manager_email
+      });
+
+      // Get updated user
+      const updatedUser = await userDb.getById(req.user.id);
+
+      // Log audit
+      await auditDb.log(
+        'complete_profile',
+        'user',
+        updatedUser.id,
+        updatedUser.email,
+        {
+          manager_first_name,
+          manager_last_name,
+          manager_email
+        },
+        updatedUser.email
+      );
+
+      // Sync manager info to existing assets
+      try {
+        const assetDb = deps.assetDb;
+        if (assetDb) {
+          const combined_manager_name = `${manager_first_name} ${manager_last_name}`;
+          const updatedAssets = await assetDb.updateManagerForEmployee(
+            updatedUser.email,
+            combined_manager_name,
+            manager_email
+          );
+
+          if (updatedAssets.changes > 0) {
+            console.log(`Updated manager info for ${updatedAssets.changes} assets for employee ${updatedUser.email}`);
+
+            // Log audit for asset manager sync
+            await auditDb.log(
+              'update',
+              'asset',
+              null,
+              `Manager synced for ${updatedUser.email}`,
+              {
+                employee_email: updatedUser.email,
+                old_manager_first_name: null,
+                old_manager_last_name: null,
+                old_manager_email: null,
+                new_manager_first_name: manager_first_name,
+                new_manager_last_name: manager_last_name,
+                new_manager_email: manager_email,
+                updated_count: updatedAssets.changes
+              },
+              updatedUser.email
+            );
+          }
+        }
+      } catch (syncError) {
+        console.error('Error syncing manager info to assets during profile completion:', syncError);
+        // Don't fail profile completion if asset sync fails
+      }
+
+      // Auto-assign manager role if manager exists
+      const autoAssignManagerRole = deps.autoAssignManagerRole;
+      if (autoAssignManagerRole) {
+        try {
+          await autoAssignManagerRole(manager_email, updatedUser.email);
+        } catch (roleError) {
+          console.error('Error auto-assigning manager role during profile completion:', roleError);
+          // Don't fail profile completion if role assignment fails
+        }
+      }
+
+      res.json({
+        message: 'Profile completed successfully',
+        user: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          name: updatedUser.name,
+          role: updatedUser.role,
+          first_name: updatedUser.first_name,
+          last_name: updatedUser.last_name,
+          manager_first_name: updatedUser.manager_first_name,
+          manager_last_name: updatedUser.manager_last_name,
+          manager_email: updatedUser.manager_email,
+          profile_image: updatedUser.profile_image,
+          profile_complete: updatedUser.profile_complete
+        }
+      });
+    } catch (error) {
+      console.error('Complete profile error:', error);
+      res.status(500).json({ error: 'Failed to complete profile' });
+    }
+  });
+
+  // ===== Change Password =====
+
+  router.put('/change-password', authenticate, async (req, res) => {
+    try {
+      const { currentPassword, newPassword, confirmPassword } = req.body;
+
+      // Validation
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        return res.status(400).json({
+          error: 'Current password, new password, and confirmation are required'
+        });
+      }
+
+      if (newPassword !== confirmPassword) {
+        return res.status(400).json({
+          error: 'New password and confirmation do not match'
+        });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({
+          error: 'New password must be at least 6 characters long'
+        });
+      }
+
+      // Get current user
+      const user = await userDb.getById(req.user.id);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Verify current password
+      const isValidPassword = await comparePassword(currentPassword, user.password_hash);
+      if (!isValidPassword) {
+        return res.status(401).json({ error: 'Current password is incorrect' });
+      }
+
+      // Hash new password
+      const newPasswordHash = await hashPassword(newPassword);
+
+      // Update password in database
+      await userDb.updatePassword(req.user.id, newPasswordHash);
+
+      // Log the password change
+      await auditDb.log(
+        'change_password',
+        'user',
+        user.id,
+        user.email,
+        'Password changed successfully',
+        user.email
+      );
+
+      res.json({ message: 'Password changed successfully' });
+    } catch (error) {
+      console.error('Change password error:', error);
+      res.status(500).json({ error: 'Failed to change password' });
+    }
+  });
 
   return router;
 }

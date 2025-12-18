@@ -9,6 +9,11 @@ import createAssetsRouter from './assets.js';
 import createReportsRouter from './reports.js';
 import createAdminRouter from './admin.js';
 import createAttestationRouter from './attestation.js';
+import createAuthRouter from './auth.js';
+import createMFARouter from './mfa.js';
+import createPasskeysRouter from './passkeys.js';
+import createUsersRouter from './users.js';
+import createOIDCRouter from './oidc.js';
 
 /**
  * Mount all route modules on the Express app
@@ -148,7 +153,109 @@ export function mountRoutes(app, deps) {
     }
   });
 
-  console.log('Mounted route modules: assets, companies, audit, reports, admin, attestation');
+  // Auth routes
+  const authRouter = createAuthRouter({
+    // Database
+    userDb: deps.userDb,
+    auditDb: deps.auditDb,
+    assetDb: deps.assetDb,
+    passwordResetTokenDb: deps.passwordResetTokenDb,
+    // Auth
+    authenticate: deps.authenticate,
+    hashPassword: deps.hashPassword,
+    comparePassword: deps.comparePassword,
+    generateToken: deps.generateToken,
+    // Rate limiters
+    authRateLimiter: deps.authRateLimiter,
+    passwordResetRateLimiter: deps.passwordResetRateLimiter,
+    // Helpers
+    syncAssetOwnership: deps.syncAssetOwnership,
+    mfaSessions: deps.mfaSessions,
+    autoAssignManagerRoleIfNeeded: deps.autoAssignManagerRoleIfNeeded,
+    autoAssignManagerRole: deps.autoAssignManagerRole,
+    // Email
+    sendPasswordResetEmail: deps.sendPasswordResetEmail,
+  });
+  app.use('/api/auth', authRouter);
+
+  // MFA routes
+  const mfaRouter = createMFARouter({
+    // Database
+    userDb: deps.userDb,
+    auditDb: deps.auditDb,
+    // Auth
+    authenticate: deps.authenticate,
+    comparePassword: deps.comparePassword,
+    generateToken: deps.generateToken,
+    // MFA
+    generateMFASecret: deps.generateMFASecret,
+    verifyTOTP: deps.verifyTOTP,
+    generateBackupCodes: deps.generateBackupCodes,
+    formatBackupCode: deps.formatBackupCode,
+    // Helpers
+    pendingMFAEnrollments: deps.pendingMFAEnrollments,
+    mfaSessions: deps.mfaSessions,
+    safeJsonParseArray: deps.safeJsonParseArray,
+  });
+  app.use('/api/auth/mfa', mfaRouter);
+
+  // Passkeys routes
+  const passkeysRouter = createPasskeysRouter({
+    // Database
+    userDb: deps.userDb,
+    passkeyDb: deps.passkeyDb,
+    // Auth
+    authenticate: deps.authenticate,
+    generateToken: deps.generateToken,
+    // Helpers
+    getPasskeyConfig: deps.getPasskeyConfig,
+    isPasskeyEnabled: deps.isPasskeyEnabled,
+    getExpectedOrigin: deps.getExpectedOrigin,
+    pendingPasskeyRegistrations: deps.pendingPasskeyRegistrations,
+    pendingPasskeyLogins: deps.pendingPasskeyLogins,
+    safeJsonParse: deps.safeJsonParse,
+    safeJsonParseArray: deps.safeJsonParseArray,
+    serializePasskey: deps.serializePasskey,
+  });
+  app.use('/api/auth/passkeys', passkeysRouter);
+
+  // Users routes
+  const usersRouter = createUsersRouter({
+    // Database
+    userDb: deps.userDb,
+    assetDb: deps.assetDb,
+    auditDb: deps.auditDb,
+    // Auth
+    authenticate: deps.authenticate,
+    authorize: deps.authorize,
+    // Constants
+    VALID_ROLES: deps.VALID_ROLES,
+  });
+  app.use('/api/auth/users', usersRouter);
+
+  // OIDC routes
+  const oidcRouter = createOIDCRouter({
+    // Database
+    userDb: deps.userDb,
+    auditDb: deps.auditDb,
+    oidcSettingsDb: deps.oidcSettingsDb,
+    attestationCampaignDb: deps.attestationCampaignDb,
+    attestationRecordDb: deps.attestationRecordDb,
+    attestationPendingInviteDb: deps.attestationPendingInviteDb,
+    // Auth
+    generateToken: deps.generateToken,
+    // OIDC
+    isOIDCEnabled: deps.isOIDCEnabled,
+    getAuthorizationUrl: deps.getAuthorizationUrl,
+    handleCallback: deps.handleCallback,
+    getUserInfo: deps.getUserInfo,
+    extractUserData: deps.extractUserData,
+    // Helpers
+    stateStore: deps.stateStore,
+  });
+  app.use('/api/auth/oidc', oidcRouter);
+
+  console.log('Mounted route modules: assets, companies, audit, reports, admin, attestation, auth, mfa, passkeys, users, oidc');
 }
 
 export default mountRoutes;

@@ -155,6 +155,7 @@ const passwordResetRateLimiter = rateLimit({
 const pendingMFALogins = new Map();
 const pendingPasskeyRegistrations = new Map();
 const pendingPasskeyLogins = new Map();
+const stateStore = new Map(); // For OIDC state tokens
 
 const getExpectedOrigin = (req) => process.env.PASSKEY_ORIGIN || req.get('origin') || passkeyConfig.defaultOrigin;
 
@@ -271,7 +272,9 @@ mountRoutes(app, {
   companyDb,
   auditDb,
   userDb,
+  passkeyDb,
   assetTypeDb,
+  passwordResetTokenDb,
   attestationCampaignDb,
   attestationRecordDb,
   attestationAssetDb,
@@ -290,21 +293,55 @@ mountRoutes(app, {
   // Auth middleware
   authenticate,
   authorize,
+  hashPassword,
+  comparePassword,
+  generateToken,
+  // Rate limiters
+  authRateLimiter,
+  passwordResetRateLimiter,
   // File upload
   upload,
   parseCSVFile,
   // OIDC
   initializeOIDC,
+  isOIDCEnabled,
+  getAuthorizationUrl,
+  handleCallback,
+  getUserInfo,
+  extractUserData,
+  // MFA
+  generateMFASecret,
+  verifyTOTP,
+  generateBackupCodes,
+  formatBackupCode,
   // HubSpot
   testHubSpotConnection,
   syncCompaniesToACS,
   // Email
   sendTestEmail,
+  sendPasswordResetEmail,
   encryptValue,
   // Helpers
   syncAssetOwnership,
   parseBooleanEnv,
   sanitizeDateValue,
+  getPasskeyConfig,
+  isPasskeyEnabled,
+  getExpectedOrigin,
+  serializePasskey,
+  autoAssignManagerRole,
+  autoAssignManagerRoleIfNeeded: autoAssignManagerRole,
+  // In-memory stores
+  mfaSessions: pendingMFALogins,
+  pendingMFAEnrollments: pendingMFALogins,
+  pendingPasskeyRegistrations,
+  pendingPasskeyLogins,
+  stateStore,
+  // Utils
+  safeJsonParse,
+  safeJsonParseArray,
+  // Constants
+  VALID_ROLES,
 });
 
 // ===== Authentication Endpoints =====
@@ -2923,9 +2960,6 @@ app.post('/api/admin/email-templates/:key/preview', authenticate, authorize('adm
 });
 
 // ===== OIDC Authentication Endpoints =====
-
-// Store for state tokens (in production, use Redis or similar)
-const stateStore = new Map();
 
 // Get OIDC configuration (for frontend)
 app.get('/api/auth/oidc/config', async (req, res) => {
