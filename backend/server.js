@@ -181,18 +181,21 @@ const getClientIp = (req) => {
   return req.ip;
 };
 
+// Common rate limiter validation config
+const rateLimiterValidation = {
+  // Disable X-Forwarded-For validation - we use CF-Connecting-IP or trust proxy
+  xForwardedForHeader: false,
+  // Disable IPv6 fallback validation since we use custom keyGenerator
+  keyGeneratorIpFallback: false
+};
+
 // Rate limiting for authentication endpoints
 const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10, // 10 attempts per window
   message: { error: 'Too many attempts, please try again later' },
   keyGenerator: getClientIp,
-  // Disable X-Forwarded-For validation - we use CF-Connecting-IP or trust proxy
-  validate: {
-    xForwardedForHeader: false,
-    // Disable IPv6 fallback validation since we use custom keyGenerator
-    keyGeneratorIpFallback: false
-  },
+  validate: rateLimiterValidation,
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -203,12 +206,7 @@ const passwordResetRateLimiter = rateLimit({
   max: 5, // 5 attempts per hour
   message: { error: 'Too many password reset requests, please try again later' },
   keyGenerator: getClientIp,
-  // Disable X-Forwarded-For validation - we use CF-Connecting-IP or trust proxy
-  validate: {
-    xForwardedForHeader: false,
-    // Disable IPv6 fallback validation since we use custom keyGenerator
-    keyGeneratorIpFallback: false
-  },
+  validate: rateLimiterValidation,
   standardHeaders: true,
   legacyHeaders: false,
 });
