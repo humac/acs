@@ -7,6 +7,7 @@ import { Router } from 'express';
 import { unlink } from 'fs/promises';
 import { VALID_STATUSES } from '../utils/constants.js';
 import { requireFields, validateStatus, validateIdArray } from '../middleware/validation.js';
+import { requireAsset, requireAssetPermission } from '../middleware/authorization.js';
 
 /**
  * Create and configure the assets router
@@ -25,6 +26,11 @@ export default function createAssetsRouter(deps) {
     upload,
     parseCSVFile,
   } = deps;
+
+  // Create authorization middleware instances
+  const fetchAsset = requireAsset(assetDb);
+  const requireEditPermission = requireAssetPermission(assetDb, userDb, { action: 'edit' });
+  const requireDeletePermission = requireAssetPermission(assetDb, userDb, { action: 'delete' });
 
   // Get all assets (with role-based filtering)
   router.get('/', authenticate, async (req, res) => {
@@ -57,17 +63,8 @@ export default function createAssetsRouter(deps) {
   });
 
   // Get single asset by ID
-  router.get('/:id', authenticate, async (req, res) => {
-    try {
-      const asset = await assetDb.getById(req.params.id);
-      if (!asset) {
-        return res.status(404).json({ error: 'Asset not found' });
-      }
-      res.json(asset);
-    } catch (error) {
-      console.error('Error fetching asset:', error);
-      res.status(500).json({ error: 'Failed to fetch asset' });
-    }
+  router.get('/:id', authenticate, fetchAsset, (req, res) => {
+    res.json(req.asset);
   });
 
   // Bulk import assets via CSV
@@ -386,14 +383,10 @@ export default function createAssetsRouter(deps) {
   });
 
   // Update asset status
-  router.patch('/:id/status', authenticate, requireFields('status'), validateStatus(), async (req, res) => {
+  router.patch('/:id/status', authenticate, fetchAsset, requireFields('status'), validateStatus(), async (req, res) => {
     try {
       const { status, notes } = req.body;
-
-      const asset = await assetDb.getById(req.params.id);
-      if (!asset) {
-        return res.status(404).json({ error: 'Asset not found' });
-      }
+      const asset = req.asset;
 
       const oldStatus = asset.status;
       await assetDb.updateStatus(req.params.id, status, notes);
@@ -426,27 +419,9 @@ export default function createAssetsRouter(deps) {
   });
 
   // Update asset
-  router.put('/:id', authenticate, async (req, res) => {
+  router.put('/:id', authenticate, requireEditPermission, requireFields('employee_first_name', 'employee_last_name', 'employee_email', 'company_name', 'asset_type', 'serial_number', 'asset_tag'), async (req, res) => {
     try {
-      const asset = await assetDb.getById(req.params.id);
-      if (!asset) {
-        return res.status(404).json({ error: 'Asset not found' });
-      }
-
-      const user = await userDb.getById(req.user.id);
-      const isAdmin = user.role === 'admin';
-      const isOwner = asset.employee_email?.toLowerCase() === user.email.toLowerCase();
-
-      if (isOwner && user.role === 'employee') {
-        return res.status(403).json({
-          error: 'Employees cannot edit their own assets. Please contact your manager.'
-        });
-      }
-
-      if (!isAdmin && !isOwner) {
-        return res.status(403).json({ error: 'You do not have permission to edit this asset' });
-      }
-
+      const asset = req.asset;
       const {
         employee_first_name,
         employee_last_name,
@@ -456,16 +431,6 @@ export default function createAssetsRouter(deps) {
         serial_number,
         asset_tag
       } = req.body;
-
-      // Validate required fields
-      const missingFields = ['employee_first_name', 'employee_last_name', 'employee_email', 'company_name', 'asset_type', 'serial_number', 'asset_tag']
-        .filter(field => !req.body[field]);
-      if (missingFields.length > 0) {
-        return res.status(400).json({
-          error: `Missing required fields: ${missingFields.join(', ')}`,
-          required: ['employee_first_name', 'employee_last_name', 'employee_email', 'company_name', 'asset_type', 'serial_number', 'asset_tag']
-        });
-      }
 
       const validAssetTypes = (await assetTypeDb.getActive()).map(t => t.name.toLowerCase());
       if (!validAssetTypes.includes(asset_type.toLowerCase())) {
@@ -501,17 +466,9 @@ export default function createAssetsRouter(deps) {
   });
 
   // Delete asset
-  router.delete('/:id', authenticate, async (req, res) => {
+  router.delete('/:id', authenticate, requireDeletePermission, async (req, res) => {
     try {
-      const asset = await assetDb.getById(req.params.id);
-      if (!asset) {
-        return res.status(404).json({ error: 'Asset not found' });
-      }
-
-      const user = await userDb.getById(req.user.id);
-      if (user.role !== 'admin' && asset.employee_email !== user.email) {
-        return res.status(403).json({ error: 'You do not have permission to delete this asset' });
-      }
+      const asset = req.asset;
 
       await assetDb.delete(req.params.id);
 

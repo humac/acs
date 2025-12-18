@@ -105,7 +105,8 @@ backend/
 │   └── index.js         # Centralized mounting (261 lines)
 ├── middleware/
 │   ├── auth.js          # authenticate, authorize (existing)
-│   └── validation.js    # Input validators ✅
+│   ├── validation.js    # Input validators ✅
+│   └── authorization.js # Resource-level permission checks ✅
 ├── utils/
 │   ├── constants.js     # Shared constants ✅
 │   ├── responses.js     # Standardized responses ✅
@@ -181,24 +182,34 @@ validateIdArray('ids')                 // Array of IDs validation
 
 ---
 
-### Pattern 2: Repeated asset authorization (15+ instances)
+### ✅ RESOLVED: Pattern 2: Repeated asset authorization
+
+~~**Problem:** 15+ instances of duplicate asset authorization checks.~~
+
+**Resolution:** Created `middleware/authorization.js` with two middleware factories:
+
 ```javascript
-// Extract to middleware:
-export const requireAssetOwnership = async (req, res, next) => {
-  const asset = await assetDb.getById(req.params.id);
-  if (!asset) return res.status(404).json({ error: 'Asset not found' });
+// middleware/authorization.js provides:
+requireAsset(assetDb)                                    // Fetch asset, return 404 if not found
+requireAssetPermission(assetDb, userDb, { action })      // Check edit/delete permission
 
-  const isOwner = asset.owner_id === req.user.id ||
-    asset.employee_email?.toLowerCase() === req.user.email.toLowerCase();
+// Usage in routes/assets.js:
+const fetchAsset = requireAsset(assetDb);
+const requireEditPermission = requireAssetPermission(assetDb, userDb, { action: 'edit' });
+const requireDeletePermission = requireAssetPermission(assetDb, userDb, { action: 'delete' });
 
-  if (!isOwner && req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Forbidden' });
-  }
-
-  req.asset = asset;
-  next();
-};
+router.get('/:id', authenticate, fetchAsset, handler);
+router.put('/:id', authenticate, requireEditPermission, handler);
+router.delete('/:id', authenticate, requireDeletePermission, handler);
 ```
+
+**Applied to:**
+- `GET /api/assets/:id` - Simple fetch with 404 handling
+- `PATCH /api/assets/:id/status` - Fetch asset for status updates
+- `PUT /api/assets/:id` - Edit permission (employees cannot edit own assets)
+- `DELETE /api/assets/:id` - Delete permission (owners can delete their assets)
+
+**Result:** Removed ~45 lines of duplicate authorization code from 4 routes.
 
 ---
 
@@ -558,6 +569,7 @@ The codebase has several strong points worth maintaining:
 | 2025-12-18 | **Phase 2 Route Refactoring (Part 1):** Extracted 77 endpoints into 6 route modules: `routes/assets.js` (12), `routes/companies.js` (7), `routes/audit.js` (5), `routes/reports.js` (5), `routes/admin.js` (27), `routes/attestation.js` (21). Created `routes/index.js` for centralized mounting with dependency injection. All 457 tests passing. |
 | 2025-12-18 | **Phase 2 Route Refactoring (Part 2 - Complete):** Extracted remaining auth-related routes into 5 additional modules: `routes/auth.js` (8 endpoints - login, register, password, profile), `routes/mfa.js` (5 endpoints - MFA enroll/verify/disable), `routes/passkeys.js` (7 endpoints - WebAuthn registration/auth), `routes/users.js` (4 endpoints - user management), `routes/oidc.js` (3 endpoints - SSO login/callback). Removed 5,690 lines of duplicate routes from server.js (now 364 lines). Fixed flaky tests for test isolation. All 457 tests passing. **Phase 2 Backend Refactoring is now complete.** |
 | 2025-12-18 | **Validation Middleware Integration:** Applied existing validation middleware (`requireFields`, `validateEmail`, `validateRole`, `validateStatus`, `validateIdArray`) across 5 route modules (auth.js, users.js, mfa.js, assets.js, admin.js) to replace ~18 duplicate validation blocks. Removed 115 lines of boilerplate validation code. All 457 tests passing. |
+| 2025-12-18 | **Authorization Middleware:** Created `middleware/authorization.js` with `requireAsset` and `requireAssetPermission` middleware factories. Applied to 4 routes in assets.js (GET /:id, PATCH /:id/status, PUT /:id, DELETE /:id). Removed ~45 lines of duplicate authorization code. All 457 tests passing. |
 
 ---
 
