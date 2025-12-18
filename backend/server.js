@@ -2,7 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
-import { assetDb, companyDb, auditDb, userDb, oidcSettingsDb, brandingSettingsDb, passkeySettingsDb, databaseSettings, databaseEngine, importSqliteDatabase, passkeyDb, hubspotSettingsDb, hubspotSyncLogDb, smtpSettingsDb, passwordResetTokenDb, syncAssetOwnership, attestationCampaignDb, attestationRecordDb, attestationAssetDb, attestationNewAssetDb, assetTypeDb, emailTemplateDb, sanitizeDateValue, attestationPendingInviteDb } from './database.js';
+import { assetDb, companyDb, auditDb, userDb, oidcSettingsDb, brandingSettingsDb, passkeySettingsDb, databaseSettings, databaseEngine, importSqliteDatabase, passkeyDb, hubspotSettingsDb, hubspotSyncLogDb, smtpSettingsDb, passwordResetTokenDb, syncAssetOwnership, attestationCampaignDb, attestationRecordDb, attestationAssetDb, attestationNewAssetDb, assetTypeDb, emailTemplateDb, sanitizeDateValue, attestationPendingInviteDb, systemSettingsDb } from './database.js';
 import { authenticate, authorize, hashPassword, comparePassword, generateToken } from './auth.js';
 import { initializeOIDC, getAuthorizationUrl, handleCallback, getUserInfo, extractUserData, isOIDCEnabled } from './oidc.js';
 import { generateMFASecret, verifyTOTP, generateBackupCodes, formatBackupCode } from './mfa.js';
@@ -36,6 +36,46 @@ const parseBooleanEnv = (value, defaultValue = true) => {
   if (value === undefined || value === null) return defaultValue;
   const normalized = String(value).toLowerCase();
   return !['false', '0', 'no', 'off'].includes(normalized);
+};
+
+/**
+ * Get system configuration with environment variable defaults and database overrides
+ * @returns {Promise<Object>} System configuration object
+ */
+const getSystemConfig = async () => {
+  // Environment variable defaults
+  const envDefaults = {
+    trust_proxy: parseBooleanEnv(process.env.TRUST_PROXY, true),
+    proxy_type: process.env.PROXY_TYPE || 'cloudflare',
+    proxy_trust_level: parseInt(process.env.PROXY_TRUST_LEVEL || '1', 10),
+    rate_limit_enabled: parseBooleanEnv(process.env.RATE_LIMIT_ENABLED, true),
+    rate_limit_window_ms: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10), // 15 minutes
+    rate_limit_max_requests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10)
+  };
+
+  // Try to get database overrides
+  let dbSettings = null;
+  try {
+    dbSettings = await systemSettingsDb.get();
+  } catch (err) {
+    console.error('Failed to load system settings from database:', err);
+  }
+
+  // Merge with database overrides taking precedence (only if not null)
+  const config = {
+    proxy: {
+      enabled: dbSettings?.trust_proxy !== null && dbSettings?.trust_proxy !== undefined ? !!dbSettings.trust_proxy : envDefaults.trust_proxy,
+      type: dbSettings?.proxy_type || envDefaults.proxy_type,
+      trustLevel: dbSettings?.proxy_trust_level !== null && dbSettings?.proxy_trust_level !== undefined ? dbSettings.proxy_trust_level : envDefaults.proxy_trust_level
+    },
+    rateLimiting: {
+      enabled: dbSettings?.rate_limit_enabled !== null && dbSettings?.rate_limit_enabled !== undefined ? !!dbSettings.rate_limit_enabled : envDefaults.rate_limit_enabled,
+      windowMs: dbSettings?.rate_limit_window_ms || envDefaults.rate_limit_window_ms,
+      maxRequests: dbSettings?.rate_limit_max_requests || envDefaults.rate_limit_max_requests
+    }
+  };
+
+  return config;
 };
 
 // Helper function to get current passkey configuration
@@ -127,11 +167,30 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Rate limiting configuration
+// Note: These are basic rate limiters. System-wide config is applied during server startup.
+// Using Cloudflare-friendly settings to avoid X-Forwarded-For validation errors
+
+// Get client IP based on proxy type
+const getClientIp = (req) => {
+  // Check for Cloudflare header first (most reliable when behind Cloudflare)
+  const cfIp = req.headers['cf-connecting-ip'];
+  if (cfIp) return cfIp;
+  
+  // Fall back to Express req.ip (respects trust proxy setting)
+  return req.ip;
+};
+
 // Rate limiting for authentication endpoints
 const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10, // 10 attempts per window
   message: { error: 'Too many attempts, please try again later' },
+  keyGenerator: getClientIp,
+  // Disable X-Forwarded-For validation - we use CF-Connecting-IP or trust proxy
+  validate: {
+    xForwardedForHeader: false
+  },
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -141,6 +200,11 @@ const passwordResetRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
   max: 5, // 5 attempts per hour
   message: { error: 'Too many password reset requests, please try again later' },
+  keyGenerator: getClientIp,
+  // Disable X-Forwarded-For validation - we use CF-Connecting-IP or trust proxy
+  validate: {
+    xForwardedForHeader: false
+  },
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -262,6 +326,7 @@ mountRoutes(app, {
   hubspotSyncLogDb,
   smtpSettingsDb,
   emailTemplateDb,
+  systemSettingsDb,
   // Auth middleware
   authenticate,
   authorize,
@@ -300,6 +365,7 @@ mountRoutes(app, {
   getPasskeyConfig,
   isPasskeyEnabled,
   getExpectedOrigin,
+  getSystemConfig,
   serializePasskey,
   autoAssignManagerRole,
   autoAssignManagerRoleIfNeeded: autoAssignManagerRole,
@@ -320,6 +386,16 @@ mountRoutes(app, {
 const startServer = async () => {
   try {
     await assetDb.init();
+    
+    // Load system configuration and apply proxy settings
+    const systemConfig = await getSystemConfig();
+    
+    // Configure trust proxy for reverse proxy/Cloudflare support
+    if (systemConfig.proxy.enabled) {
+      app.set('trust proxy', systemConfig.proxy.trustLevel);
+      console.log(`Trust proxy enabled: level ${systemConfig.proxy.trustLevel}, type: ${systemConfig.proxy.type}`);
+    }
+    
     await initializeOIDCFromSettings();
     console.log(`Using ${databaseEngine.toUpperCase()} database backend`);
 
