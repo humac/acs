@@ -9,6 +9,7 @@ import { generateMFASecret, verifyTOTP, generateBackupCodes, formatBackupCode } 
 import { testHubSpotConnection, syncCompaniesToACS } from './hubspot.js';
 import { encryptValue } from './utils/encryption.js';
 import { safeJsonParse, safeJsonParseArray } from './utils/json.js';
+import { VALID_STATUSES, VALID_ROLES, isValidEmail } from './utils/constants.js';
 import { sendTestEmail, sendPasswordResetEmail } from './services/smtpMailer.js';
 import { randomBytes, webcrypto as nodeWebcrypto } from 'crypto';
 import multer from 'multer';
@@ -1926,9 +1927,9 @@ app.put('/api/auth/users/:id/role', authenticate, authorize('admin'), async (req
     const userId = parseInt(req.params.id);
 
     // Validation
-    if (!role || !['admin', 'manager', 'attestation_coordinator', 'employee'].includes(role)) {
+    if (!role || !VALID_ROLES.includes(role)) {
       return res.status(400).json({
-        error: 'Invalid role. Must be one of: admin, manager, attestation_coordinator, employee'
+        error: `Invalid role. Must be one of: ${VALID_ROLES.join(', ')}`
       });
     }
 
@@ -3162,8 +3163,8 @@ app.post('/api/assets/import', authenticate, authorize('admin', 'manager'), uplo
       'serial_number',
       'asset_tag'
     ];
-    const validStatuses = ['active', 'returned', 'lost', 'damaged', 'retired'];
-    const validAssetTypes = ['laptop', 'mobile_phone'];
+    // Asset types are now dynamic - fetch from database
+    const validAssetTypes = (await assetTypeDb.getActive()).map(t => t.name.toLowerCase());
 
     let imported = 0;
     const errors = [];
@@ -3181,8 +3182,8 @@ app.post('/api/assets/import', authenticate, authorize('admin', 'manager'), uplo
       }
 
       const status = normalizedRow.status ? normalizedRow.status.toLowerCase() : 'active';
-      if (normalizedRow.status && !validStatuses.includes(status)) {
-        errors.push(`Row ${index + 2}: Invalid status '${normalizedRow.status}'. Valid statuses: ${validStatuses.join(', ')}`);
+      if (normalizedRow.status && !VALID_STATUSES.includes(status)) {
+        errors.push(`Row ${index + 2}: Invalid status '${normalizedRow.status}'. Valid statuses: ${VALID_STATUSES.join(', ')}`);
         continue;
       }
 
@@ -3282,10 +3283,11 @@ app.post('/api/assets', authenticate, async (req, res) => {
       });
     }
 
-    // Validate asset_type
-    if (!['laptop', 'mobile_phone'].includes(asset_type)) {
+    // Validate asset_type against dynamic types from database
+    const validAssetTypes = (await assetTypeDb.getActive()).map(t => t.name.toLowerCase());
+    if (!validAssetTypes.includes(asset_type.toLowerCase())) {
       return res.status(400).json({
-        error: 'Invalid asset_type. Must be either "laptop" or "mobile_phone"'
+        error: `Invalid asset_type. Valid types: ${validAssetTypes.join(', ')}`
       });
     }
 
@@ -3348,11 +3350,10 @@ app.patch('/api/assets/bulk/status', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Status is required' });
     }
 
-    const validStatuses = ['active', 'returned', 'lost', 'damaged', 'retired'];
-    if (!validStatuses.includes(status)) {
+    if (!VALID_STATUSES.includes(status)) {
       return res.status(400).json({
         error: 'Invalid status',
-        validStatuses
+        validStatuses: VALID_STATUSES
       });
     }
 
@@ -3585,11 +3586,10 @@ app.patch('/api/assets/:id/status', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Status is required' });
     }
 
-    const validStatuses = ['active', 'returned', 'lost', 'damaged', 'retired'];
-    if (!validStatuses.includes(status)) {
+    if (!VALID_STATUSES.includes(status)) {
       return res.status(400).json({
         error: 'Invalid status',
-        validStatuses
+        validStatuses: VALID_STATUSES
       });
     }
 
@@ -3676,10 +3676,11 @@ app.put('/api/assets/:id', authenticate, async (req, res) => {
       });
     }
 
-    // Validate asset_type
-    if (!['laptop', 'mobile_phone'].includes(asset_type)) {
+    // Validate asset_type against dynamic types from database
+    const validAssetTypes = (await assetTypeDb.getActive()).map(t => t.name.toLowerCase());
+    if (!validAssetTypes.includes(asset_type.toLowerCase())) {
       return res.status(400).json({
-        error: 'Invalid asset_type. Must be either "laptop" or "mobile_phone"'
+        error: `Invalid asset_type. Valid types: ${validAssetTypes.join(', ')}`
       });
     }
 
