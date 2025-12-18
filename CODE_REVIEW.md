@@ -474,7 +474,7 @@ useEffect(() => {
 2. ~~Add `authorize('admin')` to CSV import~~ ✅ Done
 3. ~~Remove default JWT_SECRET fallback~~ ✅ Done
 4. ~~Add CORS origin whitelist~~ ✅ Done
-5. Extract constants (VALID_STATUSES, VALID_TYPES, etc.)
+5. ~~Extract constants (VALID_STATUSES, VALID_TYPES, etc.)~~ ✅ Done
 
 ### Frontend (< 1 hour each)
 
@@ -497,10 +497,10 @@ useEffect(() => {
 
 ### Phase 2: Backend Refactoring (2-3 weeks)
 - [ ] Split server.js into route modules
-- [ ] Create validation middleware
-- [ ] Standardize error responses
+- [x] Create validation middleware ✅ Done (middleware/validation.js)
+- [x] Standardize error responses ✅ Done (utils/responses.js)
 - [ ] Add structured logging
-- [ ] Extract constants
+- [x] Extract constants ✅ Done (utils/constants.js)
 
 ### Phase 3: Frontend Refactoring (2-3 weeks)
 - [x] Create useFetch hook ✅ Done
@@ -539,8 +539,9 @@ The codebase has several strong points worth maintaining:
 | 2025-12-17 | Initial code review completed |
 | 2025-12-17 | **Phase 1 Security Fixes:** Added authentication to asset endpoints, authorization to CSV import, required JWT_SECRET, rate limiting on auth endpoints, CORS whitelist, safe JSON parsing utilities |
 | 2025-12-17 | **Phase 3 Frontend Quick Wins:** Created `useFetch` hook for consistent API error handling, extracted `user.js` utilities for name formatting, added memoized `AssetTableRow` and `AssetCard` components with React.memo, added aria-labels to icon buttons for accessibility, integrated new components into AssetTable.jsx |
+| 2025-12-18 | **Phase 2 Backend Quick Wins:** Created `utils/constants.js` (VALID_STATUSES, VALID_ROLES, validation helpers), `middleware/validation.js` (requireFields, validateEmail, validateStatus, validateRole, validateIdArray, validatePagination), `utils/responses.js` (standardized success/error response helpers). Updated server.js to use constants instead of hardcoded values. Asset type validation now uses dynamic types from database. |
 
 ---
 
 **Review completed:** December 17, 2025
-**Last updated:** December 17, 2025
+**Last updated:** December 18, 2025
