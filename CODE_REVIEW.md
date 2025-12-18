@@ -155,36 +155,33 @@ export const errorResponse = (res, message, statusCode = 500, code = 'INTERNAL_E
 
 ---
 
-### Code Duplication (30+ instances)
+### ✅ RESOLVED: Code Duplication - Validation
 
-**Pattern 1: Repeated validation**
+~~**Pattern 1: Repeated validation (~30 instances)**~~
+
+**Resolution:** Created and integrated validation middleware across 5 route modules:
+
 ```javascript
-// Appears ~30 times:
-if (!email || !password) {
-  return res.status(400).json({ error: 'Email and password are required' });
-}
+// middleware/validation.js provides:
+requireFields('email', 'password')     // Required field validation
+validateEmail('manager_email')         // Email format validation
+validateRole()                         // Role enum validation
+validateStatus()                       // Status enum validation
+validateIdArray('ids')                 // Array of IDs validation
 ```
 
-**Fix:** Create validation middleware:
-```javascript
-// middleware/validation.js
-export const requireFields = (...fields) => (req, res, next) => {
-  const missing = fields.filter(f => !req.body[f]);
-  if (missing.length) {
-    return res.status(400).json({
-      error: `Missing required fields: ${missing.join(', ')}`
-    });
-  }
-  next();
-};
+**Applied to:**
+- `routes/auth.js` - Login, register, password reset, profile (6 routes)
+- `routes/users.js` - User update and role change (2 routes)
+- `routes/mfa.js` - Enrollment, disable, login verification (3 routes)
+- `routes/assets.js` - Create, bulk operations, status update (5 routes)
+- `routes/admin.js` - Email templates, asset types (2 routes)
 
-// Usage:
-app.post('/api/auth/login', requireFields('email', 'password'), async (req, res) => {
-  // No validation code needed
-});
-```
+**Result:** Removed 115 lines of duplicate validation code.
 
-**Pattern 2: Repeated asset authorization (15+ instances)**
+---
+
+### Pattern 2: Repeated asset authorization (15+ instances)
 ```javascript
 // Extract to middleware:
 export const requireAssetOwnership = async (req, res, next) => {
@@ -560,6 +557,7 @@ The codebase has several strong points worth maintaining:
 | 2025-12-18 | **Phase 2 Backend Quick Wins:** Created `utils/constants.js` (VALID_STATUSES, VALID_ROLES, validation helpers), `middleware/validation.js` (requireFields, validateEmail, validateStatus, validateRole, validateIdArray, validatePagination), `utils/responses.js` (standardized success/error response helpers). Updated server.js to use constants instead of hardcoded values. Asset type validation now uses dynamic types from database. |
 | 2025-12-18 | **Phase 2 Route Refactoring (Part 1):** Extracted 77 endpoints into 6 route modules: `routes/assets.js` (12), `routes/companies.js` (7), `routes/audit.js` (5), `routes/reports.js` (5), `routes/admin.js` (27), `routes/attestation.js` (21). Created `routes/index.js` for centralized mounting with dependency injection. All 457 tests passing. |
 | 2025-12-18 | **Phase 2 Route Refactoring (Part 2 - Complete):** Extracted remaining auth-related routes into 5 additional modules: `routes/auth.js` (8 endpoints - login, register, password, profile), `routes/mfa.js` (5 endpoints - MFA enroll/verify/disable), `routes/passkeys.js` (7 endpoints - WebAuthn registration/auth), `routes/users.js` (4 endpoints - user management), `routes/oidc.js` (3 endpoints - SSO login/callback). Removed 5,690 lines of duplicate routes from server.js (now 364 lines). Fixed flaky tests for test isolation. All 457 tests passing. **Phase 2 Backend Refactoring is now complete.** |
+| 2025-12-18 | **Validation Middleware Integration:** Applied existing validation middleware (`requireFields`, `validateEmail`, `validateRole`, `validateStatus`, `validateIdArray`) across 5 route modules (auth.js, users.js, mfa.js, assets.js, admin.js) to replace ~18 duplicate validation blocks. Removed 115 lines of boilerplate validation code. All 457 tests passing. |
 
 ---
 
