@@ -272,14 +272,39 @@ mountRoutes(app, {
   auditDb,
   userDb,
   assetTypeDb,
+  attestationCampaignDb,
+  attestationRecordDb,
+  attestationAssetDb,
+  attestationNewAssetDb,
+  attestationPendingInviteDb,
+  oidcSettingsDb,
+  brandingSettingsDb,
+  passkeySettingsDb,
+  databaseSettings,
+  databaseEngine,
+  importSqliteDatabase,
+  hubspotSettingsDb,
+  hubspotSyncLogDb,
+  smtpSettingsDb,
+  emailTemplateDb,
   // Auth middleware
   authenticate,
   authorize,
   // File upload
   upload,
   parseCSVFile,
+  // OIDC
+  initializeOIDC,
+  // HubSpot
+  testHubSpotConnection,
+  syncCompaniesToACS,
+  // Email
+  sendTestEmail,
+  encryptValue,
   // Helpers
   syncAssetOwnership,
+  parseBooleanEnv,
+  sanitizeDateValue,
 });
 
 // ===== Authentication Endpoints =====
