@@ -110,10 +110,10 @@ export default function createUsersRouter(deps) {
 
       if (managerChanged) {
         try {
-          const manager_name = `${manager_first_name} ${manager_last_name}`;
           await assetDb.updateManagerForEmployee(
             updatedUser.email,
-            manager_name,
+            manager_first_name,
+            manager_last_name,
             manager_email
           );
         } catch (error) {
