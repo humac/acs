@@ -1,6 +1,7 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { useTableFilters } from '@/hooks/useTableFilters';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,14 +27,41 @@ const UserManagement = () => {
   const { toast } = useToast();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
   const [editingUser, setEditingUser] = useState(null);
   const [editForm, setEditForm] = useState({ first_name: '', last_name: '', manager_first_name: '', manager_last_name: '', manager_email: '' });
   const [savingEdit, setSavingEdit] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, user: null });
   const [selectedUserIds, setSelectedUserIds] = useState(new Set());
-  const [usersPage, setUsersPage] = useState(1);
-  const [usersPageSize, setUsersPageSize] = useState(10);
+
+  // Custom filter function for users
+  const filterUsers = useCallback((items, term) => {
+    if (!term) return items;
+    const lowerTerm = term.toLowerCase();
+    return items.filter((u) => {
+      const managerFullName = `${u.manager_first_name || ''} ${u.manager_last_name || ''}`.trim().toLowerCase();
+      return (
+        u.name?.toLowerCase().includes(lowerTerm) ||
+        u.email?.toLowerCase().includes(lowerTerm) ||
+        managerFullName.includes(lowerTerm) ||
+        u.manager_email?.toLowerCase().includes(lowerTerm)
+      );
+    });
+  }, []);
+
+  const {
+    searchTerm,
+    setSearchTerm,
+    page: usersPage,
+    setPage: setUsersPage,
+    pageSize: usersPageSize,
+    setPageSize: setUsersPageSize,
+    totalPages: totalUserPages,
+    filteredItems: filteredUsers,
+    paginatedItems: paginatedUsers,
+  } = useTableFilters(users, {
+    filterFn: filterUsers,
+    defaultPageSize: 10
+  });
   const [bulkRole, setBulkRole] = useState('');
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [addUserDialogOpen, setAddUserDialogOpen] = useState(false);
@@ -304,36 +332,6 @@ const UserManagement = () => {
 
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Never';
   const getRoleColor = (role) => ({ admin: 'destructive', manager: 'success', employee: 'default', attestation_coordinator: 'outline' }[role] || 'secondary');
-
-  const filteredUsers = useMemo(() => {
-    const term = searchTerm.toLowerCase();
-    return users.filter((u) => {
-      const managerFullName = `${u.manager_first_name || ''} ${u.manager_last_name || ''}`.trim().toLowerCase();
-      return (
-        u.name?.toLowerCase().includes(term) ||
-        u.email?.toLowerCase().includes(term) ||
-        managerFullName.includes(term) ||
-        u.manager_email?.toLowerCase().includes(term)
-      );
-    });
-  }, [users, searchTerm]);
-
-  const totalUserPages = Math.max(1, Math.ceil(filteredUsers.length / usersPageSize) || 1);
-
-  useEffect(() => {
-    setUsersPage(1);
-  }, [usersPageSize, filteredUsers.length]);
-
-  useEffect(() => {
-    if (usersPage > totalUserPages) {
-      setUsersPage(totalUserPages);
-    }
-  }, [usersPage, totalUserPages]);
-
-  const paginatedUsers = useMemo(() => {
-    const start = (usersPage - 1) * usersPageSize;
-    return filteredUsers.slice(start, start + usersPageSize);
-  }, [filteredUsers, usersPage, usersPageSize]);
 
   const isAllUsersSelected = paginatedUsers.length > 0 && paginatedUsers.every((u) => selectedUserIds.has(u.id));
   const isSomeUsersSelected = paginatedUsers.some((u) => selectedUserIds.has(u.id)) && !isAllUsersSelected;
