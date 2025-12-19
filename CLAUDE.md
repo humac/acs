@@ -1655,6 +1655,57 @@ git push origin feature/my-feature      # Push branch
 | GET | `/api/audit` | ✅ | All | Audit logs (role-filtered) |
 | GET | `/api/settings/*` | ✅ | Admin | Various settings |
 
+### API Response Contracts
+
+**CRITICAL: When creating or modifying API endpoints, you MUST document the response structure and ensure frontend/backend property names match exactly.**
+
+#### Standard Response Format
+
+All API responses should follow this structure:
+
+```javascript
+// Success response
+res.json({
+  success: true,
+  data: { ... },           // or named property like 'assets', 'users'
+  message: 'Optional message'
+});
+
+// Error response
+res.status(400).json({
+  success: false,
+  error: 'Error message',
+  message: 'User-friendly message'
+});
+```
+
+#### Documented Response Properties
+
+When an endpoint returns special properties that the frontend depends on, document them here:
+
+| Endpoint | Response Property | Type | Description |
+|----------|------------------|------|-------------|
+| `POST /api/auth/login` | `requiresMFA` | boolean | True if MFA verification needed |
+| `POST /api/auth/login` | `mfaSessionId` | string | Session ID for MFA verification |
+| `GET /api/auth/verify-reset-token/:token` | `valid` | boolean | True if reset token is valid |
+| `GET /api/auth/validate-invite/:token` | `valid` | boolean | True if invite token is valid |
+| `POST /api/auth/mfa/verify-login` | `token` | string | JWT token after MFA success |
+| `POST /api/auth/mfa/verify-login` | `user` | object | User object after MFA success |
+
+#### When Adding/Modifying API Endpoints
+
+1. **Check existing frontend usage**: Search for fetch calls to the endpoint
+2. **Use consistent property names**: Match existing patterns (e.g., `valid` not `isValid`, `requiresMFA` not `mfaRequired`)
+3. **Update this documentation**: Add any new response properties to the table above
+4. **Add integration tests**: Test the full frontend→backend flow for critical paths
+
+#### Property Naming Conventions
+
+- Use `camelCase` for JSON response properties: `requiresMFA`, `mfaSessionId`
+- Use `snake_case` for database columns: `employee_email`, `created_at`
+- Boolean properties: prefer `is*` or action verbs (`valid`, `enabled`, `requiresMFA`)
+- Never mix conventions: don't use `mfa_required` in JSON responses
+
 ---
 
 ## Summary
@@ -1675,6 +1726,6 @@ When in doubt, **read existing code** for patterns and follow them consistently.
 
 ---
 
-**Last Updated**: 2025-12-10
+**Last Updated**: 2025-12-19
 **Repository**: https://github.com/humac/kars
 **Live Demo**: https://kars.jvhlabs.com

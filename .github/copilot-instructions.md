@@ -161,6 +161,32 @@ app.get('/api/my-endpoint',
 );
 ```
 
+**⚠️ CRITICAL: API Response Contract Requirements**
+
+When creating or modifying API endpoints:
+
+1. **Check frontend first**: Search for existing fetch calls to the endpoint
+2. **Match property names exactly**: Frontend expects specific property names
+3. **Document in CLAUDE.md**: Update the "API Response Contracts" table
+4. **Use consistent naming**:
+   - JSON responses: `camelCase` (`requiresMFA`, `mfaSessionId`)
+   - Database columns: `snake_case` (`employee_email`)
+
+**Known critical response properties:**
+| Endpoint | Property | Frontend expects |
+|----------|----------|------------------|
+| `POST /api/auth/login` | `requiresMFA` | NOT `mfaRequired` |
+| `GET /api/auth/verify-reset-token/:token` | `valid` | NOT `success` |
+| `GET /api/auth/validate-invite/:token` | `valid` | NOT `success` |
+
+```javascript
+// ✅ Correct - matches frontend
+res.json({ requiresMFA: true, mfaSessionId: '...' });
+
+// ❌ Wrong - frontend checks for requiresMFA, not mfaRequired
+res.json({ mfaRequired: true, mfaSessionId: '...' });
+```
+
 **New Component:**
 ```javascript
 import { useState } from 'react';
@@ -232,3 +258,5 @@ if (user.role === 'employee') {
 6. **Read CLAUDE.md** - Comprehensive guide with all details
 7. **Audit everything** - All data mutations need audit logs
 8. **Never skip auth** - Always use authenticate/authorize middleware
+9. **Verify API contracts** - Check frontend expects the exact property names you return
+10. **Document API changes** - Update CLAUDE.md "API Response Contracts" table when adding/modifying endpoints
