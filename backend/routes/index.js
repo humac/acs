@@ -57,6 +57,17 @@ export function mountRoutes(app, deps) {
     }
   });
 
+  // Asset types route (returns active asset types for registration forms)
+  app.get('/api/asset-types', deps.authenticate, async (req, res) => {
+    try {
+      const assetTypes = await deps.assetTypeDb.getActive();
+      res.json(assetTypes);
+    } catch (error) {
+      logger.error({ err: error }, 'Error fetching asset types');
+      res.status(500).json({ error: 'Failed to fetch asset types' });
+    }
+  });
+
   // Companies routes
   const companiesRouter = createCompaniesRouter({
     companyDb: deps.companyDb,
