@@ -256,11 +256,7 @@ export default function createAuthRouter(deps) {
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
       // Store token in database
-      await passwordResetTokenDb.create({
-        user_id: user.id,
-        token,
-        expires_at: expiresAt.toISOString()
-      });
+      await passwordResetTokenDb.create(user.id, token, expiresAt.toISOString());
 
       // Send email
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -294,7 +290,7 @@ export default function createAuthRouter(deps) {
     try {
       const { token } = req.params;
 
-      const resetToken = await passwordResetTokenDb.getByToken(token);
+      const resetToken = await passwordResetTokenDb.findByToken(token);
 
       if (!resetToken) {
         return res.status(400).json({ valid: false, error: 'Invalid or expired reset token' });
@@ -303,12 +299,12 @@ export default function createAuthRouter(deps) {
       // Check if token is expired
       const expiresAt = new Date(resetToken.expires_at);
       if (expiresAt < new Date()) {
-        await passwordResetTokenDb.delete(resetToken.id);
+        await passwordResetTokenDb.deleteByUserId(resetToken.user_id);
         return res.status(400).json({ valid: false, error: 'Reset token has expired' });
       }
 
       // Check if token has been used
-      if (resetToken.used_at) {
+      if (resetToken.used) {
         return res.status(400).json({ valid: false, error: 'Reset token has already been used' });
       }
 
@@ -328,7 +324,7 @@ export default function createAuthRouter(deps) {
         return res.status(400).json({ error: 'Password must be at least 8 characters long' });
       }
 
-      const resetToken = await passwordResetTokenDb.getByToken(token);
+      const resetToken = await passwordResetTokenDb.findByToken(token);
 
       if (!resetToken) {
         return res.status(400).json({ error: 'Invalid or expired reset token' });
@@ -337,12 +333,12 @@ export default function createAuthRouter(deps) {
       // Check if token is expired
       const expiresAt = new Date(resetToken.expires_at);
       if (expiresAt < new Date()) {
-        await passwordResetTokenDb.delete(resetToken.id);
+        await passwordResetTokenDb.deleteByUserId(resetToken.user_id);
         return res.status(400).json({ error: 'Reset token has expired' });
       }
 
       // Check if token has been used
-      if (resetToken.used_at) {
+      if (resetToken.used) {
         return res.status(400).json({ error: 'Reset token has already been used' });
       }
 
@@ -353,7 +349,7 @@ export default function createAuthRouter(deps) {
       await userDb.updatePassword(resetToken.user_id, password_hash);
 
       // Mark token as used
-      await passwordResetTokenDb.markUsed(resetToken.id);
+      await passwordResetTokenDb.markAsUsed(resetToken.id);
 
       // Get user for audit log
       const user = await userDb.getById(resetToken.user_id);
