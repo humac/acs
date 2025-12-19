@@ -163,7 +163,7 @@ const LoginNew = ({ onSwitchToRegister }) => {
         throw new Error(data.error || 'Login failed');
       }
 
-      if (data.mfaRequired) {
+      if (data.requiresMFA) {
         setMfaSessionId(data.mfaSessionId);
         setShowMFAVerify(true);
         setLoading(false);
