@@ -260,7 +260,7 @@ export const logError = (error, message, context) => { ... };
 **UserManagement.jsx (815 lines)**
 - Similar issues
 
-**Status:** Partially refactored. Split into focused components:
+**Status:** Mostly refactored. Split into focused components:
 ```
 AssetTable.jsx →
 ├── AssetTableFilters.jsx   ✅ EXTRACTED
@@ -268,7 +268,7 @@ AssetTable.jsx →
 ├── AssetTableDesktop.jsx   (pending)
 ├── AssetTableRow.jsx       ✅ EXTRACTED (memoized)
 ├── AssetCard.jsx           ✅ EXTRACTED (memoized)
-└── BulkAssetActions.jsx    (pending)
+└── BulkAssetActions.jsx    ✅ EXTRACTED
 ```
 
 ---
@@ -535,6 +535,7 @@ The codebase has several strong points worth maintaining:
 | 2025-12-19 | **Structured Logging:** Installed pino and created `utils/logger.js` with `createChildLogger` and `logError` helpers. Replaced 180+ `console.log/error` statements across 24 files (all route modules, server.js, auth.js, oidc.js, services, middleware, utils). Logger auto-silences in test environment. All 457 tests passing. |
 | 2025-12-19 | **Frontend Quick Wins (Part 2):** Created `utils/color.js` with `hexToHSL` and `applyPrimaryColor` utilities, consolidated duplicate code from App.jsx and Login.jsx. Wrapped `getAuthHeaders` in `useCallback` in AuthContext.jsx to fix unstable useEffect dependencies across 10+ components. Created `hooks/useTableFilters.js` for reusable filter/pagination logic, applied to CompanyManagement.jsx and UserManagement.jsx. All 65 frontend tests passing. |
 | 2025-12-19 | **Component Extraction:** Extracted `AssetTableFilters.jsx` from AssetTable.jsx, reducing complexity and improving code organization. Filter section now a self-contained, reusable component. All 65 frontend tests passing. |
+| 2025-12-19 | **Component Extraction (Part 2):** Extracted `BulkAssetActions.jsx` from AssetTable.jsx. Bulk actions bar, bulk edit dialog, and CSV export functionality now in dedicated component. AssetTable reduced to ~470 lines (down from 838). All 65 frontend tests passing. |
 
 ---
 
