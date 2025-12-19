@@ -324,6 +324,29 @@ FRONTEND_URL=http://localhost:5173  # Base URL for email links (adjust for produ
 - Escalating overdue attestations to managers
 - Auto-closing campaigns past their end date
 
+### Configure Proxy and Rate Limiting
+
+For deployments behind reverse proxies (Cloudflare, nginx, load balancers):
+
+```bash
+# Enable trust proxy for Cloudflare/reverse proxy deployments
+TRUST_PROXY=true
+PROXY_TYPE=cloudflare  # cloudflare | standard | none
+PROXY_TRUST_LEVEL=1    # Number of proxy hops to trust
+
+# Rate limiting configuration
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_WINDOW_MS=900000   # 15 minutes
+RATE_LIMIT_MAX_REQUESTS=100   # Max requests per window per IP
+```
+
+**Proxy Types:**
+- `cloudflare` - Uses CF-Connecting-IP header (recommended for Cloudflare)
+- `standard` - Uses X-Forwarded-For header (for nginx, ALB, etc.)
+- `none` - Direct connection, no proxy
+
+**Note:** Admins can also configure these settings via Admin Settings → System tab in the UI. Environment variables serve as defaults.
+
 ---
 
 ## 📧 Email Notification Workflows
