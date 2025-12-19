@@ -29,6 +29,7 @@ export default function createAdminRouter(deps) {
     emailTemplateDb,
     assetTypeDb,
     companyDb,
+    systemSettingsDb,
     // Auth middleware
     authenticate,
     authorize,
@@ -44,6 +45,7 @@ export default function createAdminRouter(deps) {
     encryptValue,
     // Helpers
     parseBooleanEnv,
+    getSystemConfig,
   } = deps;
 
   // ===== OIDC Settings =====
@@ -399,6 +401,126 @@ export default function createAdminRouter(deps) {
       res.status(500).json({ error: error.message || 'Failed to import SQLite data' });
     } finally {
       await unlink(req.file.path).catch(() => {});
+    }
+  });
+
+  // ===== System Settings =====
+
+  /**
+   * Helper function to build system settings response with source information
+   */
+  const buildSystemSettingsResponse = (config, dbSettings, includeEnvValues = true) => {
+    return {
+      proxy: {
+        enabled: {
+          value: config.proxy.enabled,
+          source: dbSettings?.trust_proxy !== null && dbSettings?.trust_proxy !== undefined ? 'database' : 'environment',
+          envVar: 'TRUST_PROXY',
+          ...(includeEnvValues && { envValue: process.env.TRUST_PROXY })
+        },
+        type: {
+          value: config.proxy.type,
+          source: dbSettings?.proxy_type ? 'database' : 'environment',
+          envVar: 'PROXY_TYPE',
+          ...(includeEnvValues && { envValue: process.env.PROXY_TYPE })
+        },
+        trustLevel: {
+          value: config.proxy.trustLevel,
+          source: dbSettings?.proxy_trust_level !== null && dbSettings?.proxy_trust_level !== undefined ? 'database' : 'environment',
+          envVar: 'PROXY_TRUST_LEVEL',
+          ...(includeEnvValues && { envValue: process.env.PROXY_TRUST_LEVEL })
+        }
+      },
+      rateLimiting: {
+        enabled: {
+          value: config.rateLimiting.enabled,
+          source: dbSettings?.rate_limit_enabled !== null && dbSettings?.rate_limit_enabled !== undefined ? 'database' : 'environment',
+          envVar: 'RATE_LIMIT_ENABLED',
+          ...(includeEnvValues && { envValue: process.env.RATE_LIMIT_ENABLED })
+        },
+        windowMs: {
+          value: config.rateLimiting.windowMs,
+          source: dbSettings?.rate_limit_window_ms ? 'database' : 'environment',
+          envVar: 'RATE_LIMIT_WINDOW_MS',
+          ...(includeEnvValues && { envValue: process.env.RATE_LIMIT_WINDOW_MS })
+        },
+        maxRequests: {
+          value: config.rateLimiting.maxRequests,
+          source: dbSettings?.rate_limit_max_requests ? 'database' : 'environment',
+          envVar: 'RATE_LIMIT_MAX_REQUESTS',
+          ...(includeEnvValues && { envValue: process.env.RATE_LIMIT_MAX_REQUESTS })
+        }
+      }
+    };
+  };
+
+  // Get system settings with environment variable sources
+  router.get('/system-settings', authenticate, authorize('admin'), async (req, res) => {
+    try {
+      const config = await getSystemConfig();
+      const dbSettings = await systemSettingsDb.get();
+      const response = buildSystemSettingsResponse(config, dbSettings);
+      res.json(response);
+    } catch (error) {
+      console.error('Get system settings error:', error);
+      res.status(500).json({ error: 'Failed to load system settings' });
+    }
+  });
+
+  // Update system settings
+  router.put('/system-settings', authenticate, authorize('admin'), async (req, res) => {
+    try {
+      const { proxy, rateLimiting } = req.body;
+      
+      const settings = {};
+      
+      // Process proxy settings
+      if (proxy) {
+        if (proxy.enabled !== undefined) {
+          settings.trust_proxy = proxy.enabled;
+        }
+        if (proxy.type !== undefined) {
+          settings.proxy_type = proxy.type;
+        }
+        if (proxy.trustLevel !== undefined) {
+          settings.proxy_trust_level = proxy.trustLevel;
+        }
+      }
+      
+      // Process rate limiting settings
+      if (rateLimiting) {
+        if (rateLimiting.enabled !== undefined) {
+          settings.rate_limit_enabled = rateLimiting.enabled;
+        }
+        if (rateLimiting.windowMs !== undefined) {
+          settings.rate_limit_window_ms = rateLimiting.windowMs;
+        }
+        if (rateLimiting.maxRequests !== undefined) {
+          settings.rate_limit_max_requests = rateLimiting.maxRequests;
+        }
+      }
+      
+      // Update settings in database
+      await systemSettingsDb.update(settings, req.user.email);
+      
+      // Log the change
+      await auditDb.log(
+        'update',
+        'system_settings',
+        1,
+        'System Configuration',
+        'System settings updated',
+        req.user.email
+      );
+      
+      // Return updated configuration
+      const config = await getSystemConfig();
+      const dbSettings = await systemSettingsDb.get();
+      const response = buildSystemSettingsResponse(config, dbSettings, false);
+      res.json(response);
+    } catch (error) {
+      console.error('Update system settings error:', error);
+      res.status(500).json({ error: 'Failed to update system settings' });
     }
   });
 

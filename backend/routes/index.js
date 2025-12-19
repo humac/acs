@@ -103,6 +103,7 @@ export function mountRoutes(app, deps) {
     emailTemplateDb: deps.emailTemplateDb,
     assetTypeDb: deps.assetTypeDb,
     companyDb: deps.companyDb,
+    systemSettingsDb: deps.systemSettingsDb,
     // Auth middleware
     authenticate: deps.authenticate,
     authorize: deps.authorize,
@@ -118,6 +119,7 @@ export function mountRoutes(app, deps) {
     encryptValue: deps.encryptValue,
     // Helpers
     parseBooleanEnv: deps.parseBooleanEnv,
+    getSystemConfig: deps.getSystemConfig,
   });
   app.use('/api/admin', adminRouter);
 
