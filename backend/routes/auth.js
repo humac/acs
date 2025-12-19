@@ -103,8 +103,24 @@ export default function createAuthRouter(deps) {
 
       // Sync asset ownership for pre-loaded assets
       const syncResult = await syncAssetOwnership(newUser.email);
-      if (syncResult.ownerUpdates > 0 || syncResult.managerUpdates > 0) {
-        logger.info({ email: newUser.email, ownerUpdates: syncResult.ownerUpdates, managerUpdates: syncResult.managerUpdates }, `Synced asset ownership for ${newUser.email}: ${syncResult.ownerUpdates} as owner, ${syncResult.managerUpdates} as manager`);
+
+      // Update manager info on assets
+      let assetsUpdated = 0;
+      if (manager_email) {
+        const assetDb = deps.assetDb;
+        if (assetDb) {
+          const updateResult = await assetDb.updateManagerForEmployee(
+            newUser.email,
+            manager_first_name,
+            manager_last_name,
+            manager_email
+          );
+          assetsUpdated = updateResult.changes;
+        }
+      }
+
+      if (syncResult.ownerUpdates > 0 || syncResult.managerUpdates > 0 || assetsUpdated > 0) {
+        logger.info({ email: newUser.email, ownerUpdates: syncResult.ownerUpdates, managerUpdates: syncResult.managerUpdates, assetsUpdated }, `Synced asset ownership/manager for ${newUser.email}`);
 
         await auditDb.log(
           'sync_assets',
@@ -113,7 +129,8 @@ export default function createAuthRouter(deps) {
           newUser.email,
           {
             owner_assets_synced: syncResult.ownerUpdates,
-            manager_assets_synced: syncResult.managerUpdates
+            manager_assets_synced: syncResult.managerUpdates,
+            manager_info_updated_count: assetsUpdated
           },
           'system'
         );
@@ -436,8 +453,23 @@ export default function createAuthRouter(deps) {
       await userDb.updateProfile(user.id, profile);
 
       // If manager changed, sync assets
-      if (manager_email && manager_email !== user.manager_email) {
+      if (manager_email && (manager_email !== user.manager_email || manager_first_name !== user.manager_first_name || manager_last_name !== user.manager_last_name)) {
         await syncAssetOwnership(user.email);
+
+        // Also update manager info on assets
+        const assetDb = deps.assetDb;
+        if (assetDb) {
+          try {
+            await assetDb.updateManagerForEmployee(
+              user.email,
+              manager_first_name !== undefined ? manager_first_name : user.manager_first_name,
+              manager_last_name !== undefined ? manager_last_name : user.manager_last_name,
+              manager_email
+            );
+          } catch (err) {
+            logger.error({ err, userId: user.id }, 'Failed to sync manager info to assets during profile update');
+          }
+        }
       }
 
       const updatedUser = await userDb.getById(user.id);
@@ -519,10 +551,10 @@ export default function createAuthRouter(deps) {
       try {
         const assetDb = deps.assetDb;
         if (assetDb) {
-          const combined_manager_name = `${manager_first_name} ${manager_last_name}`;
           const updatedAssets = await assetDb.updateManagerForEmployee(
             updatedUser.email,
-            combined_manager_name,
+            manager_first_name,
+            manager_last_name,
             manager_email
           );
 

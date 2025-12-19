@@ -2166,13 +2166,14 @@ export const assetDb = {
       WHERE employee_email = ?
     `, [managerFirstName || '', managerLastName || '', managerEmail || '', managerId, now, employeeEmail]);
   },
-  updateManagerForEmployee: async (employeeEmail, managerName, managerEmail) => {
+  updateManagerForEmployee: async (employeeEmail, managerFirstName, managerLastName, managerEmail) => {
     const now = new Date().toISOString();
     
     // Debug logging to catch data corruption
     console.log('updateManagerForEmployee called:', {
       employeeEmail,
-      managerName,
+      managerFirstName,
+      managerLastName,
       managerEmail
     });
     
@@ -2183,20 +2184,6 @@ export const assetDb = {
       managerId = manager?.id || null;
     }
 
-    // Split manager name into first and last name
-    // Store denormalized fields for unregistered managers
-    // JOINs will override these values when user records exist
-    const trimmedName = (managerName || '').trim();
-    const nameParts = trimmedName ? trimmedName.split(/\s+/) : [];
-    const managerFirstName = nameParts[0] || '';
-    const managerLastName = nameParts.slice(1).join(' ') || '';
-    
-    console.log('Split manager name:', {
-      managerFirstName,
-      managerLastName,
-      managerId
-    });
-    
     // Get the owner_id for this employee to update by both email AND ID
     const employee = await dbGet('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [employeeEmail]);
     const employeeId = employee?.id || null;

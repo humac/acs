@@ -84,25 +84,25 @@ describe('Asset Authorization and Manager Sync', () => {
       // Asset might have already been deleted or not created
       console.warn('Failed to delete test asset:', err.message);
     }
-    
+
     try {
       if (employeeUser?.id) await userDb.delete(employeeUser.id);
     } catch (err) {
       console.warn('Failed to delete employee user:', err.message);
     }
-    
+
     try {
       if (managerUser?.id) await userDb.delete(managerUser.id);
     } catch (err) {
       console.warn('Failed to delete manager user:', err.message);
     }
-    
+
     try {
       if (adminUser?.id) await userDb.delete(adminUser.id);
     } catch (err) {
       console.warn('Failed to delete admin user:', err.message);
     }
-    
+
     try {
       if (testCompany?.id) await companyDb.delete(testCompany.id);
     } catch (err) {
@@ -134,7 +134,7 @@ describe('Asset Authorization and Manager Sync', () => {
       // All returned assets should be owned by the employee
       assets.forEach(a => {
         expect(
-          a.owner_id === employeeUser.id || 
+          a.owner_id === employeeUser.id ||
           a.employee_email.toLowerCase() === employeeUser.email.toLowerCase()
         ).toBeTruthy();
       });
@@ -182,7 +182,8 @@ describe('Asset Authorization and Manager Sync', () => {
       // Update employee's manager
       await assetDb.updateManagerForEmployee(
         employeeUser.email,
-        'New Manager',
+        'New',
+        'Manager',
         `newmanager-${timestamp}@test.com`
       );
 
@@ -199,7 +200,8 @@ describe('Asset Authorization and Manager Sync', () => {
       // Restore original manager
       await assetDb.updateManagerForEmployee(
         employeeUser.email,
-        'Test Manager',
+        'Test',
+        'Manager',
         `manager-${timestamp}@test.com`
       );
     });
@@ -208,7 +210,8 @@ describe('Asset Authorization and Manager Sync', () => {
       // Update manager for employee
       await assetDb.updateManagerForEmployee(
         employeeUser.email,
-        'John Doe Smith', // This parameter is now ignored
+        'John',
+        'Doe Smith', // This parameter is now ignored
         `manager-${timestamp}@test.com`
       );
 

@@ -142,7 +142,7 @@ export interface AssetDb {
   getByManagerEmail(email: string): Promise<Asset[]>;
   getRegisteredOwnersByCompanyIds(companyIds: number[]): Promise<Asset[]>;
   linkAssetsToUser(employeeEmail: string, managerFirstName: string, managerLastName: string, managerEmail: string): Promise<void>;
-  updateManagerForEmployee(employeeEmail: string, managerName: string, managerEmail: string): Promise<void>;
+  updateManagerForEmployee(employeeEmail: string, managerFirstName: string, managerLastName: string, managerEmail: string): Promise<void>;
   updateManagerIdForOwner(ownerId: number, managerId: number | null): Promise<void>;
   getByIds(ids: number[]): Promise<Asset[]>;
   bulkUpdateStatus(ids: number[], status: string, notes?: string): Promise<void>;
