@@ -413,9 +413,9 @@ export const useFetch = (url, options = {}) => {
 | Area | Files | Coverage |
 |------|-------|----------|
 | Backend Test Files | 34 | ~100% of core modules |
-| Frontend Test Files | 9 | 14% of components |
+| Frontend Test Files | 14 | 40% of components |
 | Backend API Endpoints | 108 | ~30% tested |
-| Frontend Components | 35 | ~20% tested |
+| Frontend Components | 40+ | ~35% tested |
 
 ### Critical Missing Tests
 
@@ -426,14 +426,16 @@ export const useFetch = (url, options = {}) => {
 - Attestation campaign lifecycle
 - Rate limiting (once implemented)
 
-**Frontend (28 untested components):**
+**Frontend (remaining untested components):**
+- ~~`CompanyManagement.jsx` - Company CRUD~~ ✅ Tested
+- ~~`ForgotPassword.jsx` / `ResetPassword.jsx` - Password flow~~ ✅ Tested
+- ~~`AuthContext.jsx` - Auth state management~~ ✅ Tested
+- ~~`BulkAssetActions.jsx` - RBAC-aware bulk operations~~ ✅ Tested
 - `AdminSettings.jsx` - Admin configuration
 - `AssetBulkImportModal.jsx` - CSV import
 - `AssetRegisterModal.jsx` - Asset creation
-- `CompanyManagement.jsx` - Company CRUD
-- `ForgotPassword.jsx` / `ResetPassword.jsx` - Password flow
 - `MFASetupModal.jsx` - MFA enrollment
-- `AuthContext.jsx` / `UsersContext.jsx` - State management
+- `UsersContext.jsx` - User state management
 
 ### Recommended Test Priority
 
@@ -500,8 +502,9 @@ export const useFetch = (url, options = {}) => {
 - [x] Fix performance issues ✅ Done (React.memo on table components)
 - [x] Address accessibility gaps ✅ Done (aria-labels on icon buttons)
 
-### Phase 4: Testing (Ongoing)
-- [ ] Add tests for security-critical paths
+### Phase 4: Testing (In Progress)
+- [x] Add tests for security-critical paths ✅ Done (AuthContext, password reset flow)
+- [x] Add RBAC-aware component tests ✅ Done (BulkAssetActions, CompanyManagement)
 - [ ] Test remaining frontend components
 - [ ] Add integration tests
 - [ ] Set up coverage thresholds
@@ -540,8 +543,10 @@ The codebase has several strong points worth maintaining:
 | 2025-12-19 | **Component Extraction:** Extracted `AssetTableFilters.jsx` from AssetTable.jsx, reducing complexity and improving code organization. Filter section now a self-contained, reusable component. All 65 frontend tests passing. |
 | 2025-12-19 | **Component Extraction (Part 2):** Extracted `BulkAssetActions.jsx` from AssetTable.jsx. Bulk actions bar, bulk edit dialog, and CSV export functionality now in dedicated component. AssetTable reduced to ~470 lines (down from 838). All 65 frontend tests passing. |
 | 2025-12-19 | **UserManagement Refactoring:** Extracted `AddUserDialog.jsx`, `EditUserDialog.jsx`, and `UserBulkActions.jsx` from UserManagement.jsx. UserManagement reduced from 815 to 430 lines (47% reduction). **Phase 3 Frontend Refactoring complete.** All 65 frontend tests passing. |
+| 2025-12-20 | **RBAC Permission Fix:** Corrected `canEdit`/`canDelete` functions in AssetTable.jsx and BulkAssetActions.jsx to use `role` (string) instead of `roles` (array). Fixed non-existent 'editor' role checks. Updated test mocks to use correct user format. All tests passing. |
+| 2025-12-20 | **Phase 4 Testing Progress:** Added 106 new frontend tests across 5 files: `AuthContext.test.jsx` (22 tests - security-critical auth flows), `CompanyManagement.test.jsx` (27 tests - CRUD, RBAC), `ForgotPassword.test.jsx` (12 tests - password reset request), `ResetPassword.test.jsx` (18 tests - token verification, password reset), `BulkAssetActions.test.jsx` (27 tests - RBAC-aware bulk operations). Frontend tests increased from 65 to 171 (163% increase). |
 
 ---
 
 **Review completed:** December 17, 2025
-**Last updated:** December 19, 2025
+**Last updated:** December 20, 2025
