@@ -50,7 +50,9 @@ verify_file() {
 # Verify critical backend files
 # Note: Line count thresholds are set at ~80% of current size to catch major issues
 # (like file truncation) while allowing for normal code evolution and refactoring.
-verify_file "backend/server.js" 2400 "Backend Server"
+# After Phase 2 refactoring, server.js was split into route modules (364 lines entry point).
+verify_file "backend/server.js" 300 "Backend Server (entry point)"
+verify_file "backend/routes/index.js" 200 "Route Module Index"
 verify_file "backend/database.js" 1200 "Database Module"
 verify_file "backend/auth.js" 50 "Authentication Module"
 verify_file "backend/oidc.js" 50 "OIDC Module"
