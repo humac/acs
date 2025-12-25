@@ -4,18 +4,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Loader2, 
+import {
+  Loader2,
   Search,
   Bell,
   RefreshCw,
-  AlertTriangle,
-  Eye,
   Mail,
+  MailPlus,
   Users,
   CheckCircle2,
   Clock,
-  AlertCircle
+  AlertCircle,
+  UserX
 } from 'lucide-react';
 import {
   Table,
@@ -26,13 +26,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -53,13 +46,11 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const [showMyTeamOnly, setShowMyTeamOnly] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState('all');
-  const [showPendingInvitesModal, setShowPendingInvitesModal] = useState(false);
-  const [pendingInvites, setPendingInvites] = useState([]);
-  const [loadingPendingInvites, setLoadingPendingInvites] = useState(false);
   const [resendingInvite, setResendingInvite] = useState(new Set());
+  const [sendingBulkInvites, setSendingBulkInvites] = useState(false);
 
   // Table column count constant for colSpan calculations
-  const DASHBOARD_TABLE_COLUMNS = 8;
+  const DASHBOARD_TABLE_COLUMNS = 9;
 
   // Spacing based on compact mode
   const spacing = compact ? 'space-y-3' : 'space-y-6';
@@ -101,12 +92,17 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
       completed: 'outline',
       cancelled: 'destructive',
       pending: 'secondary',
-      in_progress: 'default'
+      in_progress: 'default',
+      unregistered: 'warning'
+    };
+
+    const labels = {
+      unregistered: 'Unregistered'
     };
 
     return (
-      <Badge variant={variants[status] || 'secondary'}>
-        {status}
+      <Badge variant={variants[status] || 'secondary'} className={status === 'unregistered' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' : ''}>
+        {labels[status] || status}
       </Badge>
     );
   };
@@ -262,50 +258,24 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
     }
   };
 
-  // Load pending invites
-  const handleViewPendingInvites = async (campaignId) => {
-    setShowPendingInvitesModal(true);
-    setLoadingPendingInvites(true);
-    
-    try {
-      const res = await fetch(`/api/attestation/campaigns/${campaignId}/pending-invites`, {
-        headers: { ...getAuthHeaders() }
-      });
-      
-      if (!res.ok) throw new Error('Failed to load pending invites');
-      
-      const data = await res.json();
-      setPendingInvites(data.pending_invites);
-    } catch (err) {
-      console.error(err);
-      toast({
-        title: 'Error',
-        description: 'Failed to load pending invites',
-        variant: 'destructive'
-      });
-    } finally {
-      setLoadingPendingInvites(false);
-    }
-  };
-
-  // Resend invite
+  // Resend invite for a single unregistered user
   const handleResendInvite = async (inviteId) => {
     setResendingInvite(prev => new Set(prev).add(inviteId));
-    
+
     try {
       const res = await fetch(`/api/attestation/pending-invites/${inviteId}/resend`, {
         method: 'POST',
         headers: { ...getAuthHeaders() }
       });
-      
+
       if (!res.ok) throw new Error('Failed to resend invite');
-      
+
       toast({
         title: 'Invite Resent',
         description: 'Registration invite email sent successfully'
       });
-      
-      handleViewPendingInvites(campaign.id);
+
+      loadDashboard();
     } catch (err) {
       console.error(err);
       toast({
@@ -319,6 +289,51 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
         next.delete(inviteId);
         return next;
       });
+    }
+  };
+
+  // Send bulk invites to unregistered users
+  const handleBulkResendInvites = async () => {
+    const selectedUnregistered = filteredRecords
+      .filter(r => selectedRecordIds.has(r.id) && r.is_pending_invite)
+      .map(r => r.invite_id);
+
+    if (selectedUnregistered.length === 0) return;
+
+    setSendingBulkInvites(true);
+
+    try {
+      const res = await fetch(`/api/attestation/campaigns/${campaign.id}/resend-invites`, {
+        method: 'POST',
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          inviteIds: selectedUnregistered
+        })
+      });
+
+      if (!res.ok) throw new Error('Failed to resend invites');
+
+      const data = await res.json();
+
+      toast({
+        title: 'Invites Resent',
+        description: `${data.emailsSent} invite${data.emailsSent !== 1 ? 's' : ''} sent successfully`
+      });
+
+      setSelectedRecordIds(new Set());
+      loadDashboard();
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: 'Error',
+        description: 'Failed to resend invites',
+        variant: 'destructive'
+      });
+    } finally {
+      setSendingBulkInvites(false);
     }
   };
 
@@ -365,6 +380,8 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
       records = records.filter(r => r.status === 'in_progress');
     } else if (dashboardFilterTab === 'completed') {
       records = records.filter(r => r.status === 'completed');
+    } else if (dashboardFilterTab === 'unregistered') {
+      records = records.filter(r => r.status === 'unregistered');
     }
     
     // Apply search filter
@@ -400,6 +417,30 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
     return dashboardData.records.filter(r => r.status === 'completed').length;
   }, [dashboardData]);
 
+  const unregisteredCount = useMemo(() => {
+    if (!dashboardData?.records) return 0;
+    return dashboardData.records.filter(r => r.status === 'unregistered').length;
+  }, [dashboardData]);
+
+  // Compute selected counts by type for bulk actions
+  const selectedCounts = useMemo(() => {
+    const registeredIds = [];
+    const unregisteredIds = [];
+
+    for (const id of selectedRecordIds) {
+      const record = filteredRecords.find(r => r.id === id);
+      if (record) {
+        if (record.is_pending_invite) {
+          unregisteredIds.push(record.invite_id);
+        } else {
+          registeredIds.push(record.id);
+        }
+      }
+    }
+
+    return { registeredIds, unregisteredIds };
+  }, [selectedRecordIds, filteredRecords]);
+
   if (loadingDashboard) {
     return (
       <div className="flex items-center justify-center h-32">
@@ -414,37 +455,12 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
 
   return (
     <div className={spacing}>
-      {/* Unregistered Users Alert */}
-      {campaign?.pending_invites_count > 0 && (
-        <Card className="border-orange-200 bg-orange-50 dark:bg-orange-950/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-orange-600" />
-              {campaign.pending_invites_count} Unregistered Asset Owner{campaign.pending_invites_count !== 1 ? 's' : ''}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-3">
-              These employees own assets but haven't registered in KARS yet.
-            </p>
-            <Button 
-              size="sm" 
-              variant="outline"
-              onClick={() => handleViewPendingInvites(campaign.id)}
-            >
-              <Eye className="h-4 w-4 mr-2" />
-              View Details & Resend Invites
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Stats Cards */}
-      <div className={cn("grid grid-cols-2 md:grid-cols-4", gap)}>
+      <div className={cn("grid grid-cols-2 md:grid-cols-5", gap)}>
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Employees
+              Total
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -482,6 +498,21 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
               <Clock className="h-5 w-5 text-orange-600" />
               <span className="text-2xl font-bold">
                 {pendingCount}
+              </span>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className={unregisteredCount > 0 ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/20' : ''}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Unregistered
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <UserX className="h-5 w-5 text-orange-600" />
+              <span className={`text-2xl font-bold ${unregisteredCount > 0 ? 'text-orange-600' : ''}`}>
+                {unregisteredCount}
               </span>
             </div>
           </CardContent>
@@ -543,17 +574,28 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
 
       {/* Filter Tabs */}
       <Tabs value={dashboardFilterTab} onValueChange={setDashboardFilterTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="all">
             All ({dashboardData.records?.length || 0})
           </TabsTrigger>
-          <TabsTrigger value="overdue" className="flex items-center gap-2">
+          <TabsTrigger value="overdue" className="flex items-center gap-1">
             <span>Overdue ({overdueCount})</span>
             {overdueCount > 0 && (
-              <Badge 
-                variant="destructive" 
+              <Badge
+                variant="destructive"
                 className="ml-1 h-5 w-5 p-0 flex items-center justify-center"
                 aria-label={`Alert: ${overdueCount} overdue item${overdueCount !== 1 ? 's' : ''}`}
+              >
+                !
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="unregistered" className="flex items-center gap-1">
+            <span>Unregistered ({unregisteredCount})</span>
+            {unregisteredCount > 0 && (
+              <Badge
+                className="ml-1 h-5 w-5 p-0 flex items-center justify-center bg-orange-500"
+                aria-label={`${unregisteredCount} unregistered user${unregisteredCount !== 1 ? 's' : ''}`}
               >
                 !
               </Badge>
@@ -625,25 +667,47 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
           <span className="text-sm font-medium">
             {selectedRecordIds.size} selected
           </span>
-          <Button 
-            size="sm" 
-            onClick={handleBulkRemind}
-            disabled={sendingBulkReminder}
-          >
-            {sendingBulkReminder ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Sending...
-              </>
-            ) : (
-              <>
-                <Bell className="h-4 w-4 mr-2" />
-                Send Reminders
-              </>
-            )}
-          </Button>
-          <Button 
-            size="sm" 
+          {selectedCounts.registeredIds.length > 0 && (
+            <Button
+              size="sm"
+              onClick={handleBulkRemind}
+              disabled={sendingBulkReminder}
+            >
+              {sendingBulkReminder ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Bell className="h-4 w-4 mr-2" />
+                  Send Reminders ({selectedCounts.registeredIds.length})
+                </>
+              )}
+            </Button>
+          )}
+          {selectedCounts.unregisteredIds.length > 0 && (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={handleBulkResendInvites}
+              disabled={sendingBulkInvites}
+            >
+              {sendingBulkInvites ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <MailPlus className="h-4 w-4 mr-2" />
+                  Resend Invites ({selectedCounts.unregisteredIds.length})
+                </>
+              )}
+            </Button>
+          )}
+          <Button
+            size="sm"
             variant="outline"
             onClick={() => setSelectedRecordIds(new Set())}
           >
@@ -661,7 +725,7 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
               <TableRow>
                 <TableHead className="w-12">
                   <Checkbox
-                    checked={selectedRecordIds.size > 0 && 
+                    checked={selectedRecordIds.size > 0 &&
                              selectedRecordIds.size === filteredRecords.filter(r => r.status !== 'completed').length}
                     onCheckedChange={handleSelectAll}
                   />
@@ -670,6 +734,7 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
                 <TableHead>Email</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Completed</TableHead>
+                <TableHead>Invite Sent</TableHead>
                 <TableHead>Reminder</TableHead>
                 <TableHead>Escalation</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -686,7 +751,10 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
                 </TableRow>
               ) : (
                 filteredRecords.map((record) => (
-                  <TableRow key={record.id}>
+                  <TableRow
+                    key={record.id}
+                    className={record.is_pending_invite ? 'bg-orange-50/50 dark:bg-orange-950/10' : ''}
+                  >
                     <TableCell>
                       {record.status !== 'completed' && (
                         <Checkbox
@@ -708,8 +776,13 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
                       </div>
                     </TableCell>
                     <TableCell>
-                      {record.completed_at 
+                      {record.completed_at
                         ? new Date(record.completed_at).toLocaleString()
+                        : '-'}
+                    </TableCell>
+                    <TableCell>
+                      {record.invite_sent_at
+                        ? new Date(record.invite_sent_at).toLocaleString()
                         : '-'}
                     </TableCell>
                     <TableCell>
@@ -727,7 +800,21 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      {record.status !== 'completed' && (
+                      {record.is_pending_invite ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleResendInvite(record.invite_id)}
+                          disabled={resendingInvite.has(record.invite_id)}
+                          title="Resend registration invite"
+                        >
+                          {resendingInvite.has(record.invite_id) ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Mail className="h-4 w-4" />
+                          )}
+                        </Button>
+                      ) : record.status !== 'completed' ? (
                         <Button
                           size="sm"
                           variant="outline"
@@ -741,7 +828,7 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
                             <Bell className="h-4 w-4" />
                           )}
                         </Button>
-                      )}
+                      ) : null}
                     </TableCell>
                   </TableRow>
                 ))
@@ -750,68 +837,6 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
           </Table>
         </div>
       </div>
-
-      {/* Pending Invites Modal */}
-      <Dialog open={showPendingInvitesModal} onOpenChange={setShowPendingInvitesModal}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Unregistered Asset Owners</DialogTitle>
-            <DialogDescription>
-              Employees who own assets but haven't registered in KARS yet
-            </DialogDescription>
-          </DialogHeader>
-          {loadingPendingInvites ? (
-            <div className="flex items-center justify-center h-32">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : pendingInvites.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No pending invites - all asset owners are registered!
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Invite Sent</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pendingInvites.map((invite) => (
-                    <TableRow key={invite.id}>
-                      <TableCell className="font-medium">{invite.email}</TableCell>
-                      <TableCell>
-                        {invite.invite_sent_at 
-                          ? new Date(invite.invite_sent_at).toLocaleString()
-                          : '-'}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleResendInvite(invite.id)}
-                          disabled={resendingInvite.has(invite.id)}
-                        >
-                          {resendingInvite.has(invite.id) ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <>
-                              <Mail className="h-4 w-4 mr-2" />
-                              Resend
-                            </>
-                          )}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

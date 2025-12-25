@@ -434,9 +434,44 @@ export default function createAttestationRouter(deps) {
             user_name: `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.name,
             user_role: user.role,
             manager_email: user.manager_email || null,
-            companies: companies
+            companies: companies,
+            is_pending_invite: false
           });
         }
+      }
+
+      // Include unregistered users (pending invites) as records with status 'unregistered'
+      const allInvites = await attestationPendingInviteDb.getByCampaignId(campaign.id);
+      const pendingInvites = allInvites.filter(invite => !invite.registered_at);
+
+      for (const invite of pendingInvites) {
+        const userAssets = await assetDb.getByEmployeeEmail(invite.employee_email);
+        const companyIds = [...new Set(userAssets.map(a => a.company_id).filter(Boolean))];
+
+        const companies = [];
+        for (const companyId of companyIds) {
+          const company = await companyDb.getById(companyId);
+          if (company) companies.push(company.name);
+        }
+
+        detailedRecords.push({
+          id: `invite_${invite.id}`,
+          invite_id: invite.id,
+          campaign_id: campaign.id,
+          user_id: null,
+          status: 'unregistered',
+          user_email: invite.employee_email,
+          user_name: `${invite.employee_first_name || ''} ${invite.employee_last_name || ''}`.trim() || invite.employee_email,
+          user_role: null,
+          manager_email: null,
+          companies: companies,
+          invite_sent_at: invite.invite_sent_at,
+          created_at: invite.created_at,
+          completed_at: null,
+          reminder_sent_at: null,
+          escalation_sent_at: null,
+          is_pending_invite: true
+        });
       }
 
       res.json({ success: true, campaign, records: detailedRecords });
