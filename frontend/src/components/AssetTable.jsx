@@ -331,6 +331,14 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
   const isAllSelected = paginatedAssets.length > 0 && paginatedAssets.every((a) => selectedIds.has(a.id));
   const isSomeSelected = paginatedAssets.some((a) => selectedIds.has(a.id)) && !isAllSelected;
 
+  // Handle inline status updates from table rows
+  const handleStatusUpdated = (updatedAsset) => {
+    // Update the asset in the parent's state through onRefresh
+    if (onRefresh) {
+      onRefresh();
+    }
+  };
+
   return (
     <>
       <div className="space-y-4">
@@ -386,6 +394,7 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
                   onToggleSelect={() => toggleSelect(asset.id)}
                   onEdit={() => onEdit(asset)}
                   onDelete={() => setDeleteDialog({ open: true, asset })}
+                  onStatusUpdated={handleStatusUpdated}
                 />
               ))}
             </div>
@@ -399,12 +408,11 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
                       onCheckedChange={toggleSelectAll}
                     />
                   </TableHead>
-                  <TableHead>Employee</TableHead>
-                  <TableHead className="hidden xl:table-cell">Manager</TableHead>
+                  <TableHead className="w-10 px-1"></TableHead>
+                  <TableHead>Employee (Owner)</TableHead>
                   <TableHead className="hidden lg:table-cell">Company</TableHead>
-                  <TableHead className="hidden xl:table-cell">Type</TableHead>
-                  <TableHead className="hidden lg:table-cell">Make/Model</TableHead>
-                  <TableHead className="hidden 2xl:table-cell">Asset Tag</TableHead>
+                  <TableHead className="hidden md:table-cell">Type</TableHead>
+                  <TableHead className="hidden xl:table-cell">Asset Tag</TableHead>
                   <TableHead>Serial Number</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right pr-4 min-w-[100px]">Actions</TableHead>
@@ -421,6 +429,7 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
                     onToggleSelect={() => toggleSelect(asset.id)}
                     onEdit={() => onEdit(asset)}
                     onDelete={() => setDeleteDialog({ open: true, asset })}
+                    onStatusUpdated={handleStatusUpdated}
                   />
                 ))}
               </TableBody>
