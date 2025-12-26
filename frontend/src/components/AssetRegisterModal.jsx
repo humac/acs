@@ -356,16 +356,15 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
               <div className="space-y-2">
                 <Label htmlFor="manager_first_name">Manager First Name</Label>
                 <Input
-                  className="text-base" 
-                  id="manager_first_name" 
-                  name="manager_first_name" 
-                  value={form.manager_first_name} 
+                  id="manager_first_name"
+                  name="manager_first_name"
+                  value={form.manager_first_name}
                   onChange={onChange}
                   maxLength={100}
                   placeholder="Sarah"
                   readOnly={isEmployee}
                   disabled={isEmployee}
-                  className={isEmployee ? 'bg-muted cursor-not-allowed' : ''}
+                  className={cn('text-base', isEmployee && 'bg-muted cursor-not-allowed')}
                 />
               </div>
 

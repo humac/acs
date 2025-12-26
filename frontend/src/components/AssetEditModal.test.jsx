@@ -8,12 +8,15 @@ global.fetch = vi.fn();
 
 // Mock useAuth hook
 const mockGetAuthHeaders = vi.fn(() => ({ Authorization: 'Bearer test-token' }));
+let mockUser = { role: 'admin', email: 'admin@test.com' };
+
 vi.mock('../contexts/AuthContext', async () => {
   const actual = await vi.importActual('../contexts/AuthContext');
   return {
     ...actual,
     useAuth: () => ({
       getAuthHeaders: mockGetAuthHeaders,
+      user: mockUser,
     }),
   };
 });
@@ -50,6 +53,24 @@ describe('AssetEditModal Component', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUser = { role: 'admin', email: 'admin@test.com' };
+
+    // Mock companies and asset types API calls
+    global.fetch.mockImplementation((url) => {
+      if (url === '/api/companies/names') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => [{ id: 1, name: 'Acme Corp' }],
+        });
+      }
+      if (url === '/api/asset-types') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => [{ id: 1, name: 'laptop', display_name: 'Laptop' }],
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
   });
 
   it('renders modal with title', () => {
@@ -67,7 +88,7 @@ describe('AssetEditModal Component', () => {
     expect(screen.getByText('Edit Asset')).toBeInTheDocument();
   });
 
-  it('displays read-only summary section with asset details', () => {
+  it('displays read-only dates section', () => {
     const currentUser = { roles: ['admin'] };
 
     render(
@@ -79,22 +100,12 @@ describe('AssetEditModal Component', () => {
       />
     );
 
-    // Check for read-only fields in summary
-    expect(screen.getByText('Asset Tag:')).toBeInTheDocument();
-    expect(screen.getByText('AT001')).toBeInTheDocument();
-    expect(screen.getByText('Serial Number:')).toBeInTheDocument();
-    expect(screen.getByText('SN12345')).toBeInTheDocument();
-    expect(screen.getByText('Asset Type:')).toBeInTheDocument();
-    expect(screen.getByText('laptop')).toBeInTheDocument();
-    expect(screen.getByText('Make/Model:')).toBeInTheDocument();
-    expect(screen.getByText('Dell XPS 15')).toBeInTheDocument();
-    expect(screen.getByText('Company:')).toBeInTheDocument();
-    expect(screen.getByText('Acme Corp')).toBeInTheDocument();
-    expect(screen.getByText('Employee:')).toBeInTheDocument();
-    expect(screen.getByText('John Doe')).toBeInTheDocument();
+    // Check for read-only date labels
+    expect(screen.getByText('Created')).toBeInTheDocument();
+    expect(screen.getByText('Last Modified')).toBeInTheDocument();
   });
 
-  it('displays manager info in read-only section', () => {
+  it('displays employee information section', () => {
     const currentUser = { roles: ['admin'] };
 
     render(
@@ -106,13 +117,15 @@ describe('AssetEditModal Component', () => {
       />
     );
 
-    expect(screen.getByText('Manager:')).toBeInTheDocument();
-    expect(screen.getByText('Jane Manager')).toBeInTheDocument();
-    expect(screen.getByText('Manager Email:')).toBeInTheDocument();
-    expect(screen.getByText('jane@example.com')).toBeInTheDocument();
+    // Check for employee section header
+    expect(screen.getByText('Employee Information')).toBeInTheDocument();
+    // Check for employee name in input fields
+    expect(screen.getByDisplayValue('John')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Doe')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('john@example.com')).toBeInTheDocument();
   });
 
-  it('displays notes in read-only section when present', () => {
+  it('displays manager info section', () => {
     const currentUser = { roles: ['admin'] };
 
     render(
@@ -124,11 +137,13 @@ describe('AssetEditModal Component', () => {
       />
     );
 
-    expect(screen.getByText('Notes:')).toBeInTheDocument();
-    expect(screen.getByText('Test notes')).toBeInTheDocument();
+    expect(screen.getByText('Manager Information')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Jane')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Manager')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('jane@example.com')).toBeInTheDocument();
   });
 
-  it('shows only status as editable field', () => {
+  it('displays notes field with existing notes', () => {
     const currentUser = { roles: ['admin'] };
 
     render(
@@ -140,24 +155,53 @@ describe('AssetEditModal Component', () => {
       />
     );
 
-    // Status should be the only editable field
-    expect(screen.getByLabelText('Status')).toBeInTheDocument();
+    // Notes should be shown as an editable textarea
+    expect(screen.getByLabelText('Notes')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Test notes')).toBeInTheDocument();
+  });
 
-    // Manager fields should NOT be editable inputs
-    expect(screen.queryByLabelText('Manager First Name')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Manager Last Name')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Manager Email')).not.toBeInTheDocument();
+  it('shows editable fields for admin user', () => {
+    mockUser = { role: 'admin', email: 'admin@test.com' };
+    const currentUser = { roles: ['admin'] };
 
-    // Notes should NOT be editable
-    expect(screen.queryByLabelText('Notes')).not.toBeInTheDocument();
+    render(
+      <AssetEditModal
+        asset={sampleAsset}
+        currentUser={currentUser}
+        onClose={mockOnClose}
+        onSaved={mockOnSaved}
+      />
+    );
 
-    // Other fields should NOT be editable inputs
-    expect(screen.queryByLabelText('Employee First Name')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Employee Last Name')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Employee Email')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Company')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Laptop Make')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Serial Number')).not.toBeInTheDocument();
+    // Admin should be able to edit all fields
+    expect(screen.getByLabelText('First Name *')).not.toBeDisabled();
+    expect(screen.getByLabelText('Last Name *')).not.toBeDisabled();
+    expect(screen.getByLabelText('Employee Email *')).not.toBeDisabled();
+    expect(screen.getByLabelText('Manager First Name')).not.toBeDisabled();
+    expect(screen.getByLabelText('Manager Last Name')).not.toBeDisabled();
+    expect(screen.getByLabelText('Manager Email')).not.toBeDisabled();
+  });
+
+  it('shows read-only employee/manager fields for non-admin user', () => {
+    mockUser = { role: 'employee', email: 'john@example.com' };
+    const currentUser = { roles: ['user'] };
+
+    render(
+      <AssetEditModal
+        asset={sampleAsset}
+        currentUser={currentUser}
+        onClose={mockOnClose}
+        onSaved={mockOnSaved}
+      />
+    );
+
+    // Non-admin should have read-only employee/manager fields
+    expect(screen.getByLabelText('First Name *')).toBeDisabled();
+    expect(screen.getByLabelText('Last Name *')).toBeDisabled();
+    expect(screen.getByLabelText('Employee Email *')).toBeDisabled();
+    expect(screen.getByLabelText('Manager First Name')).toBeDisabled();
+    expect(screen.getByLabelText('Manager Last Name')).toBeDisabled();
+    expect(screen.getByLabelText('Manager Email')).toBeDisabled();
   });
 
   it('calls onClose when Cancel button is clicked', async () => {
@@ -179,19 +223,38 @@ describe('AssetEditModal Component', () => {
     expect(mockOnClose).toHaveBeenCalled();
   });
 
-  it('saves only status when Save button is clicked', async () => {
+  it('saves asset when Save Changes button is clicked', async () => {
     const user = userEvent.setup();
     const currentUser = { roles: ['admin'] };
 
     const mockResponse = {
       asset: {
         ...sampleAsset,
-        status: 'returned',
+        status: 'active',
       }
     };
-    global.fetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => mockResponse,
+
+    // Override fetch mock for this test
+    global.fetch.mockImplementation((url, options) => {
+      if (url === '/api/companies/names') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => [{ id: 1, name: 'Acme Corp' }],
+        });
+      }
+      if (url === '/api/asset-types') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => [{ id: 1, name: 'laptop', display_name: 'Laptop' }],
+        });
+      }
+      if (url === '/api/assets/1' && options?.method === 'PUT') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => mockResponse,
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => ({}) });
     });
 
     render(
@@ -203,27 +266,19 @@ describe('AssetEditModal Component', () => {
       />
     );
 
-    const saveButton = screen.getByText('Save');
+    const saveButton = screen.getByText('Save Changes');
     await user.click(saveButton);
 
     await waitFor(() => {
-      // Verify fetch was called
-      expect(global.fetch).toHaveBeenCalledWith(
-        '/api/assets/1',
-        expect.objectContaining({
-          method: 'PUT',
-          headers: expect.objectContaining({
-            'Content-Type': 'application/json',
-          }),
-        })
+      // Verify fetch was called with PUT method
+      const putCall = global.fetch.mock.calls.find(
+        call => call[0] === '/api/assets/1' && call[1]?.method === 'PUT'
       );
+      expect(putCall).toBeDefined();
 
-      // Verify the payload contains the status
-      const fetchCall = global.fetch.mock.calls[0];
-      const payload = JSON.parse(fetchCall[1].body);
+      // Verify the payload contains the asset data
+      const payload = JSON.parse(putCall[1].body);
       expect(payload.status).toBe('active');
-
-      // Verify it also includes the original asset data (for backend validation)
       expect(payload.employee_first_name).toBe('John');
       expect(payload.employee_last_name).toBe('Doe');
       expect(payload.company_name).toBe('Acme Corp');
@@ -250,12 +305,10 @@ describe('AssetEditModal Component', () => {
     const statusTrigger = screen.getByLabelText('Status');
     expect(statusTrigger).toBeInTheDocument();
     expect(statusTrigger).toHaveAttribute('role', 'combobox');
-
-    // Status options should match backend-supported values: active, returned, lost, damaged, retired
-    // This is verified by the component not throwing errors and save working correctly
   });
 
-  it('displays correct dialog description', () => {
+  it('displays correct dialog description for admin', () => {
+    mockUser = { role: 'admin', email: 'admin@test.com' };
     const currentUser = { roles: ['admin'] };
 
     render(
@@ -267,6 +320,6 @@ describe('AssetEditModal Component', () => {
       />
     );
 
-    expect(screen.getByText('Update the status of this asset.')).toBeInTheDocument();
+    expect(screen.getByText('Update all asset details. Fields marked with * are required.')).toBeInTheDocument();
   });
 });

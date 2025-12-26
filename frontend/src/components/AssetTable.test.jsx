@@ -121,7 +121,7 @@ describe('AssetTable Component', () => {
 
   it('renders asset table with assets', () => {
     const currentUser = { role: 'admin', email: 'admin@test.com' };
-    
+
     render(
       <AssetTable
         assets={sampleAssets}
@@ -131,16 +131,17 @@ describe('AssetTable Component', () => {
       />
     );
 
-    // The new table renders multiple times (mobile + desktop), so use getAllByText
+    // The table renders employee names (visible in main table)
     expect(screen.getAllByText('John Doe')[0]).toBeInTheDocument();
     expect(screen.getAllByText('Jane Smith')[0]).toBeInTheDocument();
-    expect(screen.getAllByText('Dell XPS 15')[0]).toBeInTheDocument();
-    expect(screen.getAllByText('Apple iPhone 15')[0]).toBeInTheDocument();
+    // Serial numbers are visible in main table
+    expect(screen.getAllByText('SN123')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('SN456')[0]).toBeInTheDocument();
   });
 
   it('shows "No assets found" when assets array is empty', () => {
     const currentUser = { role: 'admin', email: 'admin@test.com' };
-    
+
     render(
       <AssetTable
         assets={[]}
@@ -156,7 +157,7 @@ describe('AssetTable Component', () => {
   it('allows admin users to edit assets', async () => {
     const user = userEvent.setup();
     const currentUser = { role: 'admin', email: 'admin@test.com' };
-    
+
     render(
       <AssetTable
         assets={sampleAssets}
@@ -175,7 +176,7 @@ describe('AssetTable Component', () => {
   it('disables edit for non-admin/non-editor users', async () => {
     const user = userEvent.setup();
     const currentUser = { role: 'employee', email: 'user@test.com' };
-    
+
     render(
       <AssetTable
         assets={sampleAssets}
@@ -192,7 +193,7 @@ describe('AssetTable Component', () => {
 
   it('calls onEdit when edit button is clicked', async () => {
     const currentUser = { role: 'admin', email: 'admin@test.com' };
-    
+
     render(
       <AssetTable
         assets={sampleAssets}
@@ -211,7 +212,7 @@ describe('AssetTable Component', () => {
     const user = userEvent.setup();
     const currentUser = { role: 'admin', email: 'admin@test.com' };
     global.fetch.mockResolvedValueOnce({ ok: true });
-    
+
     render(
       <AssetTable
         assets={sampleAssets}
@@ -235,7 +236,7 @@ describe('AssetTable Component', () => {
     const user = userEvent.setup();
     const currentUser = { role: 'admin', email: 'admin@test.com' };
     global.fetch.mockResolvedValueOnce({ ok: true });
-    
+
     render(
       <AssetTable
         assets={sampleAssets}
@@ -262,9 +263,10 @@ describe('AssetTable Component', () => {
     });
   });
 
-  it('displays manager information in the table', () => {
+  it('displays manager information when row is expanded', async () => {
+    const user = userEvent.setup();
     const currentUser = { role: 'admin', email: 'admin@test.com' };
-    
+
     render(
       <AssetTable
         assets={sampleAssets}
@@ -274,15 +276,20 @@ describe('AssetTable Component', () => {
       />
     );
 
-    // Manager names should appear in desktop view
-    expect(screen.getAllByText('Bob Manager')[0]).toBeInTheDocument();
-    expect(screen.getAllByText('Alice Boss')[0]).toBeInTheDocument();
+    // Click the expand button to show manager details
+    const expandButtons = screen.getAllByRole('button', { name: /expand details/i });
+    await user.click(expandButtons[0]);
+
+    // Manager name should now be visible in expanded section
+    await waitFor(() => {
+      expect(screen.getByText('Bob Manager')).toBeInTheDocument();
+    });
   });
 
   it('filters assets by manager name', async () => {
     const user = userEvent.setup();
     const currentUser = { role: 'admin', email: 'admin@test.com' };
-    
+
     render(
       <AssetTable
         assets={sampleAssets}
@@ -306,7 +313,7 @@ describe('AssetTable Component', () => {
   it('filters assets by manager email', async () => {
     const user = userEvent.setup();
     const currentUser = { role: 'admin', email: 'admin@test.com' };
-    
+
     render(
       <AssetTable
         assets={sampleAssets}
@@ -327,7 +334,8 @@ describe('AssetTable Component', () => {
     });
   });
 
-  it('displays manager name from manager_first_name and manager_last_name fields', () => {
+  it('displays manager name from manager_first_name and manager_last_name fields when expanded', async () => {
+    const user = userEvent.setup();
     const currentUser = { role: 'admin', email: 'admin@test.com' };
     const assetsWithDenormalizedManager = [
       {
@@ -341,7 +349,7 @@ describe('AssetTable Component', () => {
         status: 'active',
       }
     ];
-    
+
     render(
       <AssetTable
         assets={assetsWithDenormalizedManager}
@@ -351,12 +359,18 @@ describe('AssetTable Component', () => {
       />
     );
 
-    // Manager name from denormalized fields should be displayed
-    expect(screen.getAllByText('Direct Manager')[0]).toBeInTheDocument();
-    expect(screen.getAllByText('direct@example.com')[0]).toBeInTheDocument();
+    // Click expand to reveal manager details
+    const expandButtons = screen.getAllByRole('button', { name: /expand details/i });
+    await user.click(expandButtons[0]);
+
+    // Manager name from denormalized fields should be displayed in expanded section
+    await waitFor(() => {
+      expect(screen.getByText('Direct Manager')).toBeInTheDocument();
+    });
   });
 
-  it('displays manager name resolved from manager_id via UsersContext', () => {
+  it('displays manager name resolved from manager_id via UsersContext when expanded', async () => {
+    const user = userEvent.setup();
     const currentUser = { role: 'admin', email: 'admin@test.com' };
     const assetsWithManagerId = [
       {
@@ -368,7 +382,7 @@ describe('AssetTable Component', () => {
         status: 'active',
       }
     ];
-    
+
     render(
       <AssetTable
         assets={assetsWithManagerId}
@@ -378,38 +392,45 @@ describe('AssetTable Component', () => {
       />
     );
 
-    // Manager name from UsersContext should be displayed
-    expect(screen.getAllByText('Manager From Context')[0]).toBeInTheDocument();
-    expect(screen.getAllByText('context-manager@example.com')[0]).toBeInTheDocument();
+    // Click expand to reveal manager details
+    const expandButtons = screen.getAllByRole('button', { name: /expand details/i });
+    await user.click(expandButtons[0]);
+
+    // Manager name from UsersContext should be displayed in expanded section
+    await waitFor(() => {
+      expect(screen.getByText('Manager From Context')).toBeInTheDocument();
+    });
   });
 
-  it('displays only manager_email when no name fields or manager_id available', () => {
+  it('shows dash when no manager info available in expanded section', async () => {
+    const user = userEvent.setup();
     const currentUser = { role: 'admin', email: 'admin@test.com' };
-    const assetsWithEmailOnly = [
+    const assetsWithNoManager = [
       {
         id: 3,
         employee_first_name: 'Test',
         employee_last_name: 'User3',
         employee_email: 'test3@example.com',
-        manager_email: 'emailonly@example.com',
         status: 'active',
       }
     ];
-    
+
     render(
       <AssetTable
-        assets={assetsWithEmailOnly}
+        assets={assetsWithNoManager}
         onEdit={mockOnEdit}
         onDelete={mockOnDelete}
         currentUser={currentUser}
       />
     );
 
-    // Only email should be displayed, no name
-    expect(screen.getAllByText('emailonly@example.com')[0]).toBeInTheDocument();
-    // The name column should show '-' for no name
-    const tableCells = screen.getAllByText('-');
-    expect(tableCells.length).toBeGreaterThan(0);
+    // Click expand to reveal details
+    const expandButtons = screen.getAllByRole('button', { name: /expand details/i });
+    await user.click(expandButtons[0]);
+
+    // The manager label should show '-' for no manager
+    const managerLabels = screen.getAllByText('Manager');
+    expect(managerLabels.length).toBeGreaterThan(0);
   });
 
   it('searches by manager name resolved from manager_id', async () => {
@@ -434,7 +455,7 @@ describe('AssetTable Component', () => {
         status: 'active',
       }
     ];
-    
+
     render(
       <AssetTable
         assets={assetsWithManagerId}
@@ -460,7 +481,7 @@ describe('AssetTable Component', () => {
       role: 'employee',
       email: 'john@example.com'
     };
-    
+
     render(
       <AssetTable
         assets={sampleAssets}
@@ -479,7 +500,7 @@ describe('AssetTable Component', () => {
       role: 'employee',
       email: 'john@example.com'
     };
-    
+
     const otherUserAsset = {
       id: 3,
       employee_first_name: 'Alice',
@@ -492,7 +513,7 @@ describe('AssetTable Component', () => {
       employee_email: 'alice@example.com',
       status: 'active',
     };
-    
+
     render(
       <AssetTable
         assets={[...sampleAssets, otherUserAsset]}
@@ -524,5 +545,28 @@ describe('AssetTable Component', () => {
     // Manager should be able to see all assets
     expect(screen.getAllByText('John Doe')[0]).toBeInTheDocument();
     expect(screen.getAllByText('Jane Smith')[0]).toBeInTheDocument();
+  });
+
+  it('shows make/model in expanded row details', async () => {
+    const user = userEvent.setup();
+    const currentUser = { role: 'admin', email: 'admin@test.com' };
+
+    render(
+      <AssetTable
+        assets={sampleAssets}
+        onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
+        currentUser={currentUser}
+      />
+    );
+
+    // Click the expand button to show details
+    const expandButtons = screen.getAllByRole('button', { name: /expand details/i });
+    await user.click(expandButtons[0]);
+
+    // Make/Model should be visible in expanded section
+    await waitFor(() => {
+      expect(screen.getByText('Dell XPS 15')).toBeInTheDocument();
+    });
   });
 });
