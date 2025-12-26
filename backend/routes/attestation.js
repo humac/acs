@@ -663,7 +663,8 @@ export default function createAttestationRouter(deps) {
 
       const { asset_type, make, model, serial_number, asset_tag, company_id, notes,
               employee_first_name, employee_last_name, employee_email,
-              manager_first_name, manager_last_name, manager_email } = req.body;
+              manager_first_name, manager_last_name, manager_email,
+              status, issued_date, returned_date } = req.body;
 
       if (!asset_type || !serial_number || !asset_tag) {
         return res.status(400).json({ error: 'Asset type, serial number, and asset tag are required' });
@@ -673,6 +674,18 @@ export default function createAttestationRouter(deps) {
       }
       if (!company_id) {
         return res.status(400).json({ error: 'Company is required' });
+      }
+
+      // Validate status if provided
+      const validStatuses = ['active', 'returned', 'lost', 'damaged', 'retired'];
+      const assetStatus = status || 'active';
+      if (!validStatuses.includes(assetStatus)) {
+        return res.status(400).json({ error: 'Invalid status. Must be one of: active, returned, lost, damaged, retired' });
+      }
+
+      // Validate returned_date is required when status is 'returned'
+      if (assetStatus === 'returned' && !returned_date) {
+        return res.status(400).json({ error: 'Returned date is required when status is returned' });
       }
 
       await attestationNewAssetDb.create({
@@ -689,7 +702,10 @@ export default function createAttestationRouter(deps) {
         employee_email,
         manager_first_name,
         manager_last_name,
-        manager_email
+        manager_email,
+        status: assetStatus,
+        issued_date: issued_date || null,
+        returned_date: assetStatus === 'returned' ? returned_date : null
       });
 
       if (record.status === 'pending') {
@@ -747,7 +763,7 @@ export default function createAttestationRouter(deps) {
             model: newAsset.model || '',
             serial_number: newAsset.serial_number,
             asset_tag: newAsset.asset_tag,
-            status: 'active',
+            status: newAsset.status || 'active',
             issued_date: newAsset.issued_date || null,
             returned_date: newAsset.returned_date || null,
             notes: newAsset.notes || ''
