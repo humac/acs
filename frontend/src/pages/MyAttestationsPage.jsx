@@ -67,6 +67,7 @@ export default function MyAttestationsPage() {
     manager_last_name: '',
     manager_email: '',
     company_id: null,
+    status: 'active',
     issued_date: '',
     returned_date: ''
   });
@@ -169,7 +170,10 @@ export default function MyAttestationsPage() {
       manager_first_name: user?.manager_first_name || '',
       manager_last_name: user?.manager_last_name || '',
       manager_email: user?.manager_email || '',
-      company_id: targetCompanyId
+      company_id: targetCompanyId,
+      status: 'active',
+      issued_date: '',
+      returned_date: ''
     });
     
     // Load companies if needed
@@ -304,6 +308,16 @@ export default function MyAttestationsPage() {
       return;
     }
 
+    // Validate returned_date is required when status is 'returned'
+    if (newAssetForm.status === 'returned' && !newAssetForm.returned_date) {
+      toast({
+        title: 'Validation Error',
+        description: 'Returned date is required when status is Returned',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     try {
       const res = await fetch(`/api/attestation/records/${selectedAttestation.id}/assets/new`, {
         method: 'POST',
@@ -333,6 +347,7 @@ export default function MyAttestationsPage() {
         manager_last_name: '',
         manager_email: '',
         company_id: null,
+        status: 'active',
         issued_date: '',
         returned_date: ''
       });
@@ -717,6 +732,7 @@ export default function MyAttestationsPage() {
                           <TableHead>Make/Model</TableHead>
                           <TableHead>Serial Number</TableHead>
                           <TableHead>Asset Tag</TableHead>
+                          <TableHead>Status</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -728,6 +744,9 @@ export default function MyAttestationsPage() {
                             </TableCell>
                             <TableCell>{asset.serial_number}</TableCell>
                             <TableCell>{asset.asset_tag}</TableCell>
+                            <TableCell>
+                              <Badge variant="secondary">{asset.status || 'active'}</Badge>
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -853,13 +872,52 @@ export default function MyAttestationsPage() {
               />
             </div>
             <div>
-              <Label htmlFor="issued_date">Issued Date</Label>
-              <Input
-                id="issued_date"
-                type="date"
-                value={newAssetForm.issued_date}
-                onChange={(e) => setNewAssetForm({ ...newAssetForm, issued_date: e.target.value })}
-              />
+              <Label htmlFor="new_asset_status">Status</Label>
+              <Select
+                value={newAssetForm.status}
+                onValueChange={(value) => {
+                  // Clear returned_date if status is not 'returned'
+                  if (value !== 'returned') {
+                    setNewAssetForm({ ...newAssetForm, status: value, returned_date: '' });
+                  } else {
+                    setNewAssetForm({ ...newAssetForm, status: value });
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ASSET_STATUS_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="issued_date">Issued Date</Label>
+                <Input
+                  id="issued_date"
+                  type="date"
+                  value={newAssetForm.issued_date}
+                  onChange={(e) => setNewAssetForm({ ...newAssetForm, issued_date: e.target.value })}
+                />
+              </div>
+              {newAssetForm.status === 'returned' && (
+                <div>
+                  <Label htmlFor="new_asset_returned_date">Returned Date *</Label>
+                  <Input
+                    id="new_asset_returned_date"
+                    type="date"
+                    value={newAssetForm.returned_date}
+                    onChange={(e) => setNewAssetForm({ ...newAssetForm, returned_date: e.target.value })}
+                    required
+                  />
+                </div>
+              )}
             </div>
 
             {/* Employee Information */}

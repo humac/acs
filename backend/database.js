@@ -1058,6 +1058,7 @@ const initDb = async () => {
       asset_tag TEXT NOT NULL,
       company_id INTEGER REFERENCES companies(id),
       notes TEXT,
+      status TEXT DEFAULT 'active',
       issued_date TIMESTAMP,
       returned_date TIMESTAMP,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -1073,6 +1074,7 @@ const initDb = async () => {
       asset_tag TEXT NOT NULL,
       company_id INTEGER,
       notes TEXT,
+      status TEXT DEFAULT 'active',
       issued_date TEXT,
       returned_date TEXT,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -1503,6 +1505,27 @@ const initDb = async () => {
     }
   } catch (err) {
     console.error('Migration error (attestation_new_assets issued_date/returned_date columns):', err.message);
+    // Don't fail initialization
+  }
+
+  // Migration: Add status column to attestation_new_assets table
+  try {
+    const newAssetCols = isPostgres
+      ? await dbAll(`
+          SELECT column_name as name
+          FROM information_schema.columns
+          WHERE table_name = 'attestation_new_assets'
+        `)
+      : await dbAll("PRAGMA table_info(attestation_new_assets)");
+
+    const hasStatus = newAssetCols.some(col => col.name === 'status');
+    if (!hasStatus) {
+      console.log('Migrating attestation_new_assets table: adding status column...');
+      await dbRun("ALTER TABLE attestation_new_assets ADD COLUMN status TEXT DEFAULT 'active'");
+      console.log('Migration complete: Added status column to attestation_new_assets');
+    }
+  } catch (err) {
+    console.error('Migration error (attestation_new_assets status column):', err.message);
     // Don't fail initialization
   }
 
@@ -3900,21 +3923,21 @@ export const attestationNewAssetDb = {
     if (isPostgres) {
       const result = await dbRun(
         `INSERT INTO attestation_new_assets (attestation_record_id, asset_type, make, model, serial_number, asset_tag, company_id, notes,
-         employee_first_name, employee_last_name, employee_email, manager_first_name, manager_last_name, manager_email, issued_date, returned_date, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING id`,
+         employee_first_name, employee_last_name, employee_email, manager_first_name, manager_last_name, manager_email, status, issued_date, returned_date, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) RETURNING id`,
         [asset.attestation_record_id, asset.asset_type, asset.make, asset.model, asset.serial_number, asset.asset_tag, asset.company_id, asset.notes,
          asset.employee_first_name, asset.employee_last_name, asset.employee_email, asset.manager_first_name, asset.manager_last_name, asset.manager_email,
-         asset.issued_date || null, asset.returned_date || null, now]
+         asset.status || 'active', asset.issued_date || null, asset.returned_date || null, now]
       );
       return { id: result.rows[0].id };
     } else {
       const result = await dbRun(
         `INSERT INTO attestation_new_assets (attestation_record_id, asset_type, make, model, serial_number, asset_tag, company_id, notes,
-         employee_first_name, employee_last_name, employee_email, manager_first_name, manager_last_name, manager_email, issued_date, returned_date, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         employee_first_name, employee_last_name, employee_email, manager_first_name, manager_last_name, manager_email, status, issued_date, returned_date, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [asset.attestation_record_id, asset.asset_type, asset.make, asset.model, asset.serial_number, asset.asset_tag, asset.company_id, asset.notes,
          asset.employee_first_name, asset.employee_last_name, asset.employee_email, asset.manager_first_name, asset.manager_last_name, asset.manager_email,
-         asset.issued_date || null, asset.returned_date || null, now]
+         asset.status || 'active', asset.issued_date || null, asset.returned_date || null, now]
       );
       return { id: result.lastInsertRowid };
     }
