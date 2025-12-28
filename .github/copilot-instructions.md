@@ -8,7 +8,7 @@ KARS (KeyData Asset Registration System) is a SOC2-compliant asset tracking web 
 
 **Auth Methods:** JWT, WebAuthn/Passkeys, TOTP MFA, OIDC/SSO
 
-**RBAC Roles:** employee (own assets), manager (own + team), admin (all access)
+**RBAC Roles:** employee (own assets), manager (all assets read, team management), attestation_coordinator (attestation campaigns, read-only assets/users/companies), admin (all access)
 
 ## Build & Test Commands
 
@@ -119,6 +119,17 @@ import {
   passkeySettingsDb,    // Passkey settings
   hubspotSettingsDb,    // HubSpot integration
   hubspotSyncLogDb,     // Sync audit trail
+  smtpSettingsDb,       // Email/SMTP configuration
+  systemSettingsDb,     // System settings (proxy, rate limiting)
+  assetTypeDb,          // Configurable asset types
+  emailTemplateDb,      // Email template customization
+  passwordResetTokenDb, // Password reset tokens
+  // Attestation workflow
+  attestationCampaignDb,     // Campaign management
+  attestationRecordDb,       // Employee attestation records
+  attestationAssetDb,        // Asset attestation status
+  attestationNewAssetDb,     // New assets reported in attestation
+  attestationPendingInviteDb,// Pending invites for unregistered users
   syncAssetOwnership,   // Manager change propagation
 } from './database.js';
 ```
@@ -245,16 +256,30 @@ export default function MyComponent() {
 ## Authorization Quick Reference
 
 ```javascript
-// Role-based data filtering
+// Role-based data filtering (use getScopedForUser for proper filtering)
+const assets = await assetDb.getScopedForUser(user);
+// Admin, Manager, and Attestation Coordinator see all assets
+// Employee sees only own assets
+
+// Manual role-based filtering (alternative)
 if (user.role === 'employee') {
   assets = await assetDb.getByEmployeeEmail(user.email);
-} else if (user.role === 'manager') {
-  const own = await assetDb.getByEmployeeEmail(user.email);
-  const team = await assetDb.getByManagerEmail(user.email);
-  assets = [...own, ...team];
-} else if (user.role === 'admin') {
+} else {
+  // Manager, attestation_coordinator, and admin see all assets
   assets = await assetDb.getAll();
 }
+
+// Attestation coordinator example (campaigns access)
+app.post('/api/attestation/campaigns',
+  authenticate,
+  authorize('admin', 'attestation_coordinator'),
+  async (req, res) => { ... });
+
+// Read-only access for multiple roles
+app.get('/api/users',
+  authenticate,
+  authorize('admin', 'manager', 'attestation_coordinator'),
+  async (req, res) => { ... });
 ```
 
 ## Security & Best Practices

@@ -98,6 +98,17 @@ import {
   brandingSettingsDb,   // Custom branding
   passkeySettingsDb,    // Passkey settings
   hubspotSettingsDb,    // HubSpot integration
+  smtpSettingsDb,       // Email/SMTP configuration
+  systemSettingsDb,     // System settings (proxy, rate limiting)
+  assetTypeDb,          // Asset type management
+  emailTemplateDb,      // Email template customization
+  passwordResetTokenDb, // Password reset tokens
+  // Attestation workflow
+  attestationCampaignDb,     // Campaign management
+  attestationRecordDb,       // Employee attestation records
+  attestationAssetDb,        // Asset attestation status
+  attestationNewAssetDb,     // New assets reported in attestation
+  attestationPendingInviteDb,// Pending invites for unregistered users
   syncAssetOwnership,   // Manager change propagation
 } from './database.js';
 ```
@@ -148,10 +159,26 @@ const assets = await assetDb.getScopedForUser(user);
 
 ### Role Hierarchy and Permissions
 
-- **admin**: Full access to all resources including admin settings, user management, company management
-- **attestation_coordinator**: Manage attestation campaigns; read-only access to assets, users, companies, audit logs; no admin settings access
-- **manager**: View all assets/audit logs, bulk import assets, read-only user access; cannot edit other users' assets
-- **employee**: View/edit own assets and audit logs only
+| Role | Description |
+|------|-------------|
+| **admin** | Full access to all resources including admin settings, user management, company management |
+| **attestation_coordinator** | Manage attestation campaigns; read-only access to assets, users, companies, audit logs; no admin settings access |
+| **manager** | View all assets/audit logs, bulk import assets, read-only user access; cannot edit other users' assets |
+| **employee** | View/edit own assets and audit logs only |
+
+**Authorization Examples:**
+```javascript
+// Attestation coordinator access
+app.get('/api/attestation/campaigns',
+  authenticate,
+  authorize('admin', 'attestation_coordinator'),
+  async (req, res) => { ... });
+
+// Read-only access for multiple roles
+app.get('/api/users',
+  authenticate,
+  authorize('admin', 'manager', 'attestation_coordinator'),
+  async (req, res) => { ... });
 ```
 
 ### Audit Logging (CRITICAL)
@@ -183,8 +210,9 @@ if (!emailRegex.test(employee_email)) {
   return res.status(400).json({ success: false, message: 'Invalid email format' });
 }
 
-// Validate enums
-const validTypes = ['laptop', 'mobile phone'];
+// Validate asset types (configurable via assetTypeDb)
+const activeTypes = await assetTypeDb.getActive();
+const validTypes = activeTypes.map(t => t.name);
 if (!validTypes.includes(asset_type)) {
   return res.status(400).json({ success: false, message: 'Invalid asset type' });
 }

@@ -3,10 +3,12 @@
 Welcome to the documentation for the **Asset Compliance System (ACS)** — a web application that supports organizational SOC2 compliance by tracking client assets with strong authentication, imports/exports, and admin controls.
 
 ## 🎯 Overview
-- **Asset visibility by role** with employee, manager, and admin scopes (see [Role/Permissions Matrix](Features#role-based-access-control-rbac))
+- **Asset visibility by role** with employee, manager, attestation coordinator, and admin scopes (see [Role/Permissions Matrix](Features#role-based-access-control-rbac))
 - **Modern authentication**: passwords, TOTP MFA, passkeys/WebAuthn, and OIDC/SSO
+- **Attestation workflow**: Campaign-based asset certification with automated reminders and escalations
 - **Bulk operations**: CSV imports for assets/companies and CSV exports for audits
-- **Configurable platform**: branding controls, passkey relying-party settings, and database engine selection (SQLite or PostgreSQL)
+- **Configurable platform**: branding controls, passkey relying-party settings, email templates, and database engine selection (SQLite or PostgreSQL)
+- **Email notifications**: SMTP-based notifications for password reset, attestation campaigns, and system alerts
 - **Audit-ready reporting** with status summaries, manager/company rollups, and download-ready CSVs
 
 ## 📚 Documentation
@@ -46,7 +48,9 @@ Welcome to the documentation for the **Asset Compliance System (ACS)** — a web
 - JWT sessions with 7-day expiry and bcrypt-hashed credentials
 - Passkey/WebAuthn with configurable RP ID/name and origin
 - TOTP MFA with backup codes and login verification flow
-- Role-based authorization on every endpoint and export
+- Password reset with time-limited tokens (1-hour expiration)
+- Role-based authorization on every endpoint and export (4 roles: employee, manager, attestation_coordinator, admin)
+- Configurable proxy trust and rate limiting for production deployments
 - Full audit trail of create/update/status/delete actions
 
 ## 📞 Support

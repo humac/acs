@@ -817,7 +817,7 @@ PUT /api/auth/users/:id/role
 }
 ```
 
-**Valid Roles:** `employee`, `manager`, `admin`
+**Valid Roles:** `employee`, `manager`, `attestation_coordinator`, `admin`
 
 **Response:** `200 OK`
 ```json
@@ -876,8 +876,9 @@ GET /api/assets
 
 **Role-Based Filtering:**
 - **Employee:** Only assets where `employee_email` matches user email
-- **Manager:** All assets (same as admin)
-- **Admin:** All assets
+- **Manager:** All assets (read-only for non-owned assets)
+- **Attestation Coordinator:** All assets (read-only)
+- **Admin:** All assets (full access)
 
 **Response:** `200 OK`
 ```json
@@ -1271,7 +1272,8 @@ GET /api/audit/logs?action=CREATE&entityType=asset&limit=100
 
 **Role-Based Filtering:**
 - **Employee:** Only logs where `user_email` matches
-- **Manager:** All logs (same as admin)
+- **Manager:** All logs
+- **Attestation Coordinator:** All logs
 - **Admin:** All logs
 
 **Response:** `200 OK`
@@ -1353,7 +1355,8 @@ GET /api/reports/summary
 
 **Role-Based Filtering:**
 - **Employee:** Only own assets
-- **Manager:** All assets (same as admin)
+- **Manager:** All assets
+- **Attestation Coordinator:** All assets
 - **Admin:** All assets
 
 **Response:** `200 OK`
@@ -1382,7 +1385,7 @@ GET /api/reports/summary
 
 ## Attestation Endpoints
 
-### Create Campaign (Admin)
+### Create Campaign (Admin/Attestation Coordinator)
 
 Create a new attestation campaign.
 
@@ -1390,7 +1393,7 @@ Create a new attestation campaign.
 POST /api/attestation/campaigns
 ```
 
-**Permissions:** Admin only
+**Permissions:** Admin or Attestation Coordinator
 
 **Headers:**
 ```http
@@ -1430,11 +1433,11 @@ Content-Type: application/json
 
 **Errors:**
 - `400` - Missing required fields
-- `403` - Not an admin
+- `403` - Not an admin or attestation coordinator
 
 ---
 
-### List Campaigns (Admin)
+### List Campaigns (Admin/Attestation Coordinator)
 
 Get all attestation campaigns.
 
@@ -1442,7 +1445,7 @@ Get all attestation campaigns.
 GET /api/attestation/campaigns
 ```
 
-**Permissions:** Admin only
+**Permissions:** Admin or Attestation Coordinator
 
 **Response:** `200 OK`
 ```json
@@ -1465,7 +1468,7 @@ GET /api/attestation/campaigns
 
 ---
 
-### Get Campaign Details (Admin)
+### Get Campaign Details (Admin/Attestation Coordinator)
 
 Get details of a specific campaign.
 
@@ -1473,7 +1476,7 @@ Get details of a specific campaign.
 GET /api/attestation/campaigns/:id
 ```
 
-**Permissions:** Admin only
+**Permissions:** Admin or Attestation Coordinator
 
 **Response:** `200 OK`
 ```json
@@ -1495,7 +1498,7 @@ GET /api/attestation/campaigns/:id
 
 ---
 
-### Update Campaign (Admin)
+### Update Campaign (Admin/Attestation Coordinator)
 
 Update a draft campaign.
 
@@ -1503,7 +1506,7 @@ Update a draft campaign.
 PUT /api/attestation/campaigns/:id
 ```
 
-**Permissions:** Admin only
+**Permissions:** Admin or Attestation Coordinator
 
 **Request Body:**
 ```json
@@ -1530,7 +1533,7 @@ PUT /api/attestation/campaigns/:id
 
 ---
 
-### Start Campaign (Admin)
+### Start Campaign (Admin/Attestation Coordinator)
 
 Launch an attestation campaign.
 
@@ -1538,7 +1541,7 @@ Launch an attestation campaign.
 POST /api/attestation/campaigns/:id/start
 ```
 
-**Permissions:** Admin only
+**Permissions:** Admin or Attestation Coordinator
 
 **Response:** `200 OK`
 ```json
@@ -1559,7 +1562,7 @@ POST /api/attestation/campaigns/:id/start
 
 ---
 
-### Cancel Campaign (Admin)
+### Cancel Campaign (Admin/Attestation Coordinator)
 
 Cancel an active campaign.
 
@@ -1567,7 +1570,7 @@ Cancel an active campaign.
 POST /api/attestation/campaigns/:id/cancel
 ```
 
-**Permissions:** Admin only
+**Permissions:** Admin or Attestation Coordinator
 
 **Response:** `200 OK`
 ```json
@@ -1582,7 +1585,7 @@ POST /api/attestation/campaigns/:id/cancel
 
 ---
 
-### Get Campaign Dashboard (Admin)
+### Get Campaign Dashboard (Admin/Attestation Coordinator)
 
 Get campaign statistics and employee records.
 
@@ -1590,7 +1593,7 @@ Get campaign statistics and employee records.
 GET /api/attestation/campaigns/:id/dashboard
 ```
 
-**Permissions:** Admin only
+**Permissions:** Admin or Attestation Coordinator
 
 **Response:** `200 OK`
 ```json
@@ -1624,7 +1627,7 @@ GET /api/attestation/campaigns/:id/dashboard
 
 ---
 
-### Export Campaign Results (Admin)
+### Export Campaign Results (Admin/Attestation Coordinator)
 
 Download campaign results as CSV.
 
@@ -1632,7 +1635,7 @@ Download campaign results as CSV.
 GET /api/attestation/campaigns/:id/export
 ```
 
-**Permissions:** Admin only
+**Permissions:** Admin or Attestation Coordinator
 
 **Response:** `200 OK`
 ```
