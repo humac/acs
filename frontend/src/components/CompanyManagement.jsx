@@ -428,7 +428,7 @@ const CompanyManagementNew = () => {
       </Card>
 
       <Dialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-[95vw] sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Bulk edit selected companies</DialogTitle>
             <DialogDescription>Apply a shared description to keep the portfolio organized.</DialogDescription>
@@ -455,7 +455,7 @@ const CompanyManagementNew = () => {
       </Dialog>
 
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent>
+        <DialogContent className="max-w-[95vw] sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{editingCompany ? 'Edit Company' : 'Add New Company'}</DialogTitle>
           </DialogHeader>
@@ -480,7 +480,7 @@ const CompanyManagementNew = () => {
       </Dialog>
 
       <Dialog open={deleteDialog.open} onOpenChange={(open) => !open && setDeleteDialog({ open: false, company: null })}>
-        <DialogContent>
+        <DialogContent className="max-w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Confirm Delete</DialogTitle>
             <DialogDescription>Are you sure you want to delete "{deleteDialog.company?.name}"? This action cannot be undone.</DialogDescription>
@@ -493,7 +493,7 @@ const CompanyManagementNew = () => {
       </Dialog>
 
       <Dialog open={showImportModal} onOpenChange={(open) => { setShowImportModal(open); if (!open) { setImportFile(null); setImportResult(null); } }}>
-        <DialogContent>
+        <DialogContent className="max-w-[95vw] sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Import Companies from CSV</DialogTitle>
             <DialogDescription>Upload a CSV file with company names and descriptions.</DialogDescription>

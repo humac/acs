@@ -436,56 +436,107 @@ export default function MyAttestationsPage() {
               </p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Campaign</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Started</TableHead>
-                  <TableHead className="hidden md:table-cell">Completed</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <>
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-3">
                 {attestations.map((attestation) => (
-                  <TableRow key={attestation.id}>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="font-medium">{attestation.campaign?.name}</div>
-                        <div className="text-sm text-muted-foreground hidden md:block">
-                          {attestation.campaign?.description}
-                        </div>
+                  <div
+                    key={attestation.id}
+                    className="border rounded-lg p-4 space-y-3"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium truncate">{attestation.campaign?.name}</h4>
+                        {attestation.campaign?.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                            {attestation.campaign?.description}
+                          </p>
+                        )}
                       </div>
-                    </TableCell>
-                    <TableCell>
                       {getStatusBadge(attestation.status)}
-                    </TableCell>
-                    <TableCell>
-                      {new Date(attestation.campaign?.start_date).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {attestation.completed_at 
-                        ? new Date(attestation.completed_at).toLocaleDateString()
-                        : '-'}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {attestation.status !== 'completed' && (
-                        <Button onClick={() => handleStartAttestation(attestation)}>
-                          {attestation.status === 'pending' ? 'Start Attestation' : 'Continue Attestation'}
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Started</p>
+                        <p className="font-medium">
+                          {new Date(attestation.campaign?.start_date).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Completed</p>
+                        <p className="font-medium">
+                          {attestation.completed_at
+                            ? new Date(attestation.completed_at).toLocaleDateString()
+                            : '-'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {attestation.status !== 'completed' && (
+                      <Button
+                        onClick={() => handleStartAttestation(attestation)}
+                        className="w-full"
+                      >
+                        {attestation.status === 'pending' ? 'Start Attestation' : 'Continue Attestation'}
+                      </Button>
+                    )}
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+
+              {/* Desktop Table View */}
+              <Table wrapperClassName="hidden md:block">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Campaign</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Started</TableHead>
+                    <TableHead className="hidden lg:table-cell">Completed</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {attestations.map((attestation) => (
+                    <TableRow key={attestation.id}>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="font-medium">{attestation.campaign?.name}</div>
+                          <div className="text-sm text-muted-foreground hidden lg:block">
+                            {attestation.campaign?.description}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {getStatusBadge(attestation.status)}
+                      </TableCell>
+                      <TableCell>
+                        {new Date(attestation.campaign?.start_date).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        {attestation.completed_at
+                          ? new Date(attestation.completed_at).toLocaleDateString()
+                          : '-'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {attestation.status !== 'completed' && (
+                          <Button onClick={() => handleStartAttestation(attestation)}>
+                            {attestation.status === 'pending' ? 'Start Attestation' : 'Continue Attestation'}
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </>
           )}
         </CardContent>
       </Card>
 
       {/* Attestation Modal */}
       <Dialog open={showAttestationModal} onOpenChange={setShowAttestationModal}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl md:max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Asset Attestation: {attestationDetails?.campaign?.name}</DialogTitle>
             <DialogDescription>
@@ -796,7 +847,7 @@ export default function MyAttestationsPage() {
 
       {/* Add New Asset Modal */}
       <Dialog open={showAddAssetModal} onOpenChange={setShowAddAssetModal}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-lg md:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add Missing Asset</DialogTitle>
             <DialogDescription>

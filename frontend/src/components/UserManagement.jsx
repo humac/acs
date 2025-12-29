@@ -412,7 +412,7 @@ const UserManagement = () => {
       {/* Delete User Dialog */}
       {isAdmin && (
         <Dialog open={deleteDialog.open} onOpenChange={(open) => !open && setDeleteDialog({ open: false, user: null })}>
-          <DialogContent className="max-w-[95vw] sm:max-w-[500px]">
+          <DialogContent className="max-w-[95vw] sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="text-lg sm:text-xl">Confirm Delete User</DialogTitle>
               <DialogDescription className="text-sm">Are you sure you want to delete "{deleteDialog.user?.name}"? This cannot be undone.</DialogDescription>

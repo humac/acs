@@ -766,7 +766,7 @@ export default function AttestationPage() {
           setUserSearchQuery('');
         }
       }}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-lg md:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Create Attestation Campaign - Step {wizardStep} of 2</DialogTitle>
             <DialogDescription>
@@ -1063,8 +1063,8 @@ export default function AttestationPage() {
       </Dialog>
 
       {/* Dashboard Modal */}
-      <Dialog 
-        open={showDashboardModal} 
+      <Dialog
+        open={showDashboardModal}
         onOpenChange={(open) => {
           setShowDashboardModal(open);
           if (!open) {
@@ -1072,17 +1072,17 @@ export default function AttestationPage() {
           }
         }}
       >
-        <DialogContent className="w-[95vw] max-w-7xl h-[92vh] overflow-hidden flex flex-col p-0">
-          <DialogHeader className="flex-shrink-0 px-6 pt-6 pb-4">
-            <DialogTitle className="text-2xl">
+        <DialogContent className="w-[95vw] sm:w-[90vw] max-w-7xl h-[92vh] overflow-hidden flex flex-col p-0">
+          <DialogHeader className="flex-shrink-0 px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
+            <DialogTitle className="text-xl sm:text-2xl">
               Campaign Dashboard: {selectedCampaign?.name}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm">
               View completion status and employee details
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="flex-1 overflow-y-auto px-6 pb-6">
+
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-4 sm:pb-6">
             <DashboardContent 
               campaign={selectedCampaign} 
               compact={false}
@@ -1102,7 +1102,7 @@ export default function AttestationPage() {
           setEditingCampaign(null);
         }
       }}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-lg md:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Edit Campaign - Step {wizardStep} of 2</DialogTitle>
             <DialogDescription>
