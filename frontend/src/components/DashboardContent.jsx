@@ -574,7 +574,7 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
 
       {/* Filter Tabs */}
       <Tabs value={dashboardFilterTab} onValueChange={setDashboardFilterTab}>
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-6">
           <TabsTrigger value="all">
             All ({dashboardData.records?.length || 0})
           </TabsTrigger>
