@@ -11,7 +11,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { FileText, BarChart3, Filter, Download, Loader2, X, TrendingUp, Shield, Activity, Laptop } from 'lucide-react';
+import { FileText, BarChart3, Filter, Download, Loader2, X, TrendingUp, Shield, Activity, Laptop, Users } from 'lucide-react';
 import TablePaginationControls from '@/components/TablePaginationControls';
 import { AssetStatusPieChart, CompanyBarChart, ActivityAreaChart, TrendLineChart, ManagerBarChart } from '@/components/charts';
 import { KPICard, RiskIndicatorList, ComplianceChecklist, MetricsComparison } from '@/components/widgets';
@@ -269,30 +269,66 @@ const AuditReportingNew = () => {
                 <div className="text-center py-12 text-muted-foreground"><FileText className="h-12 w-12 mx-auto mb-4 opacity-50" /><p>No audit logs found.</p></div>
               ) : (
                 <div className="space-y-4">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Timestamp</TableHead>
-                        <TableHead>Action</TableHead>
-                        <TableHead className="hidden md:table-cell">Entity Type</TableHead>
-                        <TableHead>Entity Name</TableHead>
-                        <TableHead className="hidden lg:table-cell">Details</TableHead>
-                        <TableHead className="hidden md:table-cell">User</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {paginatedLogs.map((log) => (
-                        <TableRow key={log.id}>
-                          <TableCell className="text-sm">{formatDate(log.timestamp)}</TableCell>
-                          <TableCell><Badge variant={getActionColor(log.action)}>{log.action}</Badge></TableCell>
-                          <TableCell className="hidden md:table-cell capitalize">{log.entity_type}</TableCell>
-                          <TableCell>{log.entity_name || '-'}</TableCell>
-                          <TableCell className="hidden lg:table-cell max-w-xs truncate text-sm text-muted-foreground">{log.details}</TableCell>
-                          <TableCell className="hidden md:table-cell">{log.user_email || '-'}</TableCell>
+                  {/* Mobile Card View */}
+                  <div className="md:hidden space-y-3">
+                    {paginatedLogs.map((log) => (
+                      <div key={log.id} className="border rounded-lg p-4 space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge variant={getActionColor(log.action)}>{log.action}</Badge>
+                              <span className="text-xs text-muted-foreground capitalize">{log.entity_type}</span>
+                            </div>
+                            <h4 className="font-medium truncate">{log.entity_name || 'N/A'}</h4>
+                            <p className="text-xs text-muted-foreground mt-1">{formatDate(log.timestamp)}</p>
+                          </div>
+                        </div>
+
+                        {log.details && (
+                          <div className="pt-2 border-t">
+                            <p className="text-xs text-muted-foreground mb-1">Details</p>
+                            <p className="text-sm">{log.details}</p>
+                          </div>
+                        )}
+
+                        {log.user_email && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Users className="h-3 w-3" />
+                            <span>{log.user_email}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop Table View */}
+                  <div className="hidden md:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Timestamp</TableHead>
+                          <TableHead>Action</TableHead>
+                          <TableHead className="hidden lg:table-cell">Entity Type</TableHead>
+                          <TableHead>Entity Name</TableHead>
+                          <TableHead className="hidden xl:table-cell">Details</TableHead>
+                          <TableHead className="hidden lg:table-cell">User</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {paginatedLogs.map((log) => (
+                          <TableRow key={log.id}>
+                            <TableCell className="text-sm">{formatDate(log.timestamp)}</TableCell>
+                            <TableCell><Badge variant={getActionColor(log.action)}>{log.action}</Badge></TableCell>
+                            <TableCell className="hidden lg:table-cell capitalize">{log.entity_type}</TableCell>
+                            <TableCell>{log.entity_name || '-'}</TableCell>
+                            <TableCell className="hidden xl:table-cell max-w-xs truncate text-sm text-muted-foreground">{log.details}</TableCell>
+                            <TableCell className="hidden lg:table-cell">{log.user_email || '-'}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
                   <TablePaginationControls
                     className="mt-4"
                     page={logsPage}

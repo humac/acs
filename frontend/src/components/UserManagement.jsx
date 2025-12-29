@@ -296,10 +296,10 @@ const UserManagement = () => {
                         </TableHead>
                       )}
                       <TableHead>Name</TableHead>
-                      <TableHead className="hidden md:table-cell">Email</TableHead>
+                      <TableHead className="hidden lg:table-cell">Email</TableHead>
                       <TableHead>Role</TableHead>
                       <TableHead className="hidden lg:table-cell">Manager</TableHead>
-                      <TableHead className="hidden lg:table-cell">Last Login</TableHead>
+                      <TableHead className="hidden xl:table-cell">Last Login</TableHead>
                       {isAdmin && <TableHead className="text-right">Actions</TableHead>}
                     </TableRow>
                   </TableHeader>
@@ -325,7 +325,7 @@ const UserManagement = () => {
                           </TableCell>
                         )}
                         <TableCell className="font-medium">{u.name}</TableCell>
-                        <TableCell className="hidden md:table-cell">{u.email}</TableCell>
+                        <TableCell className="hidden lg:table-cell">{u.email}</TableCell>
                         <TableCell>
                           {isAdmin ? (
                             <Select value={u.role} onValueChange={(v) => handleRoleChange(u.id, v)} disabled={u.id === user.id}>
@@ -344,14 +344,14 @@ const UserManagement = () => {
                         <TableCell className="hidden lg:table-cell">
                           <div className="flex flex-col">
                             <span className="font-medium">
-                              {u.manager_first_name && u.manager_last_name 
-                                ? `${u.manager_first_name} ${u.manager_last_name}` 
+                              {u.manager_first_name && u.manager_last_name
+                                ? `${u.manager_first_name} ${u.manager_last_name}`
                                 : '—'}
                             </span>
                             <span className="text-xs text-muted-foreground">{u.manager_email || '—'}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="hidden lg:table-cell">{formatDate(u.last_login)}</TableCell>
+                        <TableCell className="hidden xl:table-cell">{formatDate(u.last_login)}</TableCell>
                         {isAdmin && (
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
@@ -412,7 +412,7 @@ const UserManagement = () => {
       {/* Delete User Dialog */}
       {isAdmin && (
         <Dialog open={deleteDialog.open} onOpenChange={(open) => !open && setDeleteDialog({ open: false, user: null })}>
-          <DialogContent className="max-w-[95vw] sm:max-w-[500px]">
+          <DialogContent className="max-w-[95vw] sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="text-lg sm:text-xl">Confirm Delete User</DialogTitle>
               <DialogDescription className="text-sm">Are you sure you want to delete "{deleteDialog.user?.name}"? This cannot be undone.</DialogDescription>
