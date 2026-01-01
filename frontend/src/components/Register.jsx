@@ -147,8 +147,8 @@ const RegisterNew = ({ onSwitchToLogin }) => {
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-primary mb-4 shadow-lg hover:scale-105 transition-transform">
                 <Laptop className="h-10 w-10 text-primary-foreground" />
               </div>
-              <h1 className="text-3xl font-bold text-foreground mb-2">KARS</h1>
-              <p className="text-muted-foreground">KeyData Asset Registration System</p>
+              <h1 className="text-3xl font-bold text-foreground mb-2">ACS</h1>
+              <p className="text-muted-foreground">Asset Compliance System</p>
             </>
           )}
         </div>

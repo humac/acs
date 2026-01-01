@@ -1,5 +1,5 @@
 /**
- * Shared constants for the KARS application
+ * Shared constants for the ACS application
  * These values must match the backend validation in server.js
  */
 

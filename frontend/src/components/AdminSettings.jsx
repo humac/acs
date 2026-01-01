@@ -40,8 +40,8 @@ const AdminSettingsNew = () => {
   const [logoFilename, setLogoFilename] = useState('');
   
   // New branding fields
-  const [siteName, setSiteName] = useState('KARS');
-  const [subTitle, setSubTitle] = useState('KeyData Asset Registration System');
+  const [siteName, setSiteName] = useState('ACS');
+  const [subTitle, setSubTitle] = useState('Asset Compliance System');
   const [faviconPreview, setFaviconPreview] = useState(null);
   const [faviconFilename, setFaviconFilename] = useState('');
   const [primaryColor, setPrimaryColor] = useState('#3B82F6');
@@ -91,8 +91,8 @@ const AdminSettingsNew = () => {
       setBrandingSettings(data);
       setLogoPreview(data.logo_data || null);
       setLogoFilename(data.logo_filename || '');
-      setSiteName(data.site_name || 'KARS');
-      setSubTitle(data.sub_title || 'KeyData Asset Registration System');
+      setSiteName(data.site_name || 'ACS');
+      setSubTitle(data.sub_title || 'Asset Compliance System');
       setFaviconPreview(data.favicon_data || null);
       setFaviconFilename(data.favicon_filename || '');
       setPrimaryColor(data.primary_color || '#3B82F6');
@@ -421,7 +421,7 @@ const AdminSettingsNew = () => {
                           type="text"
                           value={siteName}
                           onChange={(e) => setSiteName(e.target.value)}
-                          placeholder="KARS"
+                          placeholder="ACS"
                           disabled={brandingLoading}
                           className="max-w-md"
                         />
