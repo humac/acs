@@ -247,7 +247,7 @@ setInterval(() => {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'KARS API is running' });
+  res.json({ status: 'ok', message: 'ACS API is running' });
 });
 
 // ===== Helper Functions =====
