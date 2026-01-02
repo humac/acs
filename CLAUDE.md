@@ -831,6 +831,171 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 </Routes>
 ```
 
+### 2026 Design System
+
+ACS implements a modern 2026 design system emphasizing spatial depth, semantic opacity, and data-rich bento layouts.
+
+#### Design Philosophy
+
+1. **Spatial Depth**: UI elements exist on three distinct layers (Floor → Surface → Overlay)
+2. **Semantic Opacity**: Colors communicate meaning through alpha transparency
+3. **Bento Grids**: Non-linear, modular layouts for data-heavy pages
+4. **Micro-interactions**: Subtle animations provide feedback on every interaction
+
+#### CSS Utility Classes (index.css)
+
+**Layer System:**
+```css
+.floor { @apply bg-surface/30 dark:bg-background; }
+.glass-panel { @apply bg-card/40 dark:bg-card/60 backdrop-blur-md border border-white/10 shadow-2xl; }
+.glass-overlay { @apply bg-popover/95 backdrop-blur-xl border border-white/15 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] z-50; }
+```
+
+**Bento System:**
+```css
+.bento-card { @apply bg-card/60 backdrop-blur-sm border border-white/10 rounded-2xl p-6 transition-all hover:scale-[1.01] hover:border-primary/20; }
+.bento-grid { @apply grid gap-4 md:gap-6; }
+```
+
+**Status Indicators (Glowing):**
+```css
+.glow-success { @apply bg-success/15 text-success border border-success/20 shadow-[0_0_15px_-3px] shadow-success/30; }
+.glow-warning { @apply bg-warning/15 text-warning border border-warning/20 shadow-[0_0_15px_-3px] shadow-warning/30; }
+.glow-destructive { @apply bg-destructive/15 text-destructive border border-destructive/20 shadow-[0_0_15px_-3px] shadow-destructive/30; }
+.glow-info { @apply bg-info/15 text-info border border-info/20 shadow-[0_0_15px_-3px] shadow-info/30; }
+.glow-primary { @apply bg-primary/15 text-primary border border-primary/20 shadow-[0_0_15px_-3px] shadow-primary/30; }
+.glow-muted { @apply bg-muted/30 text-muted-foreground border border-muted/20; }
+```
+
+**Typography:**
+```css
+.text-gradient { @apply bg-clip-text text-transparent bg-gradient-to-br from-primary via-primary to-info; }
+.caption-label { @apply text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground; }
+```
+
+**Micro-interactions:**
+```css
+.btn-interactive { @apply transition-all duration-200 ease-out hover:scale-[1.02] active:scale-[0.98]; }
+```
+
+**Icon Containers:**
+```css
+.icon-box { @apply flex items-center justify-center rounded-xl border transition-all; }
+.icon-box-sm { @apply h-10 w-10 rounded-lg; }
+.icon-box-md { @apply h-12 w-12 rounded-xl; }
+.icon-box-lg { @apply h-16 w-16 rounded-2xl; }
+```
+
+**Animations:**
+```css
+.shimmer { /* Skeleton loading with moving gradient */ }
+.animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+.animate-slide-up { animation: slideUp 0.5s ease-out forwards; }
+.animate-scale-in { animation: scaleIn 0.3s ease-out forwards; }
+```
+
+#### Component Implementation Examples
+
+**Layout Shell (Layout.jsx):**
+```jsx
+// Floating sidebar with glass effect
+<aside className="fixed inset-y-4 left-4 w-72 glass-panel rounded-2xl">
+  {/* Navigation */}
+</aside>
+
+// Floor background with ambient orbs
+<div className="fixed inset-0 floor">
+  <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[150px]" />
+</div>
+```
+
+**Data Tables (AssetTable.jsx):**
+```jsx
+// Glass container
+<div className="glass-panel overflow-hidden rounded-2xl">
+  <Table>
+    <TableHeader>
+      <TableRow className="bg-muted/10 border-b border-white/5">
+        <TableHead className="caption-label">COLUMN</TableHead>
+      </TableRow>
+    </TableHeader>
+  </Table>
+</div>
+
+// Loading state with shimmer
+{isLoading && (
+  <div className="space-y-4 p-6">
+    {[...Array(5)].map((_, i) => (
+      <div key={i} className="h-12 rounded-xl bg-muted/30 shimmer" />
+    ))}
+  </div>
+)}
+```
+
+**Status Badges:**
+```jsx
+// Replace flat badges with glowing variants
+<Badge className={cn(
+  "rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-widest",
+  status === 'active' && "glow-success",
+  status === 'lost' && "glow-destructive",
+  status === 'damaged' && "glow-warning",
+  status === 'returned' && "glow-muted"
+)}>
+  {status}
+</Badge>
+```
+
+**Bento Grid Dashboard:**
+```jsx
+<div className="bento-grid grid-cols-1 md:grid-cols-4 md:grid-rows-2">
+  {/* Featured card spans 2x2 */}
+  <div className="bento-card md:col-span-2 md:row-span-2">
+    <div className="icon-box icon-box-lg bg-primary/10 border-primary/20">
+      <Icon className="h-8 w-8 text-primary" />
+    </div>
+    <h2 className="text-gradient text-4xl font-bold">{value}</h2>
+    <p className="caption-label">TOTAL ASSETS</p>
+  </div>
+  
+  {/* Smaller cards */}
+  <div className="bento-card">...</div>
+</div>
+```
+
+**Dialogs:**
+```jsx
+<Dialog>
+  <DialogContent className="glass-overlay sm:max-w-md">
+    <DialogHeader>
+      <div className="icon-box icon-box-lg glow-destructive mx-auto mb-4">
+        <AlertTriangle className="h-6 w-6" />
+      </div>
+      <DialogTitle>Confirm Action</DialogTitle>
+    </DialogHeader>
+    <DialogFooter>
+      <Button variant="ghost" className="btn-interactive">Cancel</Button>
+      <Button className="btn-interactive glow-primary border-0">Confirm</Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+```
+
+#### Design Checklist for New Components
+
+When creating or modifying frontend components:
+
+- [ ] Use `glass-panel` for content containers (not plain `Card`)
+- [ ] Use `glass-overlay` for modals and popovers
+- [ ] Apply `btn-interactive` to all buttons
+- [ ] Use `glow-*` classes for status indicators
+- [ ] Use `caption-label` for metadata labels
+- [ ] Use `text-gradient` for major headings
+- [ ] Add `shimmer` loading states
+- [ ] Include entrance animations (`animate-fade-in`, etc.)
+- [ ] Use `icon-box` for icon containers
+- [ ] Ensure proper layer hierarchy (Floor → Surface → Overlay)
+
 ---
 
 ## Backend Patterns
