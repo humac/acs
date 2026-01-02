@@ -8,7 +8,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-sans)', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-mono)', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -72,6 +73,9 @@ export default {
         'lg': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
         'xl': '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
         '2xl': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        'soft': 'var(--shadow-soft)',
+        'elevated': 'var(--shadow-elevated)',
+        'floating': 'var(--shadow-floating)',
       },
       keyframes: {
         "accordion-down": {
@@ -113,6 +117,11 @@ export default {
         'fast': '150ms',
         'base': '250ms',
         'slow': '350ms',
+      },
+      transitionTimingFunction: {
+        'out-expo': 'cubic-bezier(0.16, 1, 0.3, 1)',
+        'spring': 'cubic-bezier(0.34, 1.56, 0.64, 1)',
+        'smooth': 'cubic-bezier(0.4, 0, 0.2, 1)',
       },
     },
   },

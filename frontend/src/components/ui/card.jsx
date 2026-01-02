@@ -1,6 +1,9 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
+// Export AnimatedCard from motion.jsx for enhanced card animations
+export { AnimatedCard } from "./motion";
+
 const Card = React.forwardRef(({ className, ...props }, ref) => (
   <div
     ref={ref}

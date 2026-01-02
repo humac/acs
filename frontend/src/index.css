@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* Modern Geist variable font (Vercel's 2026 font) */
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -55,6 +56,28 @@
     --radius-lg: 0.75rem;
     --radius-xl: 1rem;
     --radius-2xl: 1.5rem;
+    
+    /* Modern variable fonts */
+    --font-sans: 'Geist', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'Geist Mono', 'JetBrains Mono', 'Fira Code', monospace;
+    
+    /* Fluid typography (2026 responsive scaling) */
+    --text-fluid-sm: clamp(0.875rem, 0.8rem + 0.375vw, 1rem);
+    --text-fluid-base: clamp(1rem, 0.9rem + 0.5vw, 1.125rem);
+    --text-fluid-lg: clamp(1.125rem, 1rem + 0.625vw, 1.25rem);
+    --text-fluid-xl: clamp(1.25rem, 1.1rem + 0.75vw, 1.5rem);
+    --text-fluid-2xl: clamp(1.5rem, 1.25rem + 1.25vw, 2rem);
+    --text-fluid-3xl: clamp(1.875rem, 1.5rem + 1.875vw, 2.5rem);
+    
+    /* Modern easing curves (2026 micro-interactions) */
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Layered shadows with OKLCH (2026 trend) */
+    --shadow-soft: 0 1px 2px oklch(0% 0 0 / 0.04), 0 2px 4px oklch(0% 0 0 / 0.04), 0 4px 8px oklch(0% 0 0 / 0.04);
+    --shadow-elevated: 0 2px 4px oklch(0% 0 0 / 0.02), 0 4px 8px oklch(0% 0 0 / 0.02), 0 8px 16px oklch(0% 0 0 / 0.04), 0 16px 32px oklch(0% 0 0 / 0.04);
+    --shadow-floating: 0 4px 6px oklch(0% 0 0 / 0.03), 0 10px 20px oklch(0% 0 0 / 0.04), 0 20px 40px oklch(0% 0 0 / 0.06);
   }
 
   .dark {
@@ -106,7 +129,13 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-sans);
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    font-optical-sizing: auto;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
@@ -289,4 +318,16 @@
 
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-muted-foreground/50;
+}
+
+/* Accessibility: Respect user's motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

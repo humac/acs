@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva } from "class-variance-authority";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
@@ -44,4 +45,30 @@ const Button = React.forwardRef(
 );
 Button.displayName = "Button";
 
-export { Button, buttonVariants };
+// Animated button variant with Framer Motion for enhanced interactions
+const MotionButton = React.forwardRef(
+  ({ className, variant, size, asChild = false, ...props }, ref) => {
+    if (asChild) {
+      // For asChild, fallback to regular Button since Slot doesn't work well with motion
+      return <Button className={className} variant={variant} size={size} asChild ref={ref} {...props} />;
+    }
+    
+    return (
+      <motion.button
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        transition={{
+          type: "spring",
+          stiffness: 400,
+          damping: 25,
+        }}
+        {...props}
+      />
+    );
+  }
+);
+MotionButton.displayName = "MotionButton";
+
+export { Button, MotionButton, buttonVariants };
