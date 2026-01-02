@@ -84,34 +84,33 @@ const MagneticButton = ({ children, onClick, className = '' }) => {
 
 // Stat Card Component with Soft Brutalism + Liquid Glass
 const StatCard = ({ icon: Icon, value, label, trend, trendValue, colorClass = 'primary' }) => {
-  const iconContainerClass = {
-    primary: 'icon-container-primary',
-    success: 'icon-container-success',
-    warning: 'icon-container-warning',
-  }[colorClass] || 'icon-container-primary';
+  const iconGradientClass = {
+    primary: 'icon-gradient-primary',
+    success: 'icon-gradient-success',
+    warning: 'icon-gradient-warning',
+    info: 'icon-gradient-info',
+  }[colorClass] || 'icon-gradient-primary';
 
   return (
     <motion.div
       variants={itemVariants}
       whileHover={{ y: -4, transition: { duration: 0.2, ease: 'easeOut' } }}
-      className="stat-card-premium group will-change-transform"
-      // Hardware acceleration hint
-      style={{ willChange: 'transform' }}
+      className="soft-stat-card group"
     >
-      {/* Icon */}
-      <div className={`icon-container ${iconContainerClass} mb-6 group-hover:scale-105 transition-transform duration-300 will-change-transform`}>
+      {/* Icon with gradient */}
+      <div className={`${iconGradientClass} mb-6 group-hover:scale-105 transition-transform duration-300`}>
         <Icon className="w-6 h-6" strokeWidth={1.5} />
       </div>
       
       {/* Value - Fluid Typography */}
       <div className="mb-2">
-        <span className="text-[clamp(2rem,5vw,3rem)] font-semibold tracking-tighter text-foreground antialiased">
+        <span className="text-fluid-2xl font-semibold tracking-tighter text-foreground">
           {value}
         </span>
       </div>
       
-      {/* Label */}
-      <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-3 antialiased">
+      {/* Label with subtle text */}
+      <p className="text-subtle mb-3 text-sm">
         {label}
       </p>
       
@@ -126,7 +125,7 @@ const StatCard = ({ icon: Icon, value, label, trend, trendValue, colorClass = 'p
             <TrendingUp className={`w-3 h-3 ${trend === 'down' ? 'rotate-180' : ''}`} />
             <span>{trendValue}</span>
           </div>
-          <span className="text-xs text-zinc-400 dark:text-zinc-500">vs last month</span>
+          <span className="text-xs text-subtle">vs last month</span>
         </div>
       )}
     </motion.div>
@@ -190,14 +189,14 @@ const Dashboard = () => {
       initial="hidden"
       animate="visible"
       variants={containerVariants}
-      className="@container space-y-6 md:space-y-8"
+      className="bento-container space-y-6 @md:space-y-8 bg-noise relative"
     >
       {/* Header Section with Fluid Typography */}
       <motion.div variants={itemVariants} className="space-y-1">
-        <h1 className="text-[clamp(1.5rem,4vw,2rem)] font-semibold tracking-tight text-foreground antialiased">
+        <h1 className="text-fluid-h2 text-foreground">
           Dashboard
         </h1>
-        <p className="text-[clamp(0.875rem,1.5vw,1rem)] font-medium text-zinc-500 dark:text-zinc-400 antialiased">
+        <p className="text-fluid-body text-subtle">
           Overview of your asset compliance system
         </p>
       </motion.div>
@@ -205,7 +204,7 @@ const Dashboard = () => {
       {/* Stats Bento Grid - Container Query Based */}
       <motion.div 
         variants={containerVariants}
-        className="@container grid gap-4 @md:gap-6 grid-cols-1 @sm:grid-cols-2 @lg:grid-cols-3"
+        className="bento-grid grid-cols-1 @sm:grid-cols-2 @lg:grid-cols-3"
       >
         <StatCard
           icon={Package}
@@ -235,15 +234,15 @@ const Dashboard = () => {
         />
       </motion.div>
 
-      {/* Quick Actions - Glass Panel with Gradient Mask and Container Queries */}
+      {/* Quick Actions - Liquid Glass Panel with Gradient Mask */}
       <motion.div variants={itemVariants}>
-        <div className="glass-card glass-mask p-6 @md:p-8">
+        <div className="liquid-glass-card glass-mask p-6 @md:p-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-[clamp(1.125rem,2.5vw,1.25rem)] font-semibold tracking-tight text-foreground antialiased">
+              <h2 className="text-fluid-h4 text-foreground">
                 Quick Actions
               </h2>
-              <p className="text-[clamp(0.875rem,1.5vw,1rem)] text-zinc-500 dark:text-zinc-400 mt-0.5 antialiased">
+              <p className="text-fluid-body text-subtle mt-0.5">
                 Frequently used operations
               </p>
             </div>
@@ -258,10 +257,10 @@ const Dashboard = () => {
             ].map((action, index) => (
               <MagneticButton
                 key={action.label}
-                className="flex flex-col items-center gap-3 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-700/40 hover:border-zinc-300 dark:hover:border-zinc-600 transition-all duration-200 antialiased will-change-transform"
+                className="hover-lift gpu-accelerate flex flex-col items-center gap-3 p-4 rounded-2xl bg-surface-low border border-border/40 hover:border-border/60 transition-all duration-200"
               >
-                <action.icon className="w-5 h-5 text-zinc-600 dark:text-zinc-300" strokeWidth={1.5} />
-                <span className="text-xs font-medium text-zinc-600 dark:text-zinc-300">
+                <action.icon className="w-5 h-5 text-muted-foreground" strokeWidth={1.5} />
+                <span className="text-xs font-medium text-muted-foreground">
                   {action.label}
                 </span>
               </MagneticButton>

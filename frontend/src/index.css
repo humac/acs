@@ -128,6 +128,11 @@
     --background: 60 0.01 98%;           /* oklch(98% 0.01 60) - warm paper */
     --foreground: 240 0.02 25%;          /* oklch(25% 0.02 240) - soft ink */
     
+    /* Surface tokens for depth layering */
+    --surface-low: 60 0.008 96%;         /* oklch(96% 0.008 60) - subtle elevation */
+    --surface-mod: 60 0.006 97%;         /* oklch(97% 0.006 60) - moderate elevation */
+    --surface-high: 60 0.005 99%;        /* oklch(99% 0.005 60) - high elevation */
+    
     /* Cards - Elevated paper white */
     --card: 60 0.005 99.5%;              /* Slightly brighter for layering */
     --card-foreground: 240 0.02 25%;
@@ -201,6 +206,11 @@
     /* Base - Deep Ink (OKLCH) */
     --background: 240 0.02 18%;          /* oklch(18% 0.02 240) - rich ink */
     --foreground: 240 0.01 88%;          /* oklch(88% 0.01 240) - soft paper */
+    
+    /* Surface tokens for depth layering */
+    --surface-low: 240 0.018 20%;        /* oklch(20% 0.018 240) - subtle elevation */
+    --surface-mod: 240 0.02 21%;         /* oklch(21% 0.02 240) - moderate elevation */
+    --surface-high: 240 0.02 23%;        /* oklch(23% 0.02 240) - high elevation */
     
     /* Cards - Elevated ink surface */
     --card: 240 0.02 22%;                /* oklch(22% 0.02 240) */
@@ -533,6 +543,251 @@
   
   .dark .icon-container-warning {
     filter: drop-shadow(0 0 8px rgba(var(--warning-rgb), 0.2));
+  }
+  
+  /* Icon gradient variants for feature icons */
+  .icon-gradient-primary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 1rem;
+    background: linear-gradient(135deg, oklch(var(--primary) / 0.15) 0%, oklch(var(--primary) / 0.08) 100%);
+    color: oklch(var(--primary));
+    transition: all 0.3s;
+    will-change: transform;
+  }
+  
+  @container (min-width: 768px) {
+    .icon-gradient-primary {
+      width: 3.5rem;
+      height: 3.5rem;
+    }
+  }
+  
+  .dark .icon-gradient-primary {
+    filter: drop-shadow(0 0 8px rgba(var(--primary-rgb), 0.2));
+  }
+  
+  .icon-gradient-success {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 1rem;
+    background: linear-gradient(135deg, oklch(var(--success) / 0.15) 0%, oklch(var(--success) / 0.08) 100%);
+    color: oklch(var(--success));
+    transition: all 0.3s;
+    will-change: transform;
+  }
+  
+  @container (min-width: 768px) {
+    .icon-gradient-success {
+      width: 3.5rem;
+      height: 3.5rem;
+    }
+  }
+  
+  .dark .icon-gradient-success {
+    filter: drop-shadow(0 0 8px rgba(var(--success-rgb), 0.2));
+  }
+  
+  .icon-gradient-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 1rem;
+    background: linear-gradient(135deg, oklch(var(--info) / 0.15) 0%, oklch(var(--info) / 0.08) 100%);
+    color: oklch(var(--info));
+    transition: all 0.3s;
+    will-change: transform;
+  }
+  
+  @container (min-width: 768px) {
+    .icon-gradient-info {
+      width: 3.5rem;
+      height: 3.5rem;
+    }
+  }
+  
+  .dark .icon-gradient-info {
+    filter: drop-shadow(0 0 8px rgba(var(--info-rgb), 0.2));
+  }
+  
+  .icon-gradient-warning {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 1rem;
+    background: linear-gradient(135deg, oklch(var(--warning) / 0.15) 0%, oklch(var(--warning) / 0.08) 100%);
+    color: oklch(var(--warning));
+    transition: all 0.3s;
+    will-change: transform;
+  }
+  
+  @container (min-width: 768px) {
+    .icon-gradient-warning {
+      width: 3.5rem;
+      height: 3.5rem;
+    }
+  }
+  
+  .dark .icon-gradient-warning {
+    filter: drop-shadow(0 0 8px rgba(var(--warning-rgb), 0.2));
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     FLUID TYPOGRAPHY - 2026 Utility Classes
+  ═══════════════════════════════════════════════════════════════ */
+  
+  .text-fluid-h1 {
+    font-size: var(--text-fluid-4xl);
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  .text-fluid-h2 {
+    font-size: var(--text-fluid-3xl);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  .text-fluid-h3 {
+    font-size: var(--text-fluid-2xl);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  .text-fluid-h4 {
+    font-size: var(--text-fluid-xl);
+    font-weight: 600;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  .text-fluid-body {
+    font-size: var(--text-fluid-base);
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  .text-subtle {
+    color: oklch(var(--muted-foreground));
+    font-weight: 500;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════
+     BENTO & CONTAINER UTILITIES - 2026 Layout System
+  ═══════════════════════════════════════════════════════════════ */
+  
+  .bento-container {
+    position: relative;
+    background-image: 
+      radial-gradient(at 40% 20%, oklch(var(--primary) / 0.08) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, oklch(var(--info) / 0.06) 0px, transparent 50%),
+      radial-gradient(at 0% 50%, oklch(var(--success) / 0.04) 0px, transparent 50%),
+      radial-gradient(at 80% 50%, oklch(var(--warning) / 0.03) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, oklch(var(--primary) / 0.06) 0px, transparent 50%);
+    border-radius: 2.5rem;
+    overflow: hidden;
+    container-type: inline-size;
+  }
+  
+  .liquid-glass-card {
+    backdrop-filter: blur(12px);
+    background-color: oklch(var(--card) / 0.7);
+    border: 1px solid oklch(var(--border) / 0.5);
+    border-radius: 2.5rem;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.05), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+  }
+  
+  .liquid-glass-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  }
+  
+  .dark .liquid-glass-card {
+    filter: drop-shadow(0 0 15px rgba(var(--primary-rgb), 0.08));
+    box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.06);
+  }
+  
+  .dark .liquid-glass-card:hover {
+    filter: drop-shadow(0 0 20px rgba(var(--primary-rgb), 0.12));
+    box-shadow: 0 0 25px rgba(var(--primary-rgb), 0.1);
+  }
+  
+  .soft-stat-card {
+    position: relative;
+    overflow: hidden;
+    background-color: oklch(var(--card));
+    border-radius: 2rem;
+    border: 1px solid oklch(var(--border) / 0.6);
+    padding: 1.5rem;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.03), 0 1px 2px -1px rgb(0 0 0 / 0.03);
+  }
+  
+  @container (min-width: 768px) {
+    .soft-stat-card {
+      padding: 2rem;
+    }
+  }
+  
+  .soft-stat-card:hover {
+    transform: translateY(-4px);
+    border-color: oklch(var(--border) / 0.8);
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  }
+  
+  .dark .soft-stat-card {
+    filter: drop-shadow(0 0 12px rgba(var(--primary-rgb), 0.04));
+  }
+  
+  .dark .soft-stat-card:hover {
+    filter: drop-shadow(0 0 18px rgba(var(--primary-rgb), 0.08));
+  }
+  
+  .soft-stat-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    opacity: 0;
+    background: radial-gradient(
+      300px circle at 80% 20%,
+      rgba(var(--primary-rgb), 0.06),
+      transparent 50%
+    );
+  }
+  
+  .dark .soft-stat-card::before {
+    opacity: 1;
+  }
+  
+  /* GPU acceleration hint */
+  .gpu-accelerate {
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
   }
 
   /* Enhanced Stat Card (Legacy - keeping for backwards compatibility) */
