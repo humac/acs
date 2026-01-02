@@ -160,7 +160,9 @@ export const StaggerItem = React.forwardRef(
 StaggerItem.displayName = "StaggerItem";
 
 // Page transition wrapper
-export const PageTransition = ({ children }) => {
+// Note: For proper animations, wrap this component at the route level
+// and pass a unique key prop (e.g., location.pathname) to the children
+export const PageTransition = ({ children, ...props }) => {
   return (
     <AnimatePresence mode="wait">
       <motion.div
@@ -168,6 +170,7 @@ export const PageTransition = ({ children }) => {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
         transition={transitions.expo}
+        {...props}
       >
         {children}
       </motion.div>

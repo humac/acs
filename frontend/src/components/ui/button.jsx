@@ -46,10 +46,14 @@ const Button = React.forwardRef(
 Button.displayName = "Button";
 
 // Animated button variant with Framer Motion for enhanced interactions
+// Note: asChild prop is not supported with motion animations.
+// When asChild is true, the component falls back to regular Button without animations.
+// For animated links, use motion.a directly or wrap Link component with MotionDiv.
 const MotionButton = React.forwardRef(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
     if (asChild) {
       // For asChild, fallback to regular Button since Slot doesn't work well with motion
+      console.warn('MotionButton: asChild prop disables motion animations. Use regular Button or motion.a for links.');
       return <Button className={className} variant={variant} size={size} asChild ref={ref} {...props} />;
     }
     
