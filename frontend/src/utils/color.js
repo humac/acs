@@ -51,4 +51,12 @@ export const applyPrimaryColor = (hexColor) => {
   // Set hover state with reduced lightness (10% darker)
   const hoverLightness = Math.max(0, l - 10);
   document.documentElement.style.setProperty('--primary-hover', `${h} ${s}% ${hoverLightness}%`);
+
+  // Set ring color to match primary
+  document.documentElement.style.setProperty('--ring', `${h} ${s}% ${l}%`);
+
+  // Set accent color as lighter version of primary
+  const accentLightness = Math.min(100, l + 30);
+  document.documentElement.style.setProperty('--accent', `${h} ${Math.max(10, s - 70)}% ${accentLightness}%`);
+  document.documentElement.style.setProperty('--accent-foreground', `${h} ${s}% ${Math.max(0, l - 20)}%`);
 };

@@ -1079,6 +1079,34 @@ export default function createAdminRouter(deps) {
     }
   });
 
+  // Reorder asset types - MUST come before /:id routes to avoid matching "reorder" as an id
+  router.put('/asset-types/reorder', authenticate, authorize('admin'), async (req, res) => {
+    try {
+      const { orderedIds } = req.body;
+
+      if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
+        return res.status(400).json({ error: 'orderedIds must be a non-empty array' });
+      }
+
+      await assetTypeDb.reorder(orderedIds);
+
+      // Log audit
+      await auditDb.log(
+        'reorder',
+        'asset_type',
+        null,
+        'Asset Types',
+        { orderedIds },
+        req.user.email
+      );
+
+      res.json({ message: 'Asset types reordered successfully' });
+    } catch (error) {
+      logger.error({ err: error, userId: req.user?.id }, 'Error reordering asset types');
+      res.status(500).json({ error: 'Failed to reorder asset types' });
+    }
+  });
+
   // Update asset type
   router.put('/asset-types/:id', authenticate, authorize('admin'), async (req, res) => {
     try {
@@ -1160,34 +1188,6 @@ export default function createAdminRouter(deps) {
     } catch (error) {
       logger.error({ err: error, userId: req.user?.id }, 'Error deleting asset type');
       res.status(500).json({ error: 'Failed to delete asset type' });
-    }
-  });
-
-  // Reorder asset types
-  router.put('/asset-types/reorder', authenticate, authorize('admin'), async (req, res) => {
-    try {
-      const { orderedIds } = req.body;
-
-      if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
-        return res.status(400).json({ error: 'orderedIds must be a non-empty array' });
-      }
-
-      await assetTypeDb.reorder(orderedIds);
-
-      // Log audit
-      await auditDb.log(
-        'reorder',
-        'asset_type',
-        null,
-        'Asset Types',
-        { orderedIds },
-        req.user.email
-      );
-
-      res.json({ message: 'Asset types reordered successfully' });
-    } catch (error) {
-      logger.error({ err: error, userId: req.user?.id }, 'Error reordering asset types');
-      res.status(500).json({ error: 'Failed to reorder asset types' });
     }
   });
 

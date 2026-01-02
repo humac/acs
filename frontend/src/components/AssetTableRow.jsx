@@ -112,7 +112,7 @@ const AssetTableRow = memo(function AssetTableRow({
         )}
         style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'forwards' }}
       >
-        <TableCell className="w-12 px-6">
+        <TableCell className="w-12 px-4">
           <Checkbox checked={isSelected} onCheckedChange={onToggleSelect} />
         </TableCell>
 
@@ -133,31 +133,31 @@ const AssetTableRow = memo(function AssetTableRow({
             <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
               <Laptop size={18} className="text-primary" />
             </div>
-            <div>
-              <div className="font-bold text-foreground leading-none mb-1">
+            <div className="min-w-0">
+              <div className="font-bold text-foreground leading-none mb-1 truncate max-w-[200px]">
                 {formatEmployeeName(asset, 'N/A')}
               </div>
-              <div className="text-xs text-muted-foreground">{asset.employee_email || 'N/A'}</div>
+              <div className="text-xs text-muted-foreground truncate max-w-[200px]">{asset.employee_email || 'N/A'}</div>
             </div>
           </div>
         </TableCell>
 
         <TableCell className="hidden lg:table-cell font-medium opacity-80">
-          {asset.company_name || '-'}
+          <span className="truncate max-w-[150px] inline-block">{asset.company_name || '-'}</span>
         </TableCell>
 
         <TableCell className="hidden md:table-cell">
-          <Badge variant="secondary" className="bg-surface/50 font-medium capitalize">
+          <Badge variant="secondary" className="bg-surface/50 font-medium capitalize truncate max-w-[120px]">
             {asset.asset_type?.replace('_', ' ') || '-'}
           </Badge>
         </TableCell>
 
         <TableCell className="hidden xl:table-cell">
-           <code className="text-xs bg-muted/50 px-2 py-1 rounded font-mono text-primary/80">{asset.asset_tag || '-'}</code>
+           <code className="text-xs bg-muted/50 px-2 py-1 rounded font-mono text-primary/80 truncate max-w-[100px] inline-block">{asset.asset_tag || '-'}</code>
         </TableCell>
 
         <TableCell>
-          <code className="text-xs opacity-60 font-mono">{asset.serial_number || '-'}</code>
+          <code className="text-xs opacity-60 font-mono truncate max-w-[120px] inline-block">{asset.serial_number || '-'}</code>
         </TableCell>
 
         <TableCell>

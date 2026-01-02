@@ -37,6 +37,8 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
   const [statusFilter, setStatusFilter] = useState('all');
   const [companyFilter, setCompanyFilter] = useState('all');
   const [assetTypeFilter, setAssetTypeFilter] = useState('all');
+  const [employeeFilter, setEmployeeFilter] = useState('all');
+  const [managerFilter, setManagerFilter] = useState('all');
   const [companies, setCompanies] = useState([]);
   const [assetTypes, setAssetTypes] = useState([]);
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -99,12 +101,43 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
         asset.serial_number, asset.asset_tag, asset.company_name, asset.make, asset.model
       ].some(field => field?.toLowerCase().includes(searchTerm.toLowerCase()));
 
+      const employeeName = `${asset.employee_first_name || ''} ${asset.employee_last_name || ''}`.trim();
+      const managerName = `${asset.manager_first_name || ''} ${asset.manager_last_name || ''}`.trim();
+
       return matchesSearch &&
         (statusFilter === 'all' || asset.status === statusFilter) &&
         (companyFilter === 'all' || asset.company_name === companyFilter) &&
-        (assetTypeFilter === 'all' || asset.asset_type === assetTypeFilter);
+        (assetTypeFilter === 'all' || asset.asset_type === assetTypeFilter) &&
+        (employeeFilter === 'all' || employeeName === employeeFilter) &&
+        (managerFilter === 'all' || managerName === managerFilter);
     });
-  }, [assetsWithManagerData, searchTerm, statusFilter, companyFilter, assetTypeFilter]);
+  }, [assetsWithManagerData, searchTerm, statusFilter, companyFilter, assetTypeFilter, employeeFilter, managerFilter]);
+
+  const uniqueEmployees = useMemo(() => {
+    const employeeMap = new Map();
+    assets.forEach(asset => {
+      if (asset.employee_email) {
+        const name = `${asset.employee_first_name || ''} ${asset.employee_last_name || ''}`.trim();
+        if (name && !employeeMap.has(asset.employee_email)) {
+          employeeMap.set(asset.employee_email, { email: asset.employee_email, name });
+        }
+      }
+    });
+    return Array.from(employeeMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [assets]);
+
+  const uniqueManagers = useMemo(() => {
+    const managerMap = new Map();
+    assets.forEach(asset => {
+      if (asset.manager_email) {
+        const name = `${asset.manager_first_name || ''} ${asset.manager_last_name || ''}`.trim();
+        if (name && !managerMap.has(asset.manager_email)) {
+          managerMap.set(asset.manager_email, { email: asset.manager_email, name });
+        }
+      }
+    });
+    return Array.from(managerMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [assets]);
 
   const paginatedAssets = useMemo(() => {
     const start = (page - 1) * pageSize;
@@ -138,8 +171,19 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
           statusFilter={statusFilter} setStatusFilter={setStatusFilter}
           assetTypeFilter={assetTypeFilter} setAssetTypeFilter={setAssetTypeFilter}
           companyFilter={companyFilter} setCompanyFilter={setCompanyFilter}
+          employeeFilter={employeeFilter} setEmployeeFilter={setEmployeeFilter}
+          managerFilter={managerFilter} setManagerFilter={setManagerFilter}
           companies={companies} assetTypes={assetTypes}
-          onClearFilters={() => {setSearchTerm(''); setStatusFilter('all'); setCompanyFilter('all');}}
+          uniqueEmployees={uniqueEmployees}
+          uniqueManagers={uniqueManagers}
+          onClearFilters={() => {
+            setSearchTerm(''); 
+            setStatusFilter('all'); 
+            setCompanyFilter('all');
+            setAssetTypeFilter('all');
+            setEmployeeFilter('all');
+            setManagerFilter('all');
+          }}
         />
       </section>
 
@@ -151,7 +195,7 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
         currentUser={currentUser}
       />
 
-      <div className="glass-panel overflow-hidden rounded-bento border-glass shadow-2xl">
+      <div className="glass-panel overflow-hidden rounded-2xl border-glass shadow-2xl">
         {filteredAssets.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-muted-foreground bg-surface/20">
             <SearchX className="h-12 w-12 mb-4 opacity-20" />
@@ -174,20 +218,20 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
               ))}
             </div>
 
-            <Table className="hidden md:table">
+            <Table className="hidden md:table table-fixed w-full">
               <TableHeader className="bg-muted/30 border-b border-white/5">
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-12 px-6">
+                  <TableHead className="w-12 px-4">
                     <Checkbox 
                       checked={paginatedAssets.length > 0 && paginatedAssets.every(a => selectedIds.has(a.id))}
                       onCheckedChange={toggleSelectAll}
                     />
                   </TableHead>
-                  <TableHead className="font-bold tracking-wider text-xs uppercase opacity-70">Employee / Asset</TableHead>
-                  <TableHead className="font-bold tracking-wider text-xs uppercase opacity-70">Configuration</TableHead>
-                  <TableHead className="font-bold tracking-wider text-xs uppercase opacity-70">Identity</TableHead>
-                  <TableHead className="font-bold tracking-wider text-xs uppercase opacity-70">Status</TableHead>
-                  <TableHead className="text-right pr-8 font-bold tracking-wider text-xs uppercase opacity-70">Actions</TableHead>
+                  <TableHead className="w-[25%] font-bold tracking-wider text-xs uppercase opacity-70">Employee / Asset</TableHead>
+                  <TableHead className="w-[20%] font-bold tracking-wider text-xs uppercase opacity-70">Configuration</TableHead>
+                  <TableHead className="w-[20%] font-bold tracking-wider text-xs uppercase opacity-70">Identity</TableHead>
+                  <TableHead className="w-[15%] font-bold tracking-wider text-xs uppercase opacity-70">Status</TableHead>
+                  <TableHead className="w-[20%] text-right pr-8 font-bold tracking-wider text-xs uppercase opacity-70">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
