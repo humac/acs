@@ -12,7 +12,7 @@ describe('Register Component', () => {
     vi.clearAllMocks();
   });
 
-  it('renders register form with default KARS logo when no branding logo exists', async () => {
+  it('renders register form with default ACS logo when no branding logo exists', async () => {
     // Mock branding fetch with no logo
     global.fetch.mockResolvedValueOnce({
       ok: true,
@@ -33,10 +33,10 @@ describe('Register Component', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('KARS')).toBeInTheDocument();
+      expect(screen.getByText('ACS')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('KeyData Asset Registration System')).toBeInTheDocument();
+    expect(screen.getByText('Asset Compliance System')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('John')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Doe')).toBeInTheDocument();
   });
@@ -69,8 +69,8 @@ describe('Register Component', () => {
       expect(logo).toHaveAttribute('src', mockLogoData);
     });
 
-    // Should NOT show default KARS text when custom logo exists
-    expect(screen.queryByText('KARS')).not.toBeInTheDocument();
+    // Should NOT show default ACS text when custom logo exists
+    expect(screen.queryByText('ACS')).not.toBeInTheDocument();
   });
 
   it('handles branding fetch error gracefully', async () => {
@@ -92,11 +92,11 @@ describe('Register Component', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('KARS')).toBeInTheDocument();
+      expect(screen.getByText('ACS')).toBeInTheDocument();
     });
 
     // Should still show default logo on error
-    expect(screen.getByText('KeyData Asset Registration System')).toBeInTheDocument();
+    expect(screen.getByText('Asset Compliance System')).toBeInTheDocument();
     expect(consoleErrorSpy).toHaveBeenCalledWith(
       'Failed to fetch branding:',
       expect.any(Error)

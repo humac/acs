@@ -1,6 +1,6 @@
 # CI/CD Pipeline Overview
 
-This diagram shows the complete CI/CD pipeline for KARS, from code commit to production deployment.
+This diagram shows the complete CI/CD pipeline for ACS, from code commit to production deployment.
 
 ## Pipeline Architecture
 

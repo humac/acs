@@ -386,7 +386,7 @@ node backend/services/attestationScheduler.js &
 Or use a cron job for more control:
 ```bash
 # Run daily at 2 AM
-0 2 * * * cd /path/to/kars/backend && node -e "import('./services/attestationScheduler.js').then(s => s.runScheduledTasks())"
+0 2 * * * cd /path/to/acs/backend && node -e "import('./services/attestationScheduler.js').then(s => s.runScheduledTasks())"
 ```
 
 ## Security & Compliance

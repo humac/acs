@@ -1,6 +1,6 @@
-# KARS Deployment Runbook
+# ACS Deployment Runbook
 
-This runbook provides step-by-step procedures for deploying and managing KARS across all environments.
+This runbook provides step-by-step procedures for deploying and managing ACS across all environments.
 
 ## Table of Contents
 
@@ -48,8 +48,8 @@ This runbook provides step-by-step procedures for deploying and managing KARS ac
 | Environment | Branch | Platform | Database | URL | Auto-Deploy |
 |-------------|--------|----------|----------|-----|-------------|
 | **Development** | feature/* | Local | SQLite | localhost:3000 | No |
-| **Staging** | develop | Portainer | SQLite/PostgreSQL | staging.kars.jvhlabs.com | Yes |
-| **Production** | main | Railway | PostgreSQL | kars.jvhlabs.com | Manual |
+| **Staging** | develop | Portainer | SQLite/PostgreSQL | staging.acs.jvhlabs.com | Yes |
+| **Production** | main | Railway | PostgreSQL | acs.jvhlabs.com | Manual |
 
 ### Environment Variables
 
@@ -80,8 +80,8 @@ Each environment requires the following variables (see `.env.example`):
 
 ```bash
 # Clone repository
-git clone https://github.com/humac/kars.git
-cd kars
+git clone https://github.com/humac/acs.git
+cd acs
 
 # Install Node.js 22 LTS (if not installed)
 nvm install 22
@@ -184,7 +184,7 @@ git merge feature/your-feature
 git push origin develop
 
 # 2. Monitor GitHub Actions
-# Go to: https://github.com/humac/kars/actions
+# Go to: https://github.com/humac/acs/actions
 # Watch "Deploy (Staging)" workflow
 
 # 3. Verify build completion
@@ -203,7 +203,7 @@ git push origin develop
 
 ```bash
 # 1. Trigger GitHub Actions manually
-# Go to: https://github.com/humac/kars/actions
+# Go to: https://github.com/humac/acs/actions
 # Click "Deploy (Staging)" → "Run workflow" → Select "develop"
 
 # 2. Or trigger Portainer webhook directly
@@ -220,7 +220,7 @@ curl -X POST "$PORTAINER_WEBHOOK_URL"
    - Build method: Git repository or Web editor
 
 2. **Configure Git Repository** (if using Git method)
-   - Repository URL: `https://github.com/humac/kars`
+   - Repository URL: `https://github.com/humac/acs`
    - Reference: `refs/heads/develop`
    - Compose path: `docker-compose.portainer.yml`
 
@@ -256,10 +256,10 @@ curl -X POST "$PORTAINER_WEBHOOK_URL"
 docker ps | grep asset-registration
 
 # 2. Test backend health
-curl https://staging.kars.jvhlabs.com/api/health
+curl https://staging.acs.jvhlabs.com/api/health
 
 # 3. Test frontend
-curl -I https://staging.kars.jvhlabs.com
+curl -I https://staging.acs.jvhlabs.com
 
 # 4. Verify logs
 docker logs asset-registration-backend
@@ -303,7 +303,7 @@ git checkout main
 git pull origin main
 
 # Check CI status
-# All tests must pass: https://github.com/humac/kars/actions
+# All tests must pass: https://github.com/humac/acs/actions
 
 # Create release tag
 git tag -a v1.x.x -m "Release v1.x.x - Description"
@@ -368,10 +368,10 @@ psql $DATABASE_URL -c "\dt"
 railway status
 
 # 2. Check application health
-curl https://kars.jvhlabs.com/api/health
+curl https://acs.jvhlabs.com/api/health
 
 # 3. Test critical paths
-curl -X POST https://kars.jvhlabs.com/api/auth/login \
+curl -X POST https://acs.jvhlabs.com/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"test123"}'
 
@@ -379,7 +379,7 @@ curl -X POST https://kars.jvhlabs.com/api/auth/login \
 railway logs | grep -i "database"
 
 # 5. Test frontend
-# - Open https://kars.jvhlabs.com
+# - Open https://acs.jvhlabs.com
 # - Verify login works
 # - Check asset registration
 # - Verify audit logs
@@ -401,7 +401,7 @@ railway logs --tail=100 | grep -i "error"
 # Railway: Built-in health check monitoring
 
 # Manual verification
-curl https://kars.jvhlabs.com/api/health
+curl https://acs.jvhlabs.com/api/health
 
 # Expected response:
 # {"status":"ok","timestamp":"2024-12-18T15:30:00.000Z"}
@@ -453,7 +453,7 @@ Use this checklist after any deployment:
 #!/bin/bash
 # verify-deployment.sh
 
-BASE_URL="${1:-https://kars.jvhlabs.com}"
+BASE_URL="${1:-https://acs.jvhlabs.com}"
 
 echo "Verifying deployment at $BASE_URL..."
 
@@ -496,7 +496,7 @@ git revert <commit-hash>
 git push origin develop
 
 # 2. GitHub Actions will auto-deploy reverted version
-# Monitor: https://github.com/humac/kars/actions
+# Monitor: https://github.com/humac/acs/actions
 ```
 
 #### Option 2: Portainer Manual Rollback
@@ -541,7 +541,7 @@ git push origin main
 # Or manually trigger: railway up
 
 # 3. Verify rollback
-curl https://kars.jvhlabs.com/api/health
+curl https://acs.jvhlabs.com/api/health
 ```
 
 #### Option 3: Tag-Based Rollback
@@ -770,7 +770,7 @@ railway run psql $DATABASE_URL -c "SELECT 1;"
 
 ```bash
 # Check workflow logs
-# Go to: https://github.com/humac/kars/actions
+# Go to: https://github.com/humac/acs/actions
 
 # Common causes:
 # - npm audit failures (high/critical vulnerabilities)

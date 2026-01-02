@@ -1,6 +1,6 @@
 # Deployment Guide - Asset Compliance System (ACS)
 
-This guide explains how to deploy ACS to Portainer using GitHub Actions with Cloudflare tunnel support for hosting at `kars.jvhlabs.com`.
+This guide explains how to deploy ACS to Portainer using GitHub Actions with Cloudflare tunnel support for hosting at `acs.jvhlabs.com`.
 
 ## Table of Contents
 1. [Prerequisites](#prerequisites)

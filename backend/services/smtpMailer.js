@@ -127,7 +127,7 @@ const createTransport = async () => {
 /**
  * Builds email HTML with optional logo header
  * @param {Object} branding - Branding settings with logo_data and include_logo_in_emails
- * @param {string} siteName - Custom site name or 'KARS'
+ * @param {string} siteName - Custom site name or 'ACS'
  * @param {string} content - Main email content HTML
  * @returns {string} Complete HTML email template
  */
@@ -177,7 +177,7 @@ export const sendTestEmail = async (recipient) => {
     
     // Get branding settings for email customization
     const branding = await brandingSettingsDb.get();
-    const siteName = branding?.site_name || 'KARS';
+    const siteName = branding?.site_name || 'ACS';
     
     // Try to get template from database
     const template = await emailTemplateDb.getByKey('test_email');
@@ -310,7 +310,7 @@ export const sendPasswordResetEmail = async (recipient, resetToken, resetUrl) =>
     
     // Get branding settings for email customization
     const branding = await brandingSettingsDb.get();
-    const siteName = branding?.site_name || 'KARS';
+    const siteName = branding?.site_name || 'ACS';
     
     // Try to get template from database
     const template = await emailTemplateDb.getByKey('password_reset');
@@ -414,7 +414,7 @@ export const sendAttestationLaunchEmail = async (recipient, campaign, attestatio
     
     const transport = await createTransport();
     const branding = await brandingSettingsDb.get();
-    const siteName = branding?.site_name || 'KARS';
+    const siteName = branding?.site_name || 'ACS';
     
     // Construct attestation URL using fallback priority: provided URL -> app_url
     if (!attestationUrl) {
@@ -504,7 +504,7 @@ export const sendAttestationReminderEmail = async (recipient, campaign, attestat
     
     const transport = await createTransport();
     const branding = await brandingSettingsDb.get();
-    const siteName = branding?.site_name || 'KARS';
+    const siteName = branding?.site_name || 'ACS';
     
     // Construct attestation URL using fallback priority: provided URL -> app_url
     if (!attestationUrl) {
@@ -589,7 +589,7 @@ export const sendAttestationEscalationEmail = async (managerEmail, employeeName,
     
     const transport = await createTransport();
     const branding = await brandingSettingsDb.get();
-    const siteName = branding?.site_name || 'KARS';
+    const siteName = branding?.site_name || 'ACS';
     
     // Try to get template from database
     const template = await emailTemplateDb.getByKey('attestation_escalation');
@@ -687,7 +687,7 @@ export const sendAttestationCompleteAdminNotification = async (adminEmails, empl
     
     const transport = await createTransport();
     const branding = await brandingSettingsDb.get();
-    const siteName = branding?.site_name || 'KARS';
+    const siteName = branding?.site_name || 'ACS';
     
     // Try to get template from database
     const template = await emailTemplateDb.getByKey('attestation_complete');
@@ -769,7 +769,7 @@ export const sendAttestationRegistrationInvite = async (email, firstName, lastNa
     
     const transport = await createTransport();
     const branding = await brandingSettingsDb.get();
-    const siteName = branding?.site_name || 'KARS';
+    const siteName = branding?.site_name || 'ACS';
     
     // Construct registration URLs
     const baseUrl = await getAppUrl();
@@ -934,7 +934,7 @@ export const sendAttestationUnregisteredReminder = async (email, firstName, last
     
     const transport = await createTransport();
     const branding = await brandingSettingsDb.get();
-    const siteName = branding?.site_name || 'KARS';
+    const siteName = branding?.site_name || 'ACS';
     
     // Construct registration URLs
     const baseUrl = await getAppUrl();
@@ -1068,7 +1068,7 @@ export const sendAttestationUnregisteredEscalation = async (managerEmail, manage
     
     const transport = await createTransport();
     const branding = await brandingSettingsDb.get();
-    const siteName = branding?.site_name || 'KARS';
+    const siteName = branding?.site_name || 'ACS';
     
     const assetText = assetCount === 1 ? '1 asset' : `${assetCount} assets`;
     

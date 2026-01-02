@@ -1,6 +1,6 @@
 # Railway Deployment
 
-Deployment procedures for KARS on Railway.
+Deployment procedures for ACS on Railway.
 
 ## Automatic Deployment
 
@@ -42,7 +42,7 @@ railway rollback
 
 ```bash
 # Verify deployment
-curl https://kars.jvhlabs.com/api/health
+curl https://acs.jvhlabs.com/api/health
 
 # Check logs
 railway logs --tail=100

@@ -1,8 +1,8 @@
-# GitHub Copilot Instructions for KARS
+# GitHub Copilot Instructions for ACS
 
 ## Repository Overview
 
-KARS (KeyData Asset Registration System) is a SOC2-compliant asset tracking web app with multi-factor authentication, role-based access control (RBAC), and comprehensive audit logging.
+ACS (Asset Compliance System) is a SOC2-compliant asset tracking web app with multi-factor authentication, role-based access control (RBAC), and comprehensive audit logging.
 
 **Stack:** Node.js 22 LTS + Express + SQLite/PostgreSQL | React 18 + Vite + Tailwind + shadcn/ui | Jest/Vitest | Docker (ARM64/AMD64)
 

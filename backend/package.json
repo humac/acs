@@ -1,7 +1,7 @@
 {
   "name": "ars-backend",
   "version": "1.0.0",
-  "description": "Backend API for KARS - KeyData Asset Registration System",
+  "description": "Backend API for ACS - Asset Compliance System",
   "main": "server.js",
   "type": "module",
   "scripts": {
@@ -21,7 +21,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/humac/kars.git"
+    "url": "https://github.com/humac/acs.git"
   },
   "author": "",
   "license": "MIT",

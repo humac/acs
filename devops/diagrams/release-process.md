@@ -1,6 +1,6 @@
 # Release Process Workflow
 
-This diagram shows the complete weekly release process for KARS, from code freeze to production deployment.
+This diagram shows the complete weekly release process for ACS, from code freeze to production deployment.
 
 ## Release Workflow
 
@@ -293,7 +293,7 @@ git log v1.0.0..HEAD --oneline --no-merges
 **Pre-Deployment Checklist:**
 ```bash
 # Verify production health
-curl https://kars.jvhlabs.com/api/health
+curl https://acs.jvhlabs.com/api/health
 
 # Backup database
 railway run pg_dump > backup-pre-v1.x.x-$(date +%Y%m%d-%H%M%S).sql
@@ -339,24 +339,24 @@ railway logs --follow
 **Smoke Tests:**
 ```bash
 # Health check
-curl https://kars.jvhlabs.com/api/health
+curl https://acs.jvhlabs.com/api/health
 
 # Login test
-curl -X POST https://kars.jvhlabs.com/api/auth/login \
+curl -X POST https://acs.jvhlabs.com/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@example.com","password":"test123"}'
 
 # Asset retrieval (requires auth token)
-curl https://kars.jvhlabs.com/api/assets \
+curl https://acs.jvhlabs.com/api/assets \
   -H "Authorization: Bearer $TOKEN"
 ```
 
 **Performance Verification:**
 ```bash
 # Response times
-time curl https://kars.jvhlabs.com/api/health  # < 500ms
-time curl https://kars.jvhlabs.com/api/assets  # < 1s
-time curl https://kars.jvhlabs.com/  # < 3s
+time curl https://acs.jvhlabs.com/api/health  # < 500ms
+time curl https://acs.jvhlabs.com/api/assets  # < 1s
+time curl https://acs.jvhlabs.com/  # < 3s
 ```
 
 **Error Check:**
@@ -388,7 +388,7 @@ railway run psql $DATABASE_URL -c "\
 railway logs --follow | tee release-v1.x.x-logs.txt
 
 # Watch health endpoint
-watch -n 30 'curl -s https://kars.jvhlabs.com/api/health && echo " - $(date)"'
+watch -n 30 'curl -s https://acs.jvhlabs.com/api/health && echo " - $(date)"'
 
 # Monitor metrics (Railway Dashboard)
 # - CPU usage
@@ -426,7 +426,7 @@ git push origin main
 ```
 
 **Create GitHub Release:**
-1. Go to: https://github.com/humac/kars/releases
+1. Go to: https://github.com/humac/acs/releases
 2. Click "Draft a new release"
 3. Select tag: v1.x.x
 4. Release title: "v1.x.x - Brief Description"
@@ -538,7 +538,7 @@ railway scale web=1
 **4. Verify Rollback:**
 ```bash
 # Check health
-curl https://kars.jvhlabs.com/api/health
+curl https://acs.jvhlabs.com/api/health
 
 # Test critical paths
 # Login, asset CRUD, etc.

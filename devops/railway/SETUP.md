@@ -1,6 +1,6 @@
 # Railway Setup Guide
 
-Complete guide for initial Railway setup and KARS deployment.
+Complete guide for initial Railway setup and ACS deployment.
 
 ## Prerequisites
 
@@ -55,8 +55,8 @@ railway link
 railway variables set JWT_SECRET=$(node -e "console.log(require('crypto').randomBytes(64).toString('hex'))")
 railway variables set NODE_ENV=production
 railway variables set ADMIN_EMAIL=admin@jvhlabs.com
-railway variables set BASE_URL=https://kars.jvhlabs.com
-railway variables set FRONTEND_URL=https://kars.jvhlabs.com
+railway variables set BASE_URL=https://acs.jvhlabs.com
+railway variables set FRONTEND_URL=https://acs.jvhlabs.com
 
 # Database (auto-injected by Railway)
 # DATABASE_URL=postgresql://...
@@ -70,7 +70,7 @@ railway variables set ACS_MASTER_KEY=$(node -e "console.log(require('crypto').ra
 
 1. Railway Dashboard → Frontend Service → Settings
 2. Domains → Add Custom Domain
-3. Enter: `kars.jvhlabs.com`
+3. Enter: `acs.jvhlabs.com`
 4. Add CNAME record in Cloudflare DNS:
    - Name: `kars`
    - Target: `[service-name].up.railway.app`
@@ -117,7 +117,7 @@ railway status
 railway logs
 
 # Test health endpoint
-curl https://kars.jvhlabs.com/api/health
+curl https://acs.jvhlabs.com/api/health
 
 # Test database
 railway run psql $DATABASE_URL -c "SELECT 1;"

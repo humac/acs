@@ -5,7 +5,7 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/humac/kars.git"
+    "url": "https://github.com/humac/acs.git"
   },
   "scripts": {
     "dev": "vite",

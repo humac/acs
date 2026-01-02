@@ -96,7 +96,7 @@ stateDiagram-v2
 **CreatePreview**
 - Check if PR preview already exists
 - If not, create new Railway service
-- Generate unique subdomain: `kars-pr-{number}.railway.app`
+- Generate unique subdomain: `acs-pr-{number}.railway.app`
 - Allocate minimal resources (256MB RAM)
 
 **BuildServices**

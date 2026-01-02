@@ -30,7 +30,7 @@ global.fetch = vi.fn(() => Promise.resolve({
   ok: true,
   json: () => Promise.resolve({
     logo_data: null,
-    site_name: 'KARS',
+    site_name: 'ACS',
     sub_title: 'Test Subtitle',
     primary_color: '#3B82F6',
   }),
@@ -225,7 +225,7 @@ describe('AdminSettings', () => {
       renderSettings();
       await waitFor(() => {
         const input = screen.getByLabelText('Site Name');
-        expect(input).toHaveValue('KARS');
+        expect(input).toHaveValue('ACS');
       });
     });
   });

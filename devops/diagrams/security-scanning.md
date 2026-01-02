@@ -1,6 +1,6 @@
 # Security Scanning Pipeline
 
-This diagram shows the comprehensive security scanning and vulnerability management process for KARS.
+This diagram shows the comprehensive security scanning and vulnerability management process for ACS.
 
 ## Security Pipeline Architecture
 

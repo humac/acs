@@ -1,7 +1,7 @@
 # Environment Promotion Flow
 
 ## Description
-Shows how code is promoted through environments from local development to production. This diagram illustrates the complete journey of code through the KARS deployment pipeline.
+Shows how code is promoted through environments from local development to production. This diagram illustrates the complete journey of code through the ACS deployment pipeline.
 
 ## When to Reference
 - Understanding the complete deployment flow
@@ -105,7 +105,7 @@ graph LR
 - Railway ephemeral instance
 - 256MB RAM per service
 - Ephemeral SQLite database
-- Unique URL: `kars-pr-{number}.up.railway.app`
+- Unique URL: `acs-pr-{number}.up.railway.app`
 
 **Quality Gates**:
 - Successful build and deployment
@@ -128,7 +128,7 @@ graph LR
 - Railway persistent instance
 - 512MB RAM per service
 - PostgreSQL database (1GB)
-- Fixed URL: `kars-dev.up.railway.app`
+- Fixed URL: `acs-dev.up.railway.app`
 
 **Quality Gates**:
 - All features integrated successfully

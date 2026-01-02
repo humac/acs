@@ -1,6 +1,6 @@
 # Docker Build Process
 
-This diagram shows the multi-platform Docker build process for KARS frontend and backend containers.
+This diagram shows the multi-platform Docker build process for ACS frontend and backend containers.
 
 ## Multi-Platform Build Architecture
 

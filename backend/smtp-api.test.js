@@ -41,7 +41,7 @@ describe('SMTP API Endpoints', () => {
       username: null,
       clear_password: true,
       auth_method: 'plain',
-      from_name: 'KARS Notifications',
+      from_name: 'ACS Notifications',
       from_email: null,
       default_recipient: null
     });

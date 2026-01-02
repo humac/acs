@@ -1,12 +1,12 @@
 # ACS (Asset Compliance System)
 
-[![GitHub Actions](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?logo=github-actions&logoColor=white)](https://github.com/humac/kars/actions)
+[![GitHub Actions](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF?logo=github-actions&logoColor=white)](https://github.com/humac/acs/actions)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 A web application that supports organizational SOC2 compliance by tracking client assets assigned to consultants, with full authentication, role-based access control, and automated deployment.
 
-🌐 **Live Demo:** [https://kars.jvhlabs.com](https://kars.jvhlabs.com)
+🌐 **Live Demo:** [https://acs.jvhlabs.com](https://acs.jvhlabs.com)
 
 📖 **Documentation:** [View Wiki](../../wiki)
 
@@ -225,7 +225,7 @@ Docker images are automatically built for both platforms during CI/CD.
 
 ```bash
 # 1. Access the application
-https://kars.jvhlabs.com
+https://acs.jvhlabs.com
 
 # 2. Register (first user becomes admin!)
 Click "Register" → Fill form → Auto-login
@@ -241,8 +241,8 @@ Enable MFA or register a passkey from your profile
 
 ```bash
 # 1. Clone and install dependencies
-git clone https://github.com/humac/kars.git
-cd kars
+git clone https://github.com/humac/acs.git
+cd acs
 
 # 2. Backend setup
 cd backend
@@ -670,7 +670,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📚 DevOps Documentation
 
-Comprehensive operational documentation for deploying, monitoring, and maintaining KARS in production.
+Comprehensive operational documentation for deploying, monitoring, and maintaining ACS in production.
 
 ### 📖 Core Documentation
 - **[DevOps Hub](/devops/README.md)** - Main documentation index

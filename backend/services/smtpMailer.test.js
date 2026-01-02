@@ -65,7 +65,7 @@ describe('SMTP Mailer Service', () => {
     
     // Set default branding mock for all tests
     mockBrandingSettingsDb.get.mockResolvedValue({
-      site_name: 'KARS',
+      site_name: 'ACS',
       logo_data: null,
       include_logo_in_emails: 0
     });
@@ -87,7 +87,7 @@ describe('SMTP Mailer Service', () => {
         port: 587,
         use_tls: 1,
         username: 'user@example.com',
-        from_name: 'KARS',
+        from_name: 'ACS',
         from_email: 'noreply@example.com',
         default_recipient: 'admin@example.com'
       };
@@ -106,7 +106,7 @@ describe('SMTP Mailer Service', () => {
       expect(result.message).toContain('test@example.com');
       expect(mockSendMail).toHaveBeenCalledWith(
         expect.objectContaining({
-          from: expect.stringContaining('KARS'),
+          from: expect.stringContaining('ACS'),
           to: 'test@example.com',
           subject: expect.stringContaining('Test')
         })
@@ -325,7 +325,7 @@ describe('SMTP Mailer Service', () => {
     it('should return URL from branding settings without trailing slash', async () => {
       mockBrandingSettingsDb.get.mockResolvedValue({
         app_url: 'https://example.com/',
-        site_name: 'KARS'
+        site_name: 'ACS'
       });
 
       const url = await getAppUrl();
@@ -336,7 +336,7 @@ describe('SMTP Mailer Service', () => {
     it('should remove multiple trailing slashes', async () => {
       mockBrandingSettingsDb.get.mockResolvedValue({
         app_url: 'https://example.com///',
-        site_name: 'KARS'
+        site_name: 'ACS'
       });
 
       const url = await getAppUrl();
@@ -347,7 +347,7 @@ describe('SMTP Mailer Service', () => {
     it('should return URL without modification if no trailing slash', async () => {
       mockBrandingSettingsDb.get.mockResolvedValue({
         app_url: 'https://example.com',
-        site_name: 'KARS'
+        site_name: 'ACS'
       });
 
       const url = await getAppUrl();
@@ -376,7 +376,7 @@ describe('SMTP Mailer Service', () => {
     it('should handle URLs with paths correctly', async () => {
       mockBrandingSettingsDb.get.mockResolvedValue({
         app_url: 'https://example.com/app/',
-        site_name: 'KARS'
+        site_name: 'ACS'
       });
 
       const url = await getAppUrl();

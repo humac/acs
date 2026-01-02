@@ -6,7 +6,7 @@ Get the Asset Compliance System (ACS) running in minutes. Pick the section that 
 
 ### First Time Setup
 1. **Access the Application**  
-   Go to your deployment URL (e.g., `https://kars.jvhlabs.com`).
+   Go to your deployment URL (e.g., `https://acs.jvhlabs.com`).
 2. **Register Your Account**  
    - Provide first/last name, email, manager name, and manager email.  
    - The first account created becomes **Admin** automatically (or the email configured in `ADMIN_EMAIL`).
@@ -42,8 +42,8 @@ Get the Asset Compliance System (ACS) running in minutes. Pick the section that 
 ### Local Development
 ```bash
 # Clone repository
-git clone https://github.com/humac/kars.git
-cd kars
+git clone https://github.com/humac/acs.git
+cd acs
 
 # Backend
 cd backend

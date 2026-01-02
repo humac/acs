@@ -1,6 +1,6 @@
-# KARS Weekly Release Checklist
+# ACS Weekly Release Checklist
 
-This checklist ensures consistent, safe, and high-quality releases of KARS to production.
+This checklist ensures consistent, safe, and high-quality releases of ACS to production.
 
 ## Release Overview
 
@@ -30,7 +30,7 @@ This checklist ensures consistent, safe, and high-quality releases of KARS to pr
   - [ ] No work-in-progress commits
 
 - [ ] **Check CI/CD Pipeline**
-  - [ ] All tests passing on `develop`: https://github.com/humac/kars/actions
+  - [ ] All tests passing on `develop`: https://github.com/humac/acs/actions
   - [ ] Frontend build successful
   - [ ] Backend build successful
   - [ ] No security audit failures (npm audit)
@@ -41,7 +41,7 @@ This checklist ensures consistent, safe, and high-quality releases of KARS to pr
 - [ ] **Staging Environment Verification**
   ```bash
   # Verify staging deployment
-  curl https://staging.kars.jvhlabs.com/api/health
+  curl https://staging.acs.jvhlabs.com/api/health
   ```
   - [ ] Staging deployed from latest `develop`
   - [ ] All containers running healthy
@@ -94,9 +94,9 @@ This checklist ensures consistent, safe, and high-quality releases of KARS to pr
 - [ ] **Performance Testing**
   ```bash
   # Test response times
-  time curl https://staging.kars.jvhlabs.com/api/assets
-  time curl https://staging.kars.jvhlabs.com/api/users
-  time curl https://staging.kars.jvhlabs.com/api/companies
+  time curl https://staging.acs.jvhlabs.com/api/assets
+  time curl https://staging.acs.jvhlabs.com/api/users
+  time curl https://staging.acs.jvhlabs.com/api/companies
   ```
   - [ ] API response times < 500ms
   - [ ] Page load times < 3 seconds
@@ -205,7 +205,7 @@ This checklist ensures consistent, safe, and high-quality releases of KARS to pr
 
 - [ ] **Verify Production Health**
   ```bash
-  curl https://kars.jvhlabs.com/api/health
+  curl https://acs.jvhlabs.com/api/health
   railway status
   ```
   - [ ] Production running stable
@@ -280,10 +280,10 @@ This checklist ensures consistent, safe, and high-quality releases of KARS to pr
 - [ ] **Verify Deployment Success**
   ```bash
   # Check health
-  curl https://kars.jvhlabs.com/api/health
+  curl https://acs.jvhlabs.com/api/health
   
   # Check version (if version endpoint exists)
-  curl https://kars.jvhlabs.com/api/version
+  curl https://acs.jvhlabs.com/api/version
   
   # Check Railway status
   railway status
@@ -292,9 +292,9 @@ This checklist ensures consistent, safe, and high-quality releases of KARS to pr
 - [ ] **Smoke Tests**
   ```bash
   # Test critical endpoints
-  curl -I https://kars.jvhlabs.com
-  curl https://kars.jvhlabs.com/api/health
-  curl https://kars.jvhlabs.com/api/companies  # Should require auth
+  curl -I https://acs.jvhlabs.com
+  curl https://acs.jvhlabs.com/api/health
+  curl https://acs.jvhlabs.com/api/companies  # Should require auth
   ```
   - [ ] Frontend loads
   - [ ] Backend responds
@@ -302,7 +302,7 @@ This checklist ensures consistent, safe, and high-quality releases of KARS to pr
 
 - [ ] **Critical Path Testing**
   - [ ] **Login Flow**
-    - [ ] Navigate to https://kars.jvhlabs.com
+    - [ ] Navigate to https://acs.jvhlabs.com
     - [ ] Login with test account
     - [ ] JWT token received
     - [ ] Dashboard loads
@@ -322,11 +322,11 @@ This checklist ensures consistent, safe, and high-quality releases of KARS to pr
 - [ ] **Performance Check**
   ```bash
   # Response time verification
-  time curl https://kars.jvhlabs.com/api/assets
+  time curl https://acs.jvhlabs.com/api/assets
   # Should be < 500ms
   
   # Load test (optional)
-  ab -n 100 -c 10 https://kars.jvhlabs.com/
+  ab -n 100 -c 10 https://acs.jvhlabs.com/
   ```
 
 - [ ] **Error Monitoring**
@@ -367,7 +367,7 @@ This checklist ensures consistent, safe, and high-quality releases of KARS to pr
   railway logs --follow | grep -i "error\|exception\|fatal"
   
   # Watch health endpoint
-  watch -n 30 'curl -s https://kars.jvhlabs.com/api/health && echo OK'
+  watch -n 30 'curl -s https://acs.jvhlabs.com/api/health && echo OK'
   ```
 
 - [ ] **User Feedback Monitoring**
@@ -396,7 +396,7 @@ This checklist ensures consistent, safe, and high-quality releases of KARS to pr
   - [ ] Update API documentation if endpoints changed
 
 - [ ] **Create GitHub Release**
-  - [ ] Go to: https://github.com/humac/kars/releases
+  - [ ] Go to: https://github.com/humac/acs/releases
   - [ ] Click "Draft a new release"
   - [ ] Select tag: v1.x.x
   - [ ] Release title: "v1.x.x - [Brief description]"
@@ -490,7 +490,7 @@ Rollback immediately if:
 
 4. **Verify Rollback**
    ```bash
-   curl https://kars.jvhlabs.com/api/health
+   curl https://acs.jvhlabs.com/api/health
    railway logs --tail=100
    
    # Test critical paths
@@ -646,7 +646,7 @@ After each release, review:
 
 ```bash
 # Health check
-curl https://kars.jvhlabs.com/api/health
+curl https://acs.jvhlabs.com/api/health
 
 # Deploy to Railway
 railway up
@@ -666,9 +666,9 @@ railway status
 
 ### Key URLs
 
-- **Production:** https://kars.jvhlabs.com
-- **Staging:** https://staging.kars.jvhlabs.com
-- **GitHub Actions:** https://github.com/humac/kars/actions
+- **Production:** https://acs.jvhlabs.com
+- **Staging:** https://staging.acs.jvhlabs.com
+- **GitHub Actions:** https://github.com/humac/acs/actions
 - **Railway Dashboard:** https://railway.app/project/[project-id]
 
 ### Contacts

@@ -10,7 +10,7 @@ Flowchart showing the approval gates and checks required for merging to differen
 - Troubleshooting blocked merges
 
 ## Branch Protection Overview
-KARS uses GitHub branch protection rules to enforce quality gates before code reaches stable branches.
+ACS uses GitHub branch protection rules to enforce quality gates before code reaches stable branches.
 
 ```mermaid
 flowchart TD

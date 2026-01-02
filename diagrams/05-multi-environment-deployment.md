@@ -10,7 +10,7 @@ Shows how code flows through different Railway environments with resource alloca
 - Onboarding infrastructure engineers
 
 ## Architecture Overview
-KARS uses three distinct Railway environments, each with different resource allocations and purposes.
+ACS uses three distinct Railway environments, each with different resource allocations and purposes.
 
 ```mermaid
 graph LR
@@ -40,7 +40,7 @@ graph LR
         C5 -->|PR| D1[Ephemeral Instance]
         D1 --> D2[256MB RAM]
         D2 --> D3[Test Database]
-        D3 --> D4[https://kars-pr-X.up.railway.app]
+        D3 --> D4[https://acs-pr-X.up.railway.app]
         D4 --> D5{PR Merged?}
         D5 -->|Yes| D6[Delete Preview]
         D5 -->|No| D4
@@ -51,7 +51,7 @@ graph LR
         E1 --> E2[512MB RAM]
         E2 --> E3[Dev Database 1GB]
         E3 --> E4[Auto-Sleep After 1hr]
-        E4 --> E5[https://kars-dev.up.railway.app]
+        E4 --> E5[https://acs-dev.up.railway.app]
         E5 --> E6[QA Testing]
         E6 --> E7{Approved?}
         E7 -->|No| A1
@@ -95,7 +95,7 @@ graph LR
 **Configuration**:
 - **RAM**: 256MB per service
 - **Database**: SQLite ephemeral (deleted with PR)
-- **URL**: `https://kars-pr-{number}.up.railway.app`
+- **URL**: `https://acs-pr-{number}.up.railway.app`
 - **Lifecycle**: Created on PR open, deleted on merge/close
 - **Auto-Sleep**: After 30 minutes of inactivity
 
@@ -118,7 +118,7 @@ graph LR
 **Configuration**:
 - **RAM**: 512MB per service
 - **Database**: PostgreSQL 1GB persistent
-- **URL**: `https://kars-dev.up.railway.app`
+- **URL**: `https://acs-dev.up.railway.app`
 - **Lifecycle**: Always available
 - **Auto-Sleep**: After 1 hour of inactivity (optional)
 

@@ -1,6 +1,6 @@
 # Incident Escalation Flow
 
-This diagram shows the incident escalation process for KARS, from detection to resolution.
+This diagram shows the incident escalation process for ACS, from detection to resolution.
 
 ## Escalation Flowchart
 

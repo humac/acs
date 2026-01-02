@@ -1,7 +1,7 @@
 # Complete Release Workflow (Comprehensive)
 
 ## Description
-Detailed sequence diagram showing the entire release process from feature development to production deployment. This is the most comprehensive view of the full KARS release lifecycle.
+Detailed sequence diagram showing the entire release process from feature development to production deployment. This is the most comprehensive view of the full ACS release lifecycle.
 
 ## When to Reference
 - Understanding the complete release process

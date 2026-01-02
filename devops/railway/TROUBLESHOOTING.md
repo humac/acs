@@ -72,7 +72,7 @@ railway status
 **Issue: Slow response times**
 ```bash
 # Test response time
-time curl https://kars.jvhlabs.com/api/health
+time curl https://acs.jvhlabs.com/api/health
 
 # Solution:
 # - Scale horizontally

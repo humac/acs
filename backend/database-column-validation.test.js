@@ -251,7 +251,7 @@ describe('Schema Evolution Scenarios', () => {
   let db;
 
   beforeEach(() => {
-    tempDir = mkdtempSync(join(tmpdir(), 'kars-test-'));
+    tempDir = mkdtempSync(join(tmpdir(), 'acs-test-'));
     const dbPath = join(tempDir, 'test.db');
     db = new Database(dbPath);
   });

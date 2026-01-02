@@ -6,7 +6,7 @@ This document explains the SQL column name validation implemented in `database.j
 
 ## Background
 
-The KARS application performs database migrations that dynamically select columns based on schema introspection (using PRAGMA table_info for SQLite or information_schema for PostgreSQL). While these sources are trusted, we implement defense-in-depth validation to:
+The ACS application performs database migrations that dynamically select columns based on schema introspection (using PRAGMA table_info for SQLite or information_schema for PostgreSQL). While these sources are trusted, we implement defense-in-depth validation to:
 
 1. Catch potential bugs in schema parsing
 2. Prevent future vulnerabilities if code is modified to accept untrusted sources

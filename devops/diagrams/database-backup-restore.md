@@ -1,6 +1,6 @@
 # Database Backup & Restore Workflow
 
-This diagram shows the backup and restore procedures for KARS databases (SQLite and PostgreSQL).
+This diagram shows the backup and restore procedures for ACS databases (SQLite and PostgreSQL).
 
 ## Backup & Restore Architecture
 
@@ -624,12 +624,12 @@ find "$BACKUP_DIR/monthly" -name "*.tar.gz" -mtime +365 -delete
 3. **Update DNS**
    ```bash
    # Update Cloudflare DNS to new IP/CNAME
-   cloudflare-cli dns update kars.jvhlabs.com --to new-cname
+   cloudflare-cli dns update acs.jvhlabs.com --to new-cname
    ```
 
 4. **Verify Services**
    ```bash
-   curl https://kars.jvhlabs.com/api/health
+   curl https://acs.jvhlabs.com/api/health
    ```
 
 ---

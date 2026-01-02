@@ -1,6 +1,6 @@
 # Monitoring & Health Checks Architecture
 
-This diagram shows the comprehensive monitoring and health check system for KARS.
+This diagram shows the comprehensive monitoring and health check system for ACS.
 
 ## Monitoring Architecture
 
@@ -459,7 +459,7 @@ railway run psql $DATABASE_URL -c "\
 curl -X POST "https://hooks.slack.com/services/YOUR/WEBHOOK/URL" \
   -H "Content-Type: application/json" \
   -d '{
-    "text": "🚨 KARS Backend Health Check Failed",
+    "text": "🚨 ACS Backend Health Check Failed",
     "attachments": [{
       "color": "danger",
       "fields": [
@@ -488,7 +488,7 @@ if [ "$RESPONSE" != "200" ]; then
     # Send alert
     curl -X POST "$SLACK_WEBHOOK" \
       -H "Content-Type: application/json" \
-      -d "{\"text\":\"🚨 KARS Health Check Failed: HTTP $RESPONSE\"}"
+      -d "{\"text\":\"🚨 ACS Health Check Failed: HTTP $RESPONSE\"}"
     
     echo "ALERT: Health check failed with HTTP $RESPONSE"
     exit 1

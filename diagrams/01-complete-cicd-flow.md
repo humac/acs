@@ -1,7 +1,7 @@
 # Complete CI/CD Flow (All Environments)
 
 ## Description
-This diagram shows the complete continuous integration and continuous deployment flow for KARS, from developer workstation through GitHub to Railway environments (PR Preview, Dev, Prod) with notifications.
+This diagram shows the complete continuous integration and continuous deployment flow for ACS, from developer workstation through GitHub to Railway environments (PR Preview, Dev, Prod) with notifications.
 
 ## When to Reference
 - Understanding the full deployment pipeline

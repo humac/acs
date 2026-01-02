@@ -1,6 +1,6 @@
-# KARS Incident Response Guide
+# ACS Incident Response Guide
 
-This document outlines procedures for responding to incidents affecting KARS (KeyData Asset Registration System).
+This document outlines procedures for responding to incidents affecting ACS (Asset Compliance System).
 
 ## Table of Contents
 
@@ -169,7 +169,7 @@ This document outlines procedures for responding to incidents affecting KARS (Ke
 5. What is the current state? (down / degraded / intermittent)
 
 # Check monitoring
-curl https://kars.jvhlabs.com/api/health
+curl https://acs.jvhlabs.com/api/health
 railway status
 docker ps  # if Portainer
 ```
@@ -207,7 +207,7 @@ docker logs asset-registration-frontend --tail=500
 git log -n 10 --oneline
 
 # Review GitHub Actions
-# https://github.com/humac/kars/actions
+# https://github.com/humac/acs/actions
 
 # Check infrastructure status
 railway status
@@ -233,7 +233,7 @@ docker ps
 2. **Quick Health Check**
    ```bash
    # Backend health
-   curl https://kars.jvhlabs.com/api/health
+   curl https://acs.jvhlabs.com/api/health
    
    # Container status
    railway status
@@ -271,7 +271,7 @@ docker ps
    docker-compose restart
    
    # Monitor recovery
-   watch -n 5 curl https://kars.jvhlabs.com/api/health
+   watch -n 5 curl https://acs.jvhlabs.com/api/health
    ```
 
 5. **Database Failure**
@@ -338,7 +338,7 @@ Impact: [Current user impact]
 8. **Verify Service Recovery**
    ```bash
    # Comprehensive health check
-   curl https://kars.jvhlabs.com/api/health
+   curl https://acs.jvhlabs.com/api/health
    
    # Test critical paths
    # - Login
@@ -350,13 +350,13 @@ Impact: [Current user impact]
    railway logs | grep -i error | wc -l
    
    # Check performance
-   time curl https://kars.jvhlabs.com/api/assets
+   time curl https://acs.jvhlabs.com/api/assets
    ```
 
 9. **Monitor Stability (30-60 minutes)**
    ```bash
    # Continuous monitoring
-   watch -n 30 'curl -s https://kars.jvhlabs.com/api/health && echo "OK"'
+   watch -n 30 'curl -s https://acs.jvhlabs.com/api/health && echo "OK"'
    
    # Watch logs for errors
    railway logs --follow | grep -i error
@@ -394,7 +394,7 @@ Impact: [Current user impact]
    
    # Test specific features
    # Example: Asset registration
-   curl -X POST https://kars.jvhlabs.com/api/assets \
+   curl -X POST https://acs.jvhlabs.com/api/assets \
      -H "Content-Type: application/json" \
      -H "Authorization: Bearer $JWT_TOKEN" \
      -d '{"test":"data"}'
@@ -538,7 +538,7 @@ docker-compose restart
 railway run env | grep JWT_SECRET
 
 # Test login endpoint
-curl -X POST https://kars.jvhlabs.com/api/auth/login \
+curl -X POST https://acs.jvhlabs.com/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"test"}'
 
@@ -628,7 +628,7 @@ railway run psql $DATABASE_URL -c "\
 **Diagnosis:**
 ```bash
 # Check GitHub Actions
-# https://github.com/humac/kars/actions
+# https://github.com/humac/acs/actions
 
 # Check Railway deployment logs
 railway logs --deployment latest
@@ -837,7 +837,7 @@ RESOLVED: The issue has been resolved. Service is fully operational.
 ```
 Subject: [RESOLVED] Service Disruption - [Date]
 
-Dear KARS Users,
+Dear ACS Users,
 
 We experienced a service disruption on [Date] from [Start Time] to [End Time] UTC.
 
@@ -855,7 +855,7 @@ Prevention:
 
 We apologize for any inconvenience caused.
 
-KARS Team
+ACS Team
 ```
 
 ---
@@ -1009,7 +1009,7 @@ KARS Team
 
 ```bash
 # Health check
-curl https://kars.jvhlabs.com/api/health
+curl https://acs.jvhlabs.com/api/health
 
 # View logs
 railway logs --tail=100

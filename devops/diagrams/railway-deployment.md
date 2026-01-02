@@ -1,6 +1,6 @@
 # Railway Deployment Flow
 
-This diagram shows the deployment process for KARS on Railway (production environment).
+This diagram shows the deployment process for ACS on Railway (production environment).
 
 ## Railway Deployment Architecture
 
@@ -61,7 +61,7 @@ flowchart TB
         AC --> AD[Backend Service URL<br/>backend.railway.app]
         AC --> AE[Frontend Service URL<br/>frontend.railway.app]
         
-        AE --> AF[Custom Domain<br/>kars.jvhlabs.com]
+        AE --> AF[Custom Domain<br/>acs.jvhlabs.com]
         AF --> AG[Automatic SSL<br/>Let's Encrypt]
     end
     
@@ -134,8 +134,8 @@ JWT_SECRET=<secure-random-key>
 DB_CLIENT=postgres
 DATABASE_URL=${DATABASE_URL}  # Auto-injected by Railway
 ADMIN_EMAIL=admin@jvhlabs.com
-BASE_URL=https://kars.jvhlabs.com
-FRONTEND_URL=https://kars.jvhlabs.com
+BASE_URL=https://acs.jvhlabs.com
+FRONTEND_URL=https://acs.jvhlabs.com
 ```
 
 **Health Check:**
@@ -159,7 +159,7 @@ VITE_API_URL=/api  # Proxy to backend
 ```
 
 **Custom Domain:**
-- Domain: `kars.jvhlabs.com`
+- Domain: `acs.jvhlabs.com`
 - SSL: Automatic (Let's Encrypt)
 
 ### PostgreSQL Database

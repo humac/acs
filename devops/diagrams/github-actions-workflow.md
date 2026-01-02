@@ -1,6 +1,6 @@
 # GitHub Actions Workflow
 
-This diagram details the GitHub Actions workflows that power KARS CI/CD pipeline.
+This diagram details the GitHub Actions workflows that power ACS CI/CD pipeline.
 
 ## Workflow Architecture
 
@@ -345,7 +345,7 @@ strategy:
 
 View workflow runs:
 ```
-https://github.com/humac/kars/actions
+https://github.com/humac/acs/actions
 ```
 
 ### Check Status via CLI
@@ -368,7 +368,7 @@ gh run view <run-id> --log
 
 Add to README.md:
 ```markdown
-[![CI Tests](https://github.com/humac/kars/actions/workflows/ci-tests.yml/badge.svg)](https://github.com/humac/kars/actions/workflows/ci-tests.yml)
+[![CI Tests](https://github.com/humac/acs/actions/workflows/ci-tests.yml/badge.svg)](https://github.com/humac/acs/actions/workflows/ci-tests.yml)
 ```
 
 ---

@@ -259,7 +259,7 @@ export default function createAdminRouter(deps) {
       // Environment variables take precedence if set
       const settings = {
         rp_id: process.env.PASSKEY_RP_ID || dbSettings?.rp_id || 'localhost',
-        rp_name: process.env.PASSKEY_RP_NAME || dbSettings?.rp_name || 'KARS - KeyData Asset Registration System',
+        rp_name: process.env.PASSKEY_RP_NAME || dbSettings?.rp_name || 'ACS - Asset Compliance System',
         origin: process.env.PASSKEY_ORIGIN || dbSettings?.origin || 'http://localhost:5173',
         enabled,
         managed_by_env: managedByEnv,
@@ -928,7 +928,7 @@ export default function createAdminRouter(deps) {
 
       // Get branding settings for preview
       const branding = await brandingSettingsDb.get();
-      const siteName = branding?.site_name || 'KARS';
+      const siteName = branding?.site_name || 'ACS';
 
       // Define sample variables for each template type
       const sampleVariables = {

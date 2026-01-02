@@ -5,7 +5,7 @@ Complete REST API documentation for the Asset Compliance System (ACS).
 ## Base URL
 
 - **Development:** `http://localhost:3001/api`
-- **Production:** `https://kars.jvhlabs.com/api`
+- **Production:** `https://acs.jvhlabs.com/api`
 
 ## Authentication
 

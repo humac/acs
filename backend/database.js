@@ -765,7 +765,7 @@ const initDb = async () => {
       logo_data TEXT,
       logo_filename TEXT,
       logo_content_type TEXT,
-      site_name TEXT DEFAULT 'KARS',
+      site_name TEXT DEFAULT 'ACS',
       sub_title TEXT DEFAULT 'KeyData Asset Registration System',
       favicon_data TEXT,
       favicon_filename TEXT,
@@ -783,7 +783,7 @@ const initDb = async () => {
       logo_data TEXT,
       logo_filename TEXT,
       logo_content_type TEXT,
-      site_name TEXT DEFAULT 'KARS',
+      site_name TEXT DEFAULT 'ACS',
       sub_title TEXT DEFAULT 'KeyData Asset Registration System',
       favicon_data TEXT,
       favicon_filename TEXT,
@@ -801,7 +801,7 @@ const initDb = async () => {
     CREATE TABLE IF NOT EXISTS passkey_settings (
       id INTEGER PRIMARY KEY CHECK (id = 1),
       rp_id TEXT DEFAULT 'localhost',
-      rp_name TEXT DEFAULT 'KARS - KeyData Asset Registration System',
+      rp_name TEXT DEFAULT 'ACS - Asset Compliance System',
       origin TEXT DEFAULT 'http://localhost:5173',
       enabled INTEGER NOT NULL DEFAULT 1,
       updated_at TIMESTAMP NOT NULL,
@@ -811,7 +811,7 @@ const initDb = async () => {
     CREATE TABLE IF NOT EXISTS passkey_settings (
       id INTEGER PRIMARY KEY CHECK (id = 1),
       rp_id TEXT DEFAULT 'localhost',
-      rp_name TEXT DEFAULT 'KARS - KeyData Asset Registration System',
+      rp_name TEXT DEFAULT 'ACS - Asset Compliance System',
       origin TEXT DEFAULT 'http://localhost:5173',
       enabled INTEGER NOT NULL DEFAULT 1,
       updated_at TEXT NOT NULL,
@@ -881,7 +881,7 @@ const initDb = async () => {
       username TEXT,
       password_encrypted TEXT,
       auth_method TEXT DEFAULT 'plain',
-      from_name TEXT DEFAULT 'KARS Notifications',
+      from_name TEXT DEFAULT 'ACS Notifications',
       from_email TEXT,
       default_recipient TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -897,7 +897,7 @@ const initDb = async () => {
       username TEXT,
       password_encrypted TEXT,
       auth_method TEXT DEFAULT 'plain',
-      from_name TEXT DEFAULT 'KARS Notifications',
+      from_name TEXT DEFAULT 'ACS Notifications',
       from_email TEXT,
       default_recipient TEXT,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -1366,7 +1366,7 @@ const initDb = async () => {
       console.log('Migrating branding_settings table: adding new columns...');
       
       // Add new columns with defaults
-      await dbRun("ALTER TABLE branding_settings ADD COLUMN site_name TEXT DEFAULT 'KARS'");
+      await dbRun("ALTER TABLE branding_settings ADD COLUMN site_name TEXT DEFAULT 'ACS'");
       await dbRun("ALTER TABLE branding_settings ADD COLUMN sub_title TEXT DEFAULT 'KeyData Asset Registration System'");
       await dbRun("ALTER TABLE branding_settings ADD COLUMN favicon_data TEXT");
       await dbRun("ALTER TABLE branding_settings ADD COLUMN favicon_filename TEXT");
@@ -1375,7 +1375,7 @@ const initDb = async () => {
       await dbRun("ALTER TABLE branding_settings ADD COLUMN include_logo_in_emails INTEGER DEFAULT 0");
       
       // Set defaults for existing row
-      await dbRun("UPDATE branding_settings SET site_name = 'KARS', sub_title = 'KeyData Asset Registration System', primary_color = '#3B82F6', include_logo_in_emails = 0 WHERE id = 1");
+      await dbRun("UPDATE branding_settings SET site_name = 'ACS', sub_title = 'Asset Compliance System', primary_color = '#3B82F6', include_logo_in_emails = 0 WHERE id = 1");
       
       console.log('Migration complete: Added new branding columns');
     }
@@ -1551,7 +1551,7 @@ const initDb = async () => {
     const now = new Date().toISOString();
     await dbRun(`
       INSERT INTO branding_settings (id, site_name, sub_title, primary_color, include_logo_in_emails, footer_label, updated_at)
-      VALUES (1, 'KARS', 'KeyData Asset Registration System', '#3B82F6', 0, 'SOC2 Compliance - KeyData Asset Registration System', ?)
+      VALUES (1, 'ACS', 'Asset Compliance System', '#3B82F6', 0, 'SOC2 Compliance - Asset Compliance System', ?)
     `, [now]);
   }
 
@@ -3101,7 +3101,7 @@ export const brandingSettingsDb = {
       settings.logo_data !== undefined ? settings.logo_data : null,
       settings.logo_filename !== undefined ? settings.logo_filename : null,
       settings.logo_content_type !== undefined ? settings.logo_content_type : null,
-      settings.site_name !== undefined ? settings.site_name : 'KARS',
+      settings.site_name !== undefined ? settings.site_name : 'ACS',
       settings.sub_title !== undefined ? settings.sub_title : 'KeyData Asset Registration System',
       settings.favicon_data !== undefined ? settings.favicon_data : null,
       settings.favicon_filename !== undefined ? settings.favicon_filename : null,
@@ -3136,7 +3136,7 @@ export const passkeySettingsDb = {
       const now = new Date().toISOString();
       await dbRun(`
         INSERT INTO passkey_settings (id, rp_id, rp_name, origin, enabled, updated_at)
-        VALUES (1, 'localhost', 'KARS - KeyData Asset Registration System', 'http://localhost:5173', 1, ?)
+        VALUES (1, 'localhost', 'ACS - Asset Compliance System', 'http://localhost:5173', 1, ?)
       `, [now]);
       settings = await dbGet('SELECT * FROM passkey_settings WHERE id = 1');
     }
@@ -3157,7 +3157,7 @@ export const passkeySettingsDb = {
         VALUES (1, ?, ?, ?, ?, ?, ?)
       `, [
         settings.rp_id || 'localhost',
-        settings.rp_name || 'KARS - KeyData Asset Registration System',
+        settings.rp_name || 'ACS - Asset Compliance System',
         settings.origin || 'http://localhost:5173',
         settings.enabled ? 1 : 0,
         now,
@@ -3175,7 +3175,7 @@ export const passkeySettingsDb = {
         WHERE id = 1
       `, [
         settings.rp_id || 'localhost',
-        settings.rp_name || 'KARS - KeyData Asset Registration System',
+        settings.rp_name || 'ACS - Asset Compliance System',
         settings.origin || 'http://localhost:5173',
         settings.enabled ? 1 : 0,
         now,
@@ -3369,7 +3369,7 @@ export const smtpSettingsDb = {
     }
     if (settings.from_name !== undefined) {
       updates.push('from_name = ?');
-      params.push(settings.from_name || 'KARS Notifications');
+      params.push(settings.from_name || 'ACS Notifications');
     }
     if (settings.from_email !== undefined) {
       updates.push('from_email = ?');

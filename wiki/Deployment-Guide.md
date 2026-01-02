@@ -70,7 +70,7 @@ Complete production deployment guide for the Asset Compliance System (ACS).
 
 1. **Fork or clone the repository**
    ```bash
-   git clone https://github.com/humac/kars.git
+   git clone https://github.com/humac/acs.git
    ```
 
 2. **Enable GitHub Actions**

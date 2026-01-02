@@ -1,13 +1,13 @@
 # Cloudflare Tunnel Architecture
 
-This diagram shows how Cloudflare Tunnel provides secure external access to KARS without exposing public IPs or opening firewall ports.
+This diagram shows how Cloudflare Tunnel provides secure external access to ACS without exposing public IPs or opening firewall ports.
 
 ## Tunnel Architecture
 
 ```mermaid
 flowchart TB
     subgraph Internet["Public Internet"]
-        A[User Browser] --> B[kars.jvhlabs.com]
+        A[User Browser] --> B[acs.jvhlabs.com]
     end
     
     subgraph CloudflareEdge["Cloudflare Edge Network"]
@@ -208,7 +208,7 @@ credentials-file: /home/user/.cloudflared/<tunnel-id>.json
 
 ingress:
   # Route to frontend (serves frontend and proxies /api to backend)
-  - hostname: kars.jvhlabs.com
+  - hostname: acs.jvhlabs.com
     service: http://localhost:8080
   
   # Catch-all rule (required)
@@ -218,10 +218,10 @@ ingress:
 **Create DNS Record:**
 ```bash
 # Create CNAME record pointing to tunnel
-cloudflared tunnel route dns kars-tunnel kars.jvhlabs.com
+cloudflared tunnel route dns kars-tunnel acs.jvhlabs.com
 
 # This creates:
-# kars.jvhlabs.com CNAME <tunnel-id>.cfargotunnel.com
+# acs.jvhlabs.com CNAME <tunnel-id>.cfargotunnel.com
 ```
 
 **Run Tunnel:**
@@ -292,7 +292,7 @@ tunnel: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 credentials-file: /path/to/credentials.json
 
 ingress:
-  - hostname: kars.jvhlabs.com
+  - hostname: acs.jvhlabs.com
     service: http://localhost:8080
   - service: http_status:404
 ```
@@ -309,20 +309,20 @@ metrics: localhost:8081
 
 ingress:
   # Main application
-  - hostname: kars.jvhlabs.com
+  - hostname: acs.jvhlabs.com
     service: http://asset-registration-frontend:80
     originRequest:
       noTLSVerify: true
       connectTimeout: 30s
   
   # API endpoint (direct to backend)
-  - hostname: api.kars.jvhlabs.com
+  - hostname: api.acs.jvhlabs.com
     service: http://asset-registration-backend:3001
     originRequest:
       noTLSVerify: true
   
   # Staging environment
-  - hostname: staging.kars.jvhlabs.com
+  - hostname: staging.acs.jvhlabs.com
     service: http://localhost:8081
   
   # Catch-all
@@ -337,7 +337,7 @@ tunnel: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 credentials-file: /path/to/credentials.json
 
 ingress:
-  - hostname: kars.jvhlabs.com
+  - hostname: acs.jvhlabs.com
     service: http://asset-registration-frontend:80
     originRequest:
       # Load balance across multiple instances
@@ -433,7 +433,7 @@ curl http://localhost:8081/metrics
 1. Zero Trust → Access → Applications
 2. Add application
 3. Configure:
-   - Domain: `kars.jvhlabs.com`
+   - Domain: `acs.jvhlabs.com`
    - Policy: Require login
    - Identity providers: Google, GitHub, etc.
 
@@ -443,7 +443,7 @@ curl http://localhost:8081/metrics
 2. Add policy:
    - Action: Allow/Block
    - Source: IP address or range
-   - Destination: kars.jvhlabs.com
+   - Destination: acs.jvhlabs.com
 
 ### TLS Settings
 
@@ -452,7 +452,7 @@ curl http://localhost:8081/metrics
 **config.yml:**
 ```yaml
 ingress:
-  - hostname: kars.jvhlabs.com
+  - hostname: acs.jvhlabs.com
     service: http://localhost:8080
     originRequest:
       # Origin settings
@@ -473,7 +473,7 @@ ingress:
 2. Add rule:
    - Requests: 100 per minute
    - Action: Challenge or Block
-   - Apply to: kars.jvhlabs.com
+   - Apply to: acs.jvhlabs.com
 
 ---
 
@@ -610,10 +610,10 @@ curl http://localhost:8081/metrics | grep latency
 **Diagnosis:**
 ```bash
 # Test SSL
-openssl s_client -connect kars.jvhlabs.com:443
+openssl s_client -connect acs.jvhlabs.com:443
 
 # Check certificate
-curl -vI https://kars.jvhlabs.com
+curl -vI https://acs.jvhlabs.com
 ```
 
 **Common Causes:**
@@ -624,7 +624,7 @@ curl -vI https://kars.jvhlabs.com
 **Solutions:**
 ```bash
 # Verify DNS
-dig kars.jvhlabs.com
+dig acs.jvhlabs.com
 
 # Check Cloudflare SSL mode
 # Dashboard → SSL/TLS → Overview

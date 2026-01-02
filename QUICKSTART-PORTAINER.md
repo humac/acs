@@ -5,7 +5,7 @@ Get your Asset Compliance System (ACS) running on Portainer in minutes!
 ## Prerequisites
 - Portainer instance running
 - GitHub account
-- Cloudflare account (for kars.jvhlabs.com)
+- Cloudflare account (for acs.jvhlabs.com)
 
 ## 5-Minute Setup
 

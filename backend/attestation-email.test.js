@@ -66,7 +66,7 @@ describe('Attestation Email Templates - Variable Substitution', () => {
       host: 'smtp.example.com',
       port: 587,
       use_tls: 1,
-      from_name: 'KARS',
+      from_name: 'ACS',
       from_email: 'noreply@example.com'
     });
     
@@ -75,7 +75,7 @@ describe('Attestation Email Templates - Variable Substitution', () => {
     mockSendMail.mockResolvedValue({ messageId: 'test-id' });
     
     mockBrandingSettingsDb.get.mockResolvedValue({
-      site_name: 'KARS Test',
+      site_name: 'ACS Test',
       logo_data: null,
       include_logo_in_emails: 0,
       app_url: 'http://localhost:3000'
@@ -119,7 +119,7 @@ describe('Attestation Email Templates - Variable Substitution', () => {
         text: expect.stringContaining('Campaign: Test Campaign'),
         text: expect.stringContaining('Description: Test Description'),
         text: expect.stringContaining('URL: http://localhost:3000/my-attestations'),
-        text: expect.stringContaining('Site: KARS Test')
+        text: expect.stringContaining('Site: ACS Test')
       })
     );
   });
@@ -192,7 +192,7 @@ describe('Attestation Email Templates - Template Loading', () => {
       host: 'smtp.example.com',
       port: 587,
       use_tls: 1,
-      from_name: 'KARS',
+      from_name: 'ACS',
       from_email: 'noreply@example.com'
     });
     
@@ -201,7 +201,7 @@ describe('Attestation Email Templates - Template Loading', () => {
     mockSendMail.mockResolvedValue({ messageId: 'test-id' });
     
     mockBrandingSettingsDb.get.mockResolvedValue({
-      site_name: 'KARS Test',
+      site_name: 'ACS Test',
       logo_data: null,
       include_logo_in_emails: 0,
       app_url: 'http://localhost:3000'
@@ -288,7 +288,7 @@ describe('Attestation Email Templates - Template Loading', () => {
       from_email: 'noreply@example.com'
     });
     mockBrandingSettingsDb.get.mockResolvedValue({
-      site_name: 'KARS Test',
+      site_name: 'ACS Test',
       app_url: 'http://localhost:3000'
     });
     mockSendMail.mockResolvedValue({ messageId: 'test-id' });
@@ -307,7 +307,7 @@ describe('Attestation Email Functions - sendAttestationLaunchEmail', () => {
       enabled: 1,
       host: 'smtp.example.com',
       port: 587,
-      from_name: 'KARS',
+      from_name: 'ACS',
       from_email: 'noreply@example.com'
     });
     
@@ -315,7 +315,7 @@ describe('Attestation Email Functions - sendAttestationLaunchEmail', () => {
     mockDecryptValue.mockReturnValue('password');
     mockSendMail.mockResolvedValue({ messageId: 'test-id' });
     mockBrandingSettingsDb.get.mockResolvedValue({
-      site_name: 'KARS Test',
+      site_name: 'ACS Test',
       app_url: 'http://localhost:3000'
     });
     mockEmailTemplateDb.getByKey.mockResolvedValue(null);
@@ -355,7 +355,7 @@ describe('Attestation Email Functions - sendAttestationReminderEmail', () => {
       enabled: 1,
       host: 'smtp.example.com',
       port: 587,
-      from_name: 'KARS',
+      from_name: 'ACS',
       from_email: 'noreply@example.com'
     });
     
@@ -363,7 +363,7 @@ describe('Attestation Email Functions - sendAttestationReminderEmail', () => {
     mockDecryptValue.mockReturnValue('password');
     mockSendMail.mockResolvedValue({ messageId: 'test-id' });
     mockBrandingSettingsDb.get.mockResolvedValue({
-      site_name: 'KARS Test',
+      site_name: 'ACS Test',
       app_url: 'http://localhost:3000'
     });
     mockEmailTemplateDb.getByKey.mockResolvedValue(null);
@@ -401,7 +401,7 @@ describe('Attestation Email Functions - sendAttestationEscalationEmail', () => {
       enabled: 1,
       host: 'smtp.example.com',
       port: 587,
-      from_name: 'KARS',
+      from_name: 'ACS',
       from_email: 'noreply@example.com'
     });
     
@@ -409,7 +409,7 @@ describe('Attestation Email Functions - sendAttestationEscalationEmail', () => {
     mockDecryptValue.mockReturnValue('password');
     mockSendMail.mockResolvedValue({ messageId: 'test-id' });
     mockBrandingSettingsDb.get.mockResolvedValue({
-      site_name: 'KARS Test',
+      site_name: 'ACS Test',
       app_url: 'http://localhost:3000'
     });
     mockEmailTemplateDb.getByKey.mockResolvedValue(null);
@@ -450,7 +450,7 @@ describe('Attestation Email Functions - sendAttestationUnregisteredReminder', ()
       enabled: 1,
       host: 'smtp.example.com',
       port: 587,
-      from_name: 'KARS',
+      from_name: 'ACS',
       from_email: 'noreply@example.com'
     });
     
@@ -458,7 +458,7 @@ describe('Attestation Email Functions - sendAttestationUnregisteredReminder', ()
     mockDecryptValue.mockReturnValue('password');
     mockSendMail.mockResolvedValue({ messageId: 'test-id' });
     mockBrandingSettingsDb.get.mockResolvedValue({
-      site_name: 'KARS Test',
+      site_name: 'ACS Test',
       app_url: 'http://localhost:3000'
     });
     mockEmailTemplateDb.getByKey.mockResolvedValue(null);
@@ -526,7 +526,7 @@ describe('Attestation Email Functions - sendAttestationUnregisteredEscalation', 
       enabled: 1,
       host: 'smtp.example.com',
       port: 587,
-      from_name: 'KARS',
+      from_name: 'ACS',
       from_email: 'noreply@example.com'
     });
     
@@ -534,7 +534,7 @@ describe('Attestation Email Functions - sendAttestationUnregisteredEscalation', 
     mockDecryptValue.mockReturnValue('password');
     mockSendMail.mockResolvedValue({ messageId: 'test-id' });
     mockBrandingSettingsDb.get.mockResolvedValue({
-      site_name: 'KARS Test',
+      site_name: 'ACS Test',
       app_url: 'http://localhost:3000'
     });
     mockEmailTemplateDb.getByKey.mockResolvedValue(null);

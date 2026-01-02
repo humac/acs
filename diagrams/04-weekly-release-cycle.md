@@ -1,7 +1,7 @@
 # Weekly Release Cycle
 
 ## Description
-Gantt chart showing the weekly release schedule from Monday planning through Friday QA to Monday production release. This represents the standard cadence for KARS feature releases.
+Gantt chart showing the weekly release schedule from Monday planning through Friday QA to Monday production release. This represents the standard cadence for ACS feature releases.
 
 ## When to Reference
 - Planning sprint work

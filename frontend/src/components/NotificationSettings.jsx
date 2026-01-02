@@ -23,7 +23,7 @@ const NotificationSettings = () => {
     username: '',
     password: '',
     auth_method: 'plain',
-    from_name: 'KARS Notifications',
+    from_name: 'ACS Notifications',
     from_email: '',
     default_recipient: ''
   });
@@ -55,7 +55,7 @@ const NotificationSettings = () => {
           username: data.username || '',
           password: '',
           auth_method: data.auth_method || 'plain',
-          from_name: data.from_name || 'KARS Notifications',
+          from_name: data.from_name || 'ACS Notifications',
           from_email: data.from_email || '',
           default_recipient: data.default_recipient || ''
         });
@@ -225,7 +225,7 @@ const NotificationSettings = () => {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-sm font-semibold">SMTP Email Notifications</h3>
-            <p className="text-sm text-muted-foreground">Configure SMTP settings for sending email notifications from KARS.</p>
+            <p className="text-sm text-muted-foreground">Configure SMTP settings for sending email notifications from ACS.</p>
           </div>
           <Switch
             checked={settings.enabled}
@@ -331,7 +331,7 @@ const NotificationSettings = () => {
                 id="from_name"
                 value={settings.from_name}
                 onChange={(e) => handleChange('from_name', e.target.value)}
-                placeholder="KARS Notifications"
+                placeholder="ACS Notifications"
                 disabled={saving}
               />
             </div>
