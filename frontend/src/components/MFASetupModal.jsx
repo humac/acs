@@ -140,7 +140,7 @@ const MFASetupModal = ({ open, onClose, onComplete, getAuthHeaders }) => {
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleDialogClose()}>
-      <DialogContent className="sm:max-w-[500px]" onEscapeKeyDown={(e) => activeStep === 2 && e.preventDefault()}>
+      <DialogContent className="glass-overlay sm:max-w-[500px]" onEscapeKeyDown={(e) => activeStep === 2 && e.preventDefault()}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Shield className="h-5 w-5" />
@@ -158,7 +158,7 @@ const MFASetupModal = ({ open, onClose, onComplete, getAuthHeaders }) => {
               <div
                 className={cn(
                   "h-2 rounded-full flex-1 transition-colors",
-                  index <= activeStep ? "bg-primary" : "bg-muted"
+                  index <= activeStep ? "glow-primary bg-primary" : "glow-muted bg-muted"
                 )}
               />
               {index < steps.length - 1 && (
@@ -169,7 +169,7 @@ const MFASetupModal = ({ open, onClose, onComplete, getAuthHeaders }) => {
         </div>
 
         {error && (
-          <Alert variant="destructive">
+          <Alert className="glow-destructive rounded-xl">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
@@ -203,33 +203,33 @@ const MFASetupModal = ({ open, onClose, onComplete, getAuthHeaders }) => {
 
             {qrCode && (
               <div className="flex justify-center py-4">
-                <img src={qrCode} alt="MFA QR Code" className="max-w-[200px] rounded border" />
+                <div className="glass-panel rounded-xl p-6">
+                  <img src={qrCode} alt="MFA QR Code" className="max-w-[200px]" />
+                </div>
               </div>
             )}
 
             <Separator />
 
             <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">
+              <Label className="caption-label">
                 Or enter this code manually:
               </Label>
-              <Card className="bg-muted/50 relative">
-                <CardContent className="p-3">
-                  <code className="text-sm break-all">{secret}</code>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="absolute top-2 right-2 h-7 w-7 p-0"
-                    onClick={handleCopySecret}
-                  >
-                    {copiedSecret ? (
-                      <Check className="h-3.5 w-3.5 text-green-600" />
-                    ) : (
-                      <Copy className="h-3.5 w-3.5" />
-                    )}
-                  </Button>
-                </CardContent>
-              </Card>
+              <div className="glass-panel rounded-lg p-3 relative">
+                <code className="text-sm break-all font-mono">{secret}</code>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="absolute top-2 right-2 h-7 w-7 p-0 btn-interactive"
+                  onClick={handleCopySecret}
+                >
+                  {copiedSecret ? (
+                    <Check className="h-3.5 w-3.5 text-green-600" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -252,61 +252,58 @@ const MFASetupModal = ({ open, onClose, onComplete, getAuthHeaders }) => {
         {/* Step 2: Backup Codes */}
         {activeStep === 2 && (
           <div className="space-y-4">
-            <Alert variant="default" className="border-amber-500 bg-amber-50 dark:bg-amber-950/50">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <Alert className="glow-warning rounded-xl">
+              <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                <p className="font-semibold text-amber-900 dark:text-amber-100">
+                <p className="font-semibold mb-1">
                   Save these backup codes in a secure place!
                 </p>
-                <p className="text-sm mt-1 text-amber-800 dark:text-amber-200">
+                <p className="text-sm mt-1 opacity-90">
                   You can use these codes to access your account if you lose access to your authenticator app.
                 </p>
               </AlertDescription>
             </Alert>
 
-            <Card className="bg-muted/50 relative">
-              <CardContent className="p-4 space-y-3">
-                <div className="grid grid-cols-2 gap-2">
-                  {backupCodes.map((code, index) => (
-                    <Badge
-                      key={index}
-                      variant="outline"
-                      className="font-mono text-xs justify-center py-1.5"
-                    >
-                      {code}
-                    </Badge>
-                  ))}
-                </div>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleCopyBackupCodes}
-                >
-                  {copiedBackupCodes ? (
-                    <>
-                      <Check className="h-4 w-4 mr-2" />
-                      Copied!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4 mr-2" />
-                      Copy All Codes
-                    </>
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
+            <div className="glass-panel rounded-xl p-4 space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                {backupCodes.map((code, index) => (
+                  <Badge
+                    key={index}
+                    className="font-mono text-xs justify-center py-1.5 glow-muted"
+                  >
+                    {code}
+                  </Badge>
+                ))}
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="w-full btn-interactive"
+                onClick={handleCopyBackupCodes}
+              >
+                {copiedBackupCodes ? (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy All Codes
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         )}
 
         <DialogFooter>
           {activeStep === 0 && (
             <>
-              <Button variant="outline" onClick={handleDialogClose}>
+              <Button variant="outline" onClick={handleDialogClose} className="btn-interactive">
                 Cancel
               </Button>
-              <Button onClick={handleStart} disabled={loading}>
+              <Button onClick={handleStart} disabled={loading} className="btn-interactive">
                 {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -321,12 +318,13 @@ const MFASetupModal = ({ open, onClose, onComplete, getAuthHeaders }) => {
 
           {activeStep === 1 && (
             <>
-              <Button variant="outline" onClick={handleDialogClose}>
+              <Button variant="outline" onClick={handleDialogClose} className="btn-interactive">
                 Cancel
               </Button>
               <Button
                 onClick={handleVerify}
                 disabled={loading || verificationCode.length !== 6}
+                className="btn-interactive"
               >
                 {loading ? (
                   <>
@@ -341,7 +339,7 @@ const MFASetupModal = ({ open, onClose, onComplete, getAuthHeaders }) => {
           )}
 
           {activeStep === 2 && (
-            <Button onClick={handleComplete} className="w-full">
+            <Button onClick={handleComplete} className="w-full btn-interactive">
               I've Saved My Backup Codes
             </Button>
           )}

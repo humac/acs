@@ -112,7 +112,7 @@ export default function AssetBulkImportModal({ onClose, onImported }) {
 
   return (
     <Dialog open={true} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="glass-overlay sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Bulk Import Assets</DialogTitle>
           <DialogDescription>
@@ -122,7 +122,7 @@ export default function AssetBulkImportModal({ onClose, onImported }) {
 
         <form onSubmit={handleImport} className="space-y-4 py-2">
           {/* CSV Format Information */}
-          <Alert>
+          <Alert className="glass-panel rounded-xl">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               <div className="space-y-2 text-sm">
@@ -158,7 +158,7 @@ export default function AssetBulkImportModal({ onClose, onImported }) {
               <Button 
                 type="button" 
                 variant="outline" 
-                className="flex-1"
+                className="flex-1 btn-interactive border-2 border-dashed border-white/20 hover:border-primary/40"
                 asChild
               >
                 <label className="cursor-pointer">
@@ -177,6 +177,7 @@ export default function AssetBulkImportModal({ onClose, onImported }) {
               <Button 
                 type="button" 
                 variant="ghost"
+                className="btn-interactive"
                 asChild
               >
                 <a href="/import_assets.csv" download>
@@ -187,7 +188,7 @@ export default function AssetBulkImportModal({ onClose, onImported }) {
             </div>
 
             {importFile && (
-              <div className="rounded-md bg-muted p-3 text-sm">
+              <div className="glass-panel rounded-lg p-3 text-sm">
                 <span className="font-medium">Selected file: </span>
                 <span className="text-muted-foreground">{importFile.name}</span>
                 <span className="text-muted-foreground ml-2">
@@ -201,16 +202,16 @@ export default function AssetBulkImportModal({ onClose, onImported }) {
           {result && (
             <div className="space-y-3">
               {result.imported > 0 && (
-                <Alert className="border-green-200 bg-green-50">
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  <AlertDescription className="text-green-900">
+                <Alert className="glow-success rounded-xl">
+                  <CheckCircle2 className="h-4 w-4" />
+                  <AlertDescription>
                     Successfully imported {result.imported} asset{result.imported !== 1 ? 's' : ''}
                   </AlertDescription>
                 </Alert>
               )}
 
               {result.failed > 0 && result.errors && result.errors.length > 0 && (
-                <Alert variant="destructive">
+                <Alert className="glow-destructive rounded-xl">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
                     <p className="font-medium mb-2">
@@ -235,6 +236,7 @@ export default function AssetBulkImportModal({ onClose, onImported }) {
               variant="outline" 
               onClick={handleClose}
               disabled={importing}
+              className="btn-interactive"
             >
               {result ? 'Close' : 'Cancel'}
             </Button>
@@ -242,6 +244,7 @@ export default function AssetBulkImportModal({ onClose, onImported }) {
               <Button
                 type="submit"
                 disabled={importing || !importFile}
+                className="btn-interactive"
               >
                 {importing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {importing ? 'Importing...' : 'Import Assets'}
