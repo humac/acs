@@ -28,3 +28,35 @@ if (typeof global.localStorage === 'undefined' || typeof global.localStorage.get
     global.localStorage = mock;
   })();
 }
+
+// Mock IntersectionObserver for scroll animation tests
+if (typeof global.IntersectionObserver === 'undefined') {
+  global.IntersectionObserver = class IntersectionObserver {
+    constructor(callback) {
+      this.callback = callback;
+    }
+
+    observe(target) {
+      // Simulate the element being in view immediately
+      this.callback([
+        {
+          isIntersecting: true,
+          target,
+          intersectionRatio: 1,
+          boundingClientRect: target.getBoundingClientRect(),
+          intersectionRect: target.getBoundingClientRect(),
+          rootBounds: null,
+          time: Date.now(),
+        },
+      ]);
+    }
+
+    unobserve() {
+      // No-op
+    }
+
+    disconnect() {
+      // No-op
+    }
+  };
+}

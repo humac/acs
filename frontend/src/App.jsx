@@ -44,6 +44,7 @@ import ForgotPassword from '@/components/ForgotPassword';
 import ResetPassword from '@/components/ResetPassword';
 import AttestationPage from '@/pages/AttestationPage';
 import MyAttestationsPage from '@/pages/MyAttestationsPage';
+import Phase3Demo from '@/pages/Phase3Demo';
 
 function AppNew() {
   const { user, logout, loading, isAuthenticated } = useAuth();
@@ -433,6 +434,9 @@ function AppNew() {
           )}
           {user?.role === 'admin' && (
             <Route path="/admin" element={<AdminSettings />} />
+          )}
+          {user?.role === 'admin' && (
+            <Route path="/phase3-demo" element={<Phase3Demo />} />
           )}
           <Route path="/my-attestations" element={<MyAttestationsPage />} />
           <Route path="/profile" element={<Profile />} />
