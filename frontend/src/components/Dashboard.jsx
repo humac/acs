@@ -2,7 +2,11 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Package, Users, Building2, Laptop, ClipboardCheck, User, FileBarChart, Settings } from 'lucide-react';
+import { 
+  Loader2, Package, Users, Building2, Laptop, 
+  ClipboardCheck, User, FileBarChart, Settings, ArrowUpRight 
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const Dashboard = () => {
   const { getAuthHeaders, user } = useAuth();
@@ -37,219 +41,137 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2 text-muted-foreground">Loading dashboard...</span>
+      <div className="flex flex-col items-center justify-center h-[60vh] animate-fade-in">
+        <div className="relative">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <div className="absolute inset-0 blur-xl bg-primary/20 animate-pulse" />
+        </div>
+        <span className="mt-4 text-muted-foreground font-medium tracking-tight">Synchronizing ACS Data...</span>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold mb-1">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome back, {user?.first_name}!</p>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-        <Card className="stat-card group">
-          <CardContent className="p-4 md:p-6">
-            <div className="flex items-center justify-between mb-3 md:mb-4">
-              <div className="h-10 w-10 md:h-12 md:w-12 rounded-xl bg-gradient-primary flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
-                <Package className="h-5 w-5 md:h-6 md:w-6 text-primary-foreground" />
-              </div>
-            </div>
-            <div className="text-3xl md:text-4xl font-bold text-gradient mb-1">{dashboardStats.assetsCount}</div>
-            <p className="text-xs md:text-sm text-muted-foreground font-medium">Total Assets</p>
-          </CardContent>
-        </Card>
-        
-        <Card className="stat-card group">
-          <CardContent className="p-4 md:p-6">
-            <div className="flex items-center justify-between mb-3 md:mb-4">
-              <div className="h-10 w-10 md:h-12 md:w-12 rounded-xl bg-gradient-success flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
-                <Users className="h-5 w-5 md:h-6 md:w-6 text-success-foreground" />
-              </div>
-            </div>
-            <div className="text-3xl md:text-4xl font-bold text-gradient mb-1">{dashboardStats.employeesCount}</div>
-            <p className="text-xs md:text-sm text-muted-foreground font-medium">Team Members</p>
-          </CardContent>
-        </Card>
-        
-        <Card className="stat-card group">
-          <CardContent className="p-4 md:p-6">
-            <div className="flex items-center justify-between mb-3 md:mb-4">
-              <div className="h-10 w-10 md:h-12 md:w-12 rounded-xl bg-gradient-to-br from-warning/80 to-warning flex items-center justify-center shadow-md group-hover:scale-110 transition-transform">
-                <Building2 className="h-5 w-5 md:h-6 md:w-6 text-warning-foreground" />
-              </div>
-            </div>
-            <div className="text-3xl md:text-4xl font-bold text-gradient mb-1">{dashboardStats.companiesCount}</div>
-            <p className="text-xs md:text-sm text-muted-foreground font-medium">Partners</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Quick Actions Section */}
-      <div className="space-y-4 md:space-y-6">
-        {/* My Actions - For All Users */}
+    <div className="space-y-8 p-1 md:p-2 animate-fade-in bg-surface/30 min-h-screen rounded-2xl">
+      {/* Header Section */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 px-2">
         <div>
-          <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">My Actions</h2>
-          <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-            <Card 
-              className="cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] border-2"
-              onClick={() => navigate('/assets')}
-            >
-              <CardContent className="p-4 md:p-5">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <Laptop className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">View My Assets</h3>
-                    <p className="text-xs text-muted-foreground">Manage your equipment</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card 
-              className="cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] border-2"
-              onClick={() => navigate('/my-attestations')}
-            >
-              <CardContent className="p-4 md:p-5">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <ClipboardCheck className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">My Attestations</h3>
-                    <p className="text-xs text-muted-foreground">Review pending attestations</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card 
-              className="cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] border-2"
-              onClick={() => navigate('/profile')}
-            >
-              <CardContent className="p-4 md:p-5">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <User className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold">My Profile</h3>
-                    <p className="text-xs text-muted-foreground">Update your information</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gradient mb-2">
+            System Overview
+          </h1>
+          <p className="text-muted-foreground text-lg">
+            Welcome back, <span className="text-foreground font-semibold">{user?.first_name}</span>. Here is your compliance status.
+          </p>
         </div>
+        <div className="hidden md:block">
+           <div className="glass-panel px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2">
+              <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
+              System Status: Operational
+           </div>
+        </div>
+      </header>
 
-        {/* Management Section - For Managers, Coordinators, and Admins */}
-        {(user?.role === 'manager' || user?.role === 'coordinator' || user?.role === 'admin') && (
-          <div>
-            <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">Management</h2>
-            <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-              <Card 
-                className="cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] border-2"
-                onClick={() => navigate('/users')}
-              >
-                <CardContent className="p-4 md:p-5">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-                      <Users className="h-5 w-5 text-green-600 dark:text-green-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">Manage Users</h3>
-                      <p className="text-xs text-muted-foreground">User management</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card 
-                className="cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] border-2"
-                onClick={() => navigate('/companies')}
-              >
-                <CardContent className="p-4 md:p-5">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-                      <Building2 className="h-5 w-5 text-green-600 dark:text-green-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">View Companies</h3>
-                      <p className="text-xs text-muted-foreground">Company directory</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card 
-                className="cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] border-2"
-                onClick={() => navigate('/audit')}
-              >
-                <CardContent className="p-4 md:p-5">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-                      <FileBarChart className="h-5 w-5 text-green-600 dark:text-green-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">Audit & Reports</h3>
-                      <p className="text-xs text-muted-foreground">View system logs</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card 
-                className="cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] border-2"
-                onClick={() => navigate('/attestation')}
-              >
-                <CardContent className="p-4 md:p-5">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-                      <ClipboardCheck className="h-5 w-5 text-green-600 dark:text-green-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">Attestation Campaigns</h3>
-                      <p className="text-xs text-muted-foreground">Manage campaigns</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+      {/* Main Bento Grid Layout */}
+      <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-2 gap-4 md:gap-6 min-h-[600px]">
+        
+        {/* Featured Stat: Total Assets (Large Bento Item) */}
+        <Card className="bento-card md:col-span-2 md:row-span-2 group relative overflow-hidden flex flex-col justify-between">
+          <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+            <Package size={140} />
           </div>
-        )}
-
-        {/* Administration Section - For Admins Only */}
-        {user?.role === 'admin' && (
-          <div>
-            <h2 className="text-lg md:text-xl font-semibold mb-3 md:mb-4">Administration</h2>
-            <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-              <Card 
-                className="cursor-pointer hover:shadow-lg transition-all hover:scale-[1.02] border-2"
-                onClick={() => navigate('/admin')}
-              >
-                <CardContent className="p-4 md:p-5">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                      <Settings className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold">Admin Settings</h3>
-                      <p className="text-xs text-muted-foreground">System configuration</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+          <CardContent className="p-8 relative z-10 flex flex-col h-full justify-between">
+            <div className="space-y-2">
+              <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 shadow-glow mb-6">
+                <Package className="text-primary h-6 w-6" />
+              </div>
+              <h2 className="text-xl font-semibold text-muted-foreground uppercase tracking-widest">Active Assets</h2>
+              <div className="text-7xl font-bold tracking-tighter text-gradient leading-none">
+                {dashboardStats.assetsCount}
+              </div>
             </div>
-          </div>
-        )}
+            <button 
+              onClick={() => navigate('/assets')}
+              className="flex items-center gap-2 text-primary font-bold group/btn mt-8"
+            >
+              View Full Inventory <ArrowUpRight className="group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform" />
+            </button>
+          </CardContent>
+        </Card>
+
+        {/* Medium Stat: Team Members */}
+        <Card className="bento-card md:col-span-2 md:row-span-1 group">
+          <CardContent className="p-6 flex items-center justify-between h-full">
+            <div className="space-y-1">
+              <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Team Coverage</p>
+              <div className="text-4xl font-bold">{dashboardStats.employeesCount}</div>
+              <p className="text-xs text-success font-medium">Synced across all departments</p>
+            </div>
+            <div className="h-16 w-16 rounded-3xl bg-success/10 flex items-center justify-center border border-success/20 group-hover:scale-110 transition-transform">
+              <Users className="text-success h-8 w-8" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Small Stat: Partners */}
+        <Card className="bento-card md:col-span-1 md:row-span-1 group">
+          <CardContent className="p-6 flex flex-col justify-between h-full">
+            <div className="h-10 w-10 rounded-xl bg-warning/10 flex items-center justify-center border border-warning/20 mb-4">
+              <Building2 className="text-warning h-5 w-5" />
+            </div>
+            <div>
+              <div className="text-2xl font-bold leading-none mb-1">{dashboardStats.companiesCount}</div>
+              <p className="text-xs font-bold text-muted-foreground uppercase">Partners</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Access: Profile (Glass Variant) */}
+        <Card 
+          className="glass-panel md:col-span-1 md:row-span-1 cursor-pointer hover:bg-white/5 transition-colors group"
+          onClick={() => navigate('/profile')}
+        >
+          <CardContent className="p-6 flex flex-col justify-between h-full">
+             <User className="text-muted-foreground h-6 w-6 group-hover:text-primary transition-colors" />
+             <div className="flex items-center justify-between">
+                <span className="font-semibold tracking-tight">My Account</span>
+                <ArrowUpRight size={18} className="opacity-0 group-hover:opacity-100 transition-opacity text-primary" />
+             </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Actions Grid */}
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
+        <div className="md:col-span-3">
+          <h2 className="text-2xl font-bold tracking-tight mb-4 flex items-center gap-2">
+            <ClipboardCheck className="text-primary" /> Operational Controls
+          </h2>
+        </div>
+        
+        {/* Map your other navigation items here using .glass-panel and hover:scale-102 */}
+        {[
+          { label: 'Audit Logs', icon: FileBarChart, path: '/audit', color: 'text-info', bg: 'bg-info/10' },
+          { label: 'Attestations', icon: ClipboardCheck, path: '/attestation', color: 'text-primary', bg: 'bg-primary/10' },
+          { label: 'System Settings', icon: Settings, path: '/admin', color: 'text-warning', bg: 'bg-warning/10' }
+        ].map((item) => (
+          <Card 
+            key={item.label}
+            className="glass-panel cursor-pointer hover:scale-[1.02] transition-transform duration-base group overflow-hidden relative"
+            onClick={() => navigate(item.path)}
+          >
+            <div className={cn("absolute inset-y-0 left-0 w-1", item.bg.replace('/10', ''))} />
+            <CardContent className="p-5 flex items-center gap-4">
+              <div className={cn("h-12 w-12 rounded-xl flex items-center justify-center border border-white/5", item.bg)}>
+                <item.icon className={cn("h-6 w-6", item.color)} />
+              </div>
+              <div>
+                <h3 className="font-bold tracking-tight">{item.label}</h3>
+                <p className="text-xs text-muted-foreground font-medium italic">Execute system procedures</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </section>
     </div>
   );
 };
