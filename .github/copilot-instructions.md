@@ -105,6 +105,104 @@ cd frontend && npm run dev    # Terminal 2
 - API: `/api/*` (proxied in dev)
 - Imports: Use `@/` alias for `src/`
 
+## 2026 Design System (UI/UX Standards)
+
+ACS uses a modern 2026 design system with spatial depth, semantic opacity, and bento layouts.
+
+### 3-Layer Spatial Depth Model
+
+All UI elements follow a 3-layer depth hierarchy:
+
+| Layer | Purpose | CSS Classes |
+|-------|---------|-------------|
+| **Floor** | Base canvas background | `floor`, `bg-surface/30`, `bg-background` |
+| **Surface** | Content containers | `glass-panel`, `bento-card`, `bg-card/40 backdrop-blur-md` |
+| **Interactive Overlay** | Modals, dropdowns, popovers | `glass-overlay`, `backdrop-blur-xl z-50` |
+
+### Semantic Opacity System
+
+Use Tailwind alpha-modifiers for "glowing" status indicators:
+
+```jsx
+// Status badge variants
+const statusVariants = {
+  active: 'glow-success',      // bg-success/15 + shadow glow
+  returned: 'glow-muted',      // bg-muted/30
+  lost: 'glow-destructive',    // bg-destructive/15 + shadow glow
+  damaged: 'glow-warning',     // bg-warning/15 + shadow glow
+  info: 'glow-info',           // bg-info/15 + shadow glow
+  primary: 'glow-primary'      // bg-primary/15 + shadow glow
+};
+```
+
+### Key Utility Classes
+
+| Class | Purpose |
+|-------|---------|
+| `glass-panel` | Surface-level container with blur and border |
+| `glass-overlay` | Modal/dropdown overlay with heavy blur |
+| `bento-card` | Interactive card with hover effects |
+| `btn-interactive` | Button with `hover:scale-[1.02] active:scale-[0.98]` |
+| `text-gradient` | Gradient text for H1/H2 headers |
+| `caption-label` | `text-[10px] uppercase tracking-[0.2em]` for metadata |
+| `icon-box`, `icon-box-sm/md/lg` | Icon container with consistent sizing |
+| `shimmer` | Loading skeleton animation |
+| `animate-fade-in`, `animate-slide-up`, `animate-scale-in` | Entrance animations |
+
+### Component Patterns
+
+**Cards and Containers:**
+```jsx
+// Use glass-panel for content containers
+<div className="glass-panel rounded-2xl p-6">
+
+// Use bento-card for interactive items
+<div className="bento-card">
+  <div className="icon-box icon-box-md bg-primary/10 border-primary/20">
+    <Icon className="text-primary" />
+  </div>
+</div>
+```
+
+**Buttons:**
+```jsx
+// All buttons should use btn-interactive
+<Button className="btn-interactive">Action</Button>
+```
+
+**Status Badges:**
+```jsx
+// Use glow-* classes instead of flat badges
+<Badge className="glow-success">Active</Badge>
+<Badge className="glow-destructive">Lost</Badge>
+```
+
+**Dialogs/Modals:**
+```jsx
+// DialogContent should use glass-overlay
+<DialogContent className="glass-overlay sm:max-w-md">
+```
+
+**Loading States:**
+```jsx
+// Use shimmer class for skeleton loading
+<div className="h-10 rounded-xl bg-muted/30 shimmer" />
+```
+
+### Color Variables (Dark Mode)
+
+The dark theme uses a deep obsidian base:
+- `--background: 224 71% 2%` (Deep obsidian)
+- `--surface: 224 71% 6%`
+- `--card: 224 50% 4%`
+- `--border: 224 30% 12%`
+
+### Animation Guidelines
+
+- Use `transition-all duration-200` for micro-interactions
+- Stagger entrance animations: `style={{ animationDelay: \`${index * 40}ms\` }}`
+- Prefer `transform` and `opacity` for GPU-accelerated animations
+
 ## Database Objects
 
 ```javascript

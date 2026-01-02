@@ -71,6 +71,35 @@ This document provides AI agents with guidance for working with the ACS (Asset C
 - **UI Components**: `kebab-case.jsx` (e.g., `alert-dialog.jsx`)
 - **Database Columns**: `snake_case` (e.g., `employee_first_name`)
 
+### 2026 UI Design System
+
+ACS uses a spatial depth design system with three layers:
+
+| Layer | CSS Class | Usage |
+|-------|-----------|-------|
+| Floor | `floor` | Base background |
+| Surface | `glass-panel`, `bento-card` | Content containers |
+| Overlay | `glass-overlay` | Modals, dropdowns |
+
+**Key Patterns:**
+- **Buttons**: Always add `btn-interactive` for micro-interactions
+- **Status Badges**: Use `glow-success`, `glow-warning`, `glow-destructive`, etc.
+- **Headers**: Use `text-gradient` for H1/H2
+- **Metadata**: Use `caption-label` for labels
+- **Loading**: Use `shimmer` class for skeletons
+- **Icons**: Wrap in `icon-box icon-box-sm/md/lg`
+
+**Example Component:**
+```jsx
+<div className="glass-panel rounded-2xl p-6">
+  <h2 className="text-gradient text-xl">Title</h2>
+  <Badge className="glow-success">Active</Badge>
+  <Button className="btn-interactive">Action</Button>
+</div>
+```
+
+See `CLAUDE.md` for comprehensive design system documentation.
+
 ### API Response Format
 
 ```javascript
