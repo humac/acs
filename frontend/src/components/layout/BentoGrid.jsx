@@ -60,7 +60,7 @@ const BentoSkeleton = React.forwardRef(
       )}
       {...props}
     >
-      <div className="h-full w-full bg-muted/30 animate-pulse rounded-bento" />
+      <div className="h-full w-full bg-muted/30 animate-pulse" />
     </div>
   )
 );
