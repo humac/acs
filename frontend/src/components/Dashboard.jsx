@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, Package, Users, Building2, Laptop, ClipboardCheck, User, FileBarChart, Settings } from 'lucide-react';
 
 const Dashboard = () => {
