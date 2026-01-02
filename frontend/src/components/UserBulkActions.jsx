@@ -95,10 +95,10 @@ export default function UserBulkActions({
   if (selectedCount === 0) return null;
 
   return (
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2 rounded-lg border px-2 py-1.5 bg-muted/50">
+    <div className="glass-panel rounded-xl px-4 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
       <div className="flex items-center gap-2">
         <Sparkles className="h-4 w-4 text-primary" />
-        <span className="text-sm font-medium">{selectedCount} selected</span>
+        <span className="glow-primary rounded-full px-3 py-1 text-sm font-medium">{selectedCount} selected</span>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <Select value={bulkRole} onValueChange={setBulkRole}>
@@ -112,24 +112,24 @@ export default function UserBulkActions({
             <SelectItem value="admin">Admin</SelectItem>
           </SelectContent>
         </Select>
-        <Button size="sm" onClick={handleBulkRoleUpdate} disabled={!bulkRole || updating}>
+        <Button size="sm" onClick={handleBulkRoleUpdate} disabled={!bulkRole || updating} className="btn-interactive">
           {updating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Apply role
         </Button>
         <Button
           size="sm"
           variant="ghost"
-          className="text-destructive hover:text-destructive"
+          className="text-destructive hover:text-destructive btn-interactive"
           onClick={() => setDeleteDialogOpen(true)}
           disabled={deleting}
         >
           {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Delete
         </Button>
-        <Button size="sm" variant="ghost" onClick={onClearSelection}>Clear</Button>
+        <Button size="sm" variant="ghost" onClick={onClearSelection} className="btn-interactive">Clear</Button>
       </div>
 
       {/* Bulk Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="max-w-[95vw] sm:max-w-[500px]">
+        <DialogContent className="glass-overlay max-w-[95vw] sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="text-lg sm:text-xl">Confirm Delete Users</DialogTitle>
             <DialogDescription className="text-sm">
@@ -137,8 +137,8 @@ export default function UserBulkActions({
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} className="w-full sm:w-auto">Cancel</Button>
-            <Button variant="destructive" onClick={handleBulkDeleteConfirm} className="w-full sm:w-auto">Delete</Button>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} className="w-full sm:w-auto btn-interactive">Cancel</Button>
+            <Button variant="destructive" onClick={handleBulkDeleteConfirm} className="w-full sm:w-auto btn-interactive">Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
