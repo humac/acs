@@ -280,7 +280,7 @@
 
 @layer components {
   /* ═══════════════════════════════════════════════════════════════
-     LIQUID GLASS / GLASSMORPHISM - 2026 Style with Colored Glows
+     LIQUID GLASS / GLASSMORPHISM - 2026 Style with Colored Glows & Gradient Mask
   ═══════════════════════════════════════════════════════════════ */
   
   .glass-panel {
@@ -297,6 +297,20 @@
     @apply border border-zinc-200/50 dark:border-zinc-700/30;
     @apply rounded-[2.5rem];             /* Squircle radius */
     @apply transition-all duration-300;
+  }
+  
+  /* Advanced gradient mask for natural blur dissipation */
+  .glass-mask {
+    position: relative;
+  }
+  
+  .glass-mask::before {
+    content: '';
+    @apply absolute inset-0 -z-10;
+    @apply rounded-[2.5rem];
+    backdrop-filter: blur(12px);
+    mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
   }
   
   .glass-card {
@@ -320,13 +334,14 @@
   }
   
   /* ═══════════════════════════════════════════════════════════════
-     SOFT BRUTALISM CARDS - Premium with Colored Glows
+     SOFT BRUTALISM CARDS - Premium with Colored Glows & Hardware Acceleration
   ═══════════════════════════════════════════════════════════════ */
   
   .soft-card {
     @apply bg-card rounded-[2.5rem];    /* Squircle radius */
     @apply border border-zinc-200/80 dark:border-zinc-800/80;
     @apply transition-all duration-300 ease-out;
+    will-change: transform;
   }
   
   .soft-card {
@@ -346,12 +361,19 @@
   }
   
   /* ═══════════════════════════════════════════════════════════════
-     BENTO GRID - Premium dashboard with Squircle
+     BENTO GRID - Container Query Based with Squircle
   ═══════════════════════════════════════════════════════════════ */
   
   .bento-grid {
-    @apply grid gap-4 md:gap-6;
+    @apply grid gap-4;
     @apply auto-rows-[minmax(120px,auto)];
+    container-type: inline-size;
+  }
+  
+  @container (min-width: 768px) {
+    .bento-grid {
+      @apply gap-6;
+    }
   }
   
   .bento-item {
@@ -359,11 +381,18 @@
     @apply bg-card;
     @apply border border-zinc-200/60 dark:border-zinc-800/60;
     @apply transition-all duration-300 ease-out;
+    will-change: transform;
   }
   
   .bento-item-lg {
-    @apply col-span-1 md:col-span-2;
-    @apply row-span-1 md:row-span-2;
+    @apply col-span-1;
+    @apply row-span-1;
+  }
+  
+  @container (min-width: 768px) {
+    .bento-item-lg {
+      @apply col-span-2 row-span-2;
+    }
   }
   
   /* ═══════════════════════════════════════════════════════════════
@@ -387,17 +416,17 @@
   }
   
   /* ═══════════════════════════════════════════════════════════════
-     PREMIUM TYPOGRAPHY - Geist with antialiasing
+     PREMIUM TYPOGRAPHY - Geist with antialiasing & Fluid Sizing
   ═══════════════════════════════════════════════════════════════ */
   
   .heading-display {
-    @apply text-4xl md:text-5xl lg:text-6xl;
+    font-size: clamp(2.25rem, 5vw, 3.5rem);
     @apply font-semibold tracking-tighter;
     @apply text-foreground antialiased;
   }
   
   .heading-section {
-    @apply text-2xl md:text-3xl;
+    font-size: clamp(1.5rem, 3vw, 2rem);
     @apply font-semibold tracking-tight;
     @apply text-foreground antialiased;
   }
@@ -413,15 +442,22 @@
   }
   
   /* ═══════════════════════════════════════════════════════════════
-     STAT CARD - 2026 Premium with Colored Glow
+     STAT CARD - 2026 Premium with Colored Glow & Hardware Acceleration
   ═══════════════════════════════════════════════════════════════ */
   
   .stat-card-premium {
     @apply relative overflow-hidden;
     @apply bg-card rounded-[2rem];      /* Organic squircle */
     @apply border border-zinc-200/60 dark:border-zinc-800/50;
-    @apply p-6 md:p-8;
+    @apply p-6;
     @apply transition-all duration-300 ease-out;
+    will-change: transform;
+  }
+  
+  @container (min-width: 768px) {
+    .stat-card-premium {
+      @apply p-8;
+    }
   }
   
   .stat-card-premium {
@@ -453,16 +489,23 @@
   }
   
   /* ═══════════════════════════════════════════════════════════════
-     ICON CONTAINER - Premium with Squircle
+     ICON CONTAINER - Premium with Squircle & Hardware Acceleration
   ═══════════════════════════════════════════════════════════════ */
   
   .icon-container {
     @apply flex items-center justify-center;
-    @apply w-12 h-12 md:w-14 md:h-14;
+    @apply w-12 h-12;
     @apply rounded-2xl;                  /* Squircle feel */
     @apply bg-zinc-100 dark:bg-zinc-800/80;
     @apply text-zinc-600 dark:text-zinc-300;
     @apply transition-all duration-300;
+    will-change: transform;
+  }
+  
+  @container (min-width: 768px) {
+    .icon-container {
+      @apply w-14 h-14;
+    }
   }
   
   .icon-container-primary {

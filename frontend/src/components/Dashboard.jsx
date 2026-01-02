@@ -28,7 +28,7 @@ const itemVariants = {
   },
 };
 
-// Magnetic Button Component with cursor following
+// Magnetic Button Component with cursor following and hardware acceleration
 const MagneticButton = ({ children, onClick, className = '' }) => {
   const buttonRef = useRef(null);
   const x = useMotionValue(0);
@@ -74,6 +74,8 @@ const MagneticButton = ({ children, onClick, className = '' }) => {
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       className={className}
+      // Hardware acceleration for 120fps performance
+      layoutId="magnetic-button"
     >
       {children}
     </motion.button>
@@ -92,22 +94,24 @@ const StatCard = ({ icon: Icon, value, label, trend, trendValue, colorClass = 'p
     <motion.div
       variants={itemVariants}
       whileHover={{ y: -4, transition: { duration: 0.2, ease: 'easeOut' } }}
-      className="stat-card-premium group"
+      className="stat-card-premium group will-change-transform"
+      // Hardware acceleration hint
+      style={{ willChange: 'transform' }}
     >
       {/* Icon */}
-      <div className={`icon-container ${iconContainerClass} mb-6 group-hover:scale-105 transition-transform duration-300`}>
+      <div className={`icon-container ${iconContainerClass} mb-6 group-hover:scale-105 transition-transform duration-300 will-change-transform`}>
         <Icon className="w-6 h-6" strokeWidth={1.5} />
       </div>
       
-      {/* Value */}
+      {/* Value - Fluid Typography */}
       <div className="mb-2">
-        <span className="text-4xl md:text-5xl font-semibold tracking-tighter text-foreground">
+        <span className="text-[clamp(2rem,5vw,3rem)] font-semibold tracking-tighter text-foreground antialiased">
           {value}
         </span>
       </div>
       
       {/* Label */}
-      <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-3">
+      <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mb-3 antialiased">
         {label}
       </p>
       
@@ -186,22 +190,22 @@ const Dashboard = () => {
       initial="hidden"
       animate="visible"
       variants={containerVariants}
-      className="space-y-6 md:space-y-8"
+      className="@container space-y-6 md:space-y-8"
     >
-      {/* Header Section */}
+      {/* Header Section with Fluid Typography */}
       <motion.div variants={itemVariants} className="space-y-1">
-        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-foreground">
+        <h1 className="text-[clamp(1.5rem,4vw,2rem)] font-semibold tracking-tight text-foreground antialiased">
           Dashboard
         </h1>
-        <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
+        <p className="text-[clamp(0.875rem,1.5vw,1rem)] font-medium text-zinc-500 dark:text-zinc-400 antialiased">
           Overview of your asset compliance system
         </p>
       </motion.div>
 
-      {/* Stats Bento Grid */}
+      {/* Stats Bento Grid - Container Query Based */}
       <motion.div 
         variants={containerVariants}
-        className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+        className="@container grid gap-4 @md:gap-6 grid-cols-1 @sm:grid-cols-2 @lg:grid-cols-3"
       >
         <StatCard
           icon={Package}
@@ -231,21 +235,21 @@ const Dashboard = () => {
         />
       </motion.div>
 
-      {/* Quick Actions - Glass Panel Style with Magnetic Buttons */}
+      {/* Quick Actions - Glass Panel with Gradient Mask and Container Queries */}
       <motion.div variants={itemVariants}>
-        <div className="glass-card p-6 md:p-8">
+        <div className="glass-card glass-mask p-6 @md:p-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-lg font-semibold tracking-tight text-foreground antialiased">
+              <h2 className="text-[clamp(1.125rem,2.5vw,1.25rem)] font-semibold tracking-tight text-foreground antialiased">
                 Quick Actions
               </h2>
-              <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5 antialiased">
+              <p className="text-[clamp(0.875rem,1.5vw,1rem)] text-zinc-500 dark:text-zinc-400 mt-0.5 antialiased">
                 Frequently used operations
               </p>
             </div>
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="@container grid grid-cols-2 @md:grid-cols-4 gap-3">
             {[
               { label: 'Add Asset', icon: Package },
               { label: 'Add User', icon: Users },
@@ -254,7 +258,7 @@ const Dashboard = () => {
             ].map((action, index) => (
               <MagneticButton
                 key={action.label}
-                className="flex flex-col items-center gap-3 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-700/40 hover:border-zinc-300 dark:hover:border-zinc-600 transition-all duration-200 antialiased"
+                className="flex flex-col items-center gap-3 p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200/60 dark:border-zinc-700/40 hover:border-zinc-300 dark:hover:border-zinc-600 transition-all duration-200 antialiased will-change-transform"
               >
                 <action.icon className="w-5 h-5 text-zinc-600 dark:text-zinc-300" strokeWidth={1.5} />
                 <span className="text-xs font-medium text-zinc-600 dark:text-zinc-300">
