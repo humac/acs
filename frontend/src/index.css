@@ -78,6 +78,15 @@
 }
 
 @layer components {
+  /* Button Gradients - use CSS custom property for branding support */
+  .bg-gradient-primary {
+    @apply bg-primary;
+  }
+
+  .bg-gradient-success {
+    background: linear-gradient(135deg, hsl(var(--success)) 0%, hsl(142 71% 35%) 100%);
+  }
+
   /* 3-Layer Depth System */
   .floor { 
     @apply bg-surface/30 dark:bg-background; 
@@ -183,6 +192,20 @@
     content: '';
     @apply absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent;
     animation: shimmer 2s infinite;
+  }
+
+  /* Table styling consistency */
+  .glass-panel table {
+    @apply border-collapse;
+  }
+
+  .glass-panel th,
+  .glass-panel td {
+    @apply border-b border-white/5;
+  }
+
+  .glass-panel tr:last-child td {
+    @apply border-b-0;
   }
 }
 

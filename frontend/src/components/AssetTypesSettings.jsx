@@ -215,8 +215,10 @@ const AssetTypesSettings = () => {
   const handleMoveUp = async (type, index) => {
     if (index === 0) return;
     
+    // Optimistic update
     const newOrder = [...assetTypes];
     [newOrder[index], newOrder[index - 1]] = [newOrder[index - 1], newOrder[index]];
+    setAssetTypes(newOrder);  // Update UI immediately
     
     setLoading(true);
     try {
@@ -231,9 +233,13 @@ const AssetTypesSettings = () => {
         })
       });
       
-      if (!response.ok) throw new Error('Failed to reorder asset types');
+      if (!response.ok) {
+        // Revert on failure
+        await fetchAssetTypes();
+        throw new Error('Failed to reorder asset types');
+      }
       
-      await fetchAssetTypes();
+      // Don't refetch on success - we already have the correct order
     } catch (err) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
@@ -244,8 +250,10 @@ const AssetTypesSettings = () => {
   const handleMoveDown = async (type, index) => {
     if (index === assetTypes.length - 1) return;
     
+    // Optimistic update
     const newOrder = [...assetTypes];
     [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+    setAssetTypes(newOrder);  // Update UI immediately
     
     setLoading(true);
     try {
@@ -260,9 +268,13 @@ const AssetTypesSettings = () => {
         })
       });
       
-      if (!response.ok) throw new Error('Failed to reorder asset types');
+      if (!response.ok) {
+        // Revert on failure
+        await fetchAssetTypes();
+        throw new Error('Failed to reorder asset types');
+      }
       
-      await fetchAssetTypes();
+      // Don't refetch on success - we already have the correct order
     } catch (err) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
@@ -305,7 +317,7 @@ const AssetTypesSettings = () => {
             </TableHeader>
             <TableBody>
               {assetTypes.map((type, index) => (
-                <TableRow key={type.id}>
+                <TableRow key={type.id} className="transition-all duration-200">
                   <TableCell>
                     <div className="flex gap-1">
                       <Button
