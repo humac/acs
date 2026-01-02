@@ -1,37 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Navigate, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { usePendingAttestations } from '@/hooks/use-pending-attestations';
 import { applyPrimaryColor } from '@/utils/color';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
-  Laptop,
-  Building2,
-  Users,
-  FileBarChart,
-  Settings,
-  User,
-  LogOut,
-  Menu,
-  X,
-  Loader2,
-  Moon,
-  Sun,
-  ClipboardCheck,
-  Home,
-} from 'lucide-react';
+
+// Layout & Shell Components
+import Layout from '@/components/layout/Layout';
 import Dashboard from '@/components/Dashboard';
+
+// Page Components
 import AssetsPage from '@/pages/AssetsPage';
 import CompanyManagement from '@/components/CompanyManagement';
 import UserManagement from '@/components/UserManagement';
@@ -46,53 +22,29 @@ import ResetPassword from '@/components/ResetPassword';
 import AttestationPage from '@/pages/AttestationPage';
 import MyAttestationsPage from '@/pages/MyAttestationsPage';
 
-function AppNew() {
-  const { user, logout, loading, isAuthenticated } = useAuth();
-  const { pendingCount } = usePendingAttestations();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [brandingLogo, setBrandingLogo] = useState(null);
-  const [footerLabel, setFooterLabel] = useState('SOC2 Compliance - Asset Compliance System');
+// UI Components
+import { Loader2 } from 'lucide-react';
+
+function App() {
+  const { user, loading, isAuthenticated } = useAuth();
   const [theme, setTheme] = useState(() => {
     if (typeof window === 'undefined') return 'light';
     return localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   });
-  const navigate = useNavigate();
+  
   const location = useLocation();
 
-  // Load and apply branding settings
+  // 1. Global Branding Loader
   const loadBranding = async () => {
     try {
       const response = await fetch('/api/branding');
       if (!response.ok) return;
       const data = await response.json();
       
-      // Set logo
-      if (data.logo_data) {
-        setBrandingLogo(data.logo_data);
-      }
-      
-      // Set primary color as CSS variable
-      if (data.primary_color) {
-        applyPrimaryColor(data.primary_color);
-      }
-      
-      // Update favicon
-      if (data.favicon_data) {
-        let link = document.querySelector("link[rel~='icon']");
-        if (!link) {
-          link = document.createElement('link');
-          link.rel = 'icon';
-          document.head.appendChild(link);
-        }
-        link.href = data.favicon_data;
-      }
-      
-      // Update page title
-      const siteName = data.site_name || 'ACS';
-      document.title = siteName;
-      
-      // Set footer label
-      setFooterLabel(data.footer_label || 'SOC2 Compliance - Asset Compliance System');
+      if (data.logo_data) localStorage.setItem('branding_logo', data.logo_data);
+      if (data.primary_color) applyPrimaryColor(data.primary_color);
+      if (data.site_name) document.title = data.site_name;
+      if (data.footer_label) localStorage.setItem('footer_label', data.footer_label);
     } catch (error) {
       console.error('Failed to load branding:', error);
     }
@@ -100,351 +52,78 @@ function AppNew() {
 
   useEffect(() => {
     loadBranding();
-    
-    // Listen for branding updates from AdminSettings
-    const handleBrandingUpdate = () => {
-      loadBranding();
-    };
-    
+    const handleBrandingUpdate = () => loadBranding();
     window.addEventListener('brandingUpdated', handleBrandingUpdate);
-    
-    return () => {
-      window.removeEventListener('brandingUpdated', handleBrandingUpdate);
-    };
+    return () => window.removeEventListener('brandingUpdated', handleBrandingUpdate);
   }, []);
 
+  // 2. Theme Manager
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
+    theme === 'dark' ? root.classList.add('dark') : root.classList.remove('dark');
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  // Handle OIDC callback route (no authentication required)
-  if (location.pathname === '/auth/callback') {
-    return <OIDCCallback />;
-  }
-
-  // Handle password reset routes (no authentication required)
-  if (location.pathname === '/forgot-password') {
-    return <ForgotPassword />;
-  }
-
-  if (location.pathname.startsWith('/reset-password/')) {
-    return <ResetPassword />;
-  }
+  // 3. Early Returns for Public Routes
+  if (location.pathname === '/auth/callback') return <OIDCCallback />;
+  if (location.pathname === '/forgot-password') return <ForgotPassword />;
+  if (location.pathname.startsWith('/reset-password/')) return <ResetPassword />;
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <span>Loading...</span>
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <span className="text-muted-foreground animate-pulse font-medium">Securing Session...</span>
         </div>
       </div>
     );
   }
 
-  // Handle register route (public, but redirect if authenticated)
-  if (location.pathname === '/register') {
-    if (isAuthenticated) {
-      return <Navigate to="/" replace />;
-    }
-    return <AuthPage initialMode="register" />;
-  }
-
+  // 4. Auth Logic
   if (!isAuthenticated) {
-    return <AuthPage initialMode="login" />;
+    return (
+      <Routes>
+        <Route path="/register" element={<AuthPage initialMode="register" />} />
+        <Route path="*" element={<AuthPage initialMode="login" />} />
+      </Routes>
+    );
   }
 
-  // Check if user needs to complete profile
   if (user && (user.profile_complete === 0 || user.profile_complete === false)) {
     return <CompleteProfile />;
   }
 
-  const navItems = [
-    { label: 'Dashboard', icon: Home, path: '/' },
-    { label: 'Assets', icon: Laptop, path: '/assets' },
-    { label: 'Attestation', icon: ClipboardCheck, path: '/attestation', roles: ['admin', 'manager', 'coordinator'] },
-    { label: 'Companies', icon: Building2, path: '/companies', roles: ['admin', 'manager', 'coordinator'] },
-    { label: 'Users', icon: Users, path: '/users', roles: ['admin', 'manager', 'coordinator'] },
-    { label: 'Audit & Reports', icon: FileBarChart, path: '/audit', roles: ['admin', 'manager', 'coordinator'] },
-    { label: 'Admin Settings', icon: Settings, path: '/admin', roles: ['admin'] },
-  ];
-
-  const visibleNavItems = navItems.filter(item => !item.roles || item.roles.includes(user?.role));
-
-  const isActive = (path) => {
-    return location.pathname === path;
-  };
-
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
-  };
-
-  const handleNavigation = (path) => {
-    navigate(path);
-    setMobileMenuOpen(false);
-  };
-
-  const handleLogout = () => {
-    logout();
-    setMobileMenuOpen(false);
-    // Navigate to root which is now the dashboard
-    navigate('/', { replace: true });
-  };
-
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container mx-auto px-2 md:px-4 lg:px-6 flex h-16 items-center justify-between">
-          {/* Logo and Nav */}
-          <div className="flex items-center gap-3 md:gap-6">
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-              {brandingLogo ? (
-                <img
-                  src={brandingLogo}
-                  alt="Company logo"
-                  className="h-7 md:h-9 w-auto max-h-8 md:max-h-10 object-contain"
-                />
-              ) : (
-                <>
-                  <div className="flex items-center justify-center w-7 h-7 md:w-8 md:h-8 rounded-lg bg-primary">
-                    <Laptop className="h-3.5 w-3.5 md:h-4 md:w-4 text-primary-foreground" />
-                  </div>
-                  <span className="font-semibold text-base md:text-lg hidden sm:block">ACS</span>
-                </>
-              )}
-            </div>
+    <Routes>
+      {/* 5. The Master Layout Wrapper */}
+      <Route element={<Layout theme={theme} setTheme={setTheme} />}>
+        {/* All routes inside here will render inside the Layout's <Outlet /> */}
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/assets" element={<AssetsPage />} />
+        <Route path="/my-attestations" element={<MyAttestationsPage />} />
+        <Route path="/profile" element={<Profile />} />
 
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-1">
-              {visibleNavItems.map((item) => (
-                <Button
-                  key={item.path}
-                  variant={isActive(item.path) ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => handleNavigation(item.path)}
-                  className="gap-2"
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </Button>
-              ))}
-            </nav>
-          </div>
-
-          {/* User Menu - Desktop */}
-          <div className="hidden md:flex items-center gap-3 lg:gap-4">
-            <div className="hidden lg:flex flex-col items-end text-sm">
-              <span className="font-medium">{user?.first_name} {user?.last_name}</span>
-              <span className="text-muted-foreground text-xs">{user?.email}</span>
-            </div>
-            <Badge variant="secondary" className="uppercase text-xs">
-              {user?.role}
-            </Badge>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full"
-              onClick={toggleTheme}
-            >
-              {theme === 'dark' ? (
-                <Sun className="h-4 w-4" />
-              ) : (
-                <Moon className="h-4 w-4" />
-              )}
-              <span className="sr-only">Toggle theme</span>
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full relative">
-                  <Avatar className="h-8 w-8">
-                    {user?.profile_image && (
-                      <AvatarImage src={user.profile_image} alt="Profile" />
-                    )}
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                      {user?.first_name?.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  {pendingCount > 0 && (
-                    <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-background"></span>
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium">{user?.first_name} {user?.last_name}</p>
-                    <p className="text-xs text-muted-foreground">{user?.email}</p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate('/profile')}>
-                  <User className="mr-2 h-4 w-4" />
-                  Profile
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate('/my-attestations')}>
-                  <ClipboardCheck className="mr-2 h-4 w-4" />
-                  <span className="flex-1">My Attestations</span>
-                  {pendingCount > 0 && (
-                    <span className="w-2 h-2 bg-red-500 rounded-full ml-2"></span>
-                  )}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
-          {/* Mobile Menu Button */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="md:hidden h-11 w-11"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
-        </div>
-
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t bg-background">
-            <div className="container mx-auto px-3 py-4 space-y-4">
-              {/* User Info */}
-              <div className="flex items-center gap-3 pb-4 border-b">
-                <div className="relative">
-                  <Avatar className="h-11 w-11">
-                    {user?.profile_image && (
-                      <AvatarImage src={user.profile_image} alt="Profile" />
-                    )}
-                    <AvatarFallback className="bg-primary text-primary-foreground">
-                      {user?.first_name?.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  {pendingCount > 0 && (
-                    <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-background"></span>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{user?.first_name} {user?.last_name}</p>
-                  <p className="text-sm text-muted-foreground truncate">{user?.email}</p>
-                </div>
-                <Badge variant="secondary" className="uppercase text-xs">
-                  {user?.role}
-                </Badge>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Appearance</span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                  onClick={toggleTheme}
-                >
-                  {theme === 'dark' ? (
-                    <>
-                      <Sun className="h-4 w-4" />
-                      Light
-                    </>
-                  ) : (
-                    <>
-                      <Moon className="h-4 w-4" />
-                      Dark
-                    </>
-                  )}
-                </Button>
-              </div>
-
-              {/* Navigation */}
-              <nav className="space-y-2">
-                {visibleNavItems.map((item) => (
-                  <Button
-                    key={item.path}
-                    variant={isActive(item.path) ? 'secondary' : 'ghost'}
-                    className="w-full justify-start gap-2 h-11"
-                    onClick={() => handleNavigation(item.path)}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    {item.label}
-                  </Button>
-                ))}
-                <Separator />
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start gap-2 h-11"
-                  onClick={() => handleNavigation('/profile')}
-                >
-                  <User className="h-4 w-4" />
-                  Profile
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start gap-2 relative h-11"
-                  onClick={() => handleNavigation('/my-attestations')}
-                >
-                  <ClipboardCheck className="h-4 w-4" />
-                  <span className="flex-1 text-left">My Attestations</span>
-                  {pendingCount > 0 && (
-                    <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                  )}
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start gap-2 text-destructive hover:text-destructive h-11"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="h-4 w-4" />
-                  Logout
-                </Button>
-              </nav>
-            </div>
-          </div>
-        )}
-      </header>
-
-      {/* Main Content */}
-      <main className="container mx-auto px-3 md:px-4 lg:px-6 py-4 md:py-6">
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/assets" element={<AssetsPage />} />
-          {(user?.role === 'admin' || user?.role === 'manager' || user?.role === 'coordinator') && (
+        {/* Role-Protected Management Routes */}
+        {(user?.role === 'admin' || user?.role === 'manager' || user?.role === 'coordinator') && (
+          <>
             <Route path="/companies" element={<CompanyManagement />} />
-          )}
-          {(user?.role === 'admin' || user?.role === 'manager' || user?.role === 'coordinator') && (
             <Route path="/users" element={<UserManagement />} />
-          )}
-          {(user?.role === 'admin' || user?.role === 'manager' || user?.role === 'coordinator') && (
             <Route path="/audit" element={<AuditReporting />} />
-          )}
-          {(user?.role === 'admin' || user?.role === 'manager' || user?.role === 'coordinator') && (
             <Route path="/attestation" element={<AttestationPage />} />
-          )}
-          {user?.role === 'admin' && (
-            <Route path="/admin" element={<AdminSettings />} />
-          )}
-          <Route path="/my-attestations" element={<MyAttestationsPage />} />
-          <Route path="/profile" element={<Profile />} />
-        </Routes>
-      </main>
+          </>
+        )}
 
-      {/* Footer */}
-      <footer className="border-t py-4 mt-auto">
-        <div className="container mx-auto px-4 md:px-6 text-center text-sm text-muted-foreground">
-          {footerLabel}
-        </div>
-      </footer>
-    </div>
+        {/* Admin-Only Routes */}
+        {user?.role === 'admin' && (
+          <Route path="/admin" element={<AdminSettings />} />
+        )}
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
   );
 }
 
-export default AppNew;
+export default App;
