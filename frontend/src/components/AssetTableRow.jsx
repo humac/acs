@@ -17,24 +17,24 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Edit, Trash2, ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
+import { Edit, Trash2, ChevronDown, ChevronRight, Loader2, Laptop, User, Calendar, Hash, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatEmployeeName } from '@/utils/user';
 import { ASSET_STATUS_OPTIONS } from '@/lib/constants';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
+/**
+ * Status variants mapping to the new semantic system
+ */
 const statusVariants = {
-  active: 'success',
-  returned: 'default',
-  lost: 'destructive',
-  damaged: 'warning',
-  retired: 'secondary'
+  active: 'bg-success/15 text-success border-success/20',
+  returned: 'bg-muted/20 text-muted-foreground border-transparent',
+  lost: 'bg-destructive/15 text-destructive border-destructive/20',
+  damaged: 'bg-warning/15 text-warning border-warning/20',
+  retired: 'bg-secondary/30 text-secondary-foreground border-transparent'
 };
 
-/**
- * Format date for display
- */
 const formatDate = (dateStr) => {
   if (!dateStr) return '-';
   try {
@@ -44,10 +44,6 @@ const formatDate = (dateStr) => {
   }
 };
 
-/**
- * Memoized table row component for assets (desktop view)
- * Features expandable details and inline status editing
- */
 const AssetTableRow = memo(function AssetTableRow({
   asset,
   isSelected,
@@ -57,6 +53,7 @@ const AssetTableRow = memo(function AssetTableRow({
   onEdit,
   onDelete,
   onStatusUpdated,
+  index = 0, // Used for staggered animation delay
 }) {
   const { getAuthHeaders } = useAuth();
   const { toast } = useToast();
@@ -66,14 +63,13 @@ const AssetTableRow = memo(function AssetTableRow({
   const [returnedDate, setReturnedDate] = useState(asset.returned_date || '');
   const [saving, setSaving] = useState(false);
 
-  const status = (asset.status || '').toLowerCase();
+  const statusKey = (asset.status || '').toLowerCase();
 
   const handleStatusChange = async () => {
-    // Validate returned_date is required when status is 'returned'
     if (pendingStatus === 'returned' && !returnedDate) {
       toast({
         title: "Validation Error",
-        description: "Returned date is required when status is 'Returned'",
+        description: "Returned date is required for status 'Returned'",
         variant: "destructive",
       });
       return;
@@ -89,188 +85,117 @@ const AssetTableRow = memo(function AssetTableRow({
 
       const res = await fetch(`/api/assets/${asset.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders()
-        },
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
-        const err = await res.text();
-        throw new Error(err || 'Save failed');
-      }
+      if (!res.ok) throw new Error(await res.text() || 'Save failed');
 
       const updated = await res.json();
-      toast({
-        title: "Success",
-        description: "Asset status updated successfully",
-        variant: "success",
-      });
-
+      toast({ title: "Success", description: "Asset status updated", variant: "success" });
       setStatusPopoverOpen(false);
-      if (onStatusUpdated) {
-        onStatusUpdated(updated.asset || updated);
-      }
+      if (onStatusUpdated) onStatusUpdated(updated.asset || updated);
     } catch (err) {
-      console.error(err);
-      toast({
-        title: "Error",
-        description: err.message || 'Unable to update status.',
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: err.message || 'Update failed', variant: "destructive" });
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handlePopoverOpenChange = (open) => {
-    setStatusPopoverOpen(open);
-    if (open) {
-      // Reset to current values when opening
-      setPendingStatus(asset.status || 'active');
-      setReturnedDate(asset.returned_date || '');
     }
   };
 
   return (
     <>
       <TableRow
-        data-state={isSelected ? 'selected' : undefined}
         className={cn(
-          isSelected && 'bg-primary/5 border-primary/40',
-          isExpanded && 'border-b-0'
+          "group border-b border-white/5 transition-all duration-base hover:bg-white/[0.02] animate-slide-up",
+          isSelected && 'bg-primary/5 border-primary/20',
+          isExpanded && 'bg-surface/30'
         )}
+        style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'forwards' }}
       >
-        {/* Checkbox */}
-        <TableCell className="w-12">
-          <Checkbox
-            checked={isSelected}
-            onCheckedChange={onToggleSelect}
-            aria-label={`Select ${formatEmployeeName(asset, 'asset')}`}
-          />
+        <TableCell className="w-12 px-6">
+          <Checkbox checked={isSelected} onCheckedChange={onToggleSelect} />
         </TableCell>
 
-        {/* Expand toggle */}
         <TableCell className="w-10 px-1">
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6"
+            className="h-8 w-8 hover:bg-primary/10 transition-colors"
             onClick={() => setIsExpanded(!isExpanded)}
-            aria-label={isExpanded ? 'Collapse details' : 'Expand details'}
           >
-            {isExpanded ? (
-              <ChevronDown className="h-4 w-4" />
-            ) : (
-              <ChevronRight className="h-4 w-4" />
-            )}
+            {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
           </Button>
         </TableCell>
 
-        {/* Employee (Owner) */}
-        <TableCell>
-          <div className="font-medium">
-            {formatEmployeeName(asset, 'N/A')}
-          </div>
-          <div className="text-sm text-muted-foreground">
-            {asset.employee_email || 'N/A'}
+        <TableCell className="py-5">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
+              <Laptop size={18} className="text-primary" />
+            </div>
+            <div>
+              <div className="font-bold text-foreground leading-none mb-1">
+                {formatEmployeeName(asset, 'N/A')}
+              </div>
+              <div className="text-xs text-muted-foreground">{asset.employee_email || 'N/A'}</div>
+            </div>
           </div>
         </TableCell>
 
-        {/* Company */}
-        <TableCell className="hidden lg:table-cell">
+        <TableCell className="hidden lg:table-cell font-medium opacity-80">
           {asset.company_name || '-'}
         </TableCell>
 
-        {/* Type */}
-        <TableCell className="hidden md:table-cell capitalize">
-          {asset.asset_type === 'mobile_phone' ? 'Mobile Phone' : asset.asset_type || '-'}
+        <TableCell className="hidden md:table-cell">
+          <Badge variant="secondary" className="bg-surface/50 font-medium capitalize">
+            {asset.asset_type?.replace('_', ' ') || '-'}
+          </Badge>
         </TableCell>
 
-        {/* Asset Tag */}
         <TableCell className="hidden xl:table-cell">
-          {asset.asset_tag || '-'}
+           <code className="text-xs bg-muted/50 px-2 py-1 rounded font-mono text-primary/80">{asset.asset_tag || '-'}</code>
         </TableCell>
 
-        {/* Serial Number */}
         <TableCell>
-          {asset.serial_number || '-'}
+          <code className="text-xs opacity-60 font-mono">{asset.serial_number || '-'}</code>
         </TableCell>
 
-        {/* Status - with inline edit capability */}
         <TableCell>
           {canEdit ? (
-            <Popover open={statusPopoverOpen} onOpenChange={handlePopoverOpenChange}>
+            <Popover open={statusPopoverOpen} onOpenChange={setStatusPopoverOpen}>
               <PopoverTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="h-auto p-0 hover:bg-transparent"
-                  aria-label="Change status"
-                >
-                  <Badge
-                    variant={statusVariants[status] || 'outline'}
-                    className="capitalize cursor-pointer hover:opacity-80"
-                  >
+                <Button variant="ghost" className="h-auto p-0 hover:bg-transparent">
+                  <Badge className={cn(
+                    "rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-widest cursor-pointer hover:opacity-80 transition-opacity",
+                    statusVariants[statusKey] || 'outline'
+                  )}>
                     {asset.status || 'unknown'}
                   </Badge>
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-64" align="start">
+              <PopoverContent className="w-64 glass-panel border-glass" align="start">
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Status</Label>
-                    <Select
-                      value={pendingStatus}
-                      onValueChange={(value) => {
-                        setPendingStatus(value);
-                        if (value !== 'returned') {
-                          setReturnedDate('');
-                        }
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
+                    <Label className="text-xs font-bold uppercase tracking-tighter opacity-70">Update Status</Label>
+                    <Select value={pendingStatus} onValueChange={setPendingStatus}>
+                      <SelectTrigger className="bg-surface/50">
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {ASSET_STATUS_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
+                          <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-
                   {pendingStatus === 'returned' && (
                     <div className="space-y-2">
-                      <Label htmlFor={`returned-date-${asset.id}`}>
-                        Returned Date *
-                      </Label>
-                      <Input
-                        id={`returned-date-${asset.id}`}
-                        type="date"
-                        value={returnedDate}
-                        onChange={(e) => setReturnedDate(e.target.value)}
-                        required
-                      />
+                      <Label className="text-xs font-bold uppercase tracking-tighter opacity-70">Returned Date *</Label>
+                      <Input type="date" className="bg-surface/50" value={returnedDate} onChange={(e) => setReturnedDate(e.target.value)} />
                     </div>
                   )}
-
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setStatusPopoverOpen(false)}
-                      disabled={saving}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={handleStatusChange}
-                      disabled={saving}
-                    >
+                  <div className="flex justify-end gap-2 pt-2 border-t border-white/5">
+                    <Button variant="ghost" size="sm" onClick={() => setStatusPopoverOpen(false)}>Cancel</Button>
+                    <Button size="sm" variant="glow" onClick={handleStatusChange} disabled={saving}>
                       {saving && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
                       {saving ? 'Saving...' : 'Save'}
                     </Button>
@@ -279,32 +204,18 @@ const AssetTableRow = memo(function AssetTableRow({
               </PopoverContent>
             </Popover>
           ) : (
-            <Badge variant={statusVariants[status] || 'outline'} className="capitalize">
+            <Badge className={cn("rounded-full px-3 py-0.5 text-[10px] font-bold uppercase tracking-widest", statusVariants[statusKey])}>
               {asset.status || 'unknown'}
             </Badge>
           )}
         </TableCell>
 
-        {/* Actions */}
-        <TableCell className="text-right pr-4">
+        <TableCell className="text-right pr-6">
           <div className="flex justify-end gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onEdit}
-              disabled={!canEdit}
-              aria-label="Edit asset"
-            >
+            <Button variant="ghost" size="icon" onClick={onEdit} disabled={!canEdit} className="h-8 w-8 hover:text-primary">
               <Edit className="h-4 w-4" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-destructive hover:text-destructive"
-              onClick={onDelete}
-              disabled={!canDelete}
-              aria-label="Delete asset"
-            >
+            <Button variant="ghost" size="icon" onClick={onDelete} disabled={!canDelete} className="h-8 w-8 text-destructive/60 hover:text-destructive">
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
@@ -313,65 +224,53 @@ const AssetTableRow = memo(function AssetTableRow({
 
       {/* Expanded Details Row */}
       {isExpanded && (
-        <TableRow className={cn(
-          'bg-muted/30 hover:bg-muted/30',
-          isSelected && 'bg-primary/5'
-        )}>
-          <TableCell colSpan={9} className="py-3">
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 text-sm px-2">
-              {/* Manager */}
-              <div>
-                <span className="text-muted-foreground text-xs block">Manager</span>
-                <div className="font-medium">
-                  {asset._managerDisplayName || '-'}
+        <TableRow className="bg-surface/40 border-none animate-in fade-in slide-in-from-top-2 duration-300">
+          <TableCell colSpan={9} className="p-0">
+            <div className="px-16 py-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              <div className="space-y-3">
+                <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+                  <User size={12} /> Management
+                </h4>
+                <div className="glass-panel p-4 rounded-xl space-y-1">
+                  <div className="text-sm font-bold">{asset._managerDisplayName || 'Unassigned'}</div>
+                  <div className="text-xs text-muted-foreground truncate">{asset._managerEmail || 'No contact info'}</div>
                 </div>
-                {asset._managerEmail && (
-                  <div className="text-xs text-muted-foreground">
-                    {asset._managerEmail}
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+                  <Hash size={12} /> Hardware
+                </h4>
+                <div className="glass-panel p-4 rounded-xl space-y-1">
+                  <div className="text-sm font-bold">{asset.make || 'Unknown'} {asset.model || ''}</div>
+                  <div className="text-xs text-primary/70 font-mono tracking-tighter">{asset.serial_number || 'No Serial'}</div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+                  <Calendar size={12} /> Timeline
+                </h4>
+                <div className="glass-panel p-4 rounded-xl text-xs space-y-2">
+                  <div className="flex justify-between">
+                    <span className="opacity-50">Issued:</span>
+                    <span className="font-medium">{formatDate(asset.issued_date)}</span>
                   </div>
-                )}
-              </div>
-
-              {/* Make/Model */}
-              <div>
-                <span className="text-muted-foreground text-xs block">Make/Model</span>
-                <div className="font-medium">
-                  {asset.make && asset.model ? `${asset.make} ${asset.model}` :
-                   asset.make || asset.model || '-'}
+                  <div className="flex justify-between">
+                    <span className="opacity-50">Returned:</span>
+                    <span className="font-medium">{formatDate(asset.returned_date)}</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Issued Date */}
-              <div>
-                <span className="text-muted-foreground text-xs block">Issued Date</span>
-                <div className="font-medium">{formatDate(asset.issued_date)}</div>
-              </div>
-
-              {/* Returned Date */}
-              <div>
-                <span className="text-muted-foreground text-xs block">Returned Date</span>
-                <div className="font-medium">{formatDate(asset.returned_date)}</div>
-              </div>
-
-              {/* Created Date */}
-              <div>
-                <span className="text-muted-foreground text-xs block">Created</span>
-                <div className="font-medium">{formatDate(asset.registration_date || asset.created_at)}</div>
-              </div>
-
-              {/* Last Modified */}
-              <div>
-                <span className="text-muted-foreground text-xs block">Last Modified</span>
-                <div className="font-medium">{formatDate(asset.last_updated || asset.updated_at)}</div>
-              </div>
-
-              {/* Notes - spans full width if present */}
-              {asset.notes && (
-                <div className="col-span-2 md:col-span-4 lg:col-span-6 mt-2">
-                  <span className="text-muted-foreground text-xs block">Notes</span>
-                  <div className="text-sm mt-1">{asset.notes}</div>
+              <div className="space-y-3">
+                <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+                  <FileText size={12} /> Notes
+                </h4>
+                <div className="glass-panel p-4 rounded-xl min-h-[60px] text-xs leading-relaxed opacity-80 italic">
+                  {asset.notes || 'No additional notes provided for this asset.'}
                 </div>
-              )}
+              </div>
             </div>
           </TableCell>
         </TableRow>
