@@ -29,6 +29,7 @@ import {
   Moon,
   Sun,
   ClipboardCheck,
+  Home,
 } from 'lucide-react';
 import Dashboard from '@/components/Dashboard';
 import AssetsPage from '@/pages/AssetsPage';
@@ -165,6 +166,7 @@ function AppNew() {
   }
 
   const navItems = [
+    { label: 'Dashboard', icon: Home, path: '/' },
     { label: 'Assets', icon: Laptop, path: '/assets' },
     { label: 'Attestation', icon: ClipboardCheck, path: '/attestation', roles: ['admin', 'manager', 'coordinator'] },
     { label: 'Companies', icon: Building2, path: '/companies', roles: ['admin', 'manager', 'coordinator'] },
@@ -176,9 +178,6 @@ function AppNew() {
   const visibleNavItems = navItems.filter(item => !item.roles || item.roles.includes(user?.role));
 
   const isActive = (path) => {
-    if (path === '/assets') {
-      return location.pathname === '/' || location.pathname === '/assets';
-    }
     return location.pathname === path;
   };
 
@@ -194,7 +193,7 @@ function AppNew() {
   const handleLogout = () => {
     logout();
     setMobileMenuOpen(false);
-    // Navigate to root and clear history so user returns to asset list on next login
+    // Navigate to root which is now the dashboard
     navigate('/', { replace: true });
   };
 
@@ -205,7 +204,7 @@ function AppNew() {
         <div className="container mx-auto px-2 md:px-4 lg:px-6 flex h-16 items-center justify-between">
           {/* Logo and Nav */}
           <div className="flex items-center gap-3 md:gap-6">
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/assets')}>
+            <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
               {brandingLogo ? (
                 <img
                   src={brandingLogo}
@@ -416,9 +415,8 @@ function AppNew() {
       {/* Main Content */}
       <main className="container mx-auto px-3 md:px-4 lg:px-6 py-4 md:py-6">
         <Routes>
-          <Route path="/" element={<Navigate to="/assets" replace />} />
+          <Route path="/" element={<Dashboard />} />
           <Route path="/assets" element={<AssetsPage />} />
-          <Route path="/assets/dashboard" element={<Dashboard />} />
           {(user?.role === 'admin' || user?.role === 'manager' || user?.role === 'coordinator') && (
             <Route path="/companies" element={<CompanyManagement />} />
           )}
