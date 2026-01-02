@@ -646,8 +646,16 @@
      FLUID TYPOGRAPHY - 2026 Utility Classes
   ═══════════════════════════════════════════════════════════════ */
   
+  .text-fluid-display {
+    font-size: clamp(2.44rem, 2.38vw + 1.85rem, 3.75rem);
+    font-weight: 600;
+    letter-spacing: -0.04em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
   .text-fluid-h1 {
-    font-size: var(--text-fluid-4xl);
+    font-size: clamp(1.95rem, 1.56vw + 1.56rem, 2.81rem);
     font-weight: 600;
     letter-spacing: -0.03em;
     -webkit-font-smoothing: antialiased;
@@ -655,7 +663,7 @@
   }
   
   .text-fluid-h2 {
-    font-size: var(--text-fluid-3xl);
+    font-size: clamp(1.56rem, 1vw + 1.31rem, 2.11rem);
     font-weight: 600;
     letter-spacing: -0.02em;
     -webkit-font-smoothing: antialiased;
@@ -663,7 +671,7 @@
   }
   
   .text-fluid-h3 {
-    font-size: var(--text-fluid-2xl);
+    font-size: clamp(1.25rem, 0.61vw + 1.1rem, 1.58rem);
     font-weight: 600;
     letter-spacing: -0.01em;
     -webkit-font-smoothing: antialiased;
@@ -671,14 +679,14 @@
   }
   
   .text-fluid-h4 {
-    font-size: var(--text-fluid-xl);
+    font-size: clamp(1rem, 0.34vw + 0.91rem, 1.19rem);
     font-weight: 600;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
   
   .text-fluid-body {
-    font-size: var(--text-fluid-base);
+    font-size: clamp(1rem, 0.34vw + 0.91rem, 1.19rem);
     font-weight: 400;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -706,6 +714,36 @@
     border-radius: 2.5rem;
     overflow: hidden;
     container-type: inline-size;
+  }
+  
+  /* Background gradient mesh for atmospheric depth */
+  .bg-gradient-mesh {
+    background-image: 
+      radial-gradient(at 40% 20%, oklch(var(--primary) / 0.08) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, oklch(var(--info) / 0.06) 0px, transparent 50%),
+      radial-gradient(at 0% 50%, oklch(var(--success) / 0.04) 0px, transparent 50%),
+      radial-gradient(at 80% 50%, oklch(var(--warning) / 0.03) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, oklch(var(--primary) / 0.06) 0px, transparent 50%);
+  }
+  
+  /* Tactile noise texture overlay - 3% opacity */
+  .bg-noise {
+    position: relative;
+  }
+  
+  .bg-noise::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1;
+  }
+  
+  .bg-noise > * {
+    position: relative;
+    z-index: 2;
   }
   
   .liquid-glass-card {

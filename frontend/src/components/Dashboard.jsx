@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { motion, useMotionValue, useSpring } from 'framer-motion';
+import { motion, useMotionValue, useSpring, AnimatePresence } from 'framer-motion';
 import { Loader2, Package, Users, Building2, TrendingUp, ArrowUpRight } from 'lucide-react';
 
 // Animation variants for staggered fade-in with "unfold" effect
@@ -189,11 +189,11 @@ const Dashboard = () => {
       initial="hidden"
       animate="visible"
       variants={containerVariants}
-      className="bento-container space-y-6 @md:space-y-8 bg-noise relative"
+      className="bento-container bg-gradient-mesh bg-noise space-y-6 @md:space-y-8 p-6 @md:p-8"
     >
       {/* Header Section with Fluid Typography */}
       <motion.div variants={itemVariants} className="space-y-1">
-        <h1 className="text-fluid-h2 text-foreground">
+        <h1 className="text-fluid-display text-foreground">
           Dashboard
         </h1>
         <p className="text-fluid-body text-subtle">
@@ -201,73 +201,102 @@ const Dashboard = () => {
         </p>
       </motion.div>
 
-      {/* Stats Bento Grid - Container Query Based */}
-      <motion.div 
-        variants={containerVariants}
-        className="bento-grid grid-cols-1 @sm:grid-cols-2 @lg:grid-cols-3"
-      >
-        <StatCard
-          icon={Package}
-          value={dashboardStats.assetsCount.toLocaleString()}
-          label="Total Assets"
-          trend="up"
-          trendValue="+12%"
-          colorClass="primary"
-        />
-        
-        <StatCard
-          icon={Users}
-          value={dashboardStats.employeesCount.toLocaleString()}
-          label="Team Members"
-          trend="up"
-          trendValue="+5%"
-          colorClass="success"
-        />
-        
-        <StatCard
-          icon={Building2}
-          value={dashboardStats.companiesCount.toLocaleString()}
-          label="Partners"
-          trend="up"
-          trendValue="+3%"
-          colorClass="warning"
-        />
-      </motion.div>
+      {/* Stats Bento Grid - Asymmetric Layout with Container Queries */}
+      <AnimatePresence>
+        <motion.div 
+          variants={containerVariants}
+          className="bento-grid grid-cols-1 @md:grid-cols-4 gap-4 @md:gap-6"
+        >
+          {/* First stat card spans 2 columns for emphasis */}
+          <motion.div 
+            variants={itemVariants}
+            className="@md:bento-span-2"
+            whileHover={{ scale: 1.02 }}
+            transition={{ type: 'spring', ...{ ease: 'var(--ease-spring)' } }}
+          >
+            <StatCard
+              icon={Package}
+              value={dashboardStats.assetsCount.toLocaleString()}
+              label="Total Assets"
+              trend="up"
+              trendValue="+12%"
+              colorClass="primary"
+            />
+          </motion.div>
+          
+          <motion.div 
+            variants={itemVariants}
+            whileHover={{ scale: 1.02 }}
+            transition={{ type: 'spring', ...{ ease: 'var(--ease-spring)' } }}
+          >
+            <StatCard
+              icon={Users}
+              value={dashboardStats.employeesCount.toLocaleString()}
+              label="Team Members"
+              trend="up"
+              trendValue="+5%"
+              colorClass="success"
+            />
+          </motion.div>
+          
+          <motion.div 
+            variants={itemVariants}
+            whileHover={{ scale: 1.02 }}
+            transition={{ type: 'spring', ...{ ease: 'var(--ease-spring)' } }}
+          >
+            <StatCard
+              icon={Building2}
+              value={dashboardStats.companiesCount.toLocaleString()}
+              label="Partners"
+              trend="up"
+              trendValue="+3%"
+              colorClass="warning"
+            />
+          </motion.div>
+        </motion.div>
+      </AnimatePresence>
 
-      {/* Quick Actions - Liquid Glass Panel with Gradient Mask */}
-      <motion.div variants={itemVariants}>
-        <div className="liquid-glass-card glass-mask p-6 @md:p-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-fluid-h4 text-foreground">
-                Quick Actions
-              </h2>
-              <p className="text-fluid-body text-subtle mt-0.5">
-                Frequently used operations
-              </p>
+      {/* Quick Actions - Liquid Glass Panel spanning full width */}
+      <AnimatePresence>
+        <motion.div 
+          variants={itemVariants}
+          whileHover={{ scale: 1.01 }}
+          transition={{ type: 'spring', ...{ ease: 'var(--ease-spring)' } }}
+          className="bento-span-full"
+        >
+          <div className="liquid-glass-card glass-mask p-6 @md:p-8 @container">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-fluid-h3 text-foreground">
+                  Quick Actions
+                </h2>
+                <p className="text-fluid-body text-subtle mt-0.5">
+                  Frequently used operations
+                </p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 @md:grid-cols-4 gap-3">
+              {[
+                { label: 'Add Asset', icon: Package },
+                { label: 'Add User', icon: Users },
+                { label: 'View Reports', icon: TrendingUp },
+                { label: 'Settings', icon: ArrowUpRight },
+              ].map((action) => (
+                <MagneticButton
+                  key={action.label}
+                  className="gpu-accelerate hover-lift flex flex-col items-center gap-3 p-4 rounded-2xl bg-surface-low border border-border/40 hover:border-border/60 transition-all duration-200"
+                >
+                  <action.icon className="w-5 h-5 text-muted-foreground" strokeWidth={1.5} />
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {action.label}
+                  </span>
+                </MagneticButton>
+              ))}
             </div>
           </div>
-          
-          <div className="@container grid grid-cols-2 @md:grid-cols-4 gap-3">
-            {[
-              { label: 'Add Asset', icon: Package },
-              { label: 'Add User', icon: Users },
-              { label: 'View Reports', icon: TrendingUp },
-              { label: 'Settings', icon: ArrowUpRight },
-            ].map((action, index) => (
-              <MagneticButton
-                key={action.label}
-                className="hover-lift gpu-accelerate flex flex-col items-center gap-3 p-4 rounded-2xl bg-surface-low border border-border/40 hover:border-border/60 transition-all duration-200"
-              >
-                <action.icon className="w-5 h-5 text-muted-foreground" strokeWidth={1.5} />
-                <span className="text-xs font-medium text-muted-foreground">
-                  {action.label}
-                </span>
-              </MagneticButton>
-            ))}
-          </div>
-        </div>
-      </motion.div>
+        </motion.div>
+      </AnimatePresence>
     </motion.div>
   );
 };
