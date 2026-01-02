@@ -68,10 +68,15 @@ export default {
         "shimmer": {
           "100%": { transform: "translateX(100%)" },
         },
+        "slideUp": {
+          "from": { opacity: "0", transform: "translateY(20px)" },
+          "to": { opacity: "1", transform: "translateY(0)" },
+        },
       },
       animation: {
         "float": "float 3s ease-in-out infinite",
         "shimmer": "shimmer 2s infinite",
+        "slide-up": "slideUp 0.5s ease-out forwards",
       },
       transitionDuration: {
         'slow': '400ms',

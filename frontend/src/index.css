@@ -96,4 +96,9 @@
   .shimmer {
     @apply relative overflow-hidden before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_2s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent;
   }
+
+  /* Slide-up animation for staggered entrances */
+  .animate-slide-up {
+    @apply animate-[slideUp_0.5s_ease-out_forwards];
+  }
 }
