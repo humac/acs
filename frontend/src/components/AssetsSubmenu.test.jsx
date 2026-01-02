@@ -25,7 +25,7 @@ describe('AssetsSubmenu Component', () => {
     );
 
     const assetsLink = screen.getByText('Assets');
-    expect(assetsLink).toHaveClass('text-sky-600');
+    expect(assetsLink).toHaveClass('text-primary');
   });
 
   it('highlights Dashboard link when on /assets/dashboard route', () => {
@@ -38,6 +38,6 @@ describe('AssetsSubmenu Component', () => {
     );
 
     const dashboardLink = screen.getByText('Dashboard');
-    expect(dashboardLink).toHaveClass('text-sky-600');
+    expect(dashboardLink).toHaveClass('text-primary');
   });
 });
