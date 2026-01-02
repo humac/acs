@@ -29,7 +29,7 @@ const itemVariants = {
 };
 
 // Stat Card Component with Soft Brutalism + Liquid Glass
-const StatCard = ({ icon: Icon, value, label, trend, trendValue, colorClass = 'primary', delay = 0 }) => {
+const StatCard = ({ icon: Icon, value, label, trend, trendValue, colorClass = 'primary' }) => {
   const iconContainerClass = {
     primary: 'icon-container-primary',
     success: 'icon-container-success',
