@@ -207,7 +207,7 @@ const HubSpotSettings = () => {
   return (
     <div className="space-y-4">
       {/* HubSpot Integration - Main Container */}
-      <div className="rounded-lg border p-4">
+      <div className="glass-panel rounded-xl p-4">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-sm font-semibold">HubSpot Integration</h3>
@@ -223,7 +223,7 @@ const HubSpotSettings = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Configuration */}
           <div className="space-y-3">
-            <h4 className="text-sm font-medium text-muted-foreground">Configuration</h4>
+            <h4 className="caption-label">Configuration</h4>
             <div className="space-y-1.5">
               <Label htmlFor="access_token" className="text-sm">
                 Access Token {settings.enabled && !hasAccessToken && <span className="text-destructive">*</span>}
@@ -281,7 +281,7 @@ const HubSpotSettings = () => {
 
           {/* Automatic Sync */}
           <div className="space-y-3">
-            <h4 className="text-sm font-medium text-muted-foreground">Automatic Sync</h4>
+            <h4 className="caption-label">Automatic Sync</h4>
             <div className="flex items-center gap-2">
               <Switch
                 id="auto_sync_enabled"
@@ -314,7 +314,7 @@ const HubSpotSettings = () => {
             </div>
 
             {!settings.auto_sync_enabled && (
-              <Alert className="py-2">
+              <Alert className="py-2 glow-info border-0">
                 <Info className="h-4 w-4" />
                 <AlertDescription className="text-sm">
                   Automatic sync is disabled. Use the "Sync Now" button to sync manually.
@@ -324,7 +324,7 @@ const HubSpotSettings = () => {
           </div>
 
           {/* Save Button */}
-          <Button type="submit" disabled={saving}>
+          <Button type="submit" disabled={saving} className="btn-interactive">
             {saving ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -341,19 +341,19 @@ const HubSpotSettings = () => {
       </div>
 
       {/* Sync Status */}
-      <div className="rounded-lg border p-4">
+      <div className="glass-panel rounded-xl p-4">
         <h3 className="text-sm font-semibold mb-3">Sync Status</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
           <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Last Sync</p>
+            <p className="caption-label">Last Sync</p>
             <p className="text-sm font-medium">{formatDate(settings.last_sync)}</p>
           </div>
           <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Status</p>
+            <p className="caption-label">Status</p>
             <div>{getSyncStatusBadge(settings.last_sync_status)}</div>
           </div>
           <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Companies Synced</p>
+            <p className="caption-label">Companies Synced</p>
             <p className="text-sm font-medium">{settings.companies_synced}</p>
           </div>
         </div>
@@ -362,6 +362,7 @@ const HubSpotSettings = () => {
           type="button"
           onClick={handleSyncNow}
           disabled={!hasAccessToken || syncing || !settings.enabled}
+          className="btn-interactive"
         >
           {syncing ? (
             <>
@@ -378,7 +379,7 @@ const HubSpotSettings = () => {
       </div>
 
       {/* Sync History */}
-      <div className="rounded-lg border p-4">
+      <div className="glass-panel rounded-xl p-4">
         <div className="mb-3">
           <h3 className="text-sm font-semibold">Sync History</h3>
           <p className="text-sm text-muted-foreground">Recent synchronization results</p>
@@ -392,15 +393,15 @@ const HubSpotSettings = () => {
             No sync history available
           </p>
         ) : (
-          <div className="border rounded-lg overflow-hidden">
+          <div className="border border-white/10 rounded-lg overflow-hidden">
             <Table>
               <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead className="text-sm">Started</TableHead>
-                  <TableHead className="text-sm">Status</TableHead>
-                  <TableHead className="text-sm text-right">Found</TableHead>
-                  <TableHead className="text-sm text-right">Created</TableHead>
-                  <TableHead className="text-sm text-right">Updated</TableHead>
+                <TableRow className="bg-muted/20 dark:bg-white/[0.02]">
+                  <TableHead className="caption-label">Started</TableHead>
+                  <TableHead className="caption-label">Status</TableHead>
+                  <TableHead className="caption-label text-right">Found</TableHead>
+                  <TableHead className="caption-label text-right">Created</TableHead>
+                  <TableHead className="caption-label text-right">Updated</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

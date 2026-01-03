@@ -221,7 +221,7 @@ const NotificationSettings = () => {
 
       <TabsContent value="smtp" className="space-y-4">
         {/* SMTP Email Notifications - Main Container */}
-        <div className="rounded-lg border p-4">
+        <div className="glass-panel rounded-xl p-4">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-sm font-semibold">SMTP Email Notifications</h3>
@@ -236,7 +236,7 @@ const NotificationSettings = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* SMTP Server Settings */}
           <div className="space-y-3">
-            <h4 className="text-sm font-medium text-muted-foreground">SMTP Server</h4>
+            <h4 className="caption-label">SMTP Server</h4>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label htmlFor="host" className="text-sm">Host *</Label>
@@ -277,7 +277,7 @@ const NotificationSettings = () => {
 
           {/* Authentication */}
           <div className="space-y-3">
-            <h4 className="text-sm font-medium text-muted-foreground">Authentication</h4>
+            <h4 className="caption-label">Authentication</h4>
             <div className="space-y-1.5">
               <Label htmlFor="auth_method" className="text-sm">Auth Method</Label>
               <Select value={settings.auth_method} onValueChange={(value) => handleChange('auth_method', value)}>
@@ -324,7 +324,7 @@ const NotificationSettings = () => {
 
           {/* Email Settings */}
           <div className="space-y-3">
-            <h4 className="text-sm font-medium text-muted-foreground">Email Settings</h4>
+            <h4 className="caption-label">Email Settings</h4>
             <div className="space-y-1.5">
               <Label htmlFor="from_name" className="text-sm">From Name</Label>
               <Input
@@ -364,7 +364,7 @@ const NotificationSettings = () => {
 
           {/* Actions */}
           <div className="flex gap-2 pt-2">
-            <Button type="submit" disabled={saving}>
+            <Button type="submit" disabled={saving} className="btn-interactive">
               {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Save Settings
             </Button>
@@ -373,6 +373,7 @@ const NotificationSettings = () => {
               variant="outline"
               onClick={handleTestEmail}
               disabled={!settings.enabled || saving}
+              className="btn-interactive"
             >
               <Send className="h-4 w-4 mr-2" />
               Send Test Email
@@ -382,7 +383,7 @@ const NotificationSettings = () => {
       </div>
 
         {/* Security Notice */}
-        <Alert>
+        <Alert className="glow-info border-0">
           <Info className="h-4 w-4" />
           <AlertDescription className="text-sm">
             <strong>Security:</strong> SMTP passwords are encrypted at rest using AES-256-GCM encryption.
@@ -392,7 +393,7 @@ const NotificationSettings = () => {
 
         {/* Test Email Dialog */}
         <Dialog open={testDialogOpen} onOpenChange={setTestDialogOpen}>
-          <DialogContent>
+          <DialogContent className="glass-overlay">
             <DialogHeader>
               <DialogTitle>Send Test Email</DialogTitle>
               <DialogDescription>
@@ -415,10 +416,11 @@ const NotificationSettings = () => {
                 variant="outline"
                 onClick={() => setTestDialogOpen(false)}
                 disabled={testing}
+                className="btn-interactive"
               >
                 Cancel
               </Button>
-              <Button onClick={handleSendTest} disabled={testing}>
+              <Button onClick={handleSendTest} disabled={testing} className="btn-interactive">
                 {testing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Send Test
               </Button>

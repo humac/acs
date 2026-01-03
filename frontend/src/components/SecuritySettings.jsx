@@ -69,7 +69,7 @@ const SecuritySettings = () => {
   return (
     <div className="space-y-4">
       {/* Passkey/WebAuthn Configuration */}
-      <div className="rounded-lg border p-4">
+      <div className="glass-panel rounded-xl p-4">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-sm font-semibold">Passkey/WebAuthn Authentication</h3>
@@ -86,7 +86,7 @@ const SecuritySettings = () => {
 
         <div className="space-y-4">
           {!passkeySettings.enabled && (
-            <Alert variant="warning" className="py-2">
+            <Alert className="py-2 glow-warning border-0">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription className="text-sm">
                 Passkey registration and sign-in are currently disabled. Users will not see passkey options on the login page.
@@ -95,7 +95,7 @@ const SecuritySettings = () => {
           )}
 
           {passkeySettings.managed_by_env && (
-            <Alert variant="warning" className="py-2">
+            <Alert className="py-2 glow-warning border-0">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription className="text-sm">
                 Passkey settings are managed by environment variables. Remove PASSKEY_RP_ID, PASSKEY_RP_NAME, PASSKEY_ORIGIN, and PASSKEY_ENABLED from your environment and restart the backend to use database configuration.
@@ -103,7 +103,7 @@ const SecuritySettings = () => {
             </Alert>
           )}
 
-          <Alert className="py-2">
+          <Alert className="py-2 glow-info border-0">
             <Info className="h-4 w-4" />
             <AlertDescription className="text-sm">
               <strong>Restart required:</strong> Changes to passkey settings require a backend restart to take effect.
@@ -112,7 +112,7 @@ const SecuritySettings = () => {
 
           {/* Configuration */}
           <div className="space-y-3">
-            <h4 className="text-sm font-medium text-muted-foreground">Configuration</h4>
+            <h4 className="caption-label">Configuration</h4>
 
             <div className="grid gap-3 md:grid-cols-2">
               <div className="space-y-1.5">
@@ -161,23 +161,23 @@ const SecuritySettings = () => {
 
           {/* Tips */}
           <div className="space-y-3">
-            <h4 className="text-sm font-medium text-muted-foreground">Configuration Tips</h4>
+            <h4 className="caption-label">Configuration Tips</h4>
             <div className="grid gap-3 md:grid-cols-2">
-              <Alert className="py-2">
-                <AlertDescription className="text-sm space-y-1">
+              <div className="glass-panel rounded-lg p-3">
+                <div className="text-sm space-y-1">
                   <p><strong>Local Development:</strong></p>
                   <p>• RP ID: <code className="bg-muted px-1 py-0.5 rounded">localhost</code></p>
                   <p>• Origin: <code className="bg-muted px-1 py-0.5 rounded">http://localhost:5173</code></p>
                   <p className="text-muted-foreground">⚠️ Don't use 127.0.0.1</p>
-                </AlertDescription>
-              </Alert>
-              <Alert className="py-2">
-                <AlertDescription className="text-sm space-y-1">
+                </div>
+              </div>
+              <div className="glass-panel rounded-lg p-3">
+                <div className="text-sm space-y-1">
                   <p><strong>Production:</strong></p>
                   <p>• RP ID: <code className="bg-muted px-1 py-0.5 rounded">yourdomain.com</code></p>
                   <p>• Origin: <code className="bg-muted px-1 py-0.5 rounded">https://yourdomain.com</code></p>
-                </AlertDescription>
-              </Alert>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -185,6 +185,7 @@ const SecuritySettings = () => {
             <Button
               onClick={handlePasskeySave}
               disabled={passkeySettings.managed_by_env || loading}
+              className="btn-interactive"
             >
               {loading ? (
                 <>
@@ -212,7 +213,7 @@ const SecuritySettings = () => {
           </div>
 
           {!passkeySettings.managed_by_env && (
-            <Alert variant="warning" className="py-2">
+            <Alert className="py-2 glow-warning border-0">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription className="text-sm">
                 After saving, you must restart the backend for changes to take effect.

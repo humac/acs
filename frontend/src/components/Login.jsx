@@ -309,7 +309,7 @@ const LoginNew = ({ onSwitchToRegister }) => {
             variant="outline"
             size="icon"
             onClick={toggleTheme}
-            className="rounded-full shadow-sm hover:shadow-md"
+            className="rounded-full shadow-sm hover:shadow-md btn-interactive"
           >
             {theme === 'dark' ? (
               <Sun className="h-5 w-5" />
@@ -340,7 +340,7 @@ const LoginNew = ({ onSwitchToRegister }) => {
           )}
         </div>
 
-        <Card className="shadow-xl backdrop-blur-sm bg-card/95 border-border/50 animate-scale-in">
+        <Card className="glass-panel rounded-2xl shadow-2xl animate-scale-in">
           <CardHeader className="space-y-2 pb-4">
             <CardTitle className="text-2xl text-center flex items-center justify-center gap-2">
               <UserCircle className="h-6 w-6" />
@@ -501,7 +501,7 @@ const LoginNew = ({ onSwitchToRegister }) => {
           setMfaCode('');
         }
       }}>
-        <DialogContent>
+        <DialogContent className="glass-overlay">
           <DialogHeader>
             <DialogTitle>Two-Factor Authentication</DialogTitle>
             <DialogDescription>
@@ -540,10 +540,10 @@ const LoginNew = ({ onSwitchToRegister }) => {
               </label>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowMFAVerify(false)}>
+              <Button type="button" variant="outline" onClick={() => setShowMFAVerify(false)} className="btn-interactive">
                 Cancel
               </Button>
-              <Button type="submit" disabled={mfaLoading}>
+              <Button type="submit" disabled={mfaLoading} className="btn-interactive">
                 {mfaLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Verify
               </Button>
