@@ -27,13 +27,14 @@ import AssetTableFilters from '@/components/AssetTableFilters';
 import BulkAssetActions from '@/components/BulkAssetActions';
 import { Laptop, SearchX } from 'lucide-react';
 
-export default function AssetTable({ assets = [], searchTerm = '', onEdit, onDelete, currentUser, onRefresh }) {
+export default function AssetTable({ assets = [], onEdit, onDelete, currentUser, onRefresh }) {
   const { getAuthHeaders } = useAuth();
   const { getFullName, getEmail } = useUsers();
   const { toast } = useToast();
   
   const [deleteDialog, setDeleteDialog] = useState({ open: false, asset: null });
   const [bulkDeleteDialog, setBulkDeleteDialog] = useState({ open: false });
+  const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [companyFilter, setCompanyFilter] = useState('all');
   const [assetTypeFilter, setAssetTypeFilter] = useState('all');
@@ -207,27 +208,26 @@ export default function AssetTable({ assets = [], searchTerm = '', onEdit, onDel
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      <section className="glass-panel p-4 rounded-xl border-glass">
-        <AssetTableFilters
-          searchTerm={searchTerm}
-          statusFilter={statusFilter} setStatusFilter={setStatusFilter}
-          assetTypeFilter={assetTypeFilter} setAssetTypeFilter={setAssetTypeFilter}
-          companyFilter={companyFilter} setCompanyFilter={setCompanyFilter}
-          employeeFilter={employeeFilter} setEmployeeFilter={setEmployeeFilter}
-          managerFilter={managerFilter} setManagerFilter={setManagerFilter}
-          companies={companies} assetTypes={assetTypes}
-          uniqueEmployees={uniqueEmployees}
-          uniqueManagers={uniqueManagers}
-          onClearFilters={() => {
-            setStatusFilter('all'); 
-            setCompanyFilter('all');
-            setAssetTypeFilter('all');
-            setEmployeeFilter('all');
-            setManagerFilter('all');
-          }}
-        />
-      </section>
+    <div className="space-y-4 animate-fade-in">
+      <AssetTableFilters
+        searchTerm={searchTerm} setSearchTerm={setSearchTerm}
+        statusFilter={statusFilter} setStatusFilter={setStatusFilter}
+        assetTypeFilter={assetTypeFilter} setAssetTypeFilter={setAssetTypeFilter}
+        companyFilter={companyFilter} setCompanyFilter={setCompanyFilter}
+        employeeFilter={employeeFilter} setEmployeeFilter={setEmployeeFilter}
+        managerFilter={managerFilter} setManagerFilter={setManagerFilter}
+        companies={companies} assetTypes={assetTypes}
+        uniqueEmployees={uniqueEmployees}
+        uniqueManagers={uniqueManagers}
+        onClearFilters={() => {
+          setSearchTerm(''); 
+          setStatusFilter('all'); 
+          setCompanyFilter('all');
+          setAssetTypeFilter('all');
+          setEmployeeFilter('all');
+          setManagerFilter('all');
+        }}
+      />
 
       <BulkAssetActions
         selectedIds={selectedIds}
@@ -240,17 +240,16 @@ export default function AssetTable({ assets = [], searchTerm = '', onEdit, onDel
         currentUser={currentUser}
       />
 
-      <div className="glass-panel overflow-hidden rounded-2xl border-glass shadow-2xl">
-        {filteredAssets.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground bg-surface/20">
-            <SearchX className="h-12 w-12 mb-4 opacity-20" />
-            <p className="text-lg font-medium">No assets found matching your criteria</p>
-          </div>
-        ) : (
-          <>
-            <div className="md:hidden space-y-4 p-4 bg-surface/10">
-              {paginatedAssets.map((asset, index) => (
-                <AssetCard 
+      {filteredAssets.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+          <SearchX className="h-12 w-12 mb-4 opacity-20" />
+          <p className="text-lg font-medium">No assets found matching your criteria</p>
+        </div>
+      ) : (
+        <>
+          <div className="md:hidden space-y-4">
+            {paginatedAssets.map((asset, index) => (
+              <AssetCard 
                   key={asset.id} 
                   asset={asset} 
                   isSelected={selectedIds.has(asset.id)}
@@ -305,7 +304,6 @@ export default function AssetTable({ assets = [], searchTerm = '', onEdit, onDel
             </Table>
           </>
         )}
-      </div>
 
       <TablePaginationControls
         className="glass-panel p-2 rounded-xl border-glass bg-surface/50"

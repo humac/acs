@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Filter, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { Search, Filter, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
   Select,
@@ -14,10 +15,10 @@ import { cn } from '@/lib/utils';
 /**
  * Consolidated filter controls for the AssetTable component.
  * Features a collapsible filter panel with active filter count badge.
- * Note: Search bar is now in the page header (AssetsPage.jsx CardHeader).
  */
 export default function AssetTableFilters({
   searchTerm,
+  setSearchTerm,
   statusFilter,
   setStatusFilter,
   assetTypeFilter,
@@ -45,7 +46,7 @@ export default function AssetTableFilters({
     managerFilter !== 'all',
   ].filter(Boolean).length;
 
-  const hasActiveFilters = activeFilterCount > 0;
+  const hasActiveFilters = activeFilterCount > 0 || searchTerm !== '';
 
   const handleClearFilters = () => {
     onClearFilters();
@@ -54,8 +55,17 @@ export default function AssetTableFilters({
 
   return (
     <div className="space-y-3">
-      {/* Filter Toggle - Search bar is now in page header */}
-      <div className="flex flex-col sm:flex-row gap-2 justify-end">
+      {/* Search Bar and Filter Toggle */}
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1">
+          <Search className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
+          <Input
+            placeholder="Search by name, serial, tag, make, model..."
+            className="pl-9 bg-surface/50 border-white/10"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
         <div className="flex gap-2">
           <Button
             variant="outline"
