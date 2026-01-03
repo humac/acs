@@ -124,32 +124,28 @@ const SystemSettings = () => {
   return (
     <div className="space-y-3">
       {/* Warning Banner */}
-      <Card className="border-yellow-400 bg-yellow-50">
-        <CardHeader className="pb-2">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-yellow-600" />
-            <CardTitle className="text-sm text-yellow-800">Important</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-2">
-          <p className="text-xs text-yellow-800">
-            Changes to proxy settings require a backend restart to take effect. Rate limiting changes are applied immediately.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="glass-panel rounded-xl p-4 glow-warning border-0">
+        <div className="flex items-center gap-2 mb-2">
+          <AlertTriangle className="h-4 w-4" />
+          <span className="text-sm font-semibold">Important</span>
+        </div>
+        <p className="text-xs opacity-90">
+          Changes to proxy settings require a backend restart to take effect. Rate limiting changes are applied immediately.
+        </p>
+      </div>
 
       {/* Proxy Configuration */}
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex items-center gap-2">
+      <div className="glass-panel rounded-xl p-4">
+        <div className="mb-4">
+          <div className="flex items-center gap-2 mb-1">
             <Server className="h-4 w-4 text-primary" />
-            <CardTitle className="text-base">Proxy Configuration</CardTitle>
+            <span className="text-base font-semibold">Proxy Configuration</span>
           </div>
-          <CardDescription className="text-sm">
+          <p className="text-sm text-muted-foreground">
             Configure reverse proxy settings for Cloudflare, nginx, or other proxies
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4 pt-2">
+          </p>
+        </div>
+        <div className="space-y-4">
           {/* Trust Proxy Toggle */}
           <div className="flex items-center justify-between space-x-2">
             <div className="flex-1">
@@ -212,18 +208,18 @@ const SystemSettings = () => {
               {getEnvLabel(settings.proxy.trustLevel.envVar, settings.proxy.trustLevel.envValue)}
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Rate Limiting Configuration */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Rate Limiting</CardTitle>
-          <CardDescription className="text-sm">
+      <div className="glass-panel rounded-xl p-4">
+        <div className="mb-4">
+          <span className="text-base font-semibold">Rate Limiting</span>
+          <p className="text-sm text-muted-foreground">
             Protect against abuse and DDoS attacks with request rate limiting
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4 pt-2">
+          </p>
+        </div>
+        <div className="space-y-4">
           {/* Rate Limiting Enabled Toggle */}
           <div className="flex items-center justify-between space-x-2">
             <div className="flex-1">
@@ -281,12 +277,12 @@ const SystemSettings = () => {
               {getEnvLabel(settings.rateLimiting.maxRequests.envVar, settings.rateLimiting.maxRequests.envValue)}
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={saving} size="sm">
+        <Button onClick={handleSave} disabled={saving} size="sm" className="btn-interactive">
           {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           Save System Settings
         </Button>

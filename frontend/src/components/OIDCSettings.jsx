@@ -114,7 +114,7 @@ const OIDCSettings = () => {
   }
 
   return (
-    <div className="rounded-lg border p-4">
+    <div className="glass-panel rounded-xl p-4">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-sm font-semibold">OIDC/SSO Authentication</h3>
@@ -130,7 +130,7 @@ const OIDCSettings = () => {
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Provider Configuration */}
         <div className="space-y-3">
-          <h4 className="text-sm font-medium text-muted-foreground">Provider Configuration</h4>
+          <h4 className="caption-label">Provider Configuration</h4>
 
           <div className="space-y-1.5">
             <Label htmlFor="issuer_url" className="text-sm">Issuer URL {settings.enabled && <span className="text-destructive">*</span>}</Label>
@@ -201,7 +201,7 @@ const OIDCSettings = () => {
 
         {/* Advanced Settings */}
         <div className="space-y-3">
-          <h4 className="text-sm font-medium text-muted-foreground">Advanced Settings</h4>
+          <h4 className="caption-label">Advanced Settings</h4>
 
           <div className="space-y-1.5">
             <Label htmlFor="scope" className="text-sm">Scopes</Label>
@@ -257,7 +257,7 @@ const OIDCSettings = () => {
 
         {/* Button Customization */}
         <div className="space-y-3">
-          <h4 className="text-sm font-medium text-muted-foreground">Sign-in Button Customization</h4>
+          <h4 className="caption-label">Sign-in Button Customization</h4>
 
           <div className="space-y-1.5">
             <Label htmlFor="sso_button_text" className="text-sm">Button Label</Label>
@@ -306,7 +306,7 @@ const OIDCSettings = () => {
           </div>
         </div>
 
-        <Button type="submit" disabled={saving}>
+        <Button type="submit" disabled={saving} className="btn-interactive">
           {saving ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />

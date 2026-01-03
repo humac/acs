@@ -561,7 +561,7 @@ export default function AttestationPage() {
   }
 
   return (
-    <div className="space-y-6 p-1 md:p-2 animate-fade-in bg-surface/30 min-h-screen rounded-2xl">
+    <div className="space-y-6 p-1 md:p-2 animate-fade-in min-h-screen">
       {/* Header Card */}
       <Card variant="glass">
         <CardHeader className="space-y-3 md:space-y-4 px-4 sm:px-6">

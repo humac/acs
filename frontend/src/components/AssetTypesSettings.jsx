@@ -291,7 +291,7 @@ const AssetTypesSettings = () => {
             Configure which asset types are available for registration
           </p>
         </div>
-        <Button onClick={handleAdd} disabled={loading}>
+        <Button onClick={handleAdd} disabled={loading} className="btn-interactive">
           <Plus className="h-4 w-4 mr-2" />
           Add Asset Type
         </Button>
@@ -302,17 +302,17 @@ const AssetTypesSettings = () => {
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : (
-        <div className="border rounded-lg">
+        <div className="glass-panel rounded-xl overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Order</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Display Name</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Usage</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+              <TableRow className="bg-muted/20 dark:bg-white/[0.02] border-b border-white/10">
+                <TableHead className="caption-label">Order</TableHead>
+                <TableHead className="caption-label">Name</TableHead>
+                <TableHead className="caption-label">Display Name</TableHead>
+                <TableHead className="caption-label">Description</TableHead>
+                <TableHead className="caption-label">Status</TableHead>
+                <TableHead className="caption-label">Usage</TableHead>
+                <TableHead className="text-right caption-label">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -385,7 +385,7 @@ const AssetTypesSettings = () => {
 
       {/* Add Modal */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-        <DialogContent>
+        <DialogContent className="glass-overlay">
           <DialogHeader>
             <DialogTitle>Add Asset Type</DialogTitle>
             <DialogDescription>
@@ -437,10 +437,10 @@ const AssetTypesSettings = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddModal(false)} disabled={loading}>
+            <Button variant="outline" onClick={() => setShowAddModal(false)} disabled={loading} className="btn-interactive">
               Cancel
             </Button>
-            <Button onClick={handleSaveAdd} disabled={loading}>
+            <Button onClick={handleSaveAdd} disabled={loading} className="btn-interactive">
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Create
             </Button>
@@ -450,7 +450,7 @@ const AssetTypesSettings = () => {
 
       {/* Edit Modal */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent>
+        <DialogContent className="glass-overlay">
           <DialogHeader>
             <DialogTitle>Edit Asset Type</DialogTitle>
             <DialogDescription>
@@ -502,10 +502,10 @@ const AssetTypesSettings = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditModal(false)} disabled={loading}>
+            <Button variant="outline" onClick={() => setShowEditModal(false)} disabled={loading} className="btn-interactive">
               Cancel
             </Button>
-            <Button onClick={handleSaveEdit} disabled={loading}>
+            <Button onClick={handleSaveEdit} disabled={loading} className="btn-interactive">
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Save Changes
             </Button>
@@ -515,7 +515,7 @@ const AssetTypesSettings = () => {
 
       {/* Delete Dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
+        <DialogContent className="glass-overlay">
           <DialogHeader>
             <DialogTitle>Delete Asset Type</DialogTitle>
             <DialogDescription>
@@ -523,10 +523,10 @@ const AssetTypesSettings = () => {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteDialog(false)} disabled={loading}>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)} disabled={loading} className="btn-interactive">
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleConfirmDelete} disabled={loading}>
+            <Button variant="destructive" onClick={handleConfirmDelete} disabled={loading} className="btn-interactive shadow-glow-destructive">
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Delete
             </Button>
