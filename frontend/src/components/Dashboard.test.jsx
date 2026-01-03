@@ -57,7 +57,7 @@ describe('Dashboard', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('System Overview')).toBeInTheDocument();
+        expect(screen.getByText('My Dashboard')).toBeInTheDocument();
         expect(screen.getByText(/Welcome back,/)).toBeInTheDocument();
         expect(screen.getByText('John')).toBeInTheDocument();
       });
@@ -71,12 +71,9 @@ describe('Dashboard', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('Active Assets')).toBeInTheDocument();
-        expect(screen.getByText('Team Coverage')).toBeInTheDocument();
-        expect(screen.getByText('Partners')).toBeInTheDocument();
-        expect(screen.getByText('10')).toBeInTheDocument();
-        expect(screen.getByText('5')).toBeInTheDocument();
-        expect(screen.getByText('3')).toBeInTheDocument();
+        // Employee sees "My Assets" instead of system-wide stats
+        expect(screen.getByText('My Assets')).toBeInTheDocument();
+        expect(screen.getByText('Pending Attestations')).toBeInTheDocument();
       });
     });
 
@@ -89,8 +86,8 @@ describe('Dashboard', () => {
 
       await waitFor(() => {
         // Check that the dashboard renders with basic content
-        expect(screen.getByText('System Overview')).toBeInTheDocument();
-        expect(screen.getByText('Active Assets')).toBeInTheDocument();
+        expect(screen.getByText('My Dashboard')).toBeInTheDocument();
+        expect(screen.getByText('My Assets')).toBeInTheDocument();
       });
     });
   });
@@ -134,10 +131,10 @@ describe('Dashboard', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('View Full Inventory')).toBeInTheDocument();
+        expect(screen.getByText('View My Assets')).toBeInTheDocument();
       });
 
-      const assetsButton = screen.getByText('View Full Inventory');
+      const assetsButton = screen.getByText('View My Assets');
       await user.click(assetsButton);
 
       expect(mockNavigate).toHaveBeenCalledWith('/assets');
@@ -153,8 +150,7 @@ describe('Dashboard', () => {
       );
 
       await waitFor(() => {
-        // Just verify dashboard loads since profile navigation was removed
-        expect(screen.getByText('System Overview')).toBeInTheDocument();
+        expect(screen.getByText('My Dashboard')).toBeInTheDocument();
       });
     });
   });
