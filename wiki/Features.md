@@ -451,13 +451,20 @@ ACS implements a comprehensive role-based access control system with four distin
 
 ## 🎨 User Interface Features
 
-**Material-UI Design System**
-- Professional Material Design components
+**2026 Design System**
+- Modern design emphasizing spatial depth and semantic opacity
+- Glass morphism with backdrop-blur effects
+- Bento grid layouts for data-rich dashboards
+- Three-layer depth model (Floor → Surface → Overlay)
+- Semantic color system with glowing status indicators
+- Micro-interactions and smooth transitions
+
+**shadcn/ui Component Library**
+- Built on Radix UI primitives for accessibility
 - Consistent design language across application
-- Pre-built, accessible components
-- Responsive grid system
-- Theme customization support
-- Icon library integration
+- Customizable, accessible components
+- Dark mode support with deep obsidian theme
+- Icon library integration (Lucide icons)
 
 **Responsive Design**
 - Mobile-friendly interface
@@ -468,27 +475,34 @@ ACS implements a comprehensive role-based access control system with four distin
 - Flexible component sizing
 
 **Visual Feedback**
-- Color-coded status badges with chips
+- Glowing status badges with semantic colors:
+  - Active: Green glow (`glow-success`)
+  - Lost: Red glow (`glow-destructive`)
+  - Damaged: Orange glow (`glow-warning`)
+  - Returned: Muted gray (`glow-muted`)
+  - Info: Blue glow (`glow-info`)
 - Role badges with distinct colors:
   - Admin: Error (Red)
   - Manager: Warning (Orange)
-  - Employee: Info (Blue)
-- Success/error alert messages
-- Loading states with spinners
+  - Coordinator: Primary (Blue)
+  - Employee: Info (Cyan)
+- Success/error alert messages with toast notifications
+- Loading states with shimmer effects
 - Form validation feedback
-- Snackbar notifications
 - Progress indicators
+- Smooth entrance animations (fade-in, slide-up, scale-in)
 
 **Navigation**
 - Tabbed interface for main sections
 - Conditional tab visibility based on role
 - Active tab highlighting
 - App bar with user menu
-- Drawer navigation support
+- Glass-panel sidebar (floating design)
 - Breadcrumb trails
 - Logout functionality
 
 **Modal Dialogs**
+- Glass morphism overlay (`glass-overlay`)
 - MFA enrollment wizard (3-step stepper)
 - MFA verification during login
 - Company add/edit forms
@@ -499,7 +513,7 @@ ACS implements a comprehensive role-based access control system with four distin
 - Escape key handling
 
 **Forms**
-- Material-UI TextField components
+- Enhanced input components with focus rings
 - Inline validation with helper text
 - Required field indicators
 - Helpful placeholder text
@@ -507,26 +521,28 @@ ACS implements a comprehensive role-based access control system with four distin
 - Success confirmations with alerts
 - Auto-focus on first field
 - Disabled state during submission
+- Larger touch targets (44px minimum)
 
 **Cards & Layouts**
-- Card-based information display
+- Glass-panel containers with backdrop blur
+- Bento card system for interactive elements
 - Consistent spacing with Grid system
-- Paper elevation for depth
+- Elevated cards with hover effects
 - Divider components for sections
 - Box components for layouts
 - Flexbox utilities
 - Equal-height card layouts
 
 **Tables**
-- Material-UI DataGrid ready
+- Glass-panel wrapped data tables
 - Sortable columns
 - Search functionality
-- Filter controls
+- Filter controls with pill buttons
 - Clear filters option
 - Pagination support
-- Empty state messages
+- Empty state messages with CTAs
 - Action buttons per row
-- Hover effects
+- Hover effects with scale transitions
 
 ## 🚀 Deployment Features
 

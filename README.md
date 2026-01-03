@@ -191,8 +191,47 @@ ACS helps consulting organizations maintain accountability for client-owned asse
 - **Cloudflare Tunnel** - Secure external access with SSL
 - **Health Checks** - Automated container monitoring
 - **Auto-Restart** - Self-healing containers
-- **Modern Material-UI Interface** - Professional design with responsive layout
+- **Modern 2026 Design System** - Professional UI with glass morphism, spatial depth, and bento layouts
 - **📖 DevOps Documentation** - Comprehensive guides in [/devops](devops/) folder
+
+---
+
+## 🎨 2026 Design System
+
+ACS features a modern design system emphasizing spatial depth, semantic opacity, and data-rich bento layouts.
+
+### Design Philosophy
+
+**Spatial Depth** - UI elements exist on three distinct layers:
+- **Floor**: Ambient background with subtle gradients
+- **Surface**: Glass-panel containers with backdrop blur (`glass-panel`)
+- **Overlay**: Floating modals and popovers (`glass-overlay`)
+
+**Semantic Opacity** - Colors communicate meaning through alpha transparency with glowing status indicators:
+- `glow-success` - Active/positive states with green shadow
+- `glow-warning` - Caution states with orange shadow
+- `glow-destructive` - Error/lost states with red shadow
+- `glow-info` - Informational states with blue shadow
+- `glow-muted` - Inactive/returned states
+
+**Bento Grids** - Non-linear, modular layouts for data-heavy dashboards with interactive hover effects.
+
+**Micro-interactions** - Subtle animations provide feedback:
+- Buttons scale on hover (`btn-interactive`)
+- Cards lift with shadow elevation
+- Smooth transitions (200-300ms)
+- Entrance animations (`animate-fade-in`, `animate-slide-up`, `animate-scale-in`)
+
+### Key Components
+
+- **Glass Morphism**: Backdrop-blur cards and overlays for modern depth
+- **Gradient Text**: Large headings use `text-gradient` for visual hierarchy
+- **Icon Boxes**: Consistent icon containers (`icon-box-sm/md/lg`)
+- **Status Badges**: Pill-shaped with glowing shadows
+- **Loading States**: Shimmer effects for skeleton loading
+- **Typography**: Bold, condensed headings with `caption-label` for metadata
+
+See [UI-MODERNIZATION-SUMMARY.md](UI-MODERNIZATION-SUMMARY.md) and [UI-UX-DESIGN-SPEC.md](UI-UX-DESIGN-SPEC.md) for complete design documentation.
 
 ---
 
@@ -651,7 +690,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [x] Automated Deployment
 - [x] Multi-Platform Support (ARM64 + AMD64)
 - [x] Portainer Webhook Auto-Pull
-- [x] Modern Material-UI Interface
+- [x] Modern 2026 Design System with Glass Morphism & Bento Layouts
 - [x] Cloudflare Tunnel Support
 - [x] Multi-Factor Authentication (MFA/2FA)
 - [x] OIDC/SSO Integration

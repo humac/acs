@@ -5,6 +5,7 @@ Welcome to the documentation for the **Asset Compliance System (ACS)** — a web
 ## 🎯 Overview
 - **Asset visibility by role** with employee, manager, coordinator, and admin scopes (see [Role/Permissions Matrix](Features#role-based-access-control-rbac))
 - **Modern authentication**: passwords, TOTP MFA, passkeys/WebAuthn, and OIDC/SSO
+- **2026 Design System**: Glass morphism, spatial depth, bento layouts, and micro-interactions for a modern, professional interface
 - **Attestation workflow**: Campaign-based asset certification with automated reminders and escalations
 - **Bulk operations**: CSV imports for assets/companies and CSV exports for audits
 - **Configurable platform**: branding controls, passkey relying-party settings, email templates, and database engine selection (SQLite or PostgreSQL)
