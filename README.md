@@ -206,9 +206,9 @@ ACS features a modern design system emphasizing spatial depth, semantic opacity,
 ### Design Philosophy
 
 **Spatial Depth** - UI elements exist on three distinct layers:
-- **Floor**: Ambient background with subtle gradients
-- **Surface**: Glass-panel containers with backdrop blur (`glass-panel`)
-- **Overlay**: Floating modals and popovers (`glass-overlay`)
+- **Floor** (z-index: 0): Ambient background with subtle gradients and `floor` class
+- **Surface** (z-index: 1-10): Glass-panel containers with backdrop blur using `glass-panel` or `bento-card` classes
+- **Overlay** (z-index: 50): Floating modals and popovers using `glass-overlay` class
 
 **Semantic Opacity** - Colors communicate meaning through alpha transparency with glowing status indicators:
 - `glow-success` - Active/positive states with green shadow
