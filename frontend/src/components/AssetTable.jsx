@@ -267,21 +267,21 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
             </div>
 
             <Table className="hidden md:table w-full">
-              <TableHeader className="bg-muted/30 border-b border-white/5">
+              <TableHeader className="bg-muted/20 dark:bg-white/[0.02] border-b border-white/10">
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="w-12 px-4">
-                    <Checkbox 
+                    <Checkbox
                       checked={paginatedAssets.length > 0 && paginatedAssets.every(a => selectedIds.has(a.id))}
                       onCheckedChange={toggleSelectAll}
                     />
                   </TableHead>
                   <TableHead className="w-10"></TableHead>
-                  <TableHead className="font-bold tracking-wider text-xs uppercase opacity-70">Employee / Owner</TableHead>
-                  <TableHead className="font-bold tracking-wider text-xs uppercase opacity-70">Company</TableHead>
-                  <TableHead className="font-bold tracking-wider text-xs uppercase opacity-70">Asset Type</TableHead>
-                  <TableHead className="font-bold tracking-wider text-xs uppercase opacity-70">Asset Tag</TableHead>
-                  <TableHead className="font-bold tracking-wider text-xs uppercase opacity-70">Status</TableHead>
-                  <TableHead className="text-right pr-4 font-bold tracking-wider text-xs uppercase opacity-70">Actions</TableHead>
+                  <TableHead className="caption-label">Employee / Owner</TableHead>
+                  <TableHead className="caption-label">Company</TableHead>
+                  <TableHead className="caption-label">Asset Type</TableHead>
+                  <TableHead className="caption-label">Asset Tag</TableHead>
+                  <TableHead className="caption-label">Status</TableHead>
+                  <TableHead className="text-right pr-4 caption-label">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

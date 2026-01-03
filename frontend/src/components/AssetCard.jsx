@@ -135,8 +135,8 @@ const AssetCard = memo(function AssetCard({
   return (
     <div
       className={cn(
-        'border rounded-lg p-4 animate-slide-up',
-        isSelected && 'bg-primary/5 border-primary/50 shadow-[0_0_0_1px_hsl(var(--primary))]'
+        'glass-panel rounded-xl p-4 animate-slide-up',
+        isSelected && 'bg-primary/10 border-primary/30 shadow-glow-primary'
       )}
       style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'forwards' }}
     >
