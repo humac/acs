@@ -194,7 +194,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="space-y-6 p-1 md:p-2 animate-fade-in bg-surface/30 min-h-screen rounded-2xl">
+    <div className="space-y-6 p-1 md:p-2 animate-fade-in min-h-screen">
       {/* Header Section */}
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 px-2">
         <div>

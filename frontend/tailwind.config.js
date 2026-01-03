@@ -16,7 +16,7 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
-        surface: "hsl(var(--surface))", // Bento grid support
+        surface: "hsl(var(--surface) / <alpha-value>)", // Alpha support for Bento grid
         popover: {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
@@ -58,6 +58,13 @@ export default {
           foreground: "hsl(0 0% 100%)",
         },
       },
+      boxShadow: {
+        'glow': '0 8px 32px 0 rgba(0, 0, 0, 0.3)',
+        'glow-lg': '0 12px 48px 0 rgba(0, 0, 0, 0.4)',
+        'glow-primary': '0 0 20px -5px hsl(var(--primary) / 0.4)',
+        'glow-success': '0 0 15px -3px hsl(var(--success) / 0.4)',
+        'glow-destructive': '0 0 15px -3px hsl(var(--destructive) / 0.4)',
+      },
       borderRadius: {
         'bento': '1.25rem',
         lg: "var(--radius-lg)",
@@ -76,11 +83,16 @@ export default {
           "from": { opacity: "0", transform: "translateY(20px)" },
           "to": { opacity: "1", transform: "translateY(0)" },
         },
+        "fadeIn": {
+          "from": { opacity: "0" },
+          "to": { opacity: "1" },
+        },
       },
       animation: {
         "float": "float 3s ease-in-out infinite",
         "shimmer": "shimmer 2s infinite",
         "slide-up": "slideUp 0.5s ease-out forwards",
+        "fade-in": "fadeIn 0.3s ease-in",
       },
       transitionDuration: {
         'slow': '400ms',

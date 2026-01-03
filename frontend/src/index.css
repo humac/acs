@@ -6,40 +6,40 @@
 
 @layer base {
   :root {
-    /* Base Colors - Stripped hsl() for alpha support */
-    --background: 0 0% 98%;
-    --foreground: 224 71% 4%;
-    --surface: 220 14% 96%; /* New surface for Bento depth */
+    /* 2026 Obsidian Glass - Light Mode (Azure Tint) */
+    --background: 0 0% 100%;
+    --foreground: 224 71.4% 4.1%;
+    --surface: 210 40% 96%; /* Tinted azure floor */
     --card: 0 0% 100%;
-    --card-foreground: 224 71% 4%;
+    --card-foreground: 224 71.4% 4.1%;
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71% 4%;
-    
+    --popover-foreground: 224 71.4% 4.1%;
+
     /* Primary - Vibrant Blue */
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
-    --primary-hover: 217 91% 50%;
-    
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --primary-hover: 221.2 83.2% 45%;
+
     /* Secondary & Muted */
-    --secondary: 217 20% 95%;
-    --secondary-foreground: 217 25% 25%;
-    --muted: 217 20% 96%;
-    --muted-foreground: 217 15% 45%;
-    
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
     /* Accent & Status */
-    --accent: 217 91% 95%;
-    --accent-foreground: 217 91% 40%;
-    --destructive: 0 84% 60%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
-    --success: 142 71% 45%;
+    --success: 142 70% 45%;
     --warning: 38 92% 50%;
     --info: 199 89% 48%;
-    
+
     /* Borders & Inputs */
-    --border: 217 20% 90%;
-    --input: 217 20% 88%;
-    --ring: 217 91% 60%;
-    
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+
     /* Radii standardized for 2026 trends */
     --radius: 0.75rem;
     --radius-sm: 0.5rem;
@@ -50,22 +50,29 @@
   }
 
   .dark {
-    /* Dark Mode 2.0 - Deep Obsidian foundations */
-    --background: 224 71% 2%; 
-    --foreground: 0 0% 98%;
-    --surface: 224 71% 6%; 
-    --card: 224 50% 4%;
-    --card-foreground: 0 0% 98%;
-    --popover: 224 50% 4%;
-    --popover-foreground: 0 0% 98%;
-    
-    /* Tonal adjustments for dark mode readability */
-    --secondary: 224 30% 12%;
-    --muted: 224 30% 12%;
-    --muted-foreground: 217 15% 65%;
-    --accent: 224 30% 15%;
-    --border: 224 30% 12%;
-    --input: 224 30% 15%;
+    /* 2026 Obsidian Glass - Deep Obsidian Base */
+    --background: 224 71% 2%;
+    --foreground: 210 40% 98%;
+    --surface: 224 71% 4%; /* Floor layer */
+    --card: 224 71% 6%; /* Content layer */
+    --card-foreground: 210 40% 98%;
+    --popover: 224 71% 6%;
+    --popover-foreground: 210 40% 98%;
+
+    /* Primary for dark mode */
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary-hover: 217.2 91.2% 65%;
+
+    /* Tonal adjustments for high-contrast dark mode */
+    --secondary: 224 71% 12%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 224 71% 12%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 224 71% 15%;
+    --accent-foreground: 210 40% 98%;
+    --border: 224 71% 12%;
+    --input: 224 71% 15%;
   }
 
   * {
@@ -87,39 +94,43 @@
     background: linear-gradient(135deg, hsl(var(--success)) 0%, hsl(142 71% 35%) 100%);
   }
 
-  /* 3-Layer Depth System */
-  .floor { 
-    @apply bg-surface/30 dark:bg-background; 
-  }
-  
-  .glass-panel { 
-    @apply bg-card/40 dark:bg-card/60 backdrop-blur-md border border-white/10 shadow-2xl; 
-  }
-  
-  .glass-overlay { 
-    @apply bg-popover backdrop-blur-xl border border-white/15 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] z-50; 
-  }
-  
-  .border-glass { 
-    @apply border-white/10 dark:border-white/5; 
+  /* 3-Layer Depth System - Obsidian Glass 2026 */
+  .floor {
+    @apply bg-surface/60 dark:bg-background;
   }
 
-  /* Bento System */
-  .bento-card { 
-    @apply bg-card/60 backdrop-blur-sm border border-white/10 rounded-2xl p-6 transition-all duration-300 hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.3)] hover:scale-[1.01] hover:border-primary/20; 
-  }
-  
-  .bento-grid { 
-    @apply grid gap-4 md:gap-6; 
+  .glass-panel {
+    @apply backdrop-blur-xl border shadow-glow transition-all duration-300;
+    @apply dark:bg-white/[0.03] dark:border-white/[0.08] dark:border-t-white/20 dark:border-l-white/20;
+    @apply bg-white/70 border-white/40 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)];
   }
 
-  /* Typography */
-  .text-gradient { 
-    @apply bg-clip-text text-transparent bg-gradient-to-br from-primary via-primary to-info; 
+  .glass-overlay {
+    @apply bg-popover/95 backdrop-blur-xl border border-white/15 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] z-50;
+    @apply dark:bg-card/95 dark:border-white/10 dark:border-t-white/20;
   }
-  
-  .caption-label { 
-    @apply text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground; 
+
+  .border-glass {
+    @apply border-white/10 dark:border-white/[0.08];
+  }
+
+  /* Bento System - 2026 Aesthetic */
+  .bento-card {
+    @apply glass-panel rounded-2xl overflow-hidden;
+    @apply hover:scale-[1.01] hover:shadow-glow-lg transition-transform duration-300;
+  }
+
+  .bento-grid {
+    @apply grid gap-4 md:gap-6;
+  }
+
+  /* Typography - High Contrast */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-br from-foreground via-foreground/90 to-foreground/70;
+  }
+
+  .caption-label {
+    @apply text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground;
   }
 
   /* Glowing Status Badges */

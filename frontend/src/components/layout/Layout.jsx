@@ -54,10 +54,10 @@ const Layout = ({ theme, setTheme }) => {
     <div className="min-h-screen bg-background text-foreground flex overflow-hidden relative">
       {/* 1. Global Background Floor with Ambient Gradient Orbs */}
       <div className="fixed inset-0 floor pointer-events-none" aria-hidden="true">
-        {/* Ambient gradient orbs for visual depth */}
-        <div className="absolute top-20 left-20 w-96 h-96 bg-primary/10 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-32 right-32 w-[500px] h-[500px] bg-info/10 rounded-full blur-[140px] animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[100px]" />
+        {/* Ambient gradient orbs for visual depth - Obsidian Glass 2026 */}
+        <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[150px]" />
+        <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-info/5 rounded-full blur-[140px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-primary/3 rounded-full blur-[120px]" />
       </div>
 
       {/* 2. Desktop Floating Sidebar */}
