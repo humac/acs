@@ -85,7 +85,6 @@ const Dashboard = () => {
         if (teamAssetsRes.ok) {
           const teamAssets = await teamAssetsRes.json();
           // Filter to only count assets where the asset's manager_email matches the logged-in manager's email
-          // OR assets belonging to employees whose manager_email matches the manager
           const managerEmail = user.email.toLowerCase();
           const filteredTeamAssets = teamAssets.filter(asset => {
             const assetManagerEmail = asset.manager_email?.toLowerCase();
@@ -421,7 +420,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Quick Access: User Management */}
+          {/* Quick Access: Team */}
           <Card 
             className="glass-panel md:col-span-1 md:row-span-1 cursor-pointer hover:bg-white/5 transition-colors group"
             onClick={() => navigate('/users')}
