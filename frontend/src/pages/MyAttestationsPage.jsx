@@ -11,7 +11,11 @@ import {
   CheckCircle2,
   AlertCircle,
   Package,
-  Plus
+  Plus,
+  PlayCircle,
+  RefreshCw,
+  Calendar,
+  Clock
 } from 'lucide-react';
 import {
   Table,
@@ -39,6 +43,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 export default function MyAttestationsPage() {
   const { getAuthHeaders, user } = useAuth();
