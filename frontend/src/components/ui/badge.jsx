@@ -16,6 +16,13 @@ const badgeVariants = cva(
         info: "border-transparent bg-info text-info-foreground shadow-sm hover:shadow-md",
         active: "border-transparent bg-success text-success-foreground shadow-sm",
         inactive: "border-transparent bg-muted text-muted-foreground",
+        // Glow variants for status indicators (Gold Standard pattern)
+        "glow-success": "glow-success",
+        "glow-warning": "glow-warning",
+        "glow-destructive": "glow-destructive",
+        "glow-info": "glow-info",
+        "glow-primary": "glow-primary",
+        "glow-muted": "glow-muted",
       },
     },
     defaultVariants: {

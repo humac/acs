@@ -247,42 +247,47 @@ const CompanyManagementNew = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2 text-muted-foreground">Loading companies...</span>
+      <div className="space-y-3 py-4 animate-fade-in">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="h-14 rounded-xl bg-muted/30 shimmer" />
+        ))}
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-4 md:space-y-6 animate-fade-in">
       {!canManageCompanies && (
-        <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3 md:p-4">
+        <div className="glow-info rounded-xl p-3 md:p-4">
           <div className="flex items-start gap-3">
-            <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+            <div className="icon-box icon-box-sm bg-info/10 border-info/20">
+              <Building2 size={20} className="text-info" />
+            </div>
             <div>
-              <h3 className="font-semibold text-sm md:text-base text-blue-900 dark:text-blue-100">Read-Only Access</h3>
-              <p className="text-xs md:text-sm text-blue-700 dark:text-blue-300 mt-1">
+              <h3 className="font-semibold text-sm md:text-base">Read-Only Access</h3>
+              <p className="text-xs md:text-sm opacity-80 mt-1">
                 You have read-only access to company information.
               </p>
             </div>
           </div>
         </div>
       )}
-      <Card>
+      <Card variant="glass">
         <CardHeader className="space-y-3 md:space-y-4 px-4 sm:px-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-primary" />
-              <CardTitle className="text-lg sm:text-xl">Company Management ({companies.length})</CardTitle>
+            <div className="flex items-center gap-3">
+              <div className="icon-box icon-box-sm bg-primary/10 border-primary/20">
+                <Building2 size={20} className="text-primary" />
+              </div>
+              <CardTitle className="text-lg sm:text-xl text-gradient">Company Management ({companies.length})</CardTitle>
             </div>
             {canManageCompanies && (
               <div className="flex gap-2 flex-wrap">
-                <Button variant="outline" onClick={() => setShowImportModal(true)} className="flex-1 sm:flex-none">
-                  <Upload className="h-4 w-4 mr-2" />Bulk Import
+                <Button variant="outline" onClick={() => setShowImportModal(true)} className="flex-1 sm:flex-none btn-interactive">
+                  <Upload size={20} className="mr-2" />Bulk Import
                 </Button>
-                <Button onClick={handleAddClick} className="flex-1 sm:flex-none">
-                  <Plus className="h-4 w-4 mr-2" />Add Company
+                <Button onClick={handleAddClick} className="flex-1 sm:flex-none btn-interactive">
+                  <Plus size={20} className="mr-2" />Add Company
                 </Button>
               </div>
             )}
@@ -367,20 +372,20 @@ const CompanyManagementNew = () => {
 
               <Table wrapperClassName="hidden md:block">
                 <TableHeader>
-                  <TableRow className="bg-muted/50">
+                  <TableRow className="bg-muted/10 border-b border-white/5">
                     {canManageCompanies && (
-                      <TableHead className="w-12">
+                      <TableHead className="w-12 caption-label">
                         <Checkbox
                           checked={isAllSelected ? true : isSomeSelected ? "indeterminate" : false}
                           onCheckedChange={toggleSelectAll}
                         />
                       </TableHead>
                     )}
-                      <TableHead>Company Name</TableHead>
-                      <TableHead className="hidden md:table-cell">Description</TableHead>
-                      <TableHead className="hidden md:table-cell text-center">Assets</TableHead>
-                      <TableHead className="hidden xl:table-cell">Created</TableHead>
-                      {canManageCompanies && <TableHead className="text-right">Actions</TableHead>}
+                      <TableHead className="caption-label">Company Name</TableHead>
+                      <TableHead className="hidden md:table-cell caption-label">Description</TableHead>
+                      <TableHead className="hidden md:table-cell text-center caption-label">Assets</TableHead>
+                      <TableHead className="hidden xl:table-cell caption-label">Created</TableHead>
+                      {canManageCompanies && <TableHead className="text-right caption-label">Actions</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -405,8 +410,8 @@ const CompanyManagementNew = () => {
                         {canManageCompanies && (
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
-                              <Button variant="ghost" size="icon" onClick={() => handleEdit(company)}><Edit className="h-4 w-4" /></Button>
-                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => setDeleteDialog({ open: true, company })}><Trash2 className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleEdit(company)} className="btn-interactive"><Edit size={20} /></Button>
+                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive btn-interactive" onClick={() => setDeleteDialog({ open: true, company })}><Trash2 size={20} /></Button>
                             </div>
                           </TableCell>
                         )}
@@ -445,8 +450,8 @@ const CompanyManagementNew = () => {
               <p className="text-xs text-muted-foreground">This will replace existing descriptions for {selectedIds.size} compan{selectedIds.size === 1 ? 'y' : 'ies'}.</p>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setBulkDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleBulkDescriptionUpdate} disabled={formLoading || !bulkDescription.trim()}>
+              <Button variant="outline" onClick={() => setBulkDialogOpen(false)} className="btn-interactive">Cancel</Button>
+              <Button onClick={handleBulkDescriptionUpdate} disabled={formLoading || !bulkDescription.trim()} className="btn-interactive">
                 {formLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Apply description
               </Button>
             </DialogFooter>
@@ -469,8 +474,8 @@ const CompanyManagementNew = () => {
               <Textarea id="description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} placeholder="Brief description..." rows={3} />
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
-              <Button type="submit" disabled={formLoading}>
+              <Button type="button" variant="outline" onClick={() => setShowForm(false)} className="btn-interactive">Cancel</Button>
+              <Button type="submit" disabled={formLoading} className="btn-interactive">
                 {formLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {editingCompany ? 'Update' : 'Add'} Company
               </Button>
@@ -486,8 +491,8 @@ const CompanyManagementNew = () => {
             <DialogDescription>Are you sure you want to delete "{deleteDialog.company?.name}"? This action cannot be undone.</DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialog({ open: false, company: null })}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDeleteConfirm}>Delete</Button>
+            <Button variant="outline" onClick={() => setDeleteDialog({ open: false, company: null })} className="btn-interactive">Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm} className="btn-interactive">Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -512,10 +517,10 @@ const CompanyManagementNew = () => {
               </Button>
             </div>
             {importFile && <p className="text-sm text-muted-foreground">Selected: {importFile.name}</p>}
-            {importResult && <div className="rounded-md bg-green-50 text-green-900 p-4 text-sm">{importResult.message}</div>}
+            {importResult && <div className="glow-success rounded-xl p-4 text-sm">{importResult.message}</div>}
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowImportModal(false)}>Cancel</Button>
-              <Button type="submit" disabled={formLoading || !importFile}>
+              <Button type="button" variant="outline" onClick={() => setShowImportModal(false)} className="btn-interactive">Cancel</Button>
+              <Button type="submit" disabled={formLoading || !importFile} className="btn-interactive">
                 {formLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Import
               </Button>
             </DialogFooter>

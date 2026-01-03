@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 const Table = React.forwardRef(({ className, wrapperClassName, ...props }, ref) => (
   <div
     className={cn(
-      "relative w-full overflow-hidden rounded-xl border border-border/70 bg-card shadow-sm",
+      "relative w-full overflow-hidden rounded-xl border border-white/10 bg-card/40 backdrop-blur-sm shadow-lg",
       wrapperClassName
     )}
   >
@@ -46,7 +46,7 @@ const TableRow = React.forwardRef(({ className, ...props }, ref) => (
   <tr
     ref={ref}
     className={cn(
-      "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-primary/10 data-[state=selected]:border-primary/40 data-[state=selected]:shadow-[inset_4px_0_0_hsl(var(--primary))]",
+      "border-b border-white/5 transition-colors hover:bg-white/[0.02] data-[state=selected]:bg-primary/10 data-[state=selected]:border-primary/40 data-[state=selected]:shadow-[inset_4px_0_0_hsl(var(--primary))]",
       className
     )}
     {...props}

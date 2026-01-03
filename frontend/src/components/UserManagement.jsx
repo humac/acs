@@ -145,13 +145,13 @@ const UserManagement = () => {
 
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Never';
 
-  // Role styling that matches the Role Descriptions section
+  // Role styling using Gold Standard glow variants
   const getRoleBadgeProps = (role) => {
     const styles = {
-      admin: { variant: 'destructive', className: '' },
-      manager: { variant: 'default', className: 'bg-green-600 hover:bg-green-600' },
+      admin: { variant: 'glow-destructive', className: '' },
+      manager: { variant: 'glow-success', className: '' },
       employee: { variant: 'secondary', className: '' },
-      coordinator: { variant: 'outline', className: 'bg-purple-600 text-white border-purple-600 hover:bg-purple-600' }
+      coordinator: { variant: 'glow-info', className: '' }
     };
     return styles[role] || { variant: 'secondary', className: '' };
   };
@@ -173,13 +173,15 @@ const UserManagement = () => {
   }
 
   return (
-    <div className="space-y-3">
-      <Card>
+    <div className="space-y-3 animate-fade-in">
+      <Card variant="glass">
         <CardHeader className="pb-2 px-4 sm:px-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" />
-              <CardTitle className="text-lg sm:text-xl">User Management</CardTitle>
+            <div className="flex items-center gap-3">
+              <div className="icon-box icon-box-sm bg-primary/10 border-primary/20">
+                <Users size={20} className="text-primary" />
+              </div>
+              <CardTitle className="text-lg sm:text-xl text-gradient">User Management</CardTitle>
             </div>
             <span className="text-xs sm:text-sm text-muted-foreground">Total: {users.length}</span>
           </div>
@@ -210,8 +212,8 @@ const UserManagement = () => {
               </div>
               <div className="flex gap-2">
                 {isAdmin && (
-                  <Button onClick={() => setAddUserDialogOpen(true)} className="gap-2">
-                    <UserPlus className="h-4 w-4" />
+                  <Button onClick={() => setAddUserDialogOpen(true)} className="gap-2 btn-interactive">
+                    <UserPlus size={20} />
                     Add User
                   </Button>
                 )}
@@ -229,7 +231,11 @@ const UserManagement = () => {
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+            <div className="space-y-3 py-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-14 rounded-xl bg-muted/30 shimmer" />
+              ))}
+            </div>
           ) : (
             <div className="space-y-2 mt-4">
               <div className="md:hidden space-y-2">
@@ -286,21 +292,21 @@ const UserManagement = () => {
               <div className="hidden md:block">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-muted/50">
+                    <TableRow className="bg-muted/10 border-b border-white/5">
                       {isAdmin && (
-                        <TableHead className="w-12">
+                        <TableHead className="w-12 caption-label">
                           <Checkbox
                             checked={isAllUsersSelected ? true : isSomeUsersSelected ? "indeterminate" : false}
                             onCheckedChange={toggleSelectAllUsers}
                           />
                         </TableHead>
                       )}
-                      <TableHead>Name</TableHead>
-                      <TableHead className="hidden lg:table-cell">Email</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead className="hidden lg:table-cell">Manager</TableHead>
-                      <TableHead className="hidden xl:table-cell">Last Login</TableHead>
-                      {isAdmin && <TableHead className="text-right">Actions</TableHead>}
+                      <TableHead className="caption-label">Name</TableHead>
+                      <TableHead className="hidden lg:table-cell caption-label">Email</TableHead>
+                      <TableHead className="caption-label">Role</TableHead>
+                      <TableHead className="hidden lg:table-cell caption-label">Manager</TableHead>
+                      <TableHead className="hidden xl:table-cell caption-label">Last Login</TableHead>
+                      {isAdmin && <TableHead className="text-right caption-label">Actions</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -355,17 +361,17 @@ const UserManagement = () => {
                         {isAdmin && (
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
-                              <Button variant="ghost" size="icon" onClick={() => setEditingUser(u)}>
-                                <Edit className="h-4 w-4" />
+                              <Button variant="ghost" size="icon" onClick={() => setEditingUser(u)} className="btn-interactive">
+                                <Edit size={20} />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="text-destructive hover:text-destructive"
+                                className="text-destructive hover:text-destructive btn-interactive"
                                 onClick={() => setDeleteDialog({ open: true, user: u })}
                                 disabled={u.id === user.id}
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 size={20} />
                               </Button>
                             </div>
                           </TableCell>
@@ -388,15 +394,15 @@ const UserManagement = () => {
             </div>
           )}
 
-          <Card className="bg-muted/50 mt-4">
-            <CardHeader className="pb-2 px-4 sm:px-6"><CardTitle className="text-sm sm:text-base">Role Descriptions</CardTitle></CardHeader>
-            <CardContent className="grid gap-3 sm:gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 pt-2 px-4 sm:px-6">
-              <div><Badge variant="destructive" className="uppercase text-xs">Admin</Badge><p className="text-sm text-muted-foreground mt-1">Full system access, can manage all users and settings.</p></div>
-              <div><Badge variant="default" className="uppercase text-xs bg-green-600">Manager</Badge><p className="text-sm text-muted-foreground mt-1">View own + team assets, access team audit reports.</p></div>
-              <div><Badge variant="outline" className="uppercase text-xs bg-purple-600 text-white border-purple-600">Coordinator</Badge><p className="text-sm text-muted-foreground mt-1">Manage attestation campaigns and compliance reporting.</p></div>
+          <div className="glass-panel rounded-xl p-4 mt-4">
+            <h3 className="caption-label mb-3">Role Descriptions</h3>
+            <div className="grid gap-3 sm:gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+              <div><Badge variant="glow-destructive" className="uppercase text-xs">Admin</Badge><p className="text-sm text-muted-foreground mt-1">Full system access, can manage all users and settings.</p></div>
+              <div><Badge variant="glow-success" className="uppercase text-xs">Manager</Badge><p className="text-sm text-muted-foreground mt-1">View own + team assets, access team audit reports.</p></div>
+              <div><Badge variant="glow-info" className="uppercase text-xs">Coordinator</Badge><p className="text-sm text-muted-foreground mt-1">Manage attestation campaigns and compliance reporting.</p></div>
               <div><Badge variant="secondary" className="uppercase text-xs">Employee</Badge><p className="text-sm text-muted-foreground mt-1">Can only view and manage own asset registrations.</p></div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -418,8 +424,8 @@ const UserManagement = () => {
               <DialogDescription className="text-sm">Are you sure you want to delete "{deleteDialog.user?.name}"? This cannot be undone.</DialogDescription>
             </DialogHeader>
             <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
-              <Button variant="outline" onClick={() => setDeleteDialog({ open: false, user: null })} className="w-full sm:w-auto">Cancel</Button>
-              <Button variant="destructive" onClick={handleDeleteConfirm} className="w-full sm:w-auto">Delete</Button>
+              <Button variant="outline" onClick={() => setDeleteDialog({ open: false, user: null })} className="w-full sm:w-auto btn-interactive">Cancel</Button>
+              <Button variant="destructive" onClick={handleDeleteConfirm} className="w-full sm:w-auto btn-interactive">Delete</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
