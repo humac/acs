@@ -450,10 +450,7 @@ export default function MyAttestationsPage() {
             )}
           </div>
         </CardHeader>
-      </Card>
-
-      {/* Attestation Cards */}
-      <div className="space-y-4">
+        <CardContent>
         {attestations.length === 0 ? (
           <div className="glass-panel rounded-2xl text-center py-16 animate-fade-in">
             <div className="icon-box icon-box-lg bg-primary/10 border-primary/20 mx-auto mb-6">
@@ -556,7 +553,8 @@ export default function MyAttestationsPage() {
             })}
           </div>
         )}
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Attestation Modal */}
       <Dialog open={showAttestationModal} onOpenChange={setShowAttestationModal}>
