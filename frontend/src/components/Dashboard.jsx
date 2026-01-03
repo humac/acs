@@ -25,7 +25,8 @@ const Dashboard = () => {
     teamAssetsCount: 0,
     teamMembersCount: 0,
     activeCampaignsCount: 0,
-    campaignCompletionRate: 0
+    campaignCompletionRate: 0,
+    totalPendingResponses: 0
   });
 
   const isEmployee = user?.role === 'employee';
@@ -83,7 +84,13 @@ const Dashboard = () => {
         });
         if (teamAssetsRes.ok) {
           const teamAssets = await teamAssetsRes.json();
-          stats.teamAssetsCount = teamAssets.length;
+          // Filter to only count assets where the asset's manager_email matches the logged-in manager's email
+          const managerEmail = user.email.toLowerCase();
+          const filteredTeamAssets = teamAssets.filter(asset => {
+            const assetManagerEmail = asset.manager_email?.toLowerCase();
+            return assetManagerEmail === managerEmail;
+          });
+          stats.teamAssetsCount = filteredTeamAssets.length;
         }
 
         // Fetch team members count
@@ -92,9 +99,26 @@ const Dashboard = () => {
         });
         if (usersRes.ok) {
           const usersData = await usersRes.json();
-          // Count users where this manager is their manager
-          const teamMembers = usersData.users?.filter(u => u.manager_email === user.email) || [];
+          // Count users where this manager is their manager (case-insensitive)
+          const managerEmail = user.email.toLowerCase();
+          const teamMembers = usersData.users?.filter(u => 
+            u.manager_email?.toLowerCase() === managerEmail
+          ) || [];
           stats.teamMembersCount = teamMembers.length;
+        }
+
+        // Fetch manager's own attestations
+        const attestRes = await fetch('/api/attestation/my-attestations', {
+          headers: { ...getAuthHeaders() }
+        });
+        if (attestRes.ok) {
+          const attestData = await attestRes.json();
+          const attestations = attestData.attestations || [];
+          // Count attestations that need action (pending OR in_progress)
+          stats.pendingAttestationsCount = attestations.filter(a => 
+            a.status === 'pending' || a.status === 'in_progress'
+          ).length;
+          stats.completedAttestationsCount = attestations.filter(a => a.status === 'completed').length;
         }
       }
 
@@ -106,7 +130,46 @@ const Dashboard = () => {
         if (campaignsRes.ok) {
           const campaignData = await campaignsRes.json();
           const campaigns = campaignData.campaigns || [];
-          stats.activeCampaignsCount = campaigns.filter(c => c.status === 'active').length;
+          const activeCampaigns = campaigns.filter(c => c.status === 'active');
+          stats.activeCampaignsCount = activeCampaigns.length;
+
+          // Calculate total pending responses across all active campaigns
+          let totalPendingResponses = 0;
+          for (const campaign of activeCampaigns) {
+            try {
+              const dashboardRes = await fetch(`/api/attestation/campaigns/${campaign.id}/dashboard`, {
+                headers: { ...getAuthHeaders() }
+              });
+              if (dashboardRes.ok) {
+                const dashboardData = await dashboardRes.json();
+                const records = dashboardData.records || [];
+                // Count pending and in_progress records
+                const pendingCount = records.filter(r => 
+                  r.status === 'pending' || r.status === 'in_progress'
+                ).length;
+                totalPendingResponses += pendingCount;
+              }
+            } catch (err) {
+              console.error(`Error fetching dashboard for campaign ${campaign.id}:`, err);
+            }
+          }
+          stats.totalPendingResponses = totalPendingResponses;
+        }
+      }
+
+      if (isCoordinator) {
+        // Fetch coordinator's own attestations (if they own assets)
+        const attestRes = await fetch('/api/attestation/my-attestations', {
+          headers: { ...getAuthHeaders() }
+        });
+        if (attestRes.ok) {
+          const attestData = await attestRes.json();
+          const attestations = attestData.attestations || [];
+          // Count attestations that need action (pending OR in_progress)
+          stats.pendingAttestationsCount = attestations.filter(a => 
+            a.status === 'pending' || a.status === 'in_progress'
+          ).length;
+          stats.completedAttestationsCount = attestations.filter(a => a.status === 'completed').length;
         }
       }
 
@@ -285,7 +348,7 @@ const Dashboard = () => {
           </Card>
 
           {/* Medium Stat: Team Members */}
-          <Card className="bento-card md:col-span-2 md:row-span-1 group">
+          <Card className="bento-card md:col-span-1 md:row-span-1 group">
             <CardContent className="p-4 flex items-center justify-between h-full">
               <div className="space-y-1">
                 <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Team Members</p>
@@ -298,28 +361,74 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Small Stat: Pending Reviews */}
-          <Card className="bento-card md:col-span-1 md:row-span-1 group">
-            <CardContent className="p-4 flex flex-col justify-between h-full">
-              <div className="h-8 w-8 rounded-lg bg-warning/10 flex items-center justify-center border border-warning/20 mb-2">
-                <AlertCircle className="text-warning h-4 w-4" />
+          {/* Medium Stat: My Attestations */}
+          <Card 
+            className="bento-card md:col-span-1 md:row-span-1 group cursor-pointer"
+            onClick={() => navigate('/my-attestations')}
+          >
+            {/* Add notification pulse when there are pending items */}
+            {dashboardStats.pendingAttestationsCount > 0 && (
+              <div className="absolute top-4 right-4">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-warning opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-warning"></span>
+                </span>
               </div>
-              <div>
-                <div className="text-xl font-bold leading-none mb-1">-</div>
-                <p className="text-xs font-bold text-muted-foreground uppercase">Reviews</p>
+            )}
+            <CardContent className="p-4 flex items-center justify-between h-full">
+              <div className="space-y-1">
+                <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">My Attestations</p>
+                <div className="text-3xl font-bold">
+                  {dashboardStats.pendingAttestationsCount > 0 ? (
+                    <span className="text-warning">{dashboardStats.pendingAttestationsCount}</span>
+                  ) : (
+                    <span className="text-success">0</span>
+                  )}
+                </div>
+                {dashboardStats.pendingAttestationsCount === 0 ? (
+                  <p className="text-xs text-success font-medium">All complete</p>
+                ) : (
+                  <p className="text-xs text-warning font-medium">Action required</p>
+                )}
+              </div>
+              <div className={cn(
+                "h-12 w-12 rounded-2xl flex items-center justify-center border group-hover:scale-105 transition-transform",
+                dashboardStats.pendingAttestationsCount > 0 
+                  ? "bg-warning/10 border-warning/20" 
+                  : "bg-success/10 border-success/20"
+              )}>
+                {dashboardStats.pendingAttestationsCount > 0 ? (
+                  <ClipboardCheck className="text-warning h-6 w-6" />
+                ) : (
+                  <CheckCircle2 className="text-success h-6 w-6" />
+                )}
               </div>
             </CardContent>
           </Card>
 
-          {/* Quick Access: Audit Logs */}
+          {/* Quick Access: My Profile */}
           <Card 
             className="glass-panel md:col-span-1 md:row-span-1 cursor-pointer hover:bg-white/5 transition-colors group"
-            onClick={() => navigate('/audit')}
+            onClick={() => navigate('/profile')}
           >
             <CardContent className="p-4 flex flex-col justify-between h-full">
-               <FileBarChart className="text-muted-foreground h-6 w-6 group-hover:text-primary transition-colors" />
+               <User className="text-muted-foreground h-6 w-6 group-hover:text-primary transition-colors" />
                <div className="flex items-center justify-between">
-                  <span className="font-semibold tracking-tight">Audit Logs</span>
+                  <span className="font-semibold tracking-tight">My Profile</span>
+                  <ArrowUpRight size={18} className="opacity-0 group-hover:opacity-100 transition-opacity text-primary" />
+               </div>
+            </CardContent>
+          </Card>
+
+          {/* Quick Access: Team */}
+          <Card 
+            className="glass-panel md:col-span-1 md:row-span-1 cursor-pointer hover:bg-white/5 transition-colors group"
+            onClick={() => navigate('/users')}
+          >
+            <CardContent className="p-4 flex flex-col justify-between h-full">
+               <UserPlus className="text-muted-foreground h-6 w-6 group-hover:text-primary transition-colors" />
+               <div className="flex items-center justify-between">
+                  <span className="font-semibold tracking-tight">Team</span>
                   <ArrowUpRight size={18} className="opacity-0 group-hover:opacity-100 transition-opacity text-primary" />
                </div>
             </CardContent>
@@ -356,18 +465,83 @@ const Dashboard = () => {
           </Card>
 
           {/* Medium Stat: Pending Responses */}
-          <Card className="bento-card md:col-span-2 md:row-span-1 group">
+          <Card className="bento-card md:col-span-1 md:row-span-1 group">
             <CardContent className="p-4 flex items-center justify-between h-full">
               <div className="space-y-1">
                 <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">Pending Responses</p>
-                <div className="text-3xl font-bold">-</div>
-                <p className="text-xs text-muted-foreground font-medium">Campaign status</p>
+                <div className="text-3xl font-bold">
+                  {dashboardStats.totalPendingResponses > 0 ? (
+                    <span className="text-warning">{dashboardStats.totalPendingResponses}</span>
+                  ) : (
+                    <span className="text-success">0</span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground font-medium">Campaign responses</p>
               </div>
               <div className="h-12 w-12 rounded-2xl bg-warning/10 flex items-center justify-center border border-warning/20 group-hover:scale-105 transition-transform">
                 <AlertCircle className="text-warning h-6 w-6" />
               </div>
             </CardContent>
           </Card>
+
+          {/* Medium Stat: My Attestations (if coordinator has assets) */}
+          {dashboardStats.pendingAttestationsCount > 0 || dashboardStats.completedAttestationsCount > 0 ? (
+            <Card 
+              className="bento-card md:col-span-1 md:row-span-1 group cursor-pointer"
+              onClick={() => navigate('/my-attestations')}
+            >
+              {/* Add notification pulse when there are pending items */}
+              {dashboardStats.pendingAttestationsCount > 0 && (
+                <div className="absolute top-4 right-4">
+                  <span className="relative flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-warning opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-warning"></span>
+                  </span>
+                </div>
+              )}
+              <CardContent className="p-4 flex items-center justify-between h-full">
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">My Attestations</p>
+                  <div className="text-3xl font-bold">
+                    {dashboardStats.pendingAttestationsCount > 0 ? (
+                      <span className="text-warning">{dashboardStats.pendingAttestationsCount}</span>
+                    ) : (
+                      <span className="text-success">0</span>
+                    )}
+                  </div>
+                  {dashboardStats.pendingAttestationsCount === 0 ? (
+                    <p className="text-xs text-success font-medium">All complete</p>
+                  ) : (
+                    <p className="text-xs text-warning font-medium">Action required</p>
+                  )}
+                </div>
+                <div className={cn(
+                  "h-12 w-12 rounded-2xl flex items-center justify-center border group-hover:scale-105 transition-transform",
+                  dashboardStats.pendingAttestationsCount > 0 
+                    ? "bg-warning/10 border-warning/20" 
+                    : "bg-success/10 border-success/20"
+                )}>
+                  {dashboardStats.pendingAttestationsCount > 0 ? (
+                    <ClipboardCheck className="text-warning h-6 w-6" />
+                  ) : (
+                    <CheckCircle2 className="text-success h-6 w-6" />
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="bento-card md:col-span-1 md:row-span-1 group">
+              <CardContent className="p-4 flex flex-col justify-between h-full">
+                <div className="h-8 w-8 rounded-lg bg-info/10 flex items-center justify-center border border-info/20 mb-2">
+                  <Package className="text-info h-4 w-4" />
+                </div>
+                <div>
+                  <div className="text-xl font-bold leading-none mb-1">{dashboardStats.assetsCount}</div>
+                  <p className="text-xs font-bold text-muted-foreground uppercase">Assets</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Small Stat: Companies */}
           <Card className="bento-card md:col-span-1 md:row-span-1 group">
@@ -382,15 +556,15 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Small Stat: Assets Overview */}
+          {/* Small Stat: Users */}
           <Card className="bento-card md:col-span-1 md:row-span-1 group">
             <CardContent className="p-4 flex flex-col justify-between h-full">
-              <div className="h-8 w-8 rounded-lg bg-info/10 flex items-center justify-center border border-info/20 mb-2">
-                <Package className="text-info h-4 w-4" />
+              <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center border border-success/20 mb-2">
+                <Users className="text-success h-4 w-4" />
               </div>
               <div>
-                <div className="text-xl font-bold leading-none mb-1">{dashboardStats.assetsCount}</div>
-                <p className="text-xs font-bold text-muted-foreground uppercase">Assets</p>
+                <div className="text-xl font-bold leading-none mb-1">{dashboardStats.employeesCount}</div>
+                <p className="text-xs font-bold text-muted-foreground uppercase">Users</p>
               </div>
             </CardContent>
           </Card>
@@ -513,8 +687,8 @@ const Dashboard = () => {
           
           {[
             { label: 'View Team Assets', icon: Package, path: '/assets', color: 'text-primary', bg: 'bg-primary/10' },
-            { label: 'Audit Logs', icon: FileBarChart, path: '/audit', color: 'text-info', bg: 'bg-info/10' },
-            { label: 'My Profile', icon: User, path: '/profile', color: 'text-success', bg: 'bg-success/10' }
+            { label: 'My Attestations', icon: ClipboardCheck, path: '/my-attestations', color: 'text-info', bg: 'bg-info/10' },
+            { label: 'Audit Logs', icon: FileBarChart, path: '/audit', color: 'text-warning', bg: 'bg-warning/10' }
           ].map((item) => (
             <Card 
               key={item.label}
