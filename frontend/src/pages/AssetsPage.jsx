@@ -110,11 +110,10 @@ export default function AssetsPage() {
         <CardHeader className="space-y-3 md:space-y-4 px-4 sm:px-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <Laptop className="h-6 w-6 text-primary" />
-              <CardTitle className="text-xl sm:text-2xl">
-                <span className="text-gradient">Asset Management</span>
-                <span className="text-muted-foreground ml-2 font-normal text-base">({assets.length})</span>
-              </CardTitle>
+              <div className="icon-box icon-box-sm bg-primary/10 border-primary/20">
+                <Laptop size={20} className="text-primary" />
+              </div>
+              <CardTitle className="text-lg sm:text-xl text-gradient">Asset Management ({assets.length})</CardTitle>
             </div>
             {canRegister() && (
               <div className="flex gap-2 flex-wrap">

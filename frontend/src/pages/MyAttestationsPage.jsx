@@ -423,32 +423,34 @@ export default function MyAttestationsPage() {
 
   return (
     <div className="space-y-6 p-1 md:p-2 animate-fade-in bg-surface/30 min-h-screen rounded-2xl">
-      {/* Header Section */}
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 px-2">
-        <div>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gradient mb-2">
-            My Attestations
-          </h1>
-          <p className="text-muted-foreground text-lg">
-            Welcome back, <span className="text-foreground font-semibold">{user?.first_name}</span>. Review and attest to the status of your registered assets.
-          </p>
-        </div>
-        {attestations.length > 0 && (
-          <div className="glass-panel px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2">
-            {attestations.some(a => a.status === 'pending' || a.status === 'in_progress') ? (
-              <>
-                <span className="h-2 w-2 rounded-full bg-warning animate-pulse" />
-                <span className="text-warning">Action Required</span>
-              </>
-            ) : (
-              <>
-                <span className="h-2 w-2 rounded-full bg-success" />
-                <span className="text-success">All Complete</span>
-              </>
+      {/* Header Card */}
+      <Card variant="glass">
+        <CardHeader className="space-y-3 md:space-y-4 px-4 sm:px-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="icon-box icon-box-sm bg-primary/10 border-primary/20">
+                <ClipboardCheck size={20} className="text-primary" />
+              </div>
+              <CardTitle className="text-lg sm:text-xl text-gradient">My Attestations ({attestations.length})</CardTitle>
+            </div>
+            {attestations.length > 0 && (
+              <div className="flex gap-2 flex-wrap">
+                {attestations.some(a => a.status === 'pending' || a.status === 'in_progress') ? (
+                  <div className="glass-panel px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-warning animate-pulse" />
+                    <span className="text-warning">Action Required</span>
+                  </div>
+                ) : (
+                  <div className="glass-panel px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-success" />
+                    <span className="text-success">All Complete</span>
+                  </div>
+                )}
+              </div>
             )}
           </div>
-        )}
-      </header>
+        </CardHeader>
+      </Card>
 
       {/* Attestation Cards */}
       <div className="space-y-4">

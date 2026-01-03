@@ -562,48 +562,45 @@ export default function AttestationPage() {
 
   return (
     <div className="space-y-6 p-1 md:p-2 animate-fade-in bg-surface/30 min-h-screen rounded-2xl">
-      {/* Header Section */}
-      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 px-2">
-        <div>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gradient mb-2">
-            Attestation Campaigns
-          </h1>
-          <p className="text-muted-foreground text-lg">
-            Manage asset attestation campaigns and track employee compliance
-          </p>
-        </div>
-        <div className="flex gap-2 items-center flex-wrap">
-          {!canManageCampaigns && (
-            <div className="glass-panel px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-info" />
-              <span className="text-info">Read-Only Access</span>
+      {/* Header Card */}
+      <Card variant="glass">
+        <CardHeader className="space-y-3 md:space-y-4 px-4 sm:px-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="icon-box icon-box-sm bg-primary/10 border-primary/20">
+                <ClipboardCheck size={20} className="text-primary" />
+              </div>
+              <CardTitle className="text-lg sm:text-xl text-gradient">Attestation Campaigns ({campaigns.length})</CardTitle>
             </div>
-          )}
-          {canManageCampaigns && (
-            <Button onClick={() => setShowCreateModal(true)} className="btn-interactive">
-              <Plus className="h-4 w-4 mr-2" />
-              Create Campaign
-            </Button>
-          )}
-        </div>
-      </header>
-
-      {!canManageCampaigns && (
-        <div className="glass-panel rounded-2xl p-4 border-info/20">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-info mt-0.5" />
-            <div>
-              <h3 className="font-semibold text-foreground">Read-Only Access</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                You have read-only access to attestation campaigns. Contact an admin to create or modify campaigns.
-              </p>
+            <div className="flex gap-2 flex-wrap">
+              {!canManageCampaigns && (
+                <div className="glass-panel px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-info" />
+                  <span className="text-info">Read-Only Access</span>
+                </div>
+              )}
+              {canManageCampaigns && (
+                <Button onClick={() => setShowCreateModal(true)} className="flex-1 sm:flex-none btn-interactive">
+                  <Plus size={20} className="mr-2" />Create Campaign
+                </Button>
+              )}
             </div>
           </div>
-        </div>
-      )}
+          {!canManageCampaigns && (
+            <div className="glass-panel rounded-xl p-3 border-info/20 bg-info/5">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="h-4 w-4 text-info mt-0.5" />
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    You have read-only access to attestation campaigns. Contact an admin to create or modify campaigns.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardHeader>
 
       {/* Campaign Cards */}
-      <div className="space-y-4">
         <CardContent>
           {campaigns.length === 0 ? (
             <div className="glass-panel rounded-2xl text-center py-16 animate-fade-in">
@@ -814,7 +811,7 @@ export default function AttestationPage() {
             </>
           )}
         </CardContent>
-      </div>
+      </Card>
 
       {/* Create Campaign Modal - Multi-Step Wizard */}
       <Dialog open={showCreateModal} onOpenChange={(open) => {
