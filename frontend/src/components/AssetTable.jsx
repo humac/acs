@@ -218,7 +218,7 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
               ))}
             </div>
 
-            <Table className="hidden md:table table-fixed w-full">
+            <Table className="hidden md:table w-full">
               <TableHeader className="bg-muted/30 border-b border-white/5">
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="w-12 px-4">
@@ -227,11 +227,13 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
                       onCheckedChange={toggleSelectAll}
                     />
                   </TableHead>
-                  <TableHead className="w-[25%] font-bold tracking-wider text-xs uppercase opacity-70">Employee / Asset</TableHead>
-                  <TableHead className="w-[20%] font-bold tracking-wider text-xs uppercase opacity-70">Configuration</TableHead>
-                  <TableHead className="w-[20%] font-bold tracking-wider text-xs uppercase opacity-70">Identity</TableHead>
-                  <TableHead className="w-[15%] font-bold tracking-wider text-xs uppercase opacity-70">Status</TableHead>
-                  <TableHead className="w-[20%] text-right pr-8 font-bold tracking-wider text-xs uppercase opacity-70">Actions</TableHead>
+                  <TableHead className="w-10"></TableHead>
+                  <TableHead className="font-bold tracking-wider text-xs uppercase opacity-70">Employee / Owner</TableHead>
+                  <TableHead className="font-bold tracking-wider text-xs uppercase opacity-70">Company</TableHead>
+                  <TableHead className="font-bold tracking-wider text-xs uppercase opacity-70">Asset Type</TableHead>
+                  <TableHead className="font-bold tracking-wider text-xs uppercase opacity-70">Asset Tag</TableHead>
+                  <TableHead className="font-bold tracking-wider text-xs uppercase opacity-70">Status</TableHead>
+                  <TableHead className="text-right pr-4 font-bold tracking-wider text-xs uppercase opacity-70">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

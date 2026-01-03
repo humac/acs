@@ -17,7 +17,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { Edit, Trash2, ChevronDown, ChevronRight, Loader2, Laptop, User, Calendar, Hash, FileText } from 'lucide-react';
+import { Edit, Trash2, ChevronDown, ChevronRight, Loader2, Laptop, User, Calendar, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatEmployeeName } from '@/utils/user';
 import { ASSET_STATUS_OPTIONS } from '@/lib/constants';
@@ -128,36 +128,32 @@ const AssetTableRow = memo(function AssetTableRow({
           </Button>
         </TableCell>
 
-        <TableCell className="py-5">
+        <TableCell className="py-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
-              <Laptop size={18} className="text-primary" />
+            <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 flex-shrink-0">
+              <User size={16} className="text-primary" />
             </div>
             <div className="min-w-0">
-              <div className="font-bold text-foreground leading-none mb-1 truncate max-w-[200px]">
+              <div className="font-semibold text-foreground leading-tight truncate">
                 {formatEmployeeName(asset, 'N/A')}
               </div>
-              <div className="text-xs text-muted-foreground truncate max-w-[200px]">{asset.employee_email || 'N/A'}</div>
+              <div className="text-xs text-muted-foreground truncate">{asset.employee_email || 'N/A'}</div>
             </div>
           </div>
         </TableCell>
 
-        <TableCell className="hidden lg:table-cell font-medium opacity-80">
-          <span className="truncate max-w-[150px] inline-block">{asset.company_name || '-'}</span>
+        <TableCell className="font-medium">
+          <span className="truncate block max-w-[120px]">{asset.company_name || '-'}</span>
         </TableCell>
 
-        <TableCell className="hidden md:table-cell">
-          <Badge variant="secondary" className="bg-surface/50 font-medium capitalize truncate max-w-[120px]">
+        <TableCell>
+          <Badge variant="secondary" className="bg-surface/50 font-medium capitalize">
             {asset.asset_type?.replace('_', ' ') || '-'}
           </Badge>
         </TableCell>
 
-        <TableCell className="hidden xl:table-cell">
-           <code className="text-xs bg-muted/50 px-2 py-1 rounded font-mono text-primary/80 truncate max-w-[100px] inline-block">{asset.asset_tag || '-'}</code>
-        </TableCell>
-
         <TableCell>
-          <code className="text-xs opacity-60 font-mono truncate max-w-[120px] inline-block">{asset.serial_number || '-'}</code>
+          <code className="text-xs bg-muted/50 px-2 py-1 rounded font-mono">{asset.asset_tag || '-'}</code>
         </TableCell>
 
         <TableCell>
@@ -211,7 +207,7 @@ const AssetTableRow = memo(function AssetTableRow({
           )}
         </TableCell>
 
-        <TableCell className="text-right pr-6">
+        <TableCell className="text-right pr-4">
           <div className="flex justify-end gap-1">
             <Button variant="ghost" size="icon" onClick={onEdit} disabled={!canEdit} className="h-8 w-8 hover:text-primary">
               <Edit className="h-4 w-4" />
@@ -226,7 +222,7 @@ const AssetTableRow = memo(function AssetTableRow({
       {/* Expanded Details Row */}
       {isExpanded && (
         <TableRow className="bg-surface/40 border-none animate-in fade-in slide-in-from-top-2 duration-300">
-          <TableCell colSpan={9} className="p-0">
+          <TableCell colSpan={8} className="p-0">
             <div className="px-16 py-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               <div className="space-y-3">
                 <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
@@ -240,7 +236,7 @@ const AssetTableRow = memo(function AssetTableRow({
 
               <div className="space-y-3">
                 <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
-                  <Hash size={12} /> Hardware
+                  <Laptop size={12} /> Make / Model / SN
                 </h4>
                 <div className="glass-panel p-4 rounded-xl space-y-1">
                   <div className="text-sm font-bold">{asset.make || 'Unknown'} {asset.model || ''}</div>
