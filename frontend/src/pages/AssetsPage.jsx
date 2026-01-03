@@ -6,7 +6,8 @@ import AssetBulkImportModal from '../components/AssetBulkImportModal';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Laptop, Loader2, Upload, Plus } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Laptop, Loader2, Upload, Plus, Search } from 'lucide-react';
 
 export default function AssetsPage() {
   const { getAuthHeaders, user } = useAuth();
@@ -17,6 +18,7 @@ export default function AssetsPage() {
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
   const [currentUser, setCurrentUser] = useState({ roles: ['user'] });
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -128,10 +130,22 @@ export default function AssetsPage() {
               </div>
             )}
           </div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative max-w-md w-full">
+              <Search className="h-4 w-4 absolute left-3 top-3 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, serial, tag, make, model..."
+                className="pl-9"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="px-4 sm:px-6">
           <AssetTable
             assets={assets}
+            searchTerm={searchTerm}
             onEdit={onEdit}
             onDelete={onDelete}
             currentUser={currentUser}

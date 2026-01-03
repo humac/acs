@@ -323,9 +323,10 @@ describe('AssetTable Component', () => {
     const user = userEvent.setup();
     const currentUser = { role: 'admin', email: 'admin@test.com' };
 
-    render(
+    const { rerender } = render(
       <AssetTable
         assets={sampleAssets}
+        searchTerm=""
         onEdit={mockOnEdit}
         onDelete={mockOnDelete}
         currentUser={currentUser}
@@ -337,10 +338,16 @@ describe('AssetTable Component', () => {
       expect(screen.getAllByText('John Doe')[0]).toBeInTheDocument();
     });
 
-    // Search by employee name (not manager name as that's not supported in refactored component)
-    const searchInput = screen.getByPlaceholderText(/search by name/i);
-    await user.clear(searchInput);
-    await user.type(searchInput, 'John');
+    // Search by employee name (searchTerm controlled by parent component)
+    rerender(
+      <AssetTable
+        assets={sampleAssets}
+        searchTerm="John"
+        onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
+        currentUser={currentUser}
+      />
+    );
 
     // Only John Doe should be visible
     await waitFor(() => {
@@ -353,9 +360,10 @@ describe('AssetTable Component', () => {
     const user = userEvent.setup();
     const currentUser = { role: 'admin', email: 'admin@test.com' };
 
-    render(
+    const { rerender } = render(
       <AssetTable
         assets={sampleAssets}
+        searchTerm=""
         onEdit={mockOnEdit}
         onDelete={mockOnDelete}
         currentUser={currentUser}
@@ -367,10 +375,16 @@ describe('AssetTable Component', () => {
       expect(screen.getAllByText('John Doe')[0]).toBeInTheDocument();
     });
 
-    // Search by employee email (not manager email as that's not supported in refactored component)
-    const searchInput = screen.getByPlaceholderText(/search by name/i);
-    await user.clear(searchInput);
-    await user.type(searchInput, 'jane@example.com');
+    // Search by employee email (searchTerm controlled by parent component)
+    rerender(
+      <AssetTable
+        assets={sampleAssets}
+        searchTerm="jane@example.com"
+        onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
+        currentUser={currentUser}
+      />
+    );
 
     // Only Jane Smith should be visible
     await waitFor(() => {
@@ -516,9 +530,10 @@ describe('AssetTable Component', () => {
       }
     ];
 
-    render(
+    const { rerender } = render(
       <AssetTable
         assets={assetsWithManagerId}
+        searchTerm=""
         onEdit={mockOnEdit}
         onDelete={mockOnDelete}
         currentUser={currentUser}
@@ -530,10 +545,16 @@ describe('AssetTable Component', () => {
       expect(screen.getAllByText('Employee One')[0]).toBeInTheDocument();
     });
 
-    // Search by employee name (not manager name as that's not supported in refactored component)
-    const searchInput = screen.getByPlaceholderText(/search by name/i);
-    await user.clear(searchInput);
-    await user.type(searchInput, 'One');
+    // Search by employee name (searchTerm controlled by parent component)
+    rerender(
+      <AssetTable
+        assets={assetsWithManagerId}
+        searchTerm="One"
+        onEdit={mockOnEdit}
+        onDelete={mockOnDelete}
+        currentUser={currentUser}
+      />
+    );
 
     // Only the first employee should be visible
     await waitFor(() => {

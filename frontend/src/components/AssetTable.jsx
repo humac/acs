@@ -27,14 +27,13 @@ import AssetTableFilters from '@/components/AssetTableFilters';
 import BulkAssetActions from '@/components/BulkAssetActions';
 import { Laptop, SearchX } from 'lucide-react';
 
-export default function AssetTable({ assets = [], onEdit, onDelete, currentUser, onRefresh }) {
+export default function AssetTable({ assets = [], searchTerm = '', onEdit, onDelete, currentUser, onRefresh }) {
   const { getAuthHeaders } = useAuth();
   const { getFullName, getEmail } = useUsers();
   const { toast } = useToast();
   
   const [deleteDialog, setDeleteDialog] = useState({ open: false, asset: null });
   const [bulkDeleteDialog, setBulkDeleteDialog] = useState({ open: false });
-  const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [companyFilter, setCompanyFilter] = useState('all');
   const [assetTypeFilter, setAssetTypeFilter] = useState('all');
@@ -211,7 +210,7 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
     <div className="space-y-6 animate-fade-in">
       <section className="glass-panel p-4 rounded-xl border-glass">
         <AssetTableFilters
-          searchTerm={searchTerm} setSearchTerm={setSearchTerm}
+          searchTerm={searchTerm}
           statusFilter={statusFilter} setStatusFilter={setStatusFilter}
           assetTypeFilter={assetTypeFilter} setAssetTypeFilter={setAssetTypeFilter}
           companyFilter={companyFilter} setCompanyFilter={setCompanyFilter}
@@ -221,7 +220,6 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
           uniqueEmployees={uniqueEmployees}
           uniqueManagers={uniqueManagers}
           onClearFilters={() => {
-            setSearchTerm(''); 
             setStatusFilter('all'); 
             setCompanyFilter('all');
             setAssetTypeFilter('all');
