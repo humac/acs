@@ -550,59 +550,74 @@ export default function AttestationPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex flex-col items-center justify-center h-[60vh] animate-fade-in">
+        <div className="relative">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <div className="absolute inset-0 blur-xl bg-primary/20 animate-pulse" />
+        </div>
+        <span className="mt-4 text-muted-foreground font-medium tracking-tight">Loading campaigns...</span>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-1 md:p-2 animate-fade-in bg-surface/30 min-h-screen rounded-2xl">
+      {/* Header Section */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 px-2">
+        <div>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gradient mb-2">
+            Attestation Campaigns
+          </h1>
+          <p className="text-muted-foreground text-lg">
+            Manage asset attestation campaigns and track employee compliance
+          </p>
+        </div>
+        <div className="flex gap-2 items-center flex-wrap">
+          {!canManageCampaigns && (
+            <div className="glass-panel px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 text-info" />
+              <span className="text-info">Read-Only Access</span>
+            </div>
+          )}
+          {canManageCampaigns && (
+            <Button onClick={() => setShowCreateModal(true)} className="btn-interactive">
+              <Plus className="h-4 w-4 mr-2" />
+              Create Campaign
+            </Button>
+          )}
+        </div>
+      </header>
+
       {!canManageCampaigns && (
-        <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div className="glass-panel rounded-2xl p-4 border-info/20">
           <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+            <AlertCircle className="h-5 w-5 text-info mt-0.5" />
             <div>
-              <h3 className="font-semibold text-blue-900 dark:text-blue-100">Read-Only Access</h3>
-              <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+              <h3 className="font-semibold text-foreground">Read-Only Access</h3>
+              <p className="text-sm text-muted-foreground mt-1">
                 You have read-only access to attestation campaigns. Contact an admin to create or modify campaigns.
               </p>
             </div>
           </div>
         </div>
       )}
-      <Card>
-        <CardHeader className="space-y-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-2">
-              <ClipboardCheck className="h-5 w-5 text-primary" />
-              <CardTitle>Attestation Campaigns ({campaigns.length})</CardTitle>
-            </div>
-            {canManageCampaigns && (
-              <div className="flex gap-2 flex-wrap">
-                <Button onClick={() => setShowCreateModal(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Campaign
-                </Button>
-              </div>
-            )}
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Manage asset attestation campaigns and track employee compliance
-          </p>
-        </CardHeader>
+
+      {/* Campaign Cards */}
+      <div className="space-y-4">
         <CardContent>
           {campaigns.length === 0 ? (
-            <div className="text-center py-12">
-              <ClipboardCheck className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No campaigns yet</h3>
-              <p className="text-muted-foreground mb-4">
+            <div className="glass-panel rounded-2xl text-center py-16 animate-fade-in">
+              <div className="icon-box icon-box-lg bg-primary/10 border-primary/20 mx-auto mb-6">
+                <ClipboardCheck className="h-8 w-8 text-primary" />
+              </div>
+              <h3 className="text-2xl font-bold mb-2">No campaigns yet</h3>
+              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
                 {canManageCampaigns 
                   ? 'Create your first attestation campaign to get started'
                   : 'No attestation campaigns have been created yet'}
               </p>
               {canManageCampaigns && (
-                <Button onClick={() => setShowCreateModal(true)}>
+                <Button onClick={() => setShowCreateModal(true)} className="btn-interactive">
                   <Plus className="h-4 w-4 mr-2" />
                   Create Campaign
                 </Button>
@@ -610,74 +625,110 @@ export default function AttestationPage() {
             </div>
           ) : (
             <>
-              {/* Mobile Card View */}
-              <div className="lg:hidden space-y-4">
-                {campaigns.map((campaign) => {
+              {/* Bento Grid View */}
+              <div className="bento-grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                {campaigns.map((campaign, index) => {
                   const stats = campaignStats[campaign.id];
+                  
+                  // Determine badge styling based on status
+                  const statusConfig = {
+                    draft: { class: 'glow-muted', label: 'Draft' },
+                    active: { class: 'glow-success', label: 'Active' },
+                    completed: { class: 'glow-info', label: 'Completed' },
+                    cancelled: { class: 'glow-destructive', label: 'Cancelled' }
+                  };
+                  const statusInfo = statusConfig[campaign.status] || statusConfig.draft;
+                  
                   return (
-                    <div key={campaign.id} className="border rounded-lg p-4 space-y-3">
-                      {/* Header with Name and Status */}
-                      <div className="flex items-start justify-between gap-2">
+                    <div 
+                      key={campaign.id} 
+                      className="bento-card animate-fade-in"
+                      style={{ animationDelay: `${index * 50}ms` }}
+                    >
+                      {/* Campaign Header */}
+                      <div className="flex items-start justify-between gap-3 mb-4">
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-medium truncate">{campaign.name}</h4>
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="icon-box icon-box-sm bg-primary/10 border-primary/20">
+                              <ClipboardCheck className="h-4 w-4 text-primary" />
+                            </div>
+                            <h3 className="font-bold text-lg truncate">{campaign.name}</h3>
+                          </div>
                           {campaign.description && (
-                            <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                            <p className="text-sm text-muted-foreground line-clamp-2">
                               {campaign.description}
                             </p>
                           )}
                         </div>
-                        {getStatusBadge(campaign.status)}
+                        <Badge className={cn("shrink-0", statusInfo.class)}>
+                          {statusInfo.label}
+                        </Badge>
                       </div>
 
                       {/* Progress Bar (for active campaigns) */}
                       {campaign.status === 'active' && stats && stats.total > 0 && (
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between text-xs text-muted-foreground">
-                            <span>{getProgressDisplay(campaign, stats)}</span>
-                            <span>{stats.percentage}%</span>
+                        <div className="space-y-2 mb-4 p-3 rounded-xl bg-muted/30">
+                          <div className="flex items-center justify-between">
+                            <span className="caption-label">Progress</span>
+                            <span className="text-sm font-bold text-primary">{stats.percentage}%</span>
                           </div>
-                          <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                          <div className="w-full bg-muted/50 rounded-full h-2.5 overflow-hidden border border-white/5">
                             <div
-                              className="bg-primary h-full transition-all duration-300 rounded-full"
+                              className="h-full transition-all duration-500 rounded-full bg-gradient-to-r from-primary to-info"
                               style={{ width: `${stats.percentage}%` }}
                             />
                           </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {getProgressDisplay(campaign, stats)}
+                          </p>
                         </div>
                       )}
 
                       {/* Date Info */}
-                      <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div className="grid grid-cols-2 gap-3 mb-4 p-3 rounded-xl bg-surface/50">
                         <div>
-                          <p className="text-xs text-muted-foreground">Start Date</p>
-                          <p className="font-medium">
-                            {new Date(campaign.start_date).toLocaleDateString()}
-                          </p>
+                          <p className="caption-label mb-1">Start Date</p>
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-3 w-3 text-muted-foreground" />
+                            <p className="text-sm font-medium">
+                              {new Date(campaign.start_date).toLocaleDateString()}
+                            </p>
+                          </div>
                         </div>
                         <div>
-                          <p className="text-xs text-muted-foreground">End Date</p>
-                          <p className="font-medium">
-                            {campaign.end_date
-                              ? new Date(campaign.end_date).toLocaleDateString()
-                              : '-'}
-                          </p>
+                          <p className="caption-label mb-1">End Date</p>
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-3 w-3 text-muted-foreground" />
+                            <p className="text-sm font-medium">
+                              {campaign.end_date
+                                ? new Date(campaign.end_date).toLocaleDateString()
+                                : 'Not set'}
+                            </p>
+                          </div>
                         </div>
                       </div>
 
                       {/* Reminder & Escalation Info */}
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground pt-2 border-t">
-                        <span>Reminder: {campaign.reminder_days} days</span>
-                        <span>Escalation: {campaign.escalation_days} days</span>
+                      <div className="flex items-center gap-4 mb-4 text-xs text-muted-foreground pb-3 border-b border-white/5">
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          <span>Reminder: {campaign.reminder_days}d</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Bell className="h-3 w-3" />
+                          <span>Escalation: {campaign.escalation_days}d</span>
+                        </div>
                       </div>
 
                       {/* Action Buttons */}
-                      <div className="flex flex-wrap gap-2 pt-2 border-t">
+                      <div className="flex flex-wrap gap-2">
                         {campaign.status === 'draft' && canManageCampaigns && (
                           <>
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => handleEditCampaignClick(campaign)}
-                              className="flex-1"
+                              className="flex-1 btn-interactive"
                             >
                               <Edit className="h-4 w-4 mr-2" />
                               Edit
@@ -685,7 +736,7 @@ export default function AttestationPage() {
                             <Button
                               size="sm"
                               onClick={() => handleStartCampaignClick(campaign)}
-                              className="flex-1"
+                              className="flex-1 btn-interactive"
                             >
                               <PlayCircle className="h-4 w-4 mr-2" />
                               Start
@@ -694,6 +745,7 @@ export default function AttestationPage() {
                               size="sm"
                               variant="destructive"
                               onClick={() => handleDeleteCampaignClick(campaign)}
+                              className="btn-interactive"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -705,7 +757,7 @@ export default function AttestationPage() {
                               size="sm"
                               variant="outline"
                               onClick={() => handleViewDashboard(campaign)}
-                              className="flex-1"
+                              className="flex-1 btn-interactive"
                             >
                               <Eye className="h-4 w-4 mr-2" />
                               Dashboard
@@ -714,7 +766,7 @@ export default function AttestationPage() {
                               size="sm"
                               variant="outline"
                               onClick={() => handleExportCampaign(campaign.id, campaign.name)}
-                              className="flex-1"
+                              className="flex-1 btn-interactive"
                             >
                               <Download className="h-4 w-4 mr-2" />
                               Export
@@ -724,6 +776,7 @@ export default function AttestationPage() {
                                 size="sm"
                                 variant="destructive"
                                 onClick={() => handleCancelCampaignClick(campaign)}
+                                className="btn-interactive"
                               >
                                 <XCircle className="h-4 w-4" />
                               </Button>
@@ -736,7 +789,7 @@ export default function AttestationPage() {
                               size="sm"
                               variant="outline"
                               onClick={() => handleExportCampaign(campaign.id, campaign.name)}
-                              className="flex-1"
+                              className="flex-1 btn-interactive"
                             >
                               <Download className="h-4 w-4 mr-2" />
                               Export
@@ -746,6 +799,7 @@ export default function AttestationPage() {
                                 size="sm"
                                 variant="destructive"
                                 onClick={() => handleDeleteCampaignClick(campaign)}
+                                className="btn-interactive"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -757,159 +811,10 @@ export default function AttestationPage() {
                   );
                 })}
               </div>
-
-              {/* Desktop Table View */}
-              <div className="hidden lg:block">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Progress</TableHead>
-                      <TableHead>Start Date</TableHead>
-                      <TableHead>End Date</TableHead>
-                      <TableHead className="hidden xl:table-cell">Reminder</TableHead>
-                      <TableHead className="hidden xl:table-cell">Escalation</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {campaigns.map((campaign) => {
-                      const stats = campaignStats[campaign.id];
-                      return (
-                      <TableRow key={campaign.id}>
-                        <TableCell className="font-medium">{campaign.name}</TableCell>
-                        <TableCell>{getStatusBadge(campaign.status)}</TableCell>
-                        <TableCell>
-                          {campaign.status === 'active' && stats ? (
-                            <div className="space-y-1 w-44">
-                              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                <span>{getProgressDisplay(campaign, stats)}</span>
-                              </div>
-                              {stats.total > 0 && (
-                                <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-                                  <div
-                                    className="bg-primary h-full transition-all duration-300 rounded-full"
-                                    style={{ width: `${stats.percentage}%` }}
-                                  />
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {new Date(campaign.start_date).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          {campaign.end_date
-                            ? new Date(campaign.end_date).toLocaleDateString()
-                            : '-'}
-                        </TableCell>
-                        <TableCell className="hidden xl:table-cell">{campaign.reminder_days} days</TableCell>
-                        <TableCell className="hidden xl:table-cell">{campaign.escalation_days} days</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            {campaign.status === 'draft' && (
-                              <>
-                                {canManageCampaigns && (
-                                  <>
-                                    <Button
-                                      size="icon"
-                                      variant="ghost"
-                                      onClick={() => handleEditCampaignClick(campaign)}
-                                      title="Edit"
-                                    >
-                                      <Edit className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      size="icon"
-                                      variant="ghost"
-                                      onClick={() => handleStartCampaignClick(campaign)}
-                                      title="Start"
-                                    >
-                                      <PlayCircle className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      size="icon"
-                                      variant="ghost"
-                                      className="text-destructive hover:text-destructive"
-                                      onClick={() => handleDeleteCampaignClick(campaign)}
-                                      title="Delete"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </>
-                                )}
-                              </>
-                            )}
-                            {campaign.status === 'active' && (
-                              <>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => handleViewDashboard(campaign)}
-                                  title="View Dashboard"
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => handleExportCampaign(campaign.id, campaign.name)}
-                                  title="Export"
-                                >
-                                  <Download className="h-4 w-4" />
-                                </Button>
-                                {canManageCampaigns && (
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="text-destructive hover:text-destructive"
-                                    onClick={() => handleCancelCampaignClick(campaign)}
-                                    title="Cancel"
-                                  >
-                                    <XCircle className="h-4 w-4" />
-                                  </Button>
-                                )}
-                              </>
-                            )}
-                            {(campaign.status === 'completed' || campaign.status === 'cancelled') && (
-                              <>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => handleExportCampaign(campaign.id, campaign.name)}
-                                  title="Export"
-                                >
-                                  <Download className="h-4 w-4" />
-                                </Button>
-                                {canManageCampaigns && (
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="text-destructive hover:text-destructive"
-                                    onClick={() => handleDeleteCampaignClick(campaign)}
-                                    title="Delete"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                )}
-                              </>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
             </>
           )}
         </CardContent>
-      </Card>
+      </div>
 
       {/* Create Campaign Modal - Multi-Step Wizard */}
       <Dialog open={showCreateModal} onOpenChange={(open) => {
@@ -919,7 +824,7 @@ export default function AttestationPage() {
           setUserSearchQuery('');
         }
       }}>
-        <DialogContent className="max-w-[95vw] sm:max-w-lg md:max-w-2xl">
+        <DialogContent className="glass-overlay max-w-[95vw] sm:max-w-lg md:max-w-2xl animate-scale-in">
           <DialogHeader>
             <DialogTitle>Create Attestation Campaign - Step {wizardStep} of 2</DialogTitle>
             <DialogDescription>
@@ -1185,19 +1090,20 @@ export default function AttestationPage() {
                 <Button variant="outline" onClick={() => {
                   setShowCreateModal(false);
                   setWizardStep(1);
-                }}>
+                }} className="btn-interactive">
                   Cancel
                 </Button>
                 <Button 
                   onClick={() => setWizardStep(2)} 
                   disabled={!formData.name || !formData.start_date}
+                  className="btn-interactive"
                 >
                   Next
                 </Button>
               </>
             ) : (
               <>
-                <Button variant="outline" onClick={() => setWizardStep(1)}>
+                <Button variant="outline" onClick={() => setWizardStep(1)} className="btn-interactive">
                   Back
                 </Button>
                 <Button 
@@ -1206,6 +1112,7 @@ export default function AttestationPage() {
                     (formData.target_type === 'selected' && formData.target_user_ids.length === 0) ||
                     (formData.target_type === 'companies' && formData.target_company_ids.length === 0)
                   }
+                  className="btn-interactive"
                 >
                   Create Campaign
                 </Button>
@@ -1225,7 +1132,7 @@ export default function AttestationPage() {
           }
         }}
       >
-        <DialogContent className="w-[95vw] sm:w-[90vw] max-w-7xl h-[92vh] overflow-hidden flex flex-col p-0">
+        <DialogContent className="glass-overlay w-[95vw] sm:w-[90vw] max-w-7xl h-[92vh] overflow-hidden flex flex-col p-0 animate-scale-in">
           <DialogHeader className="flex-shrink-0 px-4 sm:px-6 pt-4 sm:pt-6 pb-3 sm:pb-4">
             <DialogTitle className="text-xl sm:text-2xl">
               Campaign Dashboard: {selectedCampaign?.name}
@@ -1255,7 +1162,7 @@ export default function AttestationPage() {
           setEditingCampaign(null);
         }
       }}>
-        <DialogContent className="max-w-[95vw] sm:max-w-lg md:max-w-2xl">
+        <DialogContent className="glass-overlay max-w-[95vw] sm:max-w-lg md:max-w-2xl animate-scale-in">
           <DialogHeader>
             <DialogTitle>Edit Campaign - Step {wizardStep} of 2</DialogTitle>
             <DialogDescription>
@@ -1522,19 +1429,20 @@ export default function AttestationPage() {
                   setShowEditModal(false);
                   setWizardStep(1);
                   setEditingCampaign(null);
-                }}>
+                }} className="btn-interactive">
                   Cancel
                 </Button>
                 <Button 
                   onClick={() => setWizardStep(2)} 
                   disabled={!formData.name || !formData.start_date}
+                  className="btn-interactive"
                 >
                   Next
                 </Button>
               </>
             ) : (
               <>
-                <Button variant="outline" onClick={() => setWizardStep(1)}>
+                <Button variant="outline" onClick={() => setWizardStep(1)} className="btn-interactive">
                   Back
                 </Button>
                 <Button 
@@ -1543,6 +1451,7 @@ export default function AttestationPage() {
                     (formData.target_type === 'selected' && formData.target_user_ids.length === 0) ||
                     (formData.target_type === 'companies' && formData.target_company_ids.length === 0)
                   }
+                  className="btn-interactive"
                 >
                   Update Campaign
                 </Button>

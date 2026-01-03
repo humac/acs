@@ -85,28 +85,6 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
     return getDaysLate(record, campaignData) > 0;
   };
 
-  const getStatusBadge = (status) => {
-    const variants = {
-      draft: 'secondary',
-      active: 'default',
-      completed: 'outline',
-      cancelled: 'destructive',
-      pending: 'secondary',
-      in_progress: 'default',
-      unregistered: 'warning'
-    };
-
-    const labels = {
-      unregistered: 'Unregistered'
-    };
-
-    return (
-      <Badge variant={variants[status] || 'secondary'} className={status === 'unregistered' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400' : ''}>
-        {labels[status] || status}
-      </Badge>
-    );
-  };
-
   // Load dashboard data
   const loadDashboard = async () => {
     if (!campaign) return;
@@ -443,8 +421,12 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
 
   if (loadingDashboard) {
     return (
-      <div className="flex items-center justify-center h-32">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex flex-col items-center justify-center h-32 animate-fade-in">
+        <div className="relative">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="absolute inset-0 blur-xl bg-primary/20 animate-pulse" />
+        </div>
+        <span className="mt-4 text-sm text-muted-foreground">Loading campaign stats...</span>
       </div>
     );
   }
@@ -455,88 +437,73 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
 
   return (
     <div className={spacing}>
-      {/* Stats Cards */}
-      <div className={cn("grid grid-cols-2 md:grid-cols-5", gap)}>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-muted-foreground" />
-              <span className="text-2xl font-bold">
-                {dashboardData.records?.length || 0}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Completed
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
-              <span className="text-2xl font-bold">
-                {completedCount}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Pending
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-orange-600" />
-              <span className="text-2xl font-bold">
-                {pendingCount}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className={unregisteredCount > 0 ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/20' : ''}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Unregistered
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <UserX className="h-5 w-5 text-orange-600" />
-              <span className={`text-2xl font-bold ${unregisteredCount > 0 ? 'text-orange-600' : ''}`}>
-                {unregisteredCount}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className={overdueCount > 0 ? 'border-red-500 bg-red-50 dark:bg-red-950/20' : ''}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Overdue
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-red-600" />
-              <span className={`text-2xl font-bold ${overdueCount > 0 ? 'text-red-600' : ''}`}>
-                {overdueCount}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Stats Cards - Bento Grid */}
+      <div className={cn("bento-grid grid-cols-2 md:grid-cols-5", gap)}>
+        {/* Total Card */}
+        <div className="bento-card">
+          <div className="icon-box icon-box-sm bg-primary/10 border-primary/20 mb-3">
+            <Users className="h-4 w-4 text-primary" />
+          </div>
+          <p className="caption-label mb-1">Total</p>
+          <span className="text-2xl font-bold text-gradient">
+            {dashboardData.records?.length || 0}
+          </span>
+        </div>
+        
+        {/* Completed Card */}
+        <div className="bento-card">
+          <div className="icon-box icon-box-sm bg-success/10 border-success/20 mb-3">
+            <CheckCircle2 className="h-4 w-4 text-success" />
+          </div>
+          <p className="caption-label mb-1">Completed</p>
+          <span className="text-2xl font-bold text-success">
+            {completedCount}
+          </span>
+        </div>
+        
+        {/* Pending Card */}
+        <div className="bento-card">
+          <div className="icon-box icon-box-sm bg-warning/10 border-warning/20 mb-3">
+            <Clock className="h-4 w-4 text-warning" />
+          </div>
+          <p className="caption-label mb-1">Pending</p>
+          <span className="text-2xl font-bold text-warning">
+            {pendingCount}
+          </span>
+        </div>
+        
+        {/* Unregistered Card */}
+        <div className={cn(
+          "bento-card",
+          unregisteredCount > 0 && "glow-warning"
+        )}>
+          <div className="icon-box icon-box-sm bg-warning/10 border-warning/20 mb-3">
+            <UserX className="h-4 w-4 text-warning" />
+          </div>
+          <p className="caption-label mb-1">Unregistered</p>
+          <span className="text-2xl font-bold text-warning">
+            {unregisteredCount}
+          </span>
+        </div>
+        
+        {/* Overdue Card */}
+        <div className={cn(
+          "bento-card",
+          overdueCount > 0 && "glow-destructive"
+        )}>
+          <div className="icon-box icon-box-sm bg-destructive/10 border-destructive/20 mb-3">
+            <AlertCircle className="h-4 w-4 text-destructive" />
+          </div>
+          <p className="caption-label mb-1">Overdue</p>
+          <span className="text-2xl font-bold text-destructive">
+            {overdueCount}
+          </span>
+        </div>
       </div>
 
       {/* Manager Team Filter */}
       {user?.role === 'manager' && (
-        <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+        <div className="glass-panel rounded-xl p-3 flex items-center gap-2">
           <Checkbox 
             id="myTeamOnly"
             checked={showMyTeamOnly}
@@ -550,8 +517,8 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
 
       {/* Company Filter */}
       {['manager', 'admin', 'coordinator'].includes(user?.role) && availableCompanies.length > 0 && (
-        <div className="space-y-2 p-3 bg-muted/50 rounded-lg">
-          <Label htmlFor="company-filter" className="text-sm font-medium">
+        <div className="glass-panel rounded-xl p-3 space-y-2">
+          <Label htmlFor="company-filter" className="caption-label">
             Filter by Company
           </Label>
           <Select value={selectedCompany} onValueChange={setSelectedCompany}>
@@ -631,7 +598,7 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
       </div>
 
       {/* Auto-refresh controls */}
-      <div className="flex items-center justify-between">
+      <div className="glass-panel rounded-xl p-3 flex items-center justify-between">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <RefreshCw className={cn(
             "h-3 w-3",
@@ -647,6 +614,7 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
             variant="ghost"
             onClick={handleManualRefresh}
             title="Refresh now"
+            className="btn-interactive"
           >
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -655,6 +623,7 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
             variant="ghost"
             onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
             title={autoRefreshEnabled ? 'Pause auto-refresh' : 'Resume auto-refresh'}
+            className="btn-interactive"
           >
             {autoRefreshEnabled ? 'Pause' : 'Resume'}
           </Button>
@@ -663,7 +632,7 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
 
       {/* Bulk Actions Toolbar */}
       {selectedRecordIds.size > 0 && (
-        <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
+        <div className="glass-panel rounded-xl p-4 flex items-center gap-3 glow-primary">
           <span className="text-sm font-medium">
             {selectedRecordIds.size} selected
           </span>
@@ -672,6 +641,7 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
               size="sm"
               onClick={handleBulkRemind}
               disabled={sendingBulkReminder}
+              className="btn-interactive"
             >
               {sendingBulkReminder ? (
                 <>
@@ -692,6 +662,7 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
               variant="secondary"
               onClick={handleBulkResendInvites}
               disabled={sendingBulkInvites}
+              className="btn-interactive"
             >
               {sendingBulkInvites ? (
                 <>
@@ -710,6 +681,7 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
             size="sm"
             variant="outline"
             onClick={() => setSelectedRecordIds(new Set())}
+            className="btn-interactive"
           >
             Clear Selection
           </Button>
@@ -717,8 +689,11 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
       )}
 
       {/* Employee Records Table */}
-      <div>
-        <h3 className="text-lg font-semibold mb-4">Employee Records</h3>
+      <div className="glass-panel rounded-2xl p-4">
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Users className="h-5 w-5 text-primary" />
+          Employee Records
+        </h3>
         <div className={compact ? "max-h-[400px] overflow-y-auto" : "max-h-[600px] overflow-y-auto"}>
           <Table>
             <TableHeader>
@@ -753,7 +728,10 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
                 filteredRecords.map((record) => (
                   <TableRow
                     key={record.id}
-                    className={record.is_pending_invite ? 'bg-orange-50/50 dark:bg-orange-950/10' : ''}
+                    className={cn(
+                      "transition-colors",
+                      record.is_pending_invite && "bg-warning/5 hover:bg-warning/10"
+                    )}
                   >
                     <TableCell>
                       {record.status !== 'completed' && (
@@ -767,9 +745,20 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
                     <TableCell>{record.user_email}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {getStatusBadge(record.status)}
+                        {record.status === 'completed' && (
+                          <Badge className="glow-success">completed</Badge>
+                        )}
+                        {record.status === 'pending' && (
+                          <Badge className="glow-warning">pending</Badge>
+                        )}
+                        {record.status === 'in_progress' && (
+                          <Badge className="glow-primary">in_progress</Badge>
+                        )}
+                        {record.status === 'unregistered' && (
+                          <Badge className="glow-warning">unregistered</Badge>
+                        )}
                         {isOverdue(record, campaign) && (
-                          <Badge variant="destructive" className="text-xs">
+                          <Badge className="glow-destructive text-xs">
                             {getDaysLate(record, campaign)}d late
                           </Badge>
                         )}
@@ -803,6 +792,7 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
                           onClick={() => handleResendInvite(record.invite_id)}
                           disabled={resendingInvite.has(record.invite_id)}
                           title="Resend registration invite"
+                          className="btn-interactive"
                         >
                           {resendingInvite.has(record.invite_id) ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -817,6 +807,7 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
                           onClick={() => handleSendReminder(record.id)}
                           disabled={sendingReminder.has(record.id)}
                           title="Send reminder email"
+                          className="btn-interactive"
                         >
                           {sendingReminder.has(record.id) ? (
                             <Loader2 className="h-4 w-4 animate-spin" />

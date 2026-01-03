@@ -11,7 +11,11 @@ import {
   CheckCircle2,
   AlertCircle,
   Package,
-  Plus
+  Plus,
+  PlayCircle,
+  RefreshCw,
+  Calendar,
+  Clock
 } from 'lucide-react';
 import {
   Table,
@@ -39,6 +43,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 export default function MyAttestationsPage() {
   const { getAuthHeaders, user } = useAuth();
@@ -406,137 +411,154 @@ export default function MyAttestationsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex flex-col items-center justify-center h-[60vh] animate-fade-in">
+        <div className="relative">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <div className="absolute inset-0 blur-xl bg-primary/20 animate-pulse" />
+        </div>
+        <span className="mt-4 text-muted-foreground font-medium tracking-tight">Loading your attestations...</span>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader className="space-y-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-2">
-              <ClipboardCheck className="h-5 w-5 text-primary" />
-              <CardTitle>My Attestations ({attestations.length})</CardTitle>
-            </div>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Review and attest to the status of your registered assets
+    <div className="space-y-6 p-1 md:p-2 animate-fade-in bg-surface/30 min-h-screen rounded-2xl">
+      {/* Header Section */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 px-2">
+        <div>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gradient mb-2">
+            My Attestations
+          </h1>
+          <p className="text-muted-foreground text-lg">
+            Welcome back, <span className="text-foreground font-semibold">{user?.first_name}</span>. Review and attest to the status of your registered assets.
           </p>
-        </CardHeader>
-        <CardContent>
-          {attestations.length === 0 ? (
-            <div className="text-center py-12">
-              <ClipboardCheck className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No pending attestations</h3>
-              <p className="text-muted-foreground">
-                You don't have any pending asset attestations at this time
-              </p>
-            </div>
-          ) : (
-            <>
-              {/* Mobile Card View */}
-              <div className="md:hidden space-y-3">
-                {attestations.map((attestation) => (
-                  <div
-                    key={attestation.id}
-                    className="border rounded-lg p-4 space-y-3"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium truncate">{attestation.campaign?.name}</h4>
-                        {attestation.campaign?.description && (
-                          <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                            {attestation.campaign?.description}
-                          </p>
-                        )}
-                      </div>
-                      {getStatusBadge(attestation.status)}
-                    </div>
+        </div>
+        {attestations.length > 0 && (
+          <div className="glass-panel px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2">
+            {attestations.some(a => a.status === 'pending' || a.status === 'in_progress') ? (
+              <>
+                <span className="h-2 w-2 rounded-full bg-warning animate-pulse" />
+                <span className="text-warning">Action Required</span>
+              </>
+            ) : (
+              <>
+                <span className="h-2 w-2 rounded-full bg-success" />
+                <span className="text-success">All Complete</span>
+              </>
+            )}
+          </div>
+        )}
+      </header>
 
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <p className="text-xs text-muted-foreground">Started</p>
-                        <p className="font-medium">
+      {/* Attestation Cards */}
+      <div className="space-y-4">
+        {attestations.length === 0 ? (
+          <div className="glass-panel rounded-2xl text-center py-16 animate-fade-in">
+            <div className="icon-box icon-box-lg bg-primary/10 border-primary/20 mx-auto mb-6">
+              <ClipboardCheck className="h-8 w-8 text-primary" />
+            </div>
+            <h3 className="text-2xl font-bold mb-2">No pending attestations</h3>
+            <p className="text-muted-foreground max-w-md mx-auto">
+              You don't have any pending asset attestations at this time
+            </p>
+          </div>
+        ) : (
+          <div className="bento-grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            {attestations.map((attestation, index) => {
+              const statusConfig = {
+                pending: { class: 'glow-warning', label: 'Pending', icon: AlertCircle },
+                in_progress: { class: 'glow-primary', label: 'In Progress', icon: RefreshCw },
+                completed: { class: 'glow-success', label: 'Completed', icon: CheckCircle2 }
+              };
+              const statusInfo = statusConfig[attestation.status] || statusConfig.pending;
+              const StatusIcon = statusInfo.icon;
+              
+              return (
+                <div 
+                  key={attestation.id} 
+                  className="bento-card animate-fade-in"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  {/* Campaign Header */}
+                  <div className="flex items-start justify-between gap-3 mb-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="icon-box icon-box-sm bg-primary/10 border-primary/20">
+                          <StatusIcon className="h-4 w-4 text-primary" />
+                        </div>
+                        <h3 className="font-bold text-lg truncate">{attestation.campaign?.name}</h3>
+                      </div>
+                      {attestation.campaign?.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {attestation.campaign?.description}
+                        </p>
+                      )}
+                    </div>
+                    <Badge className={cn("shrink-0", statusInfo.class)}>
+                      {statusInfo.label}
+                    </Badge>
+                  </div>
+
+                  {/* Date Info */}
+                  <div className="grid grid-cols-2 gap-3 mb-4 p-3 rounded-xl bg-surface/50">
+                    <div>
+                      <p className="caption-label mb-1">Started</p>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-3 w-3 text-muted-foreground" />
+                        <p className="text-sm font-medium">
                           {new Date(attestation.campaign?.start_date).toLocaleDateString()}
                         </p>
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Completed</p>
-                        <p className="font-medium">
-                          {attestation.completed_at
-                            ? new Date(attestation.completed_at).toLocaleDateString()
-                            : '-'}
-                        </p>
+                    </div>
+                    <div>
+                      <p className="caption-label mb-1">Completed</p>
+                      <div className="flex items-center gap-2">
+                        {attestation.completed_at ? (
+                          <>
+                            <CheckCircle2 className="h-3 w-3 text-success" />
+                            <p className="text-sm font-medium text-success">
+                              {new Date(attestation.completed_at).toLocaleDateString()}
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <Clock className="h-3 w-3 text-muted-foreground" />
+                            <p className="text-sm font-medium text-muted-foreground">Not yet</p>
+                          </>
+                        )}
                       </div>
                     </div>
-
-                    {attestation.status !== 'completed' && (
-                      <Button
-                        onClick={() => handleStartAttestation(attestation)}
-                        className="w-full"
-                      >
-                        {attestation.status === 'pending' ? 'Start Attestation' : 'Continue Attestation'}
-                      </Button>
-                    )}
                   </div>
-                ))}
-              </div>
 
-              {/* Desktop Table View */}
-              <Table wrapperClassName="hidden md:block">
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Campaign</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Started</TableHead>
-                    <TableHead className="hidden lg:table-cell">Completed</TableHead>
-                    <TableHead className="text-right">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {attestations.map((attestation) => (
-                    <TableRow key={attestation.id}>
-                      <TableCell>
-                        <div className="space-y-1">
-                          <div className="font-medium">{attestation.campaign?.name}</div>
-                          <div className="text-sm text-muted-foreground hidden lg:block">
-                            {attestation.campaign?.description}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {getStatusBadge(attestation.status)}
-                      </TableCell>
-                      <TableCell>
-                        {new Date(attestation.campaign?.start_date).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        {attestation.completed_at
-                          ? new Date(attestation.completed_at).toLocaleDateString()
-                          : '-'}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {attestation.status !== 'completed' && (
-                          <Button onClick={() => handleStartAttestation(attestation)}>
-                            {attestation.status === 'pending' ? 'Start Attestation' : 'Continue Attestation'}
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </>
-          )}
-        </CardContent>
-      </Card>
+                  {/* Action Button */}
+                  {attestation.status !== 'completed' && (
+                    <Button
+                      onClick={() => handleStartAttestation(attestation)}
+                      className="w-full btn-interactive"
+                    >
+                      {attestation.status === 'pending' ? (
+                        <>
+                          <PlayCircle className="h-4 w-4 mr-2" />
+                          Start Attestation
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          Continue Attestation
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Attestation Modal */}
       <Dialog open={showAttestationModal} onOpenChange={setShowAttestationModal}>
-        <DialogContent className="max-w-[95vw] sm:max-w-2xl md:max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="glass-overlay max-w-[95vw] sm:max-w-2xl md:max-w-4xl max-h-[80vh] overflow-y-auto animate-scale-in">
           <DialogHeader>
             <DialogTitle>Asset Attestation: {attestationDetails?.campaign?.name}</DialogTitle>
             <DialogDescription>
@@ -544,19 +566,27 @@ export default function MyAttestationsPage() {
             </DialogDescription>
           </DialogHeader>
           {loadingDetails ? (
-            <div className="flex items-center justify-center h-32">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="flex flex-col items-center justify-center h-32 animate-fade-in">
+              <div className="relative">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <div className="absolute inset-0 blur-xl bg-primary/20 animate-pulse" />
+              </div>
+              <span className="mt-4 text-sm text-muted-foreground">Loading attestation details...</span>
             </div>
           ) : attestationDetails ? (
             <div className="space-y-6">
               {/* Assets Table */}
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">Your Assets</h3>
+                  <h3 className="text-lg font-semibold flex items-center gap-2">
+                    <Package className="h-5 w-5 text-primary" />
+                    Your Assets
+                  </h3>
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={handleOpenAddAssetModal}
+                    className="btn-interactive"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Missing Asset
@@ -564,8 +594,10 @@ export default function MyAttestationsPage() {
                 </div>
 
                 {attestationDetails.assets?.length === 0 ? (
-                  <div className="text-center py-8 border rounded-md">
-                    <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <div className="glass-panel rounded-2xl text-center py-12">
+                    <div className="icon-box icon-box-lg bg-primary/10 border-primary/20 mx-auto mb-4">
+                      <Package className="h-8 w-8 text-primary" />
+                    </div>
                     <p className="text-muted-foreground">
                       No assets registered yet. Click "Add Missing Asset" to add one.
                     </p>
@@ -573,7 +605,7 @@ export default function MyAttestationsPage() {
                 ) : (
                   <>
                     {/* Desktop Table View */}
-                    <div className="hidden md:block rounded-md overflow-hidden">
+                    <div className="hidden md:block glass-panel rounded-2xl overflow-hidden">
                       <Table>
                         <TableHeader>
                           <TableRow>
@@ -647,9 +679,11 @@ export default function MyAttestationsPage() {
                                 </TableCell>
                                 <TableCell className="text-right">
                                   {isCertified ? (
-                                    <div className="flex items-center justify-end gap-2 text-green-600">
-                                      <CheckCircle2 className="h-5 w-5" />
-                                      <span className="text-sm font-medium">Certified</span>
+                                    <div className="flex items-center justify-end gap-2">
+                                      <Badge className="glow-success">
+                                        <CheckCircle2 className="h-3 w-3 mr-1" />
+                                        Certified
+                                      </Badge>
                                     </div>
                                   ) : (
                                     <Button
@@ -658,6 +692,7 @@ export default function MyAttestationsPage() {
                                       onClick={() => handleCertifyAsset(asset)}
                                       disabled={selectedStatus === 'returned' && !returnedDates[asset.id]}
                                       title="Certify this asset"
+                                      className="btn-interactive"
                                     >
                                       <CheckCircle2 className="h-4 w-4" />
                                     </Button>
@@ -677,36 +712,48 @@ export default function MyAttestationsPage() {
                         const selectedStatus = selectedStatuses[asset.id] || asset.status;
                         const showReturnedDate = selectedStatus === 'returned' && !isCertified;
                         return (
-                          <Card key={asset.id} className={isCertified ? 'border-green-500 bg-green-50 dark:bg-green-950' : ''}>
-                            <CardContent className="p-4 space-y-3">
+                          <div 
+                            key={asset.id} 
+                            className={cn(
+                              "bento-card",
+                              isCertified && "border-success/30 bg-success/5"
+                            )}
+                          >
+                            <div className="space-y-3">
                               <div className="flex items-start justify-between">
-                                <div>
-                                  <div className="font-semibold">{asset.asset_type}</div>
-                                  <div className="text-sm text-muted-foreground">
-                                    {asset.make} {asset.model}
+                                <div className="flex items-center gap-2">
+                                  <div className="icon-box icon-box-sm bg-primary/10 border-primary/20">
+                                    <Package className="h-4 w-4 text-primary" />
                                   </div>
-                                  <div className="text-xs text-muted-foreground mt-1">
-                                    SN: {asset.serial_number}
+                                  <div>
+                                    <div className="font-semibold">{asset.asset_type}</div>
+                                    <div className="text-sm text-muted-foreground">
+                                      {asset.make} {asset.model}
+                                    </div>
                                   </div>
                                 </div>
                                 {isCertified && (
-                                  <div className="flex items-center gap-1 text-green-600">
-                                    <CheckCircle2 className="h-5 w-5" />
-                                    <span className="text-xs font-medium">Certified</span>
-                                  </div>
+                                  <Badge className="glow-success">
+                                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                                    Certified
+                                  </Badge>
                                 )}
+                              </div>
+
+                              <div className="text-xs text-muted-foreground p-2 rounded bg-muted/30">
+                                SN: {asset.serial_number}
                               </div>
 
                               <div className="space-y-2">
                                 <div>
-                                  <Label className="text-xs text-muted-foreground">Current Status</Label>
+                                  <Label className="caption-label">Current Status</Label>
                                   <div className="mt-1">
                                     <Badge variant="secondary">{asset.status}</Badge>
                                   </div>
                                 </div>
 
                                 <div>
-                                  <Label className="text-xs text-muted-foreground">Update Status</Label>
+                                  <Label className="caption-label">Update Status</Label>
                                   {isCertified ? (
                                     <div className="mt-1 space-y-1">
                                       <Badge variant="outline">{selectedStatus}</Badge>
@@ -754,7 +801,7 @@ export default function MyAttestationsPage() {
 
                               {!isCertified && (
                                 <Button
-                                  className="w-full"
+                                  className="w-full btn-interactive"
                                   onClick={() => handleCertifyAsset(asset)}
                                   disabled={selectedStatus === 'returned' && !returnedDates[asset.id]}
                                 >
@@ -762,8 +809,8 @@ export default function MyAttestationsPage() {
                                   Certify Asset
                                 </Button>
                               )}
-                            </CardContent>
-                          </Card>
+                            </div>
+                          </div>
                         );
                       })}
                     </div>
@@ -774,8 +821,11 @@ export default function MyAttestationsPage() {
               {/* New Assets Added */}
               {attestationDetails.newAssets?.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">Newly Added Assets</h3>
-                  <div className="rounded-md overflow-hidden">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Plus className="h-5 w-5 text-success" />
+                    Newly Added Assets
+                  </h3>
+                  <div className="glass-panel rounded-2xl overflow-hidden">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -807,24 +857,25 @@ export default function MyAttestationsPage() {
               )}
 
               {/* Complete Button */}
-              <div className="pt-4 border-t space-y-3">
+              <div className="glass-panel rounded-2xl p-4 space-y-3 border-primary/20">
                 {attestationDetails.assets?.length > 0 && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">
-                      Progress: <span className="font-semibold text-foreground">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="caption-label mb-1">Certification Progress</p>
+                      <p className="font-semibold text-lg">
                         {certifiedAssetIds.size} of {attestationDetails.assets.length} assets certified
-                      </span>
-                    </span>
+                      </p>
+                    </div>
                     {certifiedAssetIds.size < attestationDetails.assets.length && (
-                      <span className="text-orange-600 flex items-center gap-1">
-                        <AlertCircle className="h-4 w-4" />
-                        Certify all assets to complete
-                      </span>
+                      <Badge className="glow-warning">
+                        <AlertCircle className="h-3 w-3 mr-1" />
+                        Certify all to complete
+                      </Badge>
                     )}
                   </div>
                 )}
                 <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setShowAttestationModal(false)}>
+                  <Button variant="outline" onClick={() => setShowAttestationModal(false)} className="btn-interactive">
                     Close
                   </Button>
                   <Button 
@@ -834,6 +885,7 @@ export default function MyAttestationsPage() {
                       attestationDetails.assets?.length > 0 && 
                       certifiedAssetIds.size < attestationDetails.assets.length
                     }
+                    className="btn-interactive"
                   >
                     <CheckCircle2 className="h-4 w-4 mr-2" />
                     Complete Attestation
@@ -847,7 +899,7 @@ export default function MyAttestationsPage() {
 
       {/* Add New Asset Modal */}
       <Dialog open={showAddAssetModal} onOpenChange={setShowAddAssetModal}>
-        <DialogContent className="max-w-[95vw] sm:max-w-lg md:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="glass-overlay max-w-[95vw] sm:max-w-lg md:max-w-2xl max-h-[90vh] overflow-y-auto animate-scale-in">
           <DialogHeader>
             <DialogTitle>Add Missing Asset</DialogTitle>
             <DialogDescription>
@@ -1110,10 +1162,10 @@ export default function MyAttestationsPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddAssetModal(false)}>
+            <Button variant="outline" onClick={() => setShowAddAssetModal(false)} className="btn-interactive">
               Cancel
             </Button>
-            <Button onClick={handleAddNewAsset}>
+            <Button onClick={handleAddNewAsset} className="btn-interactive">
               Add Asset
             </Button>
           </DialogFooter>
