@@ -475,7 +475,7 @@ export default function MyAttestationsPage() {
               return (
                 <div 
                   key={attestation.id} 
-                  className="bento-card animate-fade-in"
+                  className="bento-card p-5 animate-fade-in"
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
                   {/* Campaign Header */}
