@@ -40,7 +40,7 @@ jest.unstable_mockModule('nodemailer', () => ({
 }));
 
 // Now import the module under test
-const { sendTestEmail, verifyConnection, getAppUrl } = await import('./smtpMailer.js');
+const { sendTestEmail, verifyConnection, getAppUrl, sendEmailVerificationEmail, sendEmailChangeVerificationEmail } = await import('./smtpMailer.js');
 
 describe('SMTP Mailer Service', () => {
   beforeEach(() => {
@@ -382,6 +382,143 @@ describe('SMTP Mailer Service', () => {
       const url = await getAppUrl();
 
       expect(url).toBe('https://example.com/app');
+    });
+  });
+
+  describe('sendEmailVerificationEmail', () => {
+    it('should send verification email successfully', async () => {
+      const mockSettings = {
+        enabled: 1,
+        host: 'smtp.example.com',
+        port: 587,
+        use_tls: 1,
+        from_name: 'ACS',
+        from_email: 'noreply@example.com'
+      };
+
+      mockSmtpSettingsDb.get.mockResolvedValue(mockSettings);
+      mockSmtpSettingsDb.getPassword.mockResolvedValue(null);
+      mockSendMail.mockResolvedValue({
+        messageId: '<verify@example.com>',
+        response: '250 Message accepted'
+      });
+
+      const result = await sendEmailVerificationEmail(
+        'newuser@example.com',
+        'verification-token-123',
+        'https://example.com/verify-email?token=verification-token-123'
+      );
+
+      expect(result.success).toBe(true);
+      expect(mockSendMail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: 'newuser@example.com',
+          subject: expect.stringContaining('Verify')
+        })
+      );
+    });
+
+    it('should fail when SMTP is not enabled', async () => {
+      mockSmtpSettingsDb.get.mockResolvedValue({ enabled: 0 });
+
+      const result = await sendEmailVerificationEmail(
+        'newuser@example.com',
+        'token',
+        'https://example.com/verify'
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('not enabled');
+      expect(mockSendMail).not.toHaveBeenCalled();
+    });
+
+    it('should fail when from_email is not configured', async () => {
+      mockSmtpSettingsDb.get.mockResolvedValue({
+        enabled: 1,
+        host: 'smtp.example.com',
+        port: 587,
+        from_email: null
+      });
+
+      const result = await sendEmailVerificationEmail(
+        'newuser@example.com',
+        'token',
+        'https://example.com/verify'
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('From email');
+      expect(mockSendMail).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('sendEmailChangeVerificationEmail', () => {
+    it('should send email change verification successfully', async () => {
+      const mockSettings = {
+        enabled: 1,
+        host: 'smtp.example.com',
+        port: 587,
+        use_tls: 1,
+        from_name: 'ACS',
+        from_email: 'noreply@example.com'
+      };
+
+      mockSmtpSettingsDb.get.mockResolvedValue(mockSettings);
+      mockSmtpSettingsDb.getPassword.mockResolvedValue(null);
+      mockSendMail.mockResolvedValue({
+        messageId: '<change@example.com>',
+        response: '250 Message accepted'
+      });
+
+      const result = await sendEmailChangeVerificationEmail(
+        'newemail@example.com',
+        'oldemail@example.com',
+        'change-token-456',
+        'https://example.com/verify-email?token=change-token-456'
+      );
+
+      expect(result.success).toBe(true);
+      expect(mockSendMail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: 'newemail@example.com',
+          subject: expect.stringContaining('Confirm Your New Email')
+        })
+      );
+    });
+
+    it('should fail when SMTP is not enabled', async () => {
+      mockSmtpSettingsDb.get.mockResolvedValue({ enabled: 0 });
+
+      const result = await sendEmailChangeVerificationEmail(
+        'newemail@example.com',
+        'oldemail@example.com',
+        'token',
+        'https://example.com/verify'
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('not enabled');
+      expect(mockSendMail).not.toHaveBeenCalled();
+    });
+
+    it('should fail when from_email is not configured', async () => {
+      mockSmtpSettingsDb.get.mockResolvedValue({
+        enabled: 1,
+        host: 'smtp.example.com',
+        port: 587,
+        from_email: null
+      });
+
+      const result = await sendEmailChangeVerificationEmail(
+        'newemail@example.com',
+        'oldemail@example.com',
+        'token',
+        'https://example.com/verify'
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('From email');
+      expect(mockSendMail).not.toHaveBeenCalled();
     });
   });
 });

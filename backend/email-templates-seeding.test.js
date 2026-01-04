@@ -45,12 +45,14 @@ describe('Email Templates Seeding', () => {
     const templates = await emailTemplateDb.getAll();
     
     expect(templates).toBeDefined();
-    expect(templates.length).toBe(9);
-    
+    expect(templates.length).toBe(11);
+
     // Verify all expected templates exist
     const templateKeys = templates.map(t => t.template_key);
     expect(templateKeys).toContain('test_email');
     expect(templateKeys).toContain('password_reset');
+    expect(templateKeys).toContain('email_verification');
+    expect(templateKeys).toContain('email_change_verification');
     expect(templateKeys).toContain('attestation_launch');
     expect(templateKeys).toContain('attestation_reminder');
     expect(templateKeys).toContain('attestation_escalation');
@@ -100,7 +102,7 @@ describe('Email Templates Seeding', () => {
     const countAfter = templatesAfter.length;
     
     expect(countAfter).toBe(countBefore);
-    expect(countAfter).toBe(9);
+    expect(countAfter).toBe(11);
   });
 
   it('should allow retrieval of individual templates by key', async () => {
