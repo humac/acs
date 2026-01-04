@@ -440,7 +440,7 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
       {/* Stats Cards - Bento Grid */}
       <div className={cn("bento-grid grid-cols-2 md:grid-cols-5", gap)}>
         {/* Total Card */}
-        <div className="bento-card">
+        <div className="bento-card p-4">
           <div className="icon-box icon-box-sm bg-primary/10 border-primary/20 mb-3">
             <Users className="h-4 w-4 text-primary" />
           </div>
@@ -451,7 +451,7 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
         </div>
         
         {/* Completed Card */}
-        <div className="bento-card">
+        <div className="bento-card p-4">
           <div className="icon-box icon-box-sm bg-success/10 border-success/20 mb-3">
             <CheckCircle2 className="h-4 w-4 text-success" />
           </div>
@@ -462,7 +462,7 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
         </div>
         
         {/* Pending Card */}
-        <div className="bento-card">
+        <div className="bento-card p-4">
           <div className="icon-box icon-box-sm bg-warning/10 border-warning/20 mb-3">
             <Clock className="h-4 w-4 text-warning" />
           </div>
@@ -474,7 +474,7 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
         
         {/* Unregistered Card */}
         <div className={cn(
-          "bento-card",
+          "bento-card p-4",
           unregisteredCount > 0 && "glow-warning"
         )}>
           <div className="icon-box icon-box-sm bg-warning/10 border-warning/20 mb-3">
@@ -488,7 +488,7 @@ export function DashboardContent({ campaign, compact = false, onClose = null }) 
         
         {/* Overdue Card */}
         <div className={cn(
-          "bento-card",
+          "bento-card p-4",
           overdueCount > 0 && "glow-destructive"
         )}>
           <div className="icon-box icon-box-sm bg-destructive/10 border-destructive/20 mb-3">
