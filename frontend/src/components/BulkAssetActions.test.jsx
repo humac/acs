@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import BulkAssetActions from './BulkAssetActions';
 
@@ -158,9 +158,8 @@ describe('BulkAssetActions', () => {
         />
       );
 
-      // The edit button should not be in the selection bar
-      const selectionBar = screen.getByText('2 selected').closest('div');
-      expect(within(selectionBar).queryByRole('button', { name: /edit/i })).not.toBeInTheDocument();
+      // The bulk edit button should not be visible for manager who doesn't own assets
+      expect(screen.queryByRole('button', { name: /bulk edit/i })).not.toBeInTheDocument();
     });
 
     it('still shows export dropdown for manager', () => {
@@ -215,8 +214,8 @@ describe('BulkAssetActions', () => {
         />
       );
 
-      // The edit button should not be visible
-      expect(screen.queryByRole('button', { name: /^edit$/i })).not.toBeInTheDocument();
+      // The bulk edit button should not be visible
+      expect(screen.queryByRole('button', { name: /bulk edit/i })).not.toBeInTheDocument();
     });
 
     it('shows bulk edit when employee owns the only selected asset', () => {
@@ -257,8 +256,8 @@ describe('BulkAssetActions', () => {
         />
       );
 
-      // The edit button should not be visible for read-only user
-      expect(screen.queryByRole('button', { name: /^edit$/i })).not.toBeInTheDocument();
+      // The bulk edit button should not be visible for read-only user
+      expect(screen.queryByRole('button', { name: /bulk edit/i })).not.toBeInTheDocument();
     });
 
     it('still shows export dropdown for coordinator', () => {
@@ -374,7 +373,7 @@ describe('BulkAssetActions', () => {
   });
 
   describe('clear selection', () => {
-    it('calls onClearSelection when X button clicked', async () => {
+    it('calls onClearSelection when Clear button clicked', async () => {
       const user = userEvent.setup();
       const mockOnClearSelection = vi.fn();
 
@@ -386,9 +385,8 @@ describe('BulkAssetActions', () => {
         />
       );
 
-      // Find the Clear button directly by its text
-      const clearButton = screen.getByRole('button', { name: /clear/i });
-      await user.click(clearButton);
+      // Find the Clear button by its text
+      await user.click(screen.getByRole('button', { name: /clear/i }));
 
       expect(mockOnClearSelection).toHaveBeenCalled();
     });
