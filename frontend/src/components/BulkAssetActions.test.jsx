@@ -386,11 +386,8 @@ describe('BulkAssetActions', () => {
         />
       );
 
-      // Find the X button in the selection bar (it's a ghost button with just X icon)
-      const selectionBar = screen.getByText('2 selected').closest('div');
-      const buttons = within(selectionBar).getAllByRole('button');
-      // X button is the last button (after Edit and Delete)
-      const clearButton = buttons[buttons.length - 1];
+      // Find the Clear button directly by its text
+      const clearButton = screen.getByRole('button', { name: /clear/i });
       await user.click(clearButton);
 
       expect(mockOnClearSelection).toHaveBeenCalled();
