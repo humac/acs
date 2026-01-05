@@ -9,27 +9,43 @@ export default function KPICard({
   trend,
   trendValue,
   variant = 'default',
-  description
+  description,
+  onClick
 }) {
   const variants = {
-    default: 'border-border',
-    success: 'border-green-500/50 bg-green-50/50 dark:bg-green-950/20',
-    warning: 'border-yellow-500/50 bg-yellow-50/50 dark:bg-yellow-950/20',
-    danger: 'border-red-500/50 bg-red-50/50 dark:bg-red-950/20',
-    info: 'border-blue-500/50 bg-blue-50/50 dark:bg-blue-950/20'
+    default: 'border-border/50',
+    success: 'border-success/30 bg-success/5 dark:bg-success/10',
+    warning: 'border-warning/30 bg-warning/5 dark:bg-warning/10',
+    danger: 'border-destructive/30 bg-destructive/5 dark:bg-destructive/10',
+    info: 'border-info/30 bg-info/5 dark:bg-info/10'
+  };
+
+  const iconVariants = {
+    default: 'bg-primary/10 border-primary/20 text-primary',
+    success: 'bg-success/10 border-success/20 text-success',
+    warning: 'bg-warning/10 border-warning/20 text-warning',
+    danger: 'bg-destructive/10 border-destructive/20 text-destructive',
+    info: 'bg-info/10 border-info/20 text-info'
   };
 
   const trendColors = {
-    up: 'text-green-600 dark:text-green-400',
-    down: 'text-red-600 dark:text-red-400'
+    up: 'text-success',
+    down: 'text-destructive'
   };
 
   return (
-    <Card className={cn('hover:shadow-md transition-shadow', variants[variant])}>
+    <Card
+      className={cn(
+        'glass-panel rounded-2xl transition-all duration-200',
+        variants[variant],
+        onClick && 'cursor-pointer hover:scale-[1.02] hover:shadow-lg'
+      )}
+      onClick={onClick}
+    >
       <CardContent className="pt-6">
         <div className="flex items-start justify-between">
           <div className="space-y-2 flex-1">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
+            <p className="caption-label">{title}</p>
             <div className="flex items-baseline gap-2">
               <p className="text-3xl font-bold">{value}</p>
               {trend && trendValue && (
@@ -48,22 +64,8 @@ export default function KPICard({
             )}
           </div>
           {Icon && (
-            <div className={cn(
-              'p-3 rounded-lg',
-              variant === 'success' && 'bg-green-100 dark:bg-green-900/30',
-              variant === 'warning' && 'bg-yellow-100 dark:bg-yellow-900/30',
-              variant === 'danger' && 'bg-red-100 dark:bg-red-900/30',
-              variant === 'info' && 'bg-blue-100 dark:bg-blue-900/30',
-              variant === 'default' && 'bg-primary/10'
-            )}>
-              <Icon className={cn(
-                'h-6 w-6',
-                variant === 'success' && 'text-green-600 dark:text-green-400',
-                variant === 'warning' && 'text-yellow-600 dark:text-yellow-400',
-                variant === 'danger' && 'text-red-600 dark:text-red-400',
-                variant === 'info' && 'text-blue-600 dark:text-blue-400',
-                variant === 'default' && 'text-primary'
-              )} />
+            <div className={cn('icon-box icon-box-md', iconVariants[variant])}>
+              <Icon className="h-6 w-6" />
             </div>
           )}
         </div>

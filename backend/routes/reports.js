@@ -340,7 +340,8 @@ export default function createReportsRouter(deps) {
         riskIndicators.push({ type: 'Overdue Attestations', count: overdueAttestations, severity: 'medium', description: 'Past due date' });
       }
 
-      // Compliance checklist
+      // Compliance checklist with weighted scoring
+      // Weights: Critical items have higher impact on overall score
       const activeAssets = assets.filter(a => a.status === 'active');
       const assetsWithOwners = activeAssets.filter(a => a.employee_email).length;
       const assetsWithManagers = activeAssets.filter(a => a.manager_email).length;
@@ -350,38 +351,54 @@ export default function createReportsRouter(deps) {
         {
           item: 'All active assets have owners',
           status: assetsWithOwners === activeAssets.length ? 'pass' : 'fail',
-          description: `${assetsWithOwners}/${activeAssets.length} assets have assigned owners`
-        },
-        {
-          item: 'All active assets have managers',
-          status: assetsWithManagers === activeAssets.length ? 'pass' : 'warn',
-          description: `${assetsWithManagers}/${activeAssets.length} assets have assigned managers`
-        },
-        {
-          item: 'All active assets assigned to companies',
-          status: assetsWithCompanies === activeAssets.length ? 'pass' : 'warn',
-          description: `${assetsWithCompanies}/${activeAssets.length} assets assigned to companies`
-        },
-        {
-          item: 'Active attestation campaigns',
-          status: activeCampaigns.length > 0 ? 'pass' : 'warn',
-          description: `${activeCampaigns.length} active campaigns running`
+          description: `${assetsWithOwners}/${activeAssets.length} assets have assigned owners`,
+          weight: 2.0  // Critical - SOC2 requires asset ownership
         },
         {
           item: 'No overdue attestations',
           status: overdueAttestations === 0 ? 'pass' : 'fail',
-          description: `${overdueAttestations} attestations overdue`
+          description: `${overdueAttestations} attestations overdue`,
+          weight: 2.0  // Critical - attestations are key compliance requirement
         },
         {
           item: 'No at-risk assets',
           status: atRiskAssets === 0 ? 'pass' : (atRiskAssets < 5 ? 'warn' : 'fail'),
-          description: `${atRiskAssets} assets at risk`
+          description: `${atRiskAssets} assets at risk`,
+          weight: 1.5  // High - lost/damaged assets are security concerns
+        },
+        {
+          item: 'All active assets have managers',
+          status: assetsWithManagers === activeAssets.length ? 'pass' : 'warn',
+          description: `${assetsWithManagers}/${activeAssets.length} assets have assigned managers`,
+          weight: 1.0  // Medium - management oversight
+        },
+        {
+          item: 'All active assets assigned to companies',
+          status: assetsWithCompanies === activeAssets.length ? 'pass' : 'warn',
+          description: `${assetsWithCompanies}/${activeAssets.length} assets assigned to companies`,
+          weight: 1.0  // Medium - organizational tracking
+        },
+        {
+          item: 'Active attestation campaigns',
+          status: activeCampaigns.length > 0 ? 'pass' : 'warn',
+          description: `${activeCampaigns.length} active campaigns running`,
+          weight: 0.5  // Low - nice to have active campaigns
         }
       ];
 
-      // Calculate overall compliance score
-      const passCount = checklist.filter(c => c.status === 'pass').length;
-      const score = Math.round((passCount / checklist.length) * 100);
+      // Calculate weighted compliance score
+      // Status values: pass = 1.0, warn = 0.5, fail = 0.0
+      const statusValues = { pass: 1.0, warn: 0.5, fail: 0.0 };
+      let totalWeight = 0;
+      let weightedSum = 0;
+
+      for (const item of checklist) {
+        const statusValue = statusValues[item.status] || 0;
+        weightedSum += item.weight * statusValue;
+        totalWeight += item.weight;
+      }
+
+      const score = totalWeight > 0 ? Math.round((weightedSum / totalWeight) * 100) : 0;
 
       res.json({
         score,

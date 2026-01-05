@@ -11,18 +11,17 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { FileText, BarChart3, Filter, Download, Loader2, X, TrendingUp, Shield, Activity, Laptop, Users } from 'lucide-react';
+import { FileText, BarChart3, Filter, Download, Loader2, X, TrendingUp, Shield, Activity, Laptop, Users, FileDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import TablePaginationControls from '@/components/TablePaginationControls';
 import { AssetStatusPieChart, CompanyBarChart, ActivityAreaChart, TrendLineChart, ManagerBarChart } from '@/components/charts';
-import { KPICard, RiskIndicatorList, ComplianceChecklist, MetricsComparison } from '@/components/widgets';
+import { KPICard, RiskIndicatorList, ComplianceChecklist, MetricsComparison, ComplianceAlertBanner } from '@/components/widgets';
 
 const AuditReportingNew = () => {
   const { getAuthHeaders, user } = useAuth();
   const [activeView, setActiveView] = useState('summary');
   const [logs, setLogs] = useState([]);
-  const [summary, setSummary] = useState(null);
   const [summaryEnhanced, setSummaryEnhanced] = useState(null);
-  const [stats, setStats] = useState([]);
   const [statsEnhanced, setStatsEnhanced] = useState(null);
   const [compliance, setCompliance] = useState(null);
   const [trends, setTrends] = useState(null);
@@ -43,11 +42,18 @@ const AuditReportingNew = () => {
   const prevStatsPeriod = useRef(statsPeriod);
   const prevTrendsPeriod = useRef(trendsPeriod);
 
+  // Fetch compliance data on mount for alert banner
+  useEffect(() => {
+    if (canAccessReports) {
+      fetchCompliance();
+    }
+  }, []);
+
   // Fetch data when active view changes
   useEffect(() => {
     if (activeView === 'logs') fetchLogs();
-    else if (activeView === 'summary') { fetchSummary(); fetchSummaryEnhanced(); }
-    else if (activeView === 'stats') { fetchStats(); fetchStatsEnhanced(); }
+    else if (activeView === 'summary') { fetchSummaryEnhanced(); }
+    else if (activeView === 'stats') { fetchStatsEnhanced(); }
     else if (activeView === 'compliance') fetchCompliance();
     else if (activeView === 'trends') fetchTrends();
   }, [activeView]);
@@ -86,40 +92,17 @@ const AuditReportingNew = () => {
     } finally { setLoading(false); }
   };
 
-  const fetchSummary = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch('/api/reports/summary', { headers: { ...getAuthHeaders() } });
-      if (!response.ok) throw new Error('Failed to fetch summary');
-      setSummary(await response.json());
-    } catch (err) {
-      setError(err.message);
-    } finally { setLoading(false); }
-  };
-
-  const fetchStats = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const params = new URLSearchParams();
-      if (filters.startDate) params.append('startDate', filters.startDate);
-      if (filters.endDate) params.append('endDate', filters.endDate);
-      const response = await fetch(`/api/audit/stats?${params}`, { headers: { ...getAuthHeaders() } });
-      if (!response.ok) throw new Error('Failed to fetch stats');
-      setStats(await response.json());
-    } catch (err) {
-      setError(err.message);
-    } finally { setLoading(false); }
-  };
-
   const fetchSummaryEnhanced = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const response = await fetch('/api/reports/summary-enhanced', { headers: { ...getAuthHeaders() } });
       if (!response.ok) throw new Error('Failed to fetch enhanced summary');
       setSummaryEnhanced(await response.json());
     } catch (err) {
-      console.error('Error fetching enhanced summary:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -185,7 +168,14 @@ const AuditReportingNew = () => {
 
   const clearFilters = () => setFilters({ action: '', entityType: '', startDate: '', endDate: '', userEmail: '', limit: '100' });
   const formatDate = (d) => new Date(d).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-  const getActionColor = (action) => ({ CREATE: 'default', STATUS_CHANGE: 'secondary', UPDATE: 'outline', DELETE: 'destructive' }[action] || 'secondary');
+
+  // Semantic badge classes for action types
+  const getActionBadgeClass = (action) => ({
+    CREATE: 'glow-success',
+    STATUS_CHANGE: 'glow-warning',
+    UPDATE: 'glow-info',
+    DELETE: 'glow-destructive'
+  }[action] || 'glow-muted');
 
   useEffect(() => {
     setLogsPage(1);
@@ -207,11 +197,30 @@ const AuditReportingNew = () => {
     <div className="space-y-6 p-1 md:p-2 animate-fade-in bg-surface/30 min-h-screen rounded-2xl">
       <Card className="glass-panel rounded-2xl">
         <CardHeader className="px-4 sm:px-6">
-          <div className="flex items-center gap-2">
-            <div className="icon-box icon-box-sm bg-primary/10 border-primary/20">
-              <FileText className="h-4 w-4 text-primary" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="icon-box icon-box-sm bg-primary/10 border-primary/20">
+                <FileText className="h-4 w-4 text-primary" />
+              </div>
+              <CardTitle className="text-gradient text-lg sm:text-xl">Audit & Reporting</CardTitle>
             </div>
-            <CardTitle className="text-gradient text-lg sm:text-xl">Audit & Reporting</CardTitle>
+            {canAccessReports && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.print()}
+                className="no-print gap-2"
+                title="Export current view as PDF"
+              >
+                <FileDown className="h-4 w-4" />
+                <span className="hidden sm:inline">Export PDF</span>
+              </Button>
+            )}
+          </div>
+          {/* Hidden print header - only shown when printing */}
+          <div className="print-header hidden">
+            <h1>Compliance Report</h1>
+            <p className="date">Generated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
           </div>
         </CardHeader>
         <CardContent className="px-4 sm:px-6">
@@ -223,6 +232,14 @@ const AuditReportingNew = () => {
               {canAccessReports && <TabsTrigger value="trends" className="gap-2"><TrendingUp className="h-4 w-4" />Trends</TabsTrigger>}
               <TabsTrigger value="logs" className="gap-2"><FileText className="h-4 w-4" />Audit Logs</TabsTrigger>
             </TabsList>
+
+            {/* Compliance Alert Banner - shown when there are critical issues */}
+            {canAccessReports && compliance && (
+              <ComplianceAlertBanner
+                compliance={compliance}
+                onNavigate={(tab) => setActiveView(tab)}
+              />
+            )}
 
             {error && <div className="mb-4 p-4 rounded-md bg-destructive/10 text-destructive text-sm">{error}</div>}
 
@@ -278,7 +295,7 @@ const AuditReportingNew = () => {
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <Badge variant={getActionColor(log.action)}>{log.action}</Badge>
+                              <Badge className={cn('rounded-full px-2.5 py-0.5 text-xs font-semibold', getActionBadgeClass(log.action))}>{log.action}</Badge>
                               <span className="text-xs text-muted-foreground capitalize">{log.entity_type}</span>
                             </div>
                             <h4 className="font-medium truncate">{log.entity_name || 'N/A'}</h4>
@@ -320,7 +337,7 @@ const AuditReportingNew = () => {
                         {paginatedLogs.map((log) => (
                           <TableRow key={log.id}>
                             <TableCell className="text-sm">{formatDate(log.timestamp)}</TableCell>
-                            <TableCell><Badge variant={getActionColor(log.action)}>{log.action}</Badge></TableCell>
+                            <TableCell><Badge className={cn('rounded-full px-2.5 py-0.5 text-xs font-semibold', getActionBadgeClass(log.action))}>{log.action}</Badge></TableCell>
                             <TableCell className="hidden lg:table-cell capitalize">{log.entity_type}</TableCell>
                             <TableCell>{log.entity_name || '-'}</TableCell>
                             <TableCell className="hidden xl:table-cell max-w-xs truncate text-sm text-muted-foreground">{log.details}</TableCell>
@@ -430,6 +447,7 @@ const AuditReportingNew = () => {
                   variant={statsPeriod === 7 ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => { setStatsPeriod(7); }}
+                  aria-pressed={statsPeriod === 7}
                 >
                   7 Days
                 </Button>
@@ -437,6 +455,7 @@ const AuditReportingNew = () => {
                   variant={statsPeriod === 30 ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => { setStatsPeriod(30); }}
+                  aria-pressed={statsPeriod === 30}
                 >
                   30 Days
                 </Button>
@@ -444,11 +463,9 @@ const AuditReportingNew = () => {
                   variant={statsPeriod === 90 ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => { setStatsPeriod(90); }}
+                  aria-pressed={statsPeriod === 90}
                 >
                   90 Days
-                </Button>
-                <Button onClick={fetchStatsEnhanced}>
-                  <Filter className="h-4 w-4 mr-2" />Apply
                 </Button>
               </div>
 
@@ -459,7 +476,7 @@ const AuditReportingNew = () => {
                 </div>
               ) : statsEnhanced ? (
                 <div className="space-y-6">
-                  <ActivityAreaChart data={statsEnhanced.activityByDay} title="Activity Over Time" />
+                  <ActivityAreaChart data={statsEnhanced.activityByDay} title="Activity Over Time" showPeriodSelector={false} />
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <Card>
@@ -479,7 +496,7 @@ const AuditReportingNew = () => {
                               {statsEnhanced.actionBreakdown.map((item, i) => (
                                 <TableRow key={i}>
                                   <TableCell>
-                                    <Badge variant={getActionColor(item.action)}>{item.action}</Badge>
+                                    <Badge className={cn('rounded-full px-2.5 py-0.5 text-xs font-semibold', getActionBadgeClass(item.action))}>{item.action}</Badge>
                                   </TableCell>
                                   <TableCell className="text-right font-semibold">{item.count}</TableCell>
                                 </TableRow>
@@ -606,6 +623,7 @@ const AuditReportingNew = () => {
                   variant={trendsPeriod === 7 ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => { setTrendsPeriod(7); }}
+                  aria-pressed={trendsPeriod === 7}
                 >
                   7 Days
                 </Button>
@@ -613,6 +631,7 @@ const AuditReportingNew = () => {
                   variant={trendsPeriod === 30 ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => { setTrendsPeriod(30); }}
+                  aria-pressed={trendsPeriod === 30}
                 >
                   30 Days
                 </Button>
@@ -620,11 +639,9 @@ const AuditReportingNew = () => {
                   variant={trendsPeriod === 90 ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => { setTrendsPeriod(90); }}
+                  aria-pressed={trendsPeriod === 90}
                 >
                   90 Days
-                </Button>
-                <Button onClick={fetchTrends}>
-                  <Filter className="h-4 w-4 mr-2" />Apply
                 </Button>
               </div>
 
@@ -642,7 +659,7 @@ const AuditReportingNew = () => {
                       <CardTitle className="text-base">Status Changes Over Time</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <ActivityAreaChart data={trends.statusChanges} title="" />
+                      <ActivityAreaChart data={trends.statusChanges} title="" showPeriodSelector={false} />
                     </CardContent>
                   </Card>
 

@@ -2,6 +2,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
+import { Activity } from 'lucide-react';
 
 const ACTION_COLORS = {
   CREATE: '#22c55e',
@@ -10,49 +11,60 @@ const ACTION_COLORS = {
   DELETE: '#ef4444'
 };
 
-export default function ActivityAreaChart({ data, title = 'Activity Over Time' }) {
+export default function ActivityAreaChart({ data, title = 'Activity Over Time', showPeriodSelector = true }) {
   const [period, setPeriod] = useState(30);
 
-  // Filter data by period (last N days)
-  const filteredData = (data || []).slice(-period);
+  // Filter data by period (last N days) only if using internal period selector
+  const filteredData = showPeriodSelector ? (data || []).slice(-period) : (data || []);
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="glass-panel rounded-2xl">
+      <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base">{title}</CardTitle>
-          <div className="flex gap-1">
-            <Button
-              variant={period === 7 ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setPeriod(7)}
-              className="h-7 text-xs"
-            >
-              7D
-            </Button>
-            <Button
-              variant={period === 30 ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setPeriod(30)}
-              className="h-7 text-xs"
-            >
-              30D
-            </Button>
-            <Button
-              variant={period === 90 ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setPeriod(90)}
-              className="h-7 text-xs"
-            >
-              90D
-            </Button>
+          <div className="flex items-center gap-2">
+            <div className="icon-box icon-box-sm bg-warning/10 border-warning/20">
+              <Activity className="h-4 w-4 text-warning" />
+            </div>
+            <CardTitle className="text-base">{title}</CardTitle>
           </div>
+          {showPeriodSelector && (
+            <div className="flex gap-1">
+              <Button
+                variant={period === 7 ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setPeriod(7)}
+                className="h-7 text-xs"
+                aria-pressed={period === 7}
+              >
+                7D
+              </Button>
+              <Button
+                variant={period === 30 ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setPeriod(30)}
+                className="h-7 text-xs"
+                aria-pressed={period === 30}
+              >
+                30D
+              </Button>
+              <Button
+                variant={period === 90 ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setPeriod(90)}
+                className="h-7 text-xs"
+                aria-pressed={period === 90}
+              >
+                90D
+              </Button>
+            </div>
+          )}
         </div>
       </CardHeader>
       <CardContent>
         {filteredData.length === 0 ? (
-          <div className="h-64 flex items-center justify-center text-muted-foreground">
-            No activity data available
+          <div className="h-64 flex flex-col items-center justify-center text-muted-foreground">
+            <Activity className="h-12 w-12 mb-2 opacity-30" />
+            <p className="text-sm">No activity data available</p>
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={300}>

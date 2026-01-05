@@ -1,5 +1,6 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PieChart as PieChartIcon } from 'lucide-react';
 
 const STATUS_COLORS = {
   active: '#22c55e',
@@ -9,11 +10,12 @@ const STATUS_COLORS = {
   retired: '#6b7280'
 };
 
-export default function AssetStatusPieChart({ data, title = 'Asset Status Distribution' }) {
+export default function AssetStatusPieChart({ data, title = 'Asset Status Distribution', onSegmentClick }) {
   // Transform data object to array format for recharts
   const chartData = Object.entries(data || {}).map(([status, count]) => ({
     name: status.charAt(0).toUpperCase() + status.slice(1),
     value: count,
+    status,
     fill: STATUS_COLORS[status] || '#9ca3af'
   }));
 
@@ -40,15 +42,27 @@ export default function AssetStatusPieChart({ data, title = 'Asset Status Distri
     );
   };
 
+  const handleClick = (data) => {
+    if (onSegmentClick && data?.status) {
+      onSegmentClick(data.status);
+    }
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{title}</CardTitle>
+    <Card className="glass-panel rounded-2xl">
+      <CardHeader className="pb-2">
+        <div className="flex items-center gap-2">
+          <div className="icon-box icon-box-sm bg-primary/10 border-primary/20">
+            <PieChartIcon className="h-4 w-4 text-primary" />
+          </div>
+          <CardTitle className="text-base">{title}</CardTitle>
+        </div>
       </CardHeader>
       <CardContent>
         {total === 0 ? (
-          <div className="h-64 flex items-center justify-center text-muted-foreground">
-            No data available
+          <div className="h-64 flex flex-col items-center justify-center text-muted-foreground">
+            <PieChartIcon className="h-12 w-12 mb-2 opacity-30" />
+            <p className="text-sm">No data available</p>
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={300}>
@@ -62,9 +76,11 @@ export default function AssetStatusPieChart({ data, title = 'Asset Status Distri
                 outerRadius={100}
                 innerRadius={50}
                 dataKey="value"
+                onClick={handleClick}
+                className={onSegmentClick ? 'cursor-pointer' : ''}
               >
                 {chartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.fill} />
+                  <Cell key={`cell-${index}`} fill={entry.fill} className={onSegmentClick ? 'hover:opacity-80 transition-opacity' : ''} />
                 ))}
               </Pie>
               <Tooltip

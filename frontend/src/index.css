@@ -288,3 +288,103 @@
 @keyframes shimmer {
   100% { transform: translateX(100%); }
 }
+
+/* Print Styles for PDF Export */
+@media print {
+  /* Reset page margins */
+  @page {
+    margin: 1cm;
+    size: A4 portrait;
+  }
+
+  /* Hide non-essential elements */
+  .no-print,
+  nav,
+  aside,
+  header,
+  footer,
+  button:not(.print-include),
+  .tabs-list,
+  [role="tablist"] {
+    display: none !important;
+  }
+
+  /* Reset background for printing */
+  body {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Override glass panel for print */
+  .glass-panel {
+    background: white !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+
+  /* Ensure charts are visible */
+  .recharts-wrapper {
+    overflow: visible !important;
+  }
+
+  /* Page break handling */
+  .print-break-before {
+    page-break-before: always;
+  }
+
+  .print-break-after {
+    page-break-after: always;
+  }
+
+  .print-avoid-break {
+    page-break-inside: avoid;
+  }
+
+  /* Ensure text is readable */
+  * {
+    color: black !important;
+  }
+
+  /* Style glow badges for print */
+  .glow-success,
+  .glow-warning,
+  .glow-destructive,
+  .glow-info,
+  .glow-muted {
+    box-shadow: none !important;
+    border: 1px solid currentColor !important;
+  }
+
+  /* Report header for print */
+  .print-header {
+    display: block !important;
+    text-align: center;
+    margin-bottom: 1cm;
+    border-bottom: 2px solid #3b82f6;
+    padding-bottom: 0.5cm;
+  }
+
+  .print-header h1 {
+    font-size: 24pt;
+    font-weight: bold;
+    margin-bottom: 0.25cm;
+  }
+
+  .print-header .date {
+    font-size: 10pt;
+    color: #6b7280;
+  }
+
+  /* Ensure tables don't break awkwardly */
+  table {
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+}

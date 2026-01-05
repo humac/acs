@@ -1,36 +1,41 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, ClipboardCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const STATUS_CONFIG = {
   pass: {
     icon: CheckCircle2,
-    color: 'text-green-600 dark:text-green-400',
-    bg: 'bg-green-50 dark:bg-green-950'
+    color: 'text-success',
+    bg: 'bg-success/10 border-success/20'
   },
   warn: {
     icon: AlertTriangle,
-    color: 'text-yellow-600 dark:text-yellow-400',
-    bg: 'bg-yellow-50 dark:bg-yellow-950'
+    color: 'text-warning',
+    bg: 'bg-warning/10 border-warning/20'
   },
   fail: {
     icon: XCircle,
-    color: 'text-red-600 dark:text-red-400',
-    bg: 'bg-red-50 dark:bg-red-950'
+    color: 'text-destructive',
+    bg: 'bg-destructive/10 border-destructive/20'
   }
 };
 
 export default function ComplianceChecklist({ items, title = 'SOC2 Compliance Checklist' }) {
   if (!items || items.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{title}</CardTitle>
+      <Card className="glass-panel rounded-2xl">
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <div className="icon-box icon-box-sm bg-muted/30 border-muted/20">
+              <ClipboardCheck className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <CardTitle className="text-base">{title}</CardTitle>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
-            <AlertTriangle className="h-12 w-12 mx-auto mb-2 opacity-50" />
-            <p>No checklist items available</p>
+            <ClipboardCheck className="h-12 w-12 mx-auto mb-2 opacity-30" />
+            <p className="text-sm">No checklist items available</p>
           </div>
         </CardContent>
       </Card>
@@ -50,18 +55,31 @@ export default function ComplianceChecklist({ items, title = 'SOC2 Compliance Ch
   const total = items.length;
   const completionRate = Math.round((passCount / total) * 100);
 
+  const getCompletionColor = () => {
+    if (completionRate >= COMPLIANCE_THRESHOLDS.EXCELLENT) return 'text-success';
+    if (completionRate >= COMPLIANCE_THRESHOLDS.GOOD) return 'text-warning';
+    return 'text-destructive';
+  };
+
+  const getIconVariant = () => {
+    if (completionRate >= COMPLIANCE_THRESHOLDS.EXCELLENT) return 'bg-success/10 border-success/20 text-success';
+    if (completionRate >= COMPLIANCE_THRESHOLDS.GOOD) return 'bg-warning/10 border-warning/20 text-warning';
+    return 'bg-destructive/10 border-destructive/20 text-destructive';
+  };
+
   return (
-    <Card>
-      <CardHeader>
+    <Card className="glass-panel rounded-2xl">
+      <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base">{title}</CardTitle>
+          <div className="flex items-center gap-2">
+            <div className={cn('icon-box icon-box-sm', getIconVariant())}>
+              <ClipboardCheck className="h-4 w-4" />
+            </div>
+            <CardTitle className="text-base">{title}</CardTitle>
+          </div>
           <div className="text-sm font-medium">
             <span className="text-muted-foreground">Completion: </span>
-            <span className={cn(
-              completionRate >= COMPLIANCE_THRESHOLDS.EXCELLENT ? 'text-green-600' : 
-              completionRate >= COMPLIANCE_THRESHOLDS.GOOD ? 'text-yellow-600' : 
-              'text-red-600'
-            )}>
+            <span className={getCompletionColor()}>
               {completionRate}%
             </span>
           </div>
@@ -94,18 +112,18 @@ export default function ComplianceChecklist({ items, title = 'SOC2 Compliance Ch
         </div>
 
         {/* Summary */}
-        <div className="mt-4 pt-4 border-t flex items-center justify-around text-center">
+        <div className="mt-4 pt-4 border-t border-border/50 flex items-center justify-around text-center">
           <div>
-            <div className="text-2xl font-bold text-green-600">{passCount}</div>
-            <div className="text-xs text-muted-foreground">Passing</div>
+            <div className="text-2xl font-bold text-success">{passCount}</div>
+            <div className="caption-label">Passing</div>
           </div>
           <div>
-            <div className="text-2xl font-bold text-yellow-600">{warnCount}</div>
-            <div className="text-xs text-muted-foreground">Warnings</div>
+            <div className="text-2xl font-bold text-warning">{warnCount}</div>
+            <div className="caption-label">Warnings</div>
           </div>
           <div>
-            <div className="text-2xl font-bold text-red-600">{failCount}</div>
-            <div className="text-xs text-muted-foreground">Failing</div>
+            <div className="text-2xl font-bold text-destructive">{failCount}</div>
+            <div className="caption-label">Failing</div>
           </div>
         </div>
       </CardContent>

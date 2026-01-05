@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, AlertTriangle, Clock } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Clock, ShieldAlert } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const SEVERITY_ICONS = {
@@ -10,28 +10,34 @@ const SEVERITY_ICONS = {
 };
 
 const SEVERITY_COLORS = {
-  high: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950',
-  medium: 'text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950',
-  low: 'text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-950'
+  high: 'text-destructive bg-destructive/10 border-destructive/20',
+  medium: 'text-warning bg-warning/10 border-warning/20',
+  low: 'text-muted-foreground bg-muted/30 border-muted/20'
 };
 
-const BADGE_VARIANTS = {
-  high: 'destructive',
-  medium: 'warning',
-  low: 'secondary'
+const BADGE_CLASSES = {
+  high: 'glow-destructive',
+  medium: 'glow-warning',
+  low: 'glow-muted'
 };
 
 export default function RiskIndicatorList({ risks, title = 'Risk Indicators', onItemClick }) {
   if (!risks || risks.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{title}</CardTitle>
+      <Card className="glass-panel rounded-2xl">
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <div className="icon-box icon-box-sm bg-success/10 border-success/20">
+              <ShieldAlert className="h-4 w-4 text-success" />
+            </div>
+            <CardTitle className="text-base">{title}</CardTitle>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
-            <AlertCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
-            <p>No risks identified</p>
+            <ShieldAlert className="h-12 w-12 mx-auto mb-2 opacity-30" />
+            <p className="text-sm font-medium text-success">No risks identified</p>
+            <p className="text-xs mt-1">All systems operating normally</p>
           </div>
         </CardContent>
       </Card>
@@ -39,9 +45,14 @@ export default function RiskIndicatorList({ risks, title = 'Risk Indicators', on
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{title}</CardTitle>
+    <Card className="glass-panel rounded-2xl">
+      <CardHeader className="pb-2">
+        <div className="flex items-center gap-2">
+          <div className="icon-box icon-box-sm bg-destructive/10 border-destructive/20">
+            <ShieldAlert className="h-4 w-4 text-destructive" />
+          </div>
+          <CardTitle className="text-base">{title}</CardTitle>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
@@ -68,7 +79,7 @@ export default function RiskIndicatorList({ risks, title = 'Risk Indicators', on
                     )}
                   </div>
                 </div>
-                <Badge variant={BADGE_VARIANTS[risk.severity] || 'secondary'} className="ml-2">
+                <Badge className={cn('ml-2 rounded-full px-2.5 py-0.5 text-xs font-semibold', BADGE_CLASSES[risk.severity] || 'glow-muted')}>
                   {risk.count}
                 </Badge>
               </div>

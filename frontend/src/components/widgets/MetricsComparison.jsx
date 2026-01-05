@@ -1,18 +1,24 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowUp, ArrowDown, Minus } from 'lucide-react';
+import { ArrowUp, ArrowDown, Minus, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function MetricsComparison({ current, previous, title = 'Metrics Comparison' }) {
   if (!current || !previous) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{title}</CardTitle>
+      <Card className="glass-panel rounded-2xl">
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <div className="icon-box icon-box-sm bg-muted/30 border-muted/20">
+              <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <CardTitle className="text-base">{title}</CardTitle>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
-            No comparison data available
+            <BarChart3 className="h-12 w-12 mx-auto mb-2 opacity-30" />
+            <p className="text-sm">No comparison data available</p>
           </div>
         </CardContent>
       </Card>
@@ -57,8 +63,8 @@ export default function MetricsComparison({ current, previous, title = 'Metrics 
   };
 
   const getTrendColor = (trend) => {
-    if (trend === 'up') return 'text-green-600 dark:text-green-400';
-    if (trend === 'down') return 'text-red-600 dark:text-red-400';
+    if (trend === 'up') return 'text-success';
+    if (trend === 'down') return 'text-destructive';
     return 'text-muted-foreground';
   };
 
@@ -74,18 +80,23 @@ export default function MetricsComparison({ current, previous, title = 'Metrics 
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{title}</CardTitle>
+    <Card className="glass-panel rounded-2xl">
+      <CardHeader className="pb-2">
+        <div className="flex items-center gap-2">
+          <div className="icon-box icon-box-sm bg-primary/10 border-primary/20">
+            <BarChart3 className="h-4 w-4 text-primary" />
+          </div>
+          <CardTitle className="text-base">{title}</CardTitle>
+        </div>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Metric</TableHead>
-              <TableHead className="text-right">Current</TableHead>
-              <TableHead className="text-right">Previous</TableHead>
-              <TableHead className="text-right">Change</TableHead>
+            <TableRow className="border-border/50">
+              <TableHead className="caption-label">Metric</TableHead>
+              <TableHead className="caption-label text-right">Current</TableHead>
+              <TableHead className="caption-label text-right">Previous</TableHead>
+              <TableHead className="caption-label text-right">Change</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
