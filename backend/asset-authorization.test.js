@@ -1,5 +1,19 @@
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 import { assetDb, userDb, auditDb, companyDb } from './database.js';
+import { unlinkSync, existsSync } from 'fs';
+import { resolve } from 'path';
+
+const TEST_DB_PATH = resolve(process.cwd(), 'data', 'test-asset-authorization.db');
+
+const cleanupTestDb = () => {
+  if (existsSync(TEST_DB_PATH)) {
+    try {
+      unlinkSync(TEST_DB_PATH);
+    } catch (err) {
+      // Ignore errors
+    }
+  }
+};
 
 describe('Asset Authorization and Manager Sync', () => {
   let testDb;
@@ -11,6 +25,8 @@ describe('Asset Authorization and Manager Sync', () => {
   let timestamp;
 
   beforeAll(async () => {
+    cleanupTestDb();
+    process.env.DB_PATH = TEST_DB_PATH;
     // Initialize database
     await assetDb.init();
 
@@ -77,6 +93,7 @@ describe('Asset Authorization and Manager Sync', () => {
   });
 
   afterAll(async () => {
+    cleanupTestDb();
     // Clean up test data - use try/catch to ensure cleanup continues even if some items fail
     try {
       if (asset?.id) await assetDb.delete(asset.id);
