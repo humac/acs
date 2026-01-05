@@ -892,10 +892,11 @@ GET /api/assets
     "manager_last_name": "Smith",
     "manager_email": "jane@example.com",
     "company_name": "Acme Corp",
-    "laptop_make": "Apple",
-    "laptop_model": "MacBook Pro 16\"",
-    "laptop_serial_number": "SN123456",
-    "laptop_asset_tag": "ASSET-001",
+    "asset_type": "laptop",
+    "make": "Apple",
+    "model": "MacBook Pro 16\"",
+    "serial_number": "SN123456",
+    "asset_tag": "ASSET-001",
     "status": "active",
     "issued_date": "2024-01-01",
     "returned_date": null,
@@ -928,10 +929,11 @@ POST /api/assets
   "manager_last_name": "Smith",
   "manager_email": "jane@example.com",
   "company_name": "Acme Corp",
-  "laptop_make": "Apple",
-  "laptop_model": "MacBook Pro 16\"",
-  "laptop_serial_number": "SN123456",
-  "laptop_asset_tag": "ASSET-001",
+  "asset_type": "laptop",
+  "make": "Apple",
+  "model": "MacBook Pro 16\"",
+  "serial_number": "SN123456",
+  "asset_tag": "ASSET-001",
   "status": "active",
   "issued_date": "2024-01-01",
   "notes": "Primary development laptop"
@@ -943,15 +945,16 @@ POST /api/assets
 - `employee_last_name` - Employee's last name
 - `employee_email` - Employee's email address
 - `company_name` - Client company name
-- `laptop_serial_number` - Unique laptop serial number
-- `laptop_asset_tag` - Unique asset tag
+- `asset_type` - Type of asset ('laptop' or 'mobile_phone')
+- `serial_number` - Unique serial number
+- `asset_tag` - Unique asset tag
 
 **Optional Fields:**
 - `manager_first_name` - Manager's first name
 - `manager_last_name` - Manager's last name
 - `manager_email` - Manager's email address
-- `laptop_make` - Laptop manufacturer (Dell, Apple, Lenovo, etc.)
-- `laptop_model` - Laptop model
+- `make` - Asset manufacturer (Dell, Apple, Samsung, etc.)
+- `model` - Asset model
 - `status` - Asset status (defaults to 'active')
 - `issued_date` - Date asset was issued to employee (YYYY-MM-DD format)
 - `notes` - Additional notes
@@ -972,10 +975,11 @@ POST /api/assets
     "manager_last_name": "Smith",
     "manager_email": "jane@example.com",
     "company_name": "Acme Corp",
-    "laptop_make": "Apple",
-    "laptop_model": "MacBook Pro 16\"",
-    "laptop_serial_number": "SN123456",
-    "laptop_asset_tag": "ASSET-001",
+    "asset_type": "laptop",
+    "make": "Apple",
+    "model": "MacBook Pro 16\"",
+    "serial_number": "SN123456",
+    "asset_tag": "ASSET-001",
     "status": "active",
     "issued_date": "2024-01-01",
     "returned_date": null,
@@ -987,7 +991,8 @@ POST /api/assets
 ```
 
 **Errors:**
-- `400` - Missing required fields (employee_first_name, employee_last_name, employee_email, company_name, laptop_serial_number, laptop_asset_tag)
+- `400` - Missing required fields (employee_first_name, employee_last_name, employee_email, company_name, asset_type, serial_number, asset_tag)
+- `400` - Invalid asset_type (must be 'laptop' or 'mobile_phone')
 - `400` - Missing returned_date when status is 'returned'
 - `409` - Duplicate serial number or asset tag
 
@@ -1011,15 +1016,16 @@ Required columns:
 - `employee_last_name`
 - `employee_email`
 - `company_name`
-- `laptop_serial_number`
-- `laptop_asset_tag`
+- `asset_type` (laptop, mobile_phone)
+- `serial_number`
+- `asset_tag`
 
 Optional columns:
 - `manager_first_name`
 - `manager_last_name`
 - `manager_email`
-- `laptop_make`
-- `laptop_model`
+- `make`
+- `model`
 - `status` (active, returned, lost, damaged, retired)
 - `issued_date` (YYYY-MM-DD format)
 - `returned_date` (YYYY-MM-DD format, should be provided when status is 'returned')
@@ -1027,9 +1033,9 @@ Optional columns:
 
 **Example CSV:**
 ```csv
-employee_first_name,employee_last_name,employee_email,manager_first_name,manager_last_name,manager_email,company_name,laptop_make,laptop_model,laptop_serial_number,laptop_asset_tag,status,issued_date,returned_date,notes
-Jane,Doe,jane.doe@example.com,John,Manager,john.manager@example.com,Acme Corp,Lenovo,ThinkPad T14,ABC12345,AT-1001,active,2024-01-15,,Primary laptop issued Q1
-Sam,Smith,sam.smith@example.com,John,Manager,john.manager@example.com,Globex Inc,Apple,MacBook Pro,XYZ98765,AT-1002,returned,2023-06-01,2024-01-10,Returned after project completion
+employee_first_name,employee_last_name,employee_email,manager_first_name,manager_last_name,manager_email,company_name,asset_type,make,model,serial_number,asset_tag,status,issued_date,returned_date,notes
+Jane,Doe,jane.doe@example.com,John,Manager,john.manager@example.com,Acme Corp,laptop,Lenovo,ThinkPad T14,ABC12345,AT-1001,active,2024-01-15,,Primary laptop issued Q1
+Sam,Smith,sam.smith@example.com,John,Manager,john.manager@example.com,Globex Inc,mobile_phone,Apple,iPhone 15 Pro,XYZ98765,AT-1002,returned,2023-06-01,2024-01-10,Returned after project completion
 ```
 
 **Response:** `200 OK`
@@ -1693,10 +1699,11 @@ GET /api/attestation/records/:id
     {
       "id": 1,
       "asset_id": 101,
-      "laptop_make": "Apple",
-      "laptop_model": "MacBook Pro 16\"",
-      "laptop_serial_number": "SN123456",
-      "laptop_asset_tag": "ASSET-001",
+      "asset_type": "laptop",
+      "make": "Apple",
+      "model": "MacBook Pro 16\"",
+      "serial_number": "SN123456",
+      "asset_tag": "ASSET-001",
       "current_status": "active",
       "attested": false
     }
@@ -1767,21 +1774,21 @@ POST /api/attestation/records/:id/assets/new
 ```json
 {
   "asset_type": "laptop",
-  "laptop_make": "Dell",
-  "laptop_model": "Latitude 5420",
-  "laptop_serial_number": "SN789012",
-  "laptop_asset_tag": "ASSET-999",
+  "make": "Dell",
+  "model": "Latitude 5420",
+  "serial_number": "SN789012",
+  "asset_tag": "ASSET-999",
   "issued_date": "2024-01-01",
   "notes": "Found this device that wasn't in the system"
 }
 ```
 
 **Fields:**
-- `asset_type` - Type of asset (laptop, mobile phone)
-- `laptop_make` - Manufacturer
-- `laptop_model` - Model name
-- `laptop_serial_number` - Serial number
-- `laptop_asset_tag` - Asset tag
+- `asset_type` - Type of asset ('laptop' or 'mobile_phone')
+- `make` - Manufacturer
+- `model` - Model name
+- `serial_number` - Serial number
+- `asset_tag` - Asset tag
 - `issued_date` - Optional date asset was issued (YYYY-MM-DD format)
 - `notes` - Optional notes
 

@@ -649,7 +649,7 @@ This section tracks planned dependency upgrades. Since ACS is currently in beta,
 | Node.js | 20 LTS | Active | April 2026 |
 | Node.js | 18 LTS | Maintenance | April 2025 |
 
-**Last Updated:** December 2024
+**Last Updated:** January 2026
 
 ---
 
@@ -704,8 +704,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [x] Password Reset Flow
 - [x] Attestation Workflow
 - [x] Advanced Reporting Dashboard
+- [x] API Rate Limiting
 - [ ] Mobile App
-- [ ] API Rate Limiting
 - [ ] Database Encryption at Rest
 
 ---

@@ -1,5 +1,9 @@
 # ACS UI/UX Wireframes & Visual Mockups
 
+> ⚠️ **Note:** This document contains historical wireframes from the UI modernization project. These proposed changes have been implemented. For current design documentation, see [UI-MODERNIZATION-SUMMARY.md](UI-MODERNIZATION-SUMMARY.md) and [UI-UX-DESIGN-SPEC.md](UI-UX-DESIGN-SPEC.md).
+
+---
+
 This document provides ASCII wireframes and detailed descriptions of the proposed UI improvements for each major screen.
 
 ---

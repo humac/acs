@@ -20,7 +20,7 @@ This guide explains how to deploy ACS to Portainer using GitHub Actions with Clo
 
 ### Node.js for local development
 
-- The backend depends on native modules (e.g., `better-sqlite3`) which must be built against a compatible Node.js ABI. To avoid native build failures, use Node 18 (LTS) for local development and CI when building the backend image.
+- The backend depends on native modules (e.g., `better-sqlite3`) which must be built against a compatible Node.js ABI. To avoid native build failures, use Node 22 (LTS) for local development and CI when building the backend image.
 
 - Recommended: use `nvm` to install and switch Node versions:
 
@@ -28,12 +28,12 @@ This guide explains how to deploy ACS to Portainer using GitHub Actions with Clo
 # Install nvm (if not present)
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.6/install.sh | bash
 source ~/.nvm/nvm.sh
-# Install and use Node 18
-nvm install 18
-nvm use 18
+# Install and use Node 22
+nvm install 22
+nvm use 22
 ```
 
-- You can also pin Node 18 for the backend by adding `"engines": { "node": ">=18 <19" }` to `backend/package.json`. The repo maintainer has added this pin to reduce surprises when building native modules.
+- You can also pin Node 22 for the backend by adding `"engines": { "node": ">=22 <23" }` to `backend/package.json`. The repo maintainer has added this pin to reduce surprises when building native modules.
 
 ## GitHub Container Registry Setup
 
