@@ -9,11 +9,24 @@ vi.mock('@/hooks/use-toast', () => ({
 
 // Mock child components to avoid their complexity
 vi.mock('./OIDCSettings', () => ({ default: () => <div data-testid="oidc-settings">OIDC</div> }));
-vi.mock('./SecuritySettings', () => ({ default: () => <div data-testid="security-settings">Security</div> }));
 vi.mock('./HubSpotSettings', () => ({ default: () => <div data-testid="hubspot-settings">HubSpot</div> }));
-vi.mock('./NotificationSettings', () => ({ default: () => <div data-testid="notification-settings">Notifications</div> }));
 vi.mock('./AssetTypesSettings', () => ({ default: () => <div data-testid="asset-types-settings">Asset Types</div> }));
-vi.mock('./SystemSettings', () => ({ default: () => <div data-testid="system-settings">System</div> }));
+vi.mock('./EmailTemplates', () => ({ default: () => <div data-testid="email-templates">Email Templates</div> }));
+
+// Mock new admin components
+vi.mock('./admin/SettingsLayout', () => ({ 
+  default: ({ children, activeSection, onSectionChange }) => (
+    <div data-testid="settings-layout">
+      <div data-testid="active-section">{activeSection}</div>
+      {children}
+    </div>
+  )
+}));
+vi.mock('./admin/RestartRequiredBanner', () => ({ default: () => <div data-testid="restart-banner">Restart Required</div> }));
+vi.mock('./admin/PasskeySettings', () => ({ default: () => <div data-testid="passkey-settings">Passkey Settings</div> }));
+vi.mock('./admin/SMTPSettings', () => ({ default: () => <div data-testid="smtp-settings">SMTP Settings</div> }));
+vi.mock('./admin/ProxySettings', () => ({ default: () => <div data-testid="proxy-settings">Proxy Settings</div> }));
+vi.mock('./admin/RateLimitingSettings', () => ({ default: () => <div data-testid="rate-limiting-settings">Rate Limiting</div> }));
 
 // Variable to control user role
 let mockUserRole = 'admin';
@@ -78,55 +91,28 @@ describe('AdminSettings', () => {
     });
   });
 
-  describe('Tab Navigation', () => {
+  describe('Navigation', () => {
     beforeEach(() => {
       mockUserRole = 'admin';
     });
 
-    it('renders Branding tab', () => {
+    it('renders sidebar layout', () => {
       renderSettings();
-      expect(screen.getByRole('tab', { name: /Branding/i })).toBeInTheDocument();
+      expect(screen.getByTestId('settings-layout')).toBeInTheDocument();
     });
 
-    it('renders Asset Types tab', () => {
+    it('shows branding section by default', () => {
       renderSettings();
-      expect(screen.getByRole('tab', { name: /Asset Types/i })).toBeInTheDocument();
+      expect(screen.getByTestId('active-section')).toHaveTextContent('branding');
     });
 
-    it('renders Security tab', () => {
+    it('shows Admin Settings header', () => {
       renderSettings();
-      expect(screen.getByRole('tab', { name: /Security/i })).toBeInTheDocument();
-    });
-
-    it('renders System tab', () => {
-      renderSettings();
-      expect(screen.getByRole('tab', { name: /System/i })).toBeInTheDocument();
-    });
-
-    it('renders Notifications tab', () => {
-      renderSettings();
-      expect(screen.getByRole('tab', { name: /Notifications/i })).toBeInTheDocument();
-    });
-
-    it('renders Integrations tab', () => {
-      renderSettings();
-      expect(screen.getByRole('tab', { name: /Integrations/i })).toBeInTheDocument();
-    });
-
-    it('renders Database tab', () => {
-      renderSettings();
-      expect(screen.getByRole('tab', { name: /Database/i })).toBeInTheDocument();
-    });
-
-    it('shows Branding content by default', async () => {
-      renderSettings();
-      await waitFor(() => {
-        expect(screen.getByText('Branding Settings')).toBeInTheDocument();
-      });
+      expect(screen.getByText('Admin Settings')).toBeInTheDocument();
     });
   });
 
-  describe('Branding Tab (default)', () => {
+  describe('Branding Section (default)', () => {
     beforeEach(() => {
       mockUserRole = 'admin';
     });
