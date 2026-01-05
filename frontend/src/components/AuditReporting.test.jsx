@@ -36,12 +36,33 @@ vi.mock('@/components/widgets', () => ({
   RiskIndicatorList: () => <div data-testid="risk-indicator-list">RiskIndicatorList</div>,
   ComplianceChecklist: () => <div data-testid="compliance-checklist">ComplianceChecklist</div>,
   MetricsComparison: () => <div data-testid="metrics-comparison">MetricsComparison</div>,
+  ComplianceAlertBanner: () => <div data-testid="compliance-alert-banner">ComplianceAlertBanner</div>,
 }));
 
 // Mock TablePaginationControls
 vi.mock('@/components/TablePaginationControls', () => ({
   default: () => <div data-testid="table-pagination">Pagination</div>,
 }));
+
+const minimalCompliance = {
+  score: 98,
+  atRiskAssets: 0,
+  overdueAttestations: 0,
+  attestedThisQuarter: 0,
+  riskIndicators: [],
+  campaigns: [],
+  checklist: [],
+};
+
+const mockComplianceAndSummary = (summaryResponse = { total: 10 }) => {
+  global.fetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => minimalCompliance,
+  }).mockResolvedValueOnce({
+    ok: true,
+    json: async () => summaryResponse,
+  });
+};
 
 describe('AuditReporting', () => {
   beforeEach(() => {
@@ -54,7 +75,7 @@ describe('AuditReporting', () => {
   });
 
   describe('Initial Data Fetch - Issue 1', () => {
-    it('should fetch summary data on initial mount', async () => {
+    it('should fetch compliance and summary data on initial mount', async () => {
       const mockSummaryEnhanced = {
         total: 100,
         totalChange: 5,
@@ -65,20 +86,13 @@ describe('AuditReporting', () => {
         complianceScore: 85,
       };
 
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ total: 10 }), // summary
-      }).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockSummaryEnhanced, // summary-enhanced
-      });
+      mockComplianceAndSummary(mockSummaryEnhanced);
 
       render(<AuditReportingNew />);
 
-      // Wait for the fetch calls to be made
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-          '/api/reports/summary',
+          '/api/reports/compliance',
           expect.objectContaining({
             headers: expect.objectContaining({ Authorization: 'Bearer test-token' })
           })
@@ -94,34 +108,16 @@ describe('AuditReporting', () => {
         );
       });
 
-      // Verify data is displayed
       await waitFor(() => {
         expect(screen.getByText('100')).toBeInTheDocument();
       });
     });
 
     it('should display summary tab content by default', async () => {
-      const mockSummaryEnhanced = {
-        total: 100,
-        totalChange: 5,
-        byStatus: { active: 80, returned: 15, lost: 3, damaged: 2 },
-        byCompany: [],
-        byManager: [],
-        byType: {},
-        complianceScore: 85,
-      };
-
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ total: 10 }),
-      }).mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockSummaryEnhanced,
-      });
+      mockComplianceAndSummary({ total: 100 });
 
       render(<AuditReportingNew />);
 
-      // Check that Summary tab is active
       const summaryTab = screen.getByRole('tab', { name: /summary/i });
       expect(summaryTab).toHaveAttribute('data-state', 'active');
     });
@@ -136,13 +132,7 @@ describe('AuditReporting', () => {
       };
 
       // Initial load - summary
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ total: 10 }),
-      }).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ total: 100 }),
-      });
+      mockComplianceAndSummary({ total: 100 });
 
       const user = userEvent.setup();
       render(<AuditReportingNew />);
@@ -152,9 +142,6 @@ describe('AuditReporting', () => {
 
       // Switch to Statistics tab
       global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ([]),
-      }).mockResolvedValueOnce({
         ok: true,
         json: async () => mockStatsEnhanced,
       });
@@ -197,13 +184,7 @@ describe('AuditReporting', () => {
       };
 
       // Initial load - summary
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ total: 10 }),
-      }).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ total: 100 }),
-      });
+      mockComplianceAndSummary({ total: 100 });
 
       const user = userEvent.setup();
       render(<AuditReportingNew />);
@@ -256,13 +237,7 @@ describe('AuditReporting', () => {
     it('should show all tabs for admin users', async () => {
       mockUser = { id: 1, email: 'admin@test.com', role: 'admin' };
       
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ total: 10 }),
-      }).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ total: 100 }),
-      });
+      mockComplianceAndSummary({ total: 100 });
 
       render(<AuditReportingNew />);
 
@@ -276,13 +251,7 @@ describe('AuditReporting', () => {
     it('should show all tabs for manager users', async () => {
       mockUser = { id: 2, email: 'manager@test.com', role: 'manager' };
       
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ total: 10 }),
-      }).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ total: 100 }),
-      });
+      mockComplianceAndSummary({ total: 100 });
 
       render(<AuditReportingNew />);
 
@@ -296,13 +265,7 @@ describe('AuditReporting', () => {
     it('should hide Statistics, Compliance, and Trends tabs for employee users', async () => {
       mockUser = { id: 3, email: 'employee@test.com', role: 'employee' };
       
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ total: 10 }),
-      }).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ total: 100 }),
-      });
+      mockComplianceAndSummary({ total: 100 });
 
       render(<AuditReportingNew />);
 
@@ -319,13 +282,7 @@ describe('AuditReporting', () => {
     it('should hide all tabs when user is null', async () => {
       mockUser = null;
       
-      global.fetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ total: 10 }),
-      }).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ total: 100 }),
-      });
+      mockComplianceAndSummary({ total: 100 });
 
       render(<AuditReportingNew />);
 
