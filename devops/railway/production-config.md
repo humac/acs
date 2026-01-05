@@ -50,15 +50,14 @@ PORT=${{PORT}}
 
 ### kars-frontend-prod
 
-**Service Type:** Frontend (React/Vite)
+**Service Type:** Frontend (React/Vite + Nginx)
 
 **Configuration:**
 - **Branch:** `kars-prod`
 - **Root Directory:** `/frontend`
-- **Builder:** Nixpacks
-- **Build Command:** `npm ci && npm run build`
-- **Start Command:** `npm run preview -- --host 0.0.0.0 --port $PORT`
-- **Port:** Dynamic (`${{PORT}}`)
+- **Builder:** Dockerfile
+- **Dockerfile Path:** `/frontend/Dockerfile`
+- **Port:** 80
 - **Custom Domain:** `kars.keydatalab.ca`
 
 **Resource Allocation:**
@@ -69,9 +68,11 @@ PORT=${{PORT}}
 **Environment Variables:**
 ```env
 NODE_ENV=production
-VITE_API_URL=/api
-PORT=${{PORT}}
+BACKEND_URL=https://kars-backend-prod.up.railway.app
+PORT=80
 ```
+
+**Note:** For Railway Starter plan (no private networking), `BACKEND_URL` must be the backend's public URL. Nginx proxies `/api` requests to this URL. See [STARTER-PLAN-SETUP.md](STARTER-PLAN-SETUP.md) for details.
 
 ### kars-db-prod
 
@@ -99,14 +100,19 @@ POSTGRES_DB=railway
 
 ## Network Configuration
 
-### Internal Networking
+### Networking Model
 
-Services communicate via Railway's internal network:
+**Railway Starter Plan:** Services communicate via public URLs (no private networking):
 ```
-kars-frontend-prod → kars-backend-prod → kars-db-prod
+kars-frontend-prod (Nginx) → kars-backend-prod (public URL) → kars-db-prod (Railway internal)
 ```
 
-**Backend Internal URL:** `kars-backend-prod.railway.internal:3001`
+**Railway Pro Plan (Optional):** Services can use internal network:
+```
+kars-frontend-prod → kars-backend-prod.railway.internal:3001 → kars-db-prod
+```
+
+**Current Setup:** Using public URLs for Starter plan compatibility.
 
 ### External Networking
 

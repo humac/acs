@@ -50,15 +50,14 @@ PORT=${{PORT}}
 
 ### kars-frontend-dev
 
-**Service Type:** Frontend (React/Vite)
+**Service Type:** Frontend (React/Vite + Nginx)
 
 **Configuration:**
 - **Branch:** `kars-dev`
 - **Root Directory:** `/frontend`
-- **Builder:** Nixpacks
-- **Build Command:** `npm ci && npm run build`
-- **Start Command:** `npm run preview -- --host 0.0.0.0 --port $PORT`
-- **Port:** Dynamic (`${{PORT}}`)
+- **Builder:** Dockerfile
+- **Dockerfile Path:** `/frontend/Dockerfile`
+- **Port:** 80
 - **Custom Domain:** `kars-dev.keydatalab.ca`
 
 **Resource Allocation:**
@@ -69,9 +68,11 @@ PORT=${{PORT}}
 **Environment Variables:**
 ```env
 NODE_ENV=production
-VITE_API_URL=/api
-PORT=${{PORT}}
+BACKEND_URL=https://kars-backend-dev.up.railway.app
+PORT=80
 ```
+
+**Note:** For Railway Starter plan (no private networking), `BACKEND_URL` must be the backend's public URL. Nginx proxies `/api` requests to this URL. See [STARTER-PLAN-SETUP.md](STARTER-PLAN-SETUP.md) for details.
 
 ### kars-db-dev
 

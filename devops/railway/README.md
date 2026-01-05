@@ -40,15 +40,49 @@ Railway.app is ACS's production deployment platform, providing managed infrastru
 - **Repository:** https://github.com/humac/acs
 
 ### Internal Documentation
-- **Setup Guide:** [SETUP.md](SETUP.md)
+- **Starter Plan Setup:** [STARTER-PLAN-SETUP.md](STARTER-PLAN-SETUP.md) ⭐ **Start Here**
+- **Full Setup Guide:** [SETUP-GUIDE.md](SETUP-GUIDE.md)
+- **Quick Setup:** [SETUP.md](SETUP.md)
 - **Configuration:** [CONFIGURATION.md](CONFIGURATION.md)
 - **Database:** [DATABASE.md](DATABASE.md)
 - **Deployment:** [DEPLOYMENT.md](DEPLOYMENT.md)
 - **Troubleshooting:** [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+- **Production Config:** [production-config.md](production-config.md)
+- **Development Config:** [development-config.md](development-config.md)
 
 ---
 
 ## Documentation Structure
+
+### [STARTER-PLAN-SETUP.md](STARTER-PLAN-SETUP.md) ⭐
+**Purpose:** Complete guide for Railway Starter plan deployment (no private networking)
+
+**Contents:**
+- Public URL architecture for Starter plan
+- Step-by-step backend and frontend setup
+- Dockerfile-based frontend deployment with Nginx
+- Environment variable configuration
+- SSL/TLS setup for public communication
+- Troubleshooting common issues
+- Production deployment notes
+
+**When to use:** New deployments on Railway Starter plan, or if you don't have private networking
+
+---
+
+### [SETUP-GUIDE.md](SETUP-GUIDE.md)
+**Purpose:** Comprehensive setup guide for KARS deployment
+
+**Contents:**
+- Account setup and prerequisites
+- Detailed project structure
+- Service configuration
+- Custom domain setup
+- Multi-environment setup
+
+**When to use:** Complete walkthrough with all details
+
+---
 
 ### [SETUP.md](SETUP.md)
 **Purpose:** Initial Railway setup and project creation
