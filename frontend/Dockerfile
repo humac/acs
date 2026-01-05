@@ -10,7 +10,7 @@ COPY package*.json ./
 RUN npm install
 
 # Copy application code
-COPY . .
+COPY . . 
 
 # Build the application
 RUN npm run build
@@ -22,10 +22,17 @@ FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html
 
 # Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/nginx.conf.src
 
 # Expose port
 EXPOSE 80
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Use a startup script for clarity
+RUN echo '#!/bin/sh' > /start.sh && \
+    echo 'echo "BACKEND_URL:  $BACKEND_URL"' >> /start.sh && \
+    echo 'envsubst "\$BACKEND_URL" < /etc/nginx/nginx.conf.src > /etc/nginx/conf.d/default.conf' >> /start.sh && \
+    echo 'cat /etc/nginx/conf.d/default.conf | grep proxy_pass' >> /start.sh && \
+    echo 'exec nginx -g "daemon off;"' >> /start.sh && \
+    chmod +x /start.sh
+
+CMD ["/start.sh"]
