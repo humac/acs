@@ -399,7 +399,7 @@ export default function createReportsRouter(deps) {
 
       const score = Math.round((earnedWeight / totalWeight) * 100);
 
-      const checklist = checklistItems.map(({ weight, ...rest }) => rest); // Remove weight from response if not needed by frontend
+      const checklist = checklistItems.map(({ weight: _weight, ...rest }) => rest); // Remove weight from response if not needed by frontend
 
 
       res.json({
