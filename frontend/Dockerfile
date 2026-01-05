@@ -35,4 +35,4 @@ RUN echo '#!/bin/sh' > /start.sh && \
     echo 'exec nginx -g "daemon off;"' >> /start.sh && \
     chmod +x /start.sh
 
-CMD ["/start. sh"]
+CMD ["/start.sh"]
