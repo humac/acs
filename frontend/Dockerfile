@@ -27,5 +27,5 @@ COPY nginx.conf /etc/nginx/nginx.conf.src
 # Expose port
 EXPOSE 80
 
-# Start nginx
-CMD sh -c "envsubst '\$BACKEND_URL' < /etc/nginx/nginx.conf.src > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+# Start nginx - with debug output
+CMD sh -c "echo 'BACKEND_URL is: ' && echo $BACKEND_URL && envsubst '\$BACKEND_URL' < /etc/nginx/nginx.conf.src > /etc/nginx/conf.d/default. conf && echo 'Generated config line 21: ' && sed -n '21p' /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
