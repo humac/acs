@@ -242,10 +242,14 @@ if (wantsPostgres && postgresUrl) {
 
 const isPostgres = selectedEngine === 'postgres';
 
-if (!isPostgres) {
-  const dbPath = process.env.DB_PATH || join(dataDir, 'assets.db');
-  sqliteDb = new Database(dbPath);
-}
+const getDb = () => {
+  if (isPostgres) return null;
+  if (!sqliteDb) {
+    const dbPath = process.env.DB_PATH || join(dataDir, 'assets.db');
+    sqliteDb = new Database(dbPath);
+  }
+  return sqliteDb;
+};
 
 const transformPlaceholders = (sql) => {
   if (!isPostgres) return sql;
@@ -258,7 +262,7 @@ const dbAll = async (sql, params = []) => {
     const result = await pgPool.query(transformPlaceholders(sql), params);
     return result.rows;
   }
-  const stmt = sqliteDb.prepare(sql);
+  const stmt = getDb().prepare(sql);
   return stmt.all(...params);
 };
 
@@ -267,7 +271,7 @@ const dbGet = async (sql, params = []) => {
     const result = await pgPool.query(transformPlaceholders(sql), params);
     return result.rows[0] || null;
   }
-  const stmt = sqliteDb.prepare(sql);
+  const stmt = getDb().prepare(sql);
   return stmt.get(...params) || null;
 };
 
@@ -280,7 +284,7 @@ const dbRun = async (sql, params = []) => {
       lastInsertRowid: result.rows?.[0]?.id || null
     };
   }
-  const stmt = sqliteDb.prepare(sql);
+  const stmt = getDb().prepare(sql);
   const info = stmt.run(...params);
   return { ...info };
 };
