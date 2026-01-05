@@ -1954,14 +1954,17 @@ const initDb = async () => {
   // This migration normalizes all date fields to date-only format without time components
   console.log('Checking for date columns that need YYYY-MM-DD format conversion...');
   try {
+    // Helper to convert Postgres timestamps to text when needed
+    const toTextColumn = (col) => (isPostgres ? `${col}::text` : col);
+    const hasIsoTimestamp = (col) => `${toTextColumn(col)} LIKE '%T%'`;
     // Helper to extract YYYY-MM-DD from ISO timestamp
     const extractDateSQL = isPostgres
-      ? (col) => `CASE WHEN ${col} IS NOT NULL AND ${col} LIKE '%T%' THEN SUBSTRING(${col} FROM 1 FOR 10) ELSE ${col} END`
-      : (col) => `CASE WHEN ${col} IS NOT NULL AND ${col} LIKE '%T%' THEN SUBSTR(${col}, 1, 10) ELSE ${col} END`;
+      ? (col) => `CASE WHEN ${col} IS NOT NULL AND ${hasIsoTimestamp(col)} THEN SUBSTRING(${toTextColumn(col)} FROM 1 FOR 10) ELSE ${col} END`
+      : (col) => `CASE WHEN ${col} IS NOT NULL AND ${hasIsoTimestamp(col)} THEN SUBSTR(${col}, 1, 10) ELSE ${col} END`;
 
     // Check if migration is needed by looking for ISO timestamps in assets table
     const sampleAsset = await dbGet(
-      "SELECT issued_date, returned_date FROM assets WHERE issued_date LIKE '%T%' OR returned_date LIKE '%T%' LIMIT 1"
+      `SELECT issued_date, returned_date FROM assets WHERE ${hasIsoTimestamp('issued_date')} OR ${hasIsoTimestamp('returned_date')} LIMIT 1`
     );
 
     if (sampleAsset) {
@@ -1970,14 +1973,14 @@ const initDb = async () => {
         UPDATE assets
         SET issued_date = ${extractDateSQL('issued_date')},
             returned_date = ${extractDateSQL('returned_date')}
-        WHERE issued_date LIKE '%T%' OR returned_date LIKE '%T%'
+        WHERE ${hasIsoTimestamp('issued_date')} OR ${hasIsoTimestamp('returned_date')}
       `);
       console.log('Migration complete: Converted asset dates to YYYY-MM-DD format');
     }
 
     // Check attestation_new_assets table
     const sampleNewAsset = await dbGet(
-      "SELECT issued_date, returned_date FROM attestation_new_assets WHERE issued_date LIKE '%T%' OR returned_date LIKE '%T%' LIMIT 1"
+      `SELECT issued_date, returned_date FROM attestation_new_assets WHERE ${hasIsoTimestamp('issued_date')} OR ${hasIsoTimestamp('returned_date')} LIMIT 1`
     );
 
     if (sampleNewAsset) {
@@ -1986,14 +1989,14 @@ const initDb = async () => {
         UPDATE attestation_new_assets
         SET issued_date = ${extractDateSQL('issued_date')},
             returned_date = ${extractDateSQL('returned_date')}
-        WHERE issued_date LIKE '%T%' OR returned_date LIKE '%T%'
+        WHERE ${hasIsoTimestamp('issued_date')} OR ${hasIsoTimestamp('returned_date')}
       `);
       console.log('Migration complete: Converted attestation_new_assets dates to YYYY-MM-DD format');
     }
 
     // Check attestation_campaigns table
     const sampleCampaign = await dbGet(
-      "SELECT start_date, end_date FROM attestation_campaigns WHERE start_date LIKE '%T%' OR end_date LIKE '%T%' LIMIT 1"
+      `SELECT start_date, end_date FROM attestation_campaigns WHERE ${hasIsoTimestamp('start_date')} OR ${hasIsoTimestamp('end_date')} LIMIT 1`
     );
 
     if (sampleCampaign) {
@@ -2002,7 +2005,7 @@ const initDb = async () => {
         UPDATE attestation_campaigns
         SET start_date = ${extractDateSQL('start_date')},
             end_date = ${extractDateSQL('end_date')}
-        WHERE start_date LIKE '%T%' OR end_date LIKE '%T%'
+        WHERE ${hasIsoTimestamp('start_date')} OR ${hasIsoTimestamp('end_date')}
       `);
       console.log('Migration complete: Converted attestation_campaigns dates to YYYY-MM-DD format');
     }
