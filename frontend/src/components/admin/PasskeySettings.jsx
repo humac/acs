@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
 import { Fingerprint, Loader2, AlertTriangle, Info, ExternalLink, Save } from 'lucide-react';
-import RestartRequiredBanner from './admin/RestartRequiredBanner';
+import RestartRequiredBanner from './RestartRequiredBanner';
 
 const PasskeySettings = () => {
   const { getAuthHeaders } = useAuth();

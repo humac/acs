@@ -1,32 +1,27 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table';
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
-import TablePaginationControls from '@/components/TablePaginationControls';
-import { cn } from '@/lib/utils';
-import { Settings, Database, Trash2, Loader2, AlertTriangle, Shield, Image, Plug, Bell, Laptop, Server } from 'lucide-react';
+import { Settings, Database, Loader2, AlertTriangle, Image, Shield } from 'lucide-react';
+import SettingsLayout from './admin/SettingsLayout';
+import RestartRequiredBanner from './admin/RestartRequiredBanner';
+import PasskeySettings from './admin/PasskeySettings';
+import SMTPSettings from './admin/SMTPSettings';
+import ProxySettings from './admin/ProxySettings';
+import RateLimitingSettings from './admin/RateLimitingSettings';
 import OIDCSettings from './OIDCSettings';
-import SecuritySettings from './SecuritySettings';
 import HubSpotSettings from './HubSpotSettings';
-import NotificationSettings from './NotificationSettings';
 import AssetTypesSettings from './AssetTypesSettings';
-import SystemSettings from './SystemSettings';
+import EmailTemplates from './EmailTemplates';
 
 const AdminSettingsNew = () => {
   const { getAuthHeaders, user } = useAuth();
@@ -50,7 +45,7 @@ const AdminSettingsNew = () => {
   const [footerLabel, setFooterLabel] = useState('SOC2 Compliance - KeyData Asset Registration System');
 
   useEffect(() => {
-    if (activeView === 'settings') fetchDatabaseSettings();
+    if (activeView === 'database') fetchDatabaseSettings();
     if (activeView === 'branding') fetchBrandingSettings();
   }, [activeView]);
 
@@ -240,351 +235,410 @@ const AdminSettingsNew = () => {
     );
   }
 
-  return (
-    <div className="space-y-6 p-1 md:p-2 animate-fade-in bg-surface/30 min-h-screen rounded-2xl">
-      <Card className="glass-panel rounded-2xl">
-        <CardHeader className="pb-2">
-          <div className="flex items-center gap-2">
-            <div className="icon-box icon-box-sm bg-primary/10 border-primary/20">
-              <Settings className="h-4 w-4 text-primary" />
+  const renderSectionContent = () => {
+    switch (activeView) {
+      case 'branding':
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="icon-box icon-box-sm bg-primary/10 border-primary/20">
+                <Image className="h-4 w-4 text-primary" />
+              </div>
+              <h2 className="text-xl font-semibold">Branding Settings</h2>
             </div>
-            <CardTitle className="text-gradient">Admin Settings</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-2">
-          <Tabs value={activeView} onValueChange={setActiveView}>
-            <TabsList className="mb-3 w-full overflow-x-auto flex-nowrap justify-start">
-              <TabsTrigger value="branding" className="gap-2"><Image className="h-4 w-4" />Branding</TabsTrigger>
-              <TabsTrigger value="asset-types" className="gap-2"><Laptop className="h-4 w-4" />Asset Types</TabsTrigger>
-              <TabsTrigger value="security" className="gap-2"><Shield className="h-4 w-4" />Security</TabsTrigger>
-              <TabsTrigger value="system" className="gap-2"><Server className="h-4 w-4" />System</TabsTrigger>
-              <TabsTrigger value="notifications" className="gap-2"><Bell className="h-4 w-4" />Notifications</TabsTrigger>
-              <TabsTrigger value="integrations" className="gap-2"><Plug className="h-4 w-4" />Integrations</TabsTrigger>
-              <TabsTrigger value="settings" className="gap-2"><Database className="h-4 w-4" />Database</TabsTrigger>
-            </TabsList>
-
-
-            <TabsContent value="settings" className="space-y-2">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Database Configuration</CardTitle>
-                  <CardDescription className="text-sm">Choose SQLite (default) or PostgreSQL for production.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2 pt-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant={dbSettings.effectiveEngine === 'postgres' ? 'success' : 'secondary'}>{dbSettings.effectiveEngine.toUpperCase()}</Badge>
-                    {dbSettings.managedByEnv && <Badge variant="warning">Managed by ENV</Badge>}
+            <Card>
+              <CardContent className="space-y-4 pt-6">
+                {brandingLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
-                  <Select value={dbSettings.engine} onValueChange={(v) => setDbSettings({ ...dbSettings, engine: v })} disabled={dbSettings.managedByEnv || dbLoading}>
-                    <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+                ) : (
+                  <>
+                    {/* Company Logo */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold">Company Logo</Label>
+                      <div className="flex items-center gap-4">
+                        <div className="h-20 w-20 flex items-center justify-center rounded-lg border bg-muted/50 overflow-hidden shrink-0">
+                          {logoPreview ? (
+                            <img
+                              src={logoPreview}
+                              alt="Company Logo"
+                              className="max-h-16 max-w-16 object-contain"
+                            />
+                          ) : (
+                            <Image className="h-8 w-8 text-muted-foreground" />
+                          )}
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          <Input id="company-logo" type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => document.getElementById('company-logo')?.click()}
+                              disabled={brandingLoading}
+                            >
+                              Choose Image
+                            </Button>
+                            {logoPreview && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={handleLogoRemove}
+                                disabled={brandingLoading}
+                              >
+                                Remove
+                              </Button>
+                            )}
+                            <span className="text-xs text-muted-foreground">
+                              {logoFilename || 'No file selected'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">PNG, JPG, or SVG up to 2MB. Used on login page.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Favicon */}
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold">Favicon</Label>
+                      <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 flex items-center justify-center rounded border bg-muted/50 overflow-hidden shrink-0">
+                          {faviconPreview ? (
+                            <img
+                              src={faviconPreview}
+                              alt="Favicon"
+                              className="max-h-8 max-w-8 object-contain"
+                            />
+                          ) : (
+                            <Image className="h-5 w-5 text-muted-foreground" />
+                          )}
+                        </div>
+                        <div className="flex-1 space-y-2">
+                          <Input id="favicon-upload" type="file" accept=".ico,.png" onChange={handleFaviconUpload} className="hidden" />
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => document.getElementById('favicon-upload')?.click()}
+                              disabled={brandingLoading}
+                            >
+                              Choose Favicon
+                            </Button>
+                            {faviconPreview && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={handleFaviconRemove}
+                                disabled={brandingLoading}
+                              >
+                                Remove
+                              </Button>
+                            )}
+                            <span className="text-xs text-muted-foreground">
+                              {faviconFilename || 'No file selected'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">.ico or .png file, 32×32px recommended</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Separator />
+
+                    {/* Site Name */}
+                    <div className="space-y-2">
+                      <Label htmlFor="site-name" className="text-sm font-semibold">Site Name</Label>
+                      <Input
+                        id="site-name"
+                        type="text"
+                        value={siteName}
+                        onChange={(e) => setSiteName(e.target.value)}
+                        placeholder="ACS"
+                        disabled={brandingLoading}
+                        className="max-w-md"
+                      />
+                      <p className="text-xs text-muted-foreground">Main application name displayed on login page and browser tab</p>
+                    </div>
+
+                    <Separator />
+
+                    {/* Subtitle */}
+                    <div className="space-y-2">
+                      <Label htmlFor="sub-title" className="text-sm font-semibold">Subtitle</Label>
+                      <Input
+                        id="sub-title"
+                        type="text"
+                        value={subTitle}
+                        onChange={(e) => setSubTitle(e.target.value)}
+                        placeholder="KeyData Asset Registration System"
+                        disabled={brandingLoading}
+                        className="max-w-md"
+                      />
+                      <p className="text-xs text-muted-foreground">Tagline or description shown on login page</p>
+                    </div>
+
+                    <Separator />
+
+                    {/* Primary Color */}
+                    <div className="space-y-2">
+                      <Label htmlFor="primary-color" className="text-sm font-semibold">Primary Brand Color</Label>
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="h-10 w-10 rounded-full border-2 border-gray-300 cursor-pointer"
+                          style={{ backgroundColor: primaryColor }}
+                          onClick={() => document.getElementById('primary-color')?.click()}
+                        />
+                        <Input
+                          id="primary-color"
+                          type="color"
+                          value={primaryColor}
+                          onChange={(e) => setPrimaryColor(e.target.value)}
+                          disabled={brandingLoading}
+                          className="w-20 h-10 cursor-pointer"
+                        />
+                        <Input
+                          type="text"
+                          value={primaryColor}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (/^#[0-9A-Fa-f]{0,6}$/.test(val)) {
+                              setPrimaryColor(val);
+                            }
+                          }}
+                          placeholder="#3B82F6"
+                          disabled={brandingLoading}
+                          className="max-w-32"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">Used for buttons, links, and highlights.</p>
+                    </div>
+
+                    <Separator />
+
+                    {/* Email Logo Toggle */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Checkbox
+                          id="email-logo"
+                          checked={includeLogoInEmails}
+                          onCheckedChange={setIncludeLogoInEmails}
+                          disabled={brandingLoading}
+                        />
+                        <Label htmlFor="email-logo" className="text-sm font-semibold cursor-pointer">
+                          Include logo in email headers
+                        </Label>
+                      </div>
+                      <p className="text-xs text-muted-foreground ml-6">
+                        When enabled, your company logo will appear in email notifications sent via SMTP
+                      </p>
+                    </div>
+
+                    <Separator />
+
+                    {/* App URL */}
+                    <div className="space-y-2">
+                      <Label htmlFor="app-url" className="text-sm font-semibold">App URL</Label>
+                      <Input
+                        id="app-url"
+                        type="url"
+                        value={appUrl}
+                        onChange={(e) => setAppUrl(e.target.value)}
+                        placeholder="https://your-domain.com or http://localhost:3000"
+                        disabled={brandingLoading}
+                        className="max-w-md"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Base URL used for links in email notifications (attestation links, password reset, etc.). 
+                        Falls back to FRONTEND_URL environment variable if not set.
+                      </p>
+                    </div>
+
+                    <Separator />
+
+                    {/* Footer Label */}
+                    <div className="space-y-2">
+                      <Label htmlFor="footer-label" className="text-sm font-semibold">Footer Label</Label>
+                      <Input
+                        id="footer-label"
+                        type="text"
+                        value={footerLabel}
+                        onChange={(e) => setFooterLabel(e.target.value)}
+                        placeholder="SOC2 Compliance - KeyData Asset Registration System"
+                        disabled={brandingLoading}
+                        className="max-w-md"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Text displayed at the bottom of the application and on login/register pages
+                      </p>
+                    </div>
+
+                    <Separator />
+
+                    {/* Save Button */}
+                    <div className="flex justify-end pt-2">
+                      <Button 
+                        onClick={handleBrandingSave} 
+                        disabled={brandingLoading}
+                        size="default"
+                        className="btn-interactive"
+                      >
+                        {brandingLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                        Save Changes
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      case 'passkeys':
+        return <PasskeySettings />;
+
+      case 'oidc':
+        return <OIDCSettings />;
+
+      case 'smtp':
+        return <SMTPSettings />;
+
+      case 'templates':
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="icon-box icon-box-sm bg-primary/10 border-primary/20">
+                <Image className="h-4 w-4 text-primary" />
+              </div>
+              <h2 className="text-xl font-semibold">Email Templates</h2>
+            </div>
+            <EmailTemplates />
+          </div>
+        );
+
+      case 'asset-types':
+        return <AssetTypesSettings />;
+
+      case 'proxy':
+        return <ProxySettings />;
+
+      case 'rate-limiting':
+        return <RateLimitingSettings />;
+
+      case 'database':
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="icon-box icon-box-sm bg-primary/10 border-primary/20">
+                <Database className="h-4 w-4 text-primary" />
+              </div>
+              <h2 className="text-xl font-semibold">Database Configuration</h2>
+            </div>
+
+            <RestartRequiredBanner />
+
+            <Card>
+              <CardContent className="space-y-4 pt-6">
+                <div className="flex items-center gap-2">
+                  <Badge variant={dbSettings.effectiveEngine === 'postgres' ? 'success' : 'secondary'}>
+                    {dbSettings.effectiveEngine.toUpperCase()}
+                  </Badge>
+                  {dbSettings.managedByEnv && <Badge variant="warning">Managed by ENV</Badge>}
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-semibold">Database Engine</Label>
+                  <Select 
+                    value={dbSettings.engine} 
+                    onValueChange={(v) => setDbSettings({ ...dbSettings, engine: v })} 
+                    disabled={dbSettings.managedByEnv || dbLoading}
+                  >
+                    <SelectTrigger className="w-48">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="sqlite">SQLite (default)</SelectItem>
                       <SelectItem value="postgres">PostgreSQL</SelectItem>
                     </SelectContent>
                   </Select>
-                  {dbSettings.engine === 'postgres' && (
-                    <Input placeholder="postgresql://user:pass@host:5432/database" value={dbSettings.postgresUrl} onChange={(e) => setDbSettings({ ...dbSettings, postgresUrl: e.target.value })} disabled={dbSettings.managedByEnv || dbLoading} />
-                  )}
-                  <Button onClick={handleDatabaseSave} disabled={dbSettings.managedByEnv || dbLoading} size="sm">
-                    {dbLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Save Database Settings
-                  </Button>
-                  <p className="text-xs text-muted-foreground">Restart the backend after changing database settings.</p>
-                </CardContent>
-              </Card>
-              <Card className="border-yellow-400 bg-yellow-50">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center gap-2"><Shield className="h-4 w-4 text-yellow-600" /><CardTitle className="text-sm text-yellow-800">Security Best Practices</CardTitle></div>
-                </CardHeader>
-                <CardContent className="pt-2">
-                  <ul className="text-xs text-yellow-800 space-y-0.5 list-disc list-inside">
-                    <li>Regularly review user roles and permissions</li>
-                    <li>Remove inactive user accounts</li>
-                    <li>Monitor audit logs for suspicious activity</li>
-                    <li>Keep the application updated</li>
-                  </ul>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                  <p className="text-xs text-muted-foreground">
+                    Choose SQLite for development or PostgreSQL for production
+                  </p>
+                </div>
+                {dbSettings.engine === 'postgres' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="postgres-url" className="text-sm font-semibold">PostgreSQL Connection URL</Label>
+                    <Input 
+                      id="postgres-url"
+                      placeholder="postgresql://user:pass@host:5432/database" 
+                      value={dbSettings.postgresUrl} 
+                      onChange={(e) => setDbSettings({ ...dbSettings, postgresUrl: e.target.value })} 
+                      disabled={dbSettings.managedByEnv || dbLoading} 
+                    />
+                  </div>
+                )}
+                <Button 
+                  onClick={handleDatabaseSave} 
+                  disabled={dbSettings.managedByEnv || dbLoading} 
+                  size="sm"
+                  className="btn-interactive"
+                >
+                  {dbLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Save Database Settings
+                </Button>
+              </CardContent>
+            </Card>
 
-            <TabsContent value="branding" className="space-y-3">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Branding Settings</CardTitle>
-                  <CardDescription className="text-sm">Customize your application's appearance and branding.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4 pt-2">
-                  {brandingLoading ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    </div>
-                  ) : (
-                    <>
-                      {/* Company Logo */}
-                      <div className="space-y-2">
-                        <Label className="text-sm font-semibold">Company Logo</Label>
-                        <div className="flex items-center gap-4">
-                          <div className="h-20 w-20 flex items-center justify-center rounded-lg border bg-muted/50 overflow-hidden shrink-0">
-                            {logoPreview ? (
-                              <img
-                                src={logoPreview}
-                                alt="Company Logo"
-                                className="max-h-16 max-w-16 object-contain"
-                              />
-                            ) : (
-                              <Image className="h-8 w-8 text-muted-foreground" />
-                            )}
-                          </div>
-                          <div className="flex-1 space-y-2">
-                            <Input id="company-logo" type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="secondary"
-                                onClick={() => document.getElementById('company-logo')?.click()}
-                                disabled={brandingLoading}
-                              >
-                                Choose Image
-                              </Button>
-                              {logoPreview && (
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={handleLogoRemove}
-                                  disabled={brandingLoading}
-                                >
-                                  Remove
-                                </Button>
-                              )}
-                              <span className="text-xs text-muted-foreground">
-                                {logoFilename || 'No file selected'}
-                              </span>
-                            </div>
-                            <p className="text-xs text-muted-foreground">PNG, JPG, or SVG up to 2MB. Used on login page.</p>
-                          </div>
-                        </div>
-                      </div>
+            <Card className="border-yellow-400 bg-yellow-50 dark:bg-yellow-950 dark:border-yellow-600">
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-yellow-600" />
+                  <CardTitle className="text-sm text-yellow-800 dark:text-yellow-200">Security Best Practices</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-2">
+                <ul className="text-xs text-yellow-800 dark:text-yellow-200 space-y-0.5 list-disc list-inside">
+                  <li>Regularly review user roles and permissions</li>
+                  <li>Remove inactive user accounts</li>
+                  <li>Monitor audit logs for suspicious activity</li>
+                  <li>Keep the application updated</li>
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+        );
 
-                      <Separator />
+      case 'hubspot':
+        return <HubSpotSettings />;
 
-                      {/* Favicon */}
-                      <div className="space-y-2">
-                        <Label className="text-sm font-semibold">Favicon</Label>
-                        <div className="flex items-center gap-4">
-                          <div className="h-12 w-12 flex items-center justify-center rounded border bg-muted/50 overflow-hidden shrink-0">
-                            {faviconPreview ? (
-                              <img
-                                src={faviconPreview}
-                                alt="Favicon"
-                                className="max-h-8 max-w-8 object-contain"
-                              />
-                            ) : (
-                              <Image className="h-5 w-5 text-muted-foreground" />
-                            )}
-                          </div>
-                          <div className="flex-1 space-y-2">
-                            <Input id="favicon-upload" type="file" accept=".ico,.png" onChange={handleFaviconUpload} className="hidden" />
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="secondary"
-                                onClick={() => document.getElementById('favicon-upload')?.click()}
-                                disabled={brandingLoading}
-                              >
-                                Choose Favicon
-                              </Button>
-                              {faviconPreview && (
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={handleFaviconRemove}
-                                  disabled={brandingLoading}
-                                >
-                                  Remove
-                                </Button>
-                              )}
-                              <span className="text-xs text-muted-foreground">
-                                {faviconFilename || 'No file selected'}
-                              </span>
-                            </div>
-                            <p className="text-xs text-muted-foreground">.ico or .png file, 32×32px recommended</p>
-                          </div>
-                        </div>
-                      </div>
+      default:
+        return <div>Section not found</div>;
+    }
+  };
 
-                      <Separator />
-
-                      {/* Site Name */}
-                      <div className="space-y-2">
-                        <Label htmlFor="site-name" className="text-sm font-semibold">Site Name</Label>
-                        <Input
-                          id="site-name"
-                          type="text"
-                          value={siteName}
-                          onChange={(e) => setSiteName(e.target.value)}
-                          placeholder="ACS"
-                          disabled={brandingLoading}
-                          className="max-w-md"
-                        />
-                        <p className="text-xs text-muted-foreground">Main application name displayed on login page and browser tab</p>
-                      </div>
-
-                      <Separator />
-
-                      {/* Subtitle */}
-                      <div className="space-y-2">
-                        <Label htmlFor="sub-title" className="text-sm font-semibold">Subtitle</Label>
-                        <Input
-                          id="sub-title"
-                          type="text"
-                          value={subTitle}
-                          onChange={(e) => setSubTitle(e.target.value)}
-                          placeholder="KeyData Asset Registration System"
-                          disabled={brandingLoading}
-                          className="max-w-md"
-                        />
-                        <p className="text-xs text-muted-foreground">Tagline or description shown on login page</p>
-                      </div>
-
-                      <Separator />
-
-                      {/* Primary Color */}
-                      <div className="space-y-2">
-                        <Label htmlFor="primary-color" className="text-sm font-semibold">Primary Brand Color</Label>
-                        <div className="flex items-center gap-3">
-                          <div 
-                            className="h-10 w-10 rounded-full border-2 border-gray-300 cursor-pointer"
-                            style={{ backgroundColor: primaryColor }}
-                            onClick={() => document.getElementById('primary-color')?.click()}
-                          />
-                          <Input
-                            id="primary-color"
-                            type="color"
-                            value={primaryColor}
-                            onChange={(e) => setPrimaryColor(e.target.value)}
-                            disabled={brandingLoading}
-                            className="w-20 h-10 cursor-pointer"
-                          />
-                          <Input
-                            type="text"
-                            value={primaryColor}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              if (/^#[0-9A-Fa-f]{0,6}$/.test(val)) {
-                                setPrimaryColor(val);
-                              }
-                            }}
-                            placeholder="#3B82F6"
-                            disabled={brandingLoading}
-                            className="max-w-32"
-                          />
-                        </div>
-                        <p className="text-xs text-muted-foreground">Used for buttons, links, and highlights.</p>
-                      </div>
-
-                      <Separator />
-
-                      {/* Email Logo Toggle */}
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Checkbox
-                            id="email-logo"
-                            checked={includeLogoInEmails}
-                            onCheckedChange={setIncludeLogoInEmails}
-                            disabled={brandingLoading}
-                          />
-                          <Label htmlFor="email-logo" className="text-sm font-semibold cursor-pointer">
-                            Include logo in email headers
-                          </Label>
-                        </div>
-                        <p className="text-xs text-muted-foreground ml-6">
-                          When enabled, your company logo will appear in email notifications sent via SMTP
-                        </p>
-                      </div>
-
-                      <Separator />
-
-                      {/* App URL */}
-                      <div className="space-y-2">
-                        <Label htmlFor="app-url" className="text-sm font-semibold">App URL</Label>
-                        <Input
-                          id="app-url"
-                          type="url"
-                          value={appUrl}
-                          onChange={(e) => setAppUrl(e.target.value)}
-                          placeholder="https://your-domain.com or http://localhost:3000"
-                          disabled={brandingLoading}
-                          className="max-w-md"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Base URL used for links in email notifications (attestation links, password reset, etc.). 
-                          Falls back to FRONTEND_URL environment variable if not set.
-                        </p>
-                      </div>
-
-                      <Separator />
-
-                      {/* Footer Label */}
-                      <div className="space-y-2">
-                        <Label htmlFor="footer-label" className="text-sm font-semibold">Footer Label</Label>
-                        <Input
-                          id="footer-label"
-                          type="text"
-                          value={footerLabel}
-                          onChange={(e) => setFooterLabel(e.target.value)}
-                          placeholder="SOC2 Compliance - KeyData Asset Registration System"
-                          disabled={brandingLoading}
-                          className="max-w-md"
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Text displayed at the bottom of the application and on login/register pages
-                        </p>
-                      </div>
-
-                      <Separator />
-
-                      {/* Save Button */}
-                      <div className="flex justify-end pt-2">
-                        <Button 
-                          onClick={handleBrandingSave} 
-                          disabled={brandingLoading}
-                          size="default"
-                        >
-                          {brandingLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                          Save Changes
-                        </Button>
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="asset-types">
-              <AssetTypesSettings />
-            </TabsContent>
-
-            <TabsContent value="security">
-              <SecuritySettings />
-            </TabsContent>
-
-            <TabsContent value="system">
-              <SystemSettings />
-            </TabsContent>
-
-            <TabsContent value="notifications">
-              <NotificationSettings />
-            </TabsContent>
-
-            <TabsContent value="integrations">
-              <HubSpotSettings />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
+  return (
+    <div className="space-y-6 p-1 md:p-2 animate-fade-in bg-surface/30 min-h-screen rounded-2xl">
+      <Card variant="glass" className="glass-panel rounded-2xl">
+        <CardHeader className="space-y-3 md:space-y-4 px-4 sm:px-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="icon-box icon-box-sm bg-primary/10 border-primary/20">
+                <Settings size={20} className="text-primary" />
+              </div>
+              <CardTitle className="text-lg sm:text-xl text-gradient">Admin Settings</CardTitle>
+            </div>
+          </div>
+        </CardHeader>
       </Card>
+
+      <SettingsLayout activeSection={activeView} onSectionChange={setActiveView}>
+        {renderSectionContent()}
+      </SettingsLayout>
     </div>
   );
 };
