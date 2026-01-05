@@ -1,0 +1,222 @@
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Switch } from '@/components/ui/switch';
+import { Fingerprint, Loader2, AlertTriangle, Info, ExternalLink, Save } from 'lucide-react';
+import RestartRequiredBanner from './admin/RestartRequiredBanner';
+
+const PasskeySettings = () => {
+  const { getAuthHeaders } = useAuth();
+  const { toast } = useToast();
+  const [passkeySettings, setPasskeySettings] = useState({
+    rp_id: 'localhost',
+    rp_name: 'ACS - Asset Compliance System',
+    origin: 'http://localhost:5173',
+    enabled: true,
+    managed_by_env: false
+  });
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchPasskeySettings();
+  }, []);
+
+  const fetchPasskeySettings = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/admin/passkey-settings', {
+        headers: { ...getAuthHeaders() }
+      });
+      if (!response.ok) throw new Error('Failed to load passkey settings');
+      setPasskeySettings(await response.json());
+    } catch (err) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasskeySave = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/admin/passkey-settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify({
+          rp_id: passkeySettings.rp_id,
+          rp_name: passkeySettings.rp_name,
+          origin: passkeySettings.origin,
+          enabled: passkeySettings.enabled
+        })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to save passkey settings');
+      toast({ title: "Success", description: data.message || 'Passkey settings saved successfully', variant: "success" });
+    } catch (err) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Passkey/WebAuthn Configuration */}
+      <div className="glass-panel rounded-xl p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="text-sm font-semibold">Passkey/WebAuthn Authentication</h3>
+            <p className="text-sm text-muted-foreground">
+              Configure biometric authentication (Touch ID, Face ID, Windows Hello) and hardware security keys.
+            </p>
+          </div>
+          <Switch
+            checked={passkeySettings.enabled}
+            onCheckedChange={(checked) => setPasskeySettings({ ...passkeySettings, enabled: checked })}
+            disabled={passkeySettings.managed_by_env || loading}
+          />
+        </div>
+
+        <div className="space-y-4">
+          {!passkeySettings.enabled && (
+            <Alert className="py-2 glow-warning border-0 [&>svg]:top-2">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="text-sm">
+                Passkey registration and sign-in are currently disabled. Users will not see passkey options on the login page.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {passkeySettings.managed_by_env && (
+            <Alert className="py-2 glow-warning border-0 [&>svg]:top-2">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="text-sm">
+                Passkey settings are managed by environment variables. Remove PASSKEY_RP_ID, PASSKEY_RP_NAME, PASSKEY_ORIGIN, and PASSKEY_ENABLED from your environment and restart the backend to use database configuration.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          <RestartRequiredBanner />
+
+          {/* Configuration */}
+          <div className="space-y-3">
+            <h4 className="caption-label">Configuration</h4>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="rp_id" className="text-sm">Relying Party ID (RP ID) *</Label>
+                <Input
+                  id="rp_id"
+                  value={passkeySettings.rp_id}
+                  onChange={(e) => setPasskeySettings({ ...passkeySettings, rp_id: e.target.value })}
+                  disabled={passkeySettings.managed_by_env || loading}
+                  placeholder="localhost"
+                />
+                <p className="text-sm text-muted-foreground">
+                  Domain name without protocol (e.g., 'localhost' or 'example.com')
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="rp_name" className="text-sm">Relying Party Name *</Label>
+                <Input
+                  id="rp_name"
+                  value={passkeySettings.rp_name}
+                  onChange={(e) => setPasskeySettings({ ...passkeySettings, rp_name: e.target.value })}
+                  disabled={passkeySettings.managed_by_env || loading}
+                  placeholder="ACS - Asset Compliance System"
+                />
+                <p className="text-sm text-muted-foreground">
+                  Friendly name shown to users during passkey registration
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="origin" className="text-sm">Expected Origin *</Label>
+              <Input
+                id="origin"
+                value={passkeySettings.origin}
+                onChange={(e) => setPasskeySettings({ ...passkeySettings, origin: e.target.value })}
+                disabled={passkeySettings.managed_by_env || loading}
+                placeholder="http://localhost:5173 or https://example.com"
+              />
+              <p className="text-sm text-muted-foreground">
+                Full URL with protocol where your frontend is hosted
+              </p>
+            </div>
+          </div>
+
+          {/* Tips */}
+          <div className="space-y-3">
+            <h4 className="caption-label">Configuration Tips</h4>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="glass-panel rounded-lg p-3">
+                <div className="text-sm space-y-1">
+                  <p><strong>Local Development:</strong></p>
+                  <p>• RP ID: <code className="bg-muted px-1 py-0.5 rounded">localhost</code></p>
+                  <p>• Origin: <code className="bg-muted px-1 py-0.5 rounded">http://localhost:5173</code></p>
+                  <p className="text-muted-foreground">⚠️ Don't use 127.0.0.1</p>
+                </div>
+              </div>
+              <div className="glass-panel rounded-lg p-3">
+                <div className="text-sm space-y-1">
+                  <p><strong>Production:</strong></p>
+                  <p>• RP ID: <code className="bg-muted px-1 py-0.5 rounded">yourdomain.com</code></p>
+                  <p>• Origin: <code className="bg-muted px-1 py-0.5 rounded">https://yourdomain.com</code></p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handlePasskeySave}
+              disabled={passkeySettings.managed_by_env || loading}
+              className="btn-interactive"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Passkey Settings
+                </>
+              )}
+            </Button>
+
+            <a
+              href="https://github.com/humac/acs/blob/main/PASSKEY-TROUBLESHOOTING.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-primary hover:underline flex items-center gap-1"
+            >
+              <Info className="h-3 w-3" />
+              Troubleshooting Guide
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          </div>
+
+          {passkeySettings.updated_at && (
+            <div className="pt-2 border-t text-sm text-muted-foreground">
+              Last updated: {new Date(passkeySettings.updated_at).toLocaleString()}
+              {passkeySettings.updated_by && ` by ${passkeySettings.updated_by}`}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default PasskeySettings;

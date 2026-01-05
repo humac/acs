@@ -1,0 +1,205 @@
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Loader2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+
+const RateLimitingSettings = () => {
+  const { getAuthHeaders } = useAuth();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [settings, setSettings] = useState(null);
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/admin/system-settings', {
+        headers: { ...getAuthHeaders() }
+      });
+      if (!response.ok) throw new Error('Failed to load system settings');
+      const data = await response.json();
+      setSettings(data);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const payload = {
+        proxy: {
+          enabled: settings.proxy.enabled.value,
+          type: settings.proxy.type.value,
+          trustLevel: settings.proxy.trustLevel.value
+        },
+        rateLimiting: {
+          enabled: settings.rateLimiting.enabled.value,
+          windowMs: settings.rateLimiting.windowMs.value,
+          maxRequests: settings.rateLimiting.maxRequests.value
+        }
+      };
+
+      const response = await fetch('/api/admin/system-settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) throw new Error('Failed to save system settings');
+      const data = await response.json();
+      setSettings(data);
+
+      toast({
+        title: "Success",
+        description: "Rate limiting settings saved successfully",
+        variant: "success"
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive"
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateSetting = (category, field, value) => {
+    setSettings(prev => ({
+      ...prev,
+      [category]: {
+        ...prev[category],
+        [field]: {
+          ...prev[category][field],
+          value,
+          source: 'database' // Mark as database override when changed
+        }
+      }
+    }));
+  };
+
+  const getSourceBadge = (source) => {
+    if (source === 'database') {
+      return <Badge variant="warning" className="ml-2">Database Override</Badge>;
+    }
+    return <Badge variant="secondary" className="ml-2">Environment</Badge>;
+  };
+
+  const getEnvLabel = (envVar, envValue) => {
+    if (envValue !== undefined && envValue !== null && envValue !== '') {
+      return <span className="text-xs text-muted-foreground ml-2">({envVar}={envValue})</span>;
+    }
+    return <span className="text-xs text-muted-foreground ml-2">({envVar})</span>;
+  };
+
+  if (loading || !settings) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Rate Limiting Configuration */}
+      <div className="glass-panel rounded-xl p-4">
+        <div className="mb-4">
+          <span className="text-base font-semibold">Rate Limiting</span>
+          <p className="text-sm text-muted-foreground">
+            Protect against abuse and DDoS attacks with request rate limiting
+          </p>
+        </div>
+        <div className="space-y-4">
+          {/* Rate Limiting Enabled Toggle */}
+          <div className="flex items-center justify-between space-x-2">
+            <div className="flex-1">
+              <Label className="text-sm font-semibold flex items-center">
+                Enable Rate Limiting
+                {getSourceBadge(settings.rateLimiting.enabled.source)}
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Enable global rate limiting for API requests
+                {getEnvLabel(settings.rateLimiting.enabled.envVar, settings.rateLimiting.enabled.envValue)}
+              </p>
+            </div>
+            <Switch
+              checked={settings.rateLimiting.enabled.value}
+              onCheckedChange={(checked) => updateSetting('rateLimiting', 'enabled', checked)}
+            />
+          </div>
+
+          {/* Window Duration */}
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold flex items-center">
+              Time Window (minutes)
+              {getSourceBadge(settings.rateLimiting.windowMs.source)}
+            </Label>
+            <Input
+              type="number"
+              min="1"
+              max="1440"
+              value={Math.round(settings.rateLimiting.windowMs.value / 60000)}
+              onChange={(e) => updateSetting('rateLimiting', 'windowMs', parseInt(e.target.value, 10) * 60000)}
+              className="w-32"
+            />
+            <p className="text-xs text-muted-foreground">
+              Time window for rate limiting (default: 15 minutes)
+              {getEnvLabel(settings.rateLimiting.windowMs.envVar, settings.rateLimiting.windowMs.envValue)}
+            </p>
+          </div>
+
+          {/* Max Requests */}
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold flex items-center">
+              Maximum Requests
+              {getSourceBadge(settings.rateLimiting.maxRequests.source)}
+            </Label>
+            <Input
+              type="number"
+              min="1"
+              max="10000"
+              value={settings.rateLimiting.maxRequests.value}
+              onChange={(e) => updateSetting('rateLimiting', 'maxRequests', parseInt(e.target.value, 10))}
+              className="w-32"
+            />
+            <p className="text-xs text-muted-foreground">
+              Maximum requests allowed per time window (default: 100)
+              {getEnvLabel(settings.rateLimiting.maxRequests.envVar, settings.rateLimiting.maxRequests.envValue)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Save Button */}
+      <div className="flex justify-end">
+        <Button onClick={handleSave} disabled={saving} size="sm" className="btn-interactive">
+          {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          Save Rate Limiting Settings
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+export default RateLimitingSettings;

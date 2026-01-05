@@ -1,0 +1,217 @@
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Loader2, Server } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import RestartRequiredBanner from './RestartRequiredBanner';
+
+const ProxySettings = () => {
+  const { getAuthHeaders } = useAuth();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [settings, setSettings] = useState(null);
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/admin/system-settings', {
+        headers: { ...getAuthHeaders() }
+      });
+      if (!response.ok) throw new Error('Failed to load system settings');
+      const data = await response.json();
+      setSettings(data);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const payload = {
+        proxy: {
+          enabled: settings.proxy.enabled.value,
+          type: settings.proxy.type.value,
+          trustLevel: settings.proxy.trustLevel.value
+        },
+        rateLimiting: {
+          enabled: settings.rateLimiting.enabled.value,
+          windowMs: settings.rateLimiting.windowMs.value,
+          maxRequests: settings.rateLimiting.maxRequests.value
+        }
+      };
+
+      const response = await fetch('/api/admin/system-settings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) throw new Error('Failed to save system settings');
+      const data = await response.json();
+      setSettings(data);
+
+      toast({
+        title: "Success",
+        description: "Proxy settings saved successfully",
+        variant: "success"
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err.message,
+        variant: "destructive"
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateSetting = (category, field, value) => {
+    setSettings(prev => ({
+      ...prev,
+      [category]: {
+        ...prev[category],
+        [field]: {
+          ...prev[category][field],
+          value,
+          source: 'database' // Mark as database override when changed
+        }
+      }
+    }));
+  };
+
+  const getSourceBadge = (source) => {
+    if (source === 'database') {
+      return <Badge variant="warning" className="ml-2">Database Override</Badge>;
+    }
+    return <Badge variant="secondary" className="ml-2">Environment</Badge>;
+  };
+
+  const getEnvLabel = (envVar, envValue) => {
+    if (envValue !== undefined && envValue !== null && envValue !== '') {
+      return <span className="text-xs text-muted-foreground ml-2">({envVar}={envValue})</span>;
+    }
+    return <span className="text-xs text-muted-foreground ml-2">({envVar})</span>;
+  };
+
+  if (loading || !settings) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <RestartRequiredBanner />
+
+      {/* Proxy Configuration */}
+      <div className="glass-panel rounded-xl p-4">
+        <div className="mb-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Server className="h-4 w-4 text-primary" />
+            <span className="text-base font-semibold">Proxy Configuration</span>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Configure reverse proxy settings for Cloudflare, nginx, or other proxies
+          </p>
+        </div>
+        <div className="space-y-4">
+          {/* Trust Proxy Toggle */}
+          <div className="flex items-center justify-between space-x-2">
+            <div className="flex-1">
+              <Label className="text-sm font-semibold flex items-center">
+                Trust Proxy
+                {getSourceBadge(settings.proxy.enabled.source)}
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Enable when behind a reverse proxy (Cloudflare, nginx, etc.)
+                {getEnvLabel(settings.proxy.enabled.envVar, settings.proxy.enabled.envValue)}
+              </p>
+            </div>
+            <Switch
+              checked={settings.proxy.enabled.value}
+              onCheckedChange={(checked) => updateSetting('proxy', 'enabled', checked)}
+            />
+          </div>
+
+          {/* Proxy Type */}
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold flex items-center">
+              Proxy Type
+              {getSourceBadge(settings.proxy.type.source)}
+            </Label>
+            <Select
+              value={settings.proxy.type.value}
+              onValueChange={(value) => updateSetting('proxy', 'type', value)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cloudflare">Cloudflare (CF-Connecting-IP)</SelectItem>
+                <SelectItem value="standard">Standard (X-Forwarded-For)</SelectItem>
+                <SelectItem value="none">None</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Determines how client IP addresses are extracted
+              {getEnvLabel(settings.proxy.type.envVar, settings.proxy.type.envValue)}
+            </p>
+          </div>
+
+          {/* Trust Level */}
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold flex items-center">
+              Trust Level
+              {getSourceBadge(settings.proxy.trustLevel.source)}
+            </Label>
+            <Input
+              type="number"
+              min="1"
+              max="10"
+              value={settings.proxy.trustLevel.value}
+              onChange={(e) => updateSetting('proxy', 'trustLevel', parseInt(e.target.value, 10))}
+              className="w-32"
+            />
+            <p className="text-xs text-muted-foreground">
+              Number of proxy hops to trust (1 for most setups)
+              {getEnvLabel(settings.proxy.trustLevel.envVar, settings.proxy.trustLevel.envValue)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Save Button */}
+      <div className="flex justify-end">
+        <Button onClick={handleSave} disabled={saving} size="sm" className="btn-interactive">
+          {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          Save Proxy Settings
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+export default ProxySettings;
