@@ -1,40 +1,35 @@
-name: Deploy (Staging)
-
-# Automatic staging deployment on develop branch to Portainer
-# Triggers on push to develop (automatic staging) and manual runs
-# Production deployment (TBD - may use Azure AKS) is currently manual only
-#
-# Portainer Webhook Setup (REQUIRED for automatic image pulls):
-# 1. In Portainer, go to Stacks > Your Stack > Webhooks
-# 2. When creating the webhook, CHECK the box: "Pull latest image version"
-# 3. Copy the webhook URL and set it as PORTAINER_WEBHOOK_URL secret in GitHub
-# OR: Manually add ?pullImage=true to the end of the webhook URL
-#
-# Your stack config already has pull_policy: always for backend/frontend images
+name: Monorepo Deployment
 
 on:
   push:
     branches:
-      - develop  # Automatic staging deployment
-  workflow_dispatch:
+      - main
+    paths:
+      - 'frontend/**'
+      - 'backend/**'
+      - '.github/workflows/**'
+      - '!**/*.md'
 
-env:
-  REGISTRY: ghcr.io
-  REGISTRY_USERNAME: ${{ github.repository_owner }}
-  REGISTRY_PASSWORD: ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
-  IMAGE_NAME_FRONTEND: ${{ github.repository }}/frontend
-  IMAGE_NAME_BACKEND: ${{ github.repository }}/backend
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build-and-push:
+  build:
+    name: Build & Push
     runs-on: ubuntu-latest
     permissions:
-      contents: read
       packages: write
-
+      contents: read
+    outputs:
+      image_tag: ${{ steps.meta.outputs.version }}
+    
     steps:
-      - name: Checkout repository
+      - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -42,89 +37,71 @@ jobs:
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ env.REGISTRY_USERNAME }}
-          password: ${{ env.REGISTRY_PASSWORD }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata for frontend
-        id: meta-frontend
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
+      - name: Generate Image Tag
+        id: meta
+        run: echo "version=sha-${{ github.sha }}" >> $GITHUB_OUTPUT
 
-      - name: Build and push frontend image
+      - name: Build & Push Frontend
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
-          file: ./frontend/Dockerfile
           push: true
-          platforms: linux/amd64,linux/arm64
-          tags: ${{ steps.meta-frontend.outputs.tags }}
-          labels: ${{ steps.meta-frontend.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:buildcache
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:buildcache,mode=max
+          tags: ghcr.io/${{ github.repository }}/frontend:sha-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Extract metadata for backend
-        id: meta-backend
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}
-          tags: |
-            type=ref,event=branch
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Build and push backend image
+      - name: Build & Push Backend
         uses: docker/build-push-action@v5
         with:
           context: ./backend
-          file: ./backend/Dockerfile
           push: true
-          platforms: linux/amd64,linux/arm64
-          tags: ${{ steps.meta-backend.outputs.tags }}
-          labels: ${{ steps.meta-backend.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:buildcache
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:buildcache,mode=max
+          tags: ghcr.io/${{ github.repository }}/backend:sha-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-  deploy-staging:
-    needs: build-and-push
+  deploy-dev:
+    name: Deploy to Development
+    needs: build
     runs-on: ubuntu-latest
-    # Deploy to staging environment (Portainer)
-    # Add protection rules in Settings > Environments > staging
-    # IMPORTANT: To force image pulls, the webhook must be configured in Portainer:
-    # Option 1: When creating webhook, select "Pull latest image version"
-    # Option 2: Add ?pullImage=true to the end of PORTAINER_WEBHOOK_URL secret
-    environment: staging
     steps:
-      - name: Deploy to Portainer
-        run: curl -X POST "${{ secrets.PORTAINER_WEBHOOK_URL }}"
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
 
-      - name: Wait for deployment
-        run: sleep 15
+      - name: Deploy Frontend (Dev)
+        run: ray redeploy --service ${{ secrets.RAILWAY_FRONTEND_ID_DEV }} --yes
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_DEV }}
 
-      - name: Verify deployment
-        run: |
-          echo "Deployment triggered successfully with forced image pull"
-          echo "Check Portainer for deployment status"
+      - name: Deploy Backend (Dev)
+        run: ray redeploy --service ${{ secrets.RAILWAY_BACKEND_ID_DEV }} --yes
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_DEV }}
 
-  # Placeholder for future production deployment
-  # Production may use Azure AKS or another platform (TBD)
-  # Uncomment and configure when ready to enable automatic production deploys
-  #
-  # deploy-production:
-  #   needs: build-and-push
-  #   runs-on: ubuntu-latest
-  #   # Only deploy to production from main branch
-  #   if: github.ref == 'refs/heads/main'
-  #   environment: production
-  #
-  #   steps:
-  #     - name: Deploy to Production
-  #       run: |
-  #         # Configure production deployment (Azure AKS or other platform)
-  #         echo "Production deployment not yet configured"
-  #         exit 1
+  deploy-prod:
+    name: Deploy to Production
+    needs: deploy-dev
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy Frontend (Prod)
+        run: ray redeploy --service ${{ secrets.RAILWAY_FRONTEND_ID_PROD }} --yes
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_PROD }}
+
+      - name: Deploy Backend (Prod)
+        run: ray redeploy --service ${{ secrets.RAILWAY_BACKEND_ID_PROD }} --yes
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_PROD }}
