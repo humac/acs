@@ -2,6 +2,8 @@
 
 Complete step-by-step guide for deploying KARS (KeyData Asset Registration System) to Railway.
 
+> **⭐ Recommended:** If you're using Railway's Starter plan (no private networking), see [STARTER-PLAN-SETUP.md](STARTER-PLAN-SETUP.md) for a streamlined guide focused on public URL communication.
+
 **Project:** ACS - Asset Compliance System  
 **Code Name:** KARS  
 **Repository:** humac/acs  
@@ -331,64 +333,13 @@ Repeat the above steps with these changes:
 
 2. **Configure Build Settings:**
    ```yaml
-   Builder: Nixpacks
-   Build Command: npm ci && npm run build
-   Start Command: npm run preview -- --host 0.0.0.0 --port $PORT
+   Builder: Dockerfile
+   Dockerfile Path: /frontend/Dockerfile
    ```
+   
+   Railway will auto-detect the Dockerfile in `/frontend/Dockerfile`.
 
-#### Step 2: Update vite.config.js
-
-Ensure your `frontend/vite.config.js` has correct preview configuration:
-
-```javascript
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import path from 'path';
-
-export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
-  },
-  server: {
-    host: '0.0.0.0',
-    port: process.env.PORT || 3000,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3001',
-        changeOrigin: true,
-      },
-    },
-  },
-  preview: {
-    host: '0.0.0.0',
-    port: process.env.PORT || 3000,
-  },
-  build: {
-    outDir: 'dist',
-    sourcemap: false,
-  },
-});
-```
-
-#### Step 3: Update package.json
-
-Ensure `frontend/package.json` has the preview script:
-
-```json
-{
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "test": "vitest run"
-  }
-}
-```
-
-#### Step 4: Set Environment Variables
+#### Step 2: Set Environment Variables
 
 In Railway Dashboard → kars-frontend-prod → Variables:
 
@@ -396,16 +347,20 @@ In Railway Dashboard → kars-frontend-prod → Variables:
 # Node Environment
 NODE_ENV=production
 
-# API URL (proxied through frontend)
-VITE_API_URL=/api
+# Backend URL for API proxy (use backend's Railway public URL)
+BACKEND_URL=https://kars-backend-prod.up.railway.app
 
-# Port (Railway provides this)
-PORT=${{PORT}}
+# Port
+PORT=80
 ```
 
-**Note:** The frontend proxies API requests to the backend. We'll configure this in the next section.
+**Important Notes:**
+- `BACKEND_URL` must be the **full public URL** of your backend service (including `https://`)
+- For Railway Starter plan (no private networking), this must be a public URL
+- The Nginx configuration will proxy `/api` requests to this URL
+- After setting up custom domains, update `BACKEND_URL` accordingly
 
-#### Step 5: Deploy Frontend
+#### Step 3: Deploy Frontend
 
 ```bash
 # Link to frontend service
