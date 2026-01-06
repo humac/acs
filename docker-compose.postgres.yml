@@ -1,0 +1,33 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=acs
+      - POSTGRES_USER=acs_user
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - JWT_SECRET=${JWT_SECRET}
+      - DB_CLIENT=postgres
+      - POSTGRES_URL=postgresql://acs_user:${POSTGRES_PASSWORD}@postgres:5432/acs
+    depends_on:
+      - postgres
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    environment:
+      - BACKEND_URL=http://backend:3001
+    depends_on:
+      - backend
+
+volumes:
+  postgres-data:

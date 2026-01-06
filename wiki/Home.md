@@ -14,10 +14,9 @@ Welcome to the documentation for the **Asset Compliance System (ACS)** — a web
 
 ## 📚 Documentation
 - **[Features](Features)** – Detailed feature reference (auth, RBAC, audits, UI/UX, 2026 design system)
-- **[Quick Start](Quick-Start)** – 5-minute setup for users, admins, developers, and operators
+- **[Quick Start](Quick-Start)** – 5-minute setup for users, admins, and developers
 - **[Admin Guide](Admin-Guide)** – User management, companies, audits, and security best practices
 - **[API Reference](API-Reference)** – REST endpoints for auth, assets, companies, audits, OIDC, passkeys, and MFA
-- **[Deployment Guide](Deployment-Guide)** – Portainer/Docker setup, GitHub Actions, Cloudflare Tunnel, and environment config
 - **[Schema Migration Guide](../SCHEMA-MIGRATION.md)** – ⚠️ **Important**: Asset name fields now separated (first_name/last_name)
 - **[UI Design Documentation](../UI-MODERNIZATION-SUMMARY.md)** – Complete 2026 design system implementation guide
 - **[Wiki README](README)** – Tips for syncing these pages to the GitHub Wiki
@@ -27,7 +26,7 @@ Welcome to the documentation for the **Asset Compliance System (ACS)** — a web
 - **Admin essentials:** [Admin Guide → First Admin Setup](Admin-Guide#first-admin-setup)
 - **Security:** [Features → Authentication](Features#user-authentication) and [Admin Guide → Security Best Practices](Admin-Guide#security-best-practices)
 - **APIs:** [API Reference → Assets](API-Reference#assets)
-- **Deploy:** [Deployment Guide → Portainer Deployment](Deployment-Guide#portainer-deployment)
+- **Docker deployment:** See main [README.md](../README.md#-docker-deployment)
 
 ## 🏗️ Architecture
 ```
@@ -57,7 +56,7 @@ Welcome to the documentation for the **Asset Compliance System (ACS)** — a web
 
 ## 📞 Support
 - Open an issue in GitHub for bugs or requests
-- Check the [Deployment Guide](Deployment-Guide) for operations help
+- Check the main [README.md](../README.md) for Docker deployment instructions
 - Review the [API Reference](API-Reference) for integration details
 
 ---

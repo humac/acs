@@ -9,7 +9,6 @@ This directory contains all the documentation pages for the GitHub Wiki.
 3. **[Quick-Start.md](Quick-Start.md)** - 5-minute quick start guide
 4. **[Admin-Guide.md](Admin-Guide.md)** - Administrator manual
 5. **[API-Reference.md](API-Reference.md)** - Complete API documentation
-6. **[Deployment-Guide.md](Deployment-Guide.md)** - Production deployment instructions
 
 ## 🚀 How to Upload to GitHub Wiki
 
@@ -71,25 +70,19 @@ Wiki Home (Home.md)
 ├── Quick Start
 │   ├── For Users
 │   ├── For Admins
-│   ├── For Developers
-│   └── For DevOps
+│   └── For Developers
 ├── Admin Guide
 │   ├── First Admin Setup
 │   ├── User Management
 │   ├── Company Management
 │   ├── System Monitoring
 │   └── Security Best Practices
-├── API Reference
-│   ├── Authentication
-│   ├── User Management
-│   ├── Assets
-│   ├── Companies
-│   └── Audit & Reporting
-└── Deployment Guide
-    ├── Portainer Deployment
-    ├── GitHub Actions
-    ├── Cloudflare Tunnel
-    └── Monitoring
+└── API Reference
+    ├── Authentication
+    ├── User Management
+    ├── Assets
+    ├── Companies
+    └── Audit & Reporting
 ```
 
 ## 🔗 Internal Links

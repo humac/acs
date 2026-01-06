@@ -7,13 +7,9 @@
 
 A web application that supports organizational SOC2 compliance by tracking client assets assigned to consultants, with modern UI, full authentication, role-based access control, and automated deployment.
 
-🌐 **Live Demo:** [https://acs.jvhlabs.com](https://acs.jvhlabs.com)
-
 📖 **Documentation:** [View Wiki](../../wiki)
 
 🎨 **New in 2026:** [Modern UI Design System](UI-MODERNIZATION-SUMMARY.md) - Glass morphism, spatial depth, and bento layouts for a professional, modern interface.
-
-📊 **DevOps Documentation:** [View Diagrams](/diagrams) - Comprehensive CI/CD workflow diagrams including Railway deployment flows, branch strategy, release workflows, and monitoring procedures.
 
 🔄 **Schema Update:** [Migration Guide](SCHEMA-MIGRATION.md) - Important: Now supports multiple asset types (laptops, mobile phones). Breaking change - requires fresh database.
 
@@ -188,14 +184,9 @@ ACS helps consulting organizations maintain accountability for client-owned asse
 
 ### 🚀 Deployment & DevOps
 - **Multi-Platform Docker Support** - ARM64 and AMD64 containers
-- **GitHub Actions CI/CD** - Automated builds and deployment
-- **Portainer Integration** - Webhook-based deployment with auto-pull
-- **Railway Deployment** - Production platform with managed PostgreSQL
-- **Cloudflare Tunnel** - Secure external access with SSL
+- **Docker Compose Examples** - SQLite and PostgreSQL configurations
 - **Health Checks** - Automated container monitoring
-- **Auto-Restart** - Self-healing containers
 - **Modern 2026 Design System** - Professional UI with glass morphism, spatial depth, and bento layouts
-- **📖 DevOps Documentation** - Comprehensive guides in [/devops](devops/) folder
 
 ---
 
@@ -257,32 +248,15 @@ Docker images are automatically built for both platforms during CI/CD.
 
 **For Production Deployment:**
 - Docker and Docker Compose
-- (Optional) Portainer for container management
 
 ---
 
 ## 🎯 Quick Start
 
-### For Users
+### For Local Development
 
 ```bash
-# 1. Access the application
-https://acs.jvhlabs.com
-
-# 2. Register (first user becomes admin!)
-Click "Register" → Fill form → Auto-login
-
-# 3. Register an asset
-Asset Management → + New Asset → Fill details → Register
-
-# 4. Optional security upgrades
-Enable MFA or register a passkey from your profile
-```
-
-### For Developers
-
-```bash
-# 1. Clone and install dependencies
+# 1. Clone the repository
 git clone https://github.com/humac/acs.git
 cd acs
 
@@ -290,119 +264,221 @@ cd acs
 cd backend
 npm install
 cp ../.env.example .env
-# Set JWT_SECRET and (optional) PASSKEY_* / OIDC_* values
+# Edit .env and set JWT_SECRET (required)
+# Generate with: openssl rand -base64 32
 npm run dev  # starts API on http://localhost:3001
 
 # 3. Frontend setup (new terminal)
 cd frontend
 npm install
+cp .env.example .env
+# Edit .env if needed (default BACKEND_URL is http://localhost:3001)
 npm run dev   # starts UI on http://localhost:5173
 ```
 
-- First registered account becomes **Admin** automatically (or set `ADMIN_EMAIL` in the backend `.env`).
-- Passkeys require the frontend origin to match `PASSKEY_ORIGIN` (default `http://localhost:5173`).
-- Enable OIDC/SSO from the admin UI after setting issuer/client credentials.
-- For email notifications, set `ACS_MASTER_KEY` environment variable for password encryption (see below).
-- For password reset emails, configure `BASE_URL` (application URL) and optionally `ALLOWED_ORIGINS` (comma-separated list of allowed origins for security).
+**Note:** Frontend requires a `.env` file with `BACKEND_URL`. See `frontend/.env.example` for the example configuration.
 
-### Manual Backup
+- First registered account becomes **Admin** automatically (or set `ADMIN_EMAIL` in backend `.env`).
+- For full backend configuration options, see `backend/.env.example`.
 
-```bash
-# Create a compressed backup of the SQLite volume
-docker run --rm \
-  -v asset-data:/data \
-  -v $(pwd):/backup \
-  alpine tar czf /backup/asset-data-$(date +%Y%m%d).tar.gz -C /data .
-```
+---
 
-### Restore Database
+## 🐳 Docker Deployment
+
+### Building Docker Images
 
 ```bash
-# Restore from backup
-docker run --rm \
-  -v asset-data:/data \
-  -v $(pwd):/backup \
-  alpine tar xzf /backup/asset-data-YYYYMMDD.tar.gz -C /data
+# Build backend image
+cd backend
+docker build -t acs-backend .
+
+# Build frontend image
+cd frontend
+docker build -t acs-frontend .
 ```
 
-### Configure Email Notifications
+### Running with Docker Compose (SQLite)
 
-Email notifications (including password reset emails) require SMTP configuration accessible from **Admin Settings → Notifications**.
+Use this for single-server deployments with SQLite database:
+
+```bash
+# Set required environment variables
+export JWT_SECRET=$(openssl rand -base64 32)
+
+# Start the application
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Access at http://localhost:80
+```
+
+The `docker-compose.yml` file:
+```yaml
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - JWT_SECRET=${JWT_SECRET}
+    volumes:
+      - ./data:/app/data
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    environment:
+      - BACKEND_URL=http://backend:3001
+    depends_on:
+      - backend
+```
+
+### Running with Docker Compose (PostgreSQL)
+
+Use this for deployments requiring PostgreSQL:
+
+```bash
+# Set required environment variables
+export JWT_SECRET=$(openssl rand -base64 32)
+export POSTGRES_PASSWORD=$(openssl rand -base64 32)
+
+# Start the application
+docker-compose -f docker-compose.postgres.yml up -d
+
+# Access at http://localhost:80
+```
+
+The `docker-compose.postgres.yml` file:
+```yaml
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=acs
+      - POSTGRES_USER=acs_user
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - JWT_SECRET=${JWT_SECRET}
+      - DB_CLIENT=postgres
+      - POSTGRES_URL=postgresql://acs_user:${POSTGRES_PASSWORD}@postgres:5432/acs
+    depends_on:
+      - postgres
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    environment:
+      - BACKEND_URL=http://backend:3001
+    depends_on:
+      - backend
+
+volumes:
+  postgres-data:
+```
+
+### Running Individual Containers
+
+If you prefer to run containers individually:
+
+```bash
+# Run backend with SQLite
+docker run -d \
+  --name acs-backend \
+  -p 3001:3001 \
+  -e NODE_ENV=production \
+  -e JWT_SECRET=your-secret-here \
+  -v $(pwd)/data:/app/data \
+  acs-backend
+
+# Run frontend
+docker run -d \
+  --name acs-frontend \
+  -p 80:80 \
+  -e BACKEND_URL=http://backend:3001 \
+  --link acs-backend:backend \
+  acs-frontend
+```
+
+### Environment Configuration
+
+**Backend** - See `backend/.env.example` for all configuration options:
+- `JWT_SECRET` - **Required** - Generate with `openssl rand -base64 32`
+- `DB_CLIENT` - Database type: `sqlite` (default) or `postgres`
+- `POSTGRES_URL` - PostgreSQL connection string (if using PostgreSQL)
+- `ADMIN_EMAIL` - Optional admin user email
+- `OIDC_ENABLED` - Enable SSO/OIDC authentication
+- `PASSKEY_ENABLED` - Enable WebAuthn/Passkey support
+- `RUN_ATTESTATION_SCHEDULER` - Enable automated attestation reminders
+
+**Frontend** - See `frontend/.env.example`:
+- `BACKEND_URL` - Backend API URL (e.g., `http://backend:3001`)
+
+### Email Notifications Setup
+
+Email notifications (password reset, attestation campaigns) require SMTP configuration via **Admin Settings → Notifications**.
 
 1. **Generate Master Encryption Key** (required for password encryption at rest):
    ```bash
-   # Generate a secure 256-bit encryption key
    node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
    ```
 
-2. **Set Environment Variable**:
+2. **Add to backend `.env`**:
    ```bash
-   # Add to backend/.env
    ACS_MASTER_KEY=your-generated-key-here
    ```
 
-3. **Configure SMTP Settings** (from Admin Settings UI):
-   - Enable notifications
-   - Enter SMTP host and port (e.g., smtp.gmail.com:587)
-   - Enable TLS/SSL (recommended)
-   - Set authentication method (Plain, Login, CRAM-MD5, or None)
-   - Enter username and password (encrypted at rest)
-   - Configure "From" email and name
-   - Set default test recipient (optional)
-   - Click "Save Settings"
+3. **Configure SMTP** from Admin Settings UI (host, port, TLS, credentials)
 
-4. **Test Configuration**:
-   - Click "Send Test Email" button
-   - Enter recipient email
-   - Check for test email delivery
+4. **Test** with "Send Test Email" button
 
-**Security Note:** SMTP passwords are encrypted using AES-256-GCM before storage. The `ACS_MASTER_KEY` must remain secure and consistent across deployments.
+### Database Backup and Restore
 
-### Configure Attestation Scheduler
-
-For automated attestation reminders and escalations:
-
+**Backup SQLite database:**
 ```bash
-# Add to backend/.env
-RUN_ATTESTATION_SCHEDULER=true  # Enable automated scheduler
-FRONTEND_URL=http://localhost:5173  # Base URL for email links (adjust for production)
+docker run --rm \
+  -v $(pwd)/data:/data \
+  -v $(pwd):/backup \
+  alpine tar czf /backup/acs-backup-$(date +%Y%m%d).tar.gz -C /data .
 ```
 
-**Note:** The attestation scheduler runs daily checks for:
-- Sending reminder emails to employees with pending attestations
-- Escalating overdue attestations to managers
-- Auto-closing campaigns past their end date
-
-### Configure Proxy and Rate Limiting
-
-For deployments behind reverse proxies (Cloudflare, nginx, load balancers):
-
+**Restore from backup:**
 ```bash
-# Enable trust proxy for Cloudflare/reverse proxy deployments
-TRUST_PROXY=true
-PROXY_TYPE=cloudflare  # cloudflare | standard | none
-PROXY_TRUST_LEVEL=1    # Number of proxy hops to trust
-
-# Rate limiting configuration
-RATE_LIMIT_ENABLED=true
-RATE_LIMIT_WINDOW_MS=900000   # 15 minutes
-RATE_LIMIT_MAX_REQUESTS=100   # Max requests per window per IP
+docker run --rm \
+  -v $(pwd)/data:/data \
+  -v $(pwd):/backup \
+  alpine tar xzf /backup/acs-backup-YYYYMMDD.tar.gz -C /data
 ```
 
-**Proxy Types:**
-- `cloudflare` - Uses CF-Connecting-IP header (recommended for Cloudflare)
-- `standard` - Uses X-Forwarded-For header (for nginx, ALB, etc.)
-- `none` - Direct connection, no proxy
+### Additional Configuration
 
-**Note:** Admins can also configure these settings via Admin Settings → System tab in the UI. Environment variables serve as defaults.
+For advanced features, see `backend/.env.example`:
+
+- **Attestation Scheduler**: `RUN_ATTESTATION_SCHEDULER=true` - Automated reminders and escalations
+- **Proxy Settings**: `TRUST_PROXY=true` and `PROXY_TYPE=cloudflare|standard|none` - For reverse proxy deployments
+- **Rate Limiting**: `RATE_LIMIT_ENABLED=true` - Protect against abuse
+- **SSO/OIDC**: `OIDC_ENABLED=true` plus issuer/client configuration
+- **Passkeys**: `PASSKEY_ENABLED=true` plus RP ID/name/origin configuration
 
 ---
 
 ## 📧 Email Notification Workflows
 
-ACS includes a comprehensive email notification system to support password reset workflows and attestation campaigns. All email notifications require SMTP configuration (see "Configure Email Notifications" above). Email templates are fully customizable via **Admin Settings → Notifications → Email Templates**.
+ACS includes a comprehensive email notification system for password reset workflows and attestation campaigns. All email notifications require SMTP configuration (see "Email Notifications Setup" above). Email templates are fully customizable via **Admin Settings → Notifications → Email Templates**.
 
-**Scheduler Note:** When `RUN_ATTESTATION_SCHEDULER=true` is enabled, the scheduler runs daily automated checks for reminders, escalations, and campaign closures.
+**Note:** When `RUN_ATTESTATION_SCHEDULER=true` is enabled, the scheduler runs daily automated checks for reminders, escalations, and campaign closures.
 
 ### 1. Password Reset Flow
 
@@ -584,34 +660,34 @@ All email templates are customizable via **Admin Settings → Notifications → 
 ### Containers Won't Start
 ```bash
 # Check logs
-docker logs asset-registration-backend
-docker logs asset-registration-frontend
+docker-compose logs backend
+docker-compose logs frontend
 
-# Check ports
-netstat -tlnp | grep 8080
+# Check if ports are in use
+netstat -tlnp | grep 3001
+netstat -tlnp | grep 80
 
-# Restart
+# Restart containers
 docker-compose restart
 ```
 
 ### Can't Access Application
-- Check containers are running: `docker ps`
-- Verify Cloudflare tunnel status
-- Test locally: `curl http://localhost:8080`
+- Check containers are running: `docker-compose ps`
+- Test backend health: `curl http://localhost:3001/api/health`
+- Test frontend: `curl http://localhost:80`
+- Check firewall settings
 
 ### Database Issues
 ```bash
-# View database
-docker exec -it asset-registration-backend sh
-cd /app/data
-ls -la
+# View database files
+docker-compose exec backend ls -la /app/data
 
-# Reset (⚠️ deletes all data)
+# Reset database (⚠️ deletes all data)
 docker-compose down -v
 docker-compose up -d
 ```
 
-**More:** See the [wiki](../../wiki) for deployment and admin guides, or the [DevOps Documentation](/devops) for comprehensive operational guides.
+**More help:** See the [wiki](../../wiki) for detailed documentation, admin guides, and API reference.
 
 ---
 
@@ -677,8 +753,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - Built to support organizational SOC2 compliance requirements
 - Designed for consulting firms managing client assets
-- Automated deployment via GitHub Actions
-- Secure access via Cloudflare Tunnel
 
 ---
 
@@ -690,11 +764,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [x] Company Management
 - [x] Profile Management
 - [x] Password Change Functionality
-- [x] Automated Deployment
 - [x] Multi-Platform Support (ARM64 + AMD64)
-- [x] Portainer Webhook Auto-Pull
 - [x] Modern 2026 Design System with Glass Morphism & Bento Layouts
-- [x] Cloudflare Tunnel Support
 - [x] Multi-Factor Authentication (MFA/2FA)
 - [x] OIDC/SSO Integration
 - [x] Database-Backed SSO Configuration
@@ -705,7 +776,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [x] Attestation Workflow
 - [x] Advanced Reporting Dashboard
 - [ ] Mobile App
-- [ ] API Rate Limiting
+- [ ] API Rate Limiting (in progress)
 - [ ] Database Encryption at Rest
 
 ---
@@ -730,35 +801,4 @@ See [CLAUDE.md](CLAUDE.md) and [.github/copilot-instructions.md](.github/copilot
 
 ---
 
-## 📚 DevOps Documentation
-
-Comprehensive operational documentation for deploying, monitoring, and maintaining ACS in production.
-
-### 📖 Core Documentation
-- **[DevOps Hub](/devops/README.md)** - Main documentation index
-- **[Runbook](/devops/RUNBOOK.md)** - Step-by-step deployment procedures
-- **[Incident Response](/devops/INCIDENT-RESPONSE.md)** - Emergency response procedures
-- **[Release Checklist](/devops/RELEASE-CHECKLIST.md)** - Weekly release process
-
-### 📊 Architecture Diagrams
-- **[CI/CD Overview](/devops/diagrams/ci-cd-overview.md)** - Complete pipeline architecture
-- **[GitHub Actions](/devops/diagrams/github-actions-workflow.md)** - Workflow details
-- **[Docker Build](/devops/diagrams/docker-build-process.md)** - Multi-platform builds
-- **[Portainer Deployment](/devops/diagrams/portainer-deployment.md)** - Staging deployment
-- **[Railway Deployment](/devops/diagrams/railway-deployment.md)** - Production deployment
-- **[Monitoring & Health](/devops/diagrams/monitoring-health-checks.md)** - Monitoring setup
-- **[Security Scanning](/devops/diagrams/security-scanning.md)** - Security pipeline
-- **[And more...](/devops/diagrams/)** - 11 comprehensive workflow diagrams
-
-### 🚂 Railway Platform
-- **[Railway Overview](/devops/railway/README.md)** - Platform documentation
-- **[Setup Guide](/devops/railway/SETUP.md)** - Initial deployment
-- **[Configuration](/devops/railway/CONFIGURATION.md)** - Settings and variables
-- **[Database Management](/devops/railway/DATABASE.md)** - PostgreSQL operations
-- **[Troubleshooting](/devops/railway/TROUBLESHOOTING.md)** - Common issues
-
----
-
 **Ready to get started?** See the [Quick Start Guide](../../wiki/Quick-Start)!
-
-**Deploying to production?** Check [QUICKSTART-PORTAINER.md](QUICKSTART-PORTAINER.md) or [Railway Setup](/devops/railway/SETUP.md)!

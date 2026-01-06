@@ -49,28 +49,28 @@ cd acs
 cd backend
 npm install
 cp ../.env.example .env
-# Set JWT_SECRET and adjust PASSKEY_* or OIDC_* values if needed
+# Edit .env and set JWT_SECRET (required)
+# Generate with: openssl rand -base64 32
+# Adjust PASSKEY_* or OIDC_* values if needed
 npm run dev   # API on http://localhost:3001
 
 # Frontend (new terminal)
 cd frontend
 npm install
+cp .env.example .env
+# Edit .env if needed (default BACKEND_URL is http://localhost:3001)
 npm run dev   # UI on http://localhost:5173
 ```
 
-- Passkeys require the browser origin to match `PASSKEY_ORIGIN` (default `http://localhost:5173`).
-- Use the **API Reference** page for endpoints and payloads.
-- First registered account is promoted to admin; `ADMIN_EMAIL` in `.env` can preselect an admin.
+**Important Notes:**
+- **Frontend requires `.env` file** with `BACKEND_URL` - see `frontend/.env.example` for the example configuration
+- **Backend requires `.env` file** with `JWT_SECRET` - see `backend/.env.example` for all configuration options
+- Passkeys require the browser origin to match `PASSKEY_ORIGIN` (default `http://localhost:5173`)
+- First registered account is promoted to admin; `ADMIN_EMAIL` in backend `.env` can preselect an admin
+- Use the **API Reference** page for endpoints and payloads
 
----
-
-## For DevOps
-
-1. **Deploy with Portainer** – Create a stack using `docker-compose.portainer.yml` (see [Deployment Guide](Deployment-Guide#portainer-deployment)).
-2. **Set Environment Variables** – `JWT_SECRET`, `ADMIN_EMAIL`, `APP_PORT`, optional `POSTGRES_URL`, and OIDC/passkey values.
-3. **Enable CI/CD** – Configure GitHub Actions secrets and Portainer webhook for auto-deploys.
-4. **Cloudflare Tunnel (optional)** – Expose the app securely with TLS via the provided `cloudflare-tunnel.yml` example.
-5. **Monitoring** – Containers include health checks; verify via Portainer and `/api/health`.
+### Docker Development
+For Docker-based development, see the main [README.md](../README.md#-docker-deployment) for build instructions and docker-compose examples.
 
 ---
 
@@ -140,4 +140,4 @@ For a complete permissions matrix, see the [Features → RBAC](Features#role-bas
 - Explore the full [Features](Features) list.
 - Deep dive into administration via the [Admin Guide](Admin-Guide).
 - Integrate with external systems using the [API Reference](API-Reference).
-- Ready for production? Follow the [Deployment Guide](Deployment-Guide).
+- Ready for production? See Docker deployment instructions in the main [README.md](../README.md#-docker-deployment).
