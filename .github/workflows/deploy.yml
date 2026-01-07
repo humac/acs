@@ -1,4 +1,4 @@
-name: Monorepo Deployment
+name: Railway Deployment
 
 on:
   push:
