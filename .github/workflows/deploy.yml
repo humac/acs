@@ -71,16 +71,13 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
       
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
       - name: Deploy Frontend (Dev)
-        run: ray redeploy --service ${{ secrets.RAILWAY_FRONTEND_ID_DEV }} --yes
+        run: npx @railway/cli redeploy --service ${{ secrets.RAILWAY_FRONTEND_ID_DEV }} --yes
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_DEV }}
 
       - name: Deploy Backend (Dev)
-        run: ray redeploy --service ${{ secrets.RAILWAY_BACKEND_ID_DEV }} --yes
+        run: npx @railway/cli redeploy --service ${{ secrets.RAILWAY_BACKEND_ID_DEV }} --yes
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_DEV }}
 
@@ -93,15 +90,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
       
-      - name: Install Railway CLI
-        run: npm install -g @railway/cli
-
       - name: Deploy Frontend (Prod)
-        run: ray redeploy --service ${{ secrets.RAILWAY_FRONTEND_ID_PROD }} --yes
+        run: npx @railway/cli redeploy --service ${{ secrets.RAILWAY_FRONTEND_ID_PROD }} --yes
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_PROD }}
 
       - name: Deploy Backend (Prod)
-        run: ray redeploy --service ${{ secrets.RAILWAY_BACKEND_ID_PROD }} --yes
+        run: npx @railway/cli redeploy --service ${{ secrets.RAILWAY_BACKEND_ID_PROD }} --yes
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN_PROD }}
