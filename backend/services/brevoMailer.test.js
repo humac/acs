@@ -131,7 +131,7 @@ describe('Brevo Mailer Service', () => {
                 to: 'recipient@example.com',
                 subject: 'Test',
                 htmlContent: '<p>Hello</p>'
-            })).rejects.toThrow('Brevo API error');
+            })).rejects.toThrow('Failed to send email via Brevo');
         });
     });
 
