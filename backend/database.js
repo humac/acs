@@ -64,34 +64,34 @@ const postgresUrl = envPostgresUrl || configuredPostgresUrl || '';
  */
 const isValidCertPath = (filePath) => {
   if (!filePath) return false;
-  
+
   // Must be an absolute path
   if (!isAbsolute(filePath)) {
     return false;
   }
-  
+
   // Check for .. sequences (both regular and URL-encoded)
   // This catches most common traversal attempts before normalization
   if (filePath.includes('..') || filePath.includes('%2e%2e') || filePath.includes('%2E%2E')) {
     return false;
   }
-  
+
   // Normalize the path to resolve any symbolic links or relative components
   // This ensures the path is in canonical form
   const resolvedPath = resolve(filePath);
-  
+
   // If resolve() significantly changed the path (beyond normalization of slashes),
   // it likely contained traversal sequences or symlinks
   // We check that the resolved path maintains the same structure
   const pathSegments = filePath.split(/[/\\]/).filter(s => s && s !== '.');
   const resolvedSegments = resolvedPath.split(/[/\\]/).filter(s => s && s !== '.');
-  
+
   // The resolved path should not have fewer segments (indicates .. was processed)
   // This catches cases like /etc/../../../etc/passwd
   if (resolvedSegments.length < pathSegments.length) {
     return false;
   }
-  
+
   return true;
 };
 
@@ -130,7 +130,7 @@ const isValidColumnName = (columnName) => {
   // Valid SQL identifiers: start with letter or underscore, contain only alphanumeric, underscore, or hyphen
   // This pattern is stricter than SQL standard but appropriate for our schema
   const validColumnNamePattern = /^[a-zA-Z_][a-zA-Z0-9_-]*$/;
-  
+
   return validColumnNamePattern.test(columnName);
 };
 
@@ -202,7 +202,7 @@ const buildSslConfig = () => {
   if (process.env.POSTGRES_SSL_CERT && process.env.POSTGRES_SSL_KEY) {
     const certPath = process.env.POSTGRES_SSL_CERT;
     const keyPath = process.env.POSTGRES_SSL_KEY;
-    
+
     if (!isValidCertPath(certPath) || !isValidCertPath(keyPath)) {
       console.warn('POSTGRES_SSL_CERT and POSTGRES_SSL_KEY must be valid absolute paths without traversal sequences, skipping');
     } else {
@@ -944,12 +944,14 @@ const initDb = async () => {
     CREATE TABLE IF NOT EXISTS smtp_settings (
       id INTEGER PRIMARY KEY CHECK (id = 1),
       enabled INTEGER DEFAULT 0,
+      email_provider TEXT DEFAULT 'smtp',
       host TEXT,
       port INTEGER,
       use_tls INTEGER DEFAULT 1,
       username TEXT,
       password_encrypted TEXT,
       auth_method TEXT DEFAULT 'plain',
+      brevo_api_key_encrypted TEXT,
       from_name TEXT DEFAULT 'ACS Notifications',
       from_email TEXT,
       default_recipient TEXT,
@@ -960,12 +962,14 @@ const initDb = async () => {
     CREATE TABLE IF NOT EXISTS smtp_settings (
       id INTEGER PRIMARY KEY CHECK (id = 1),
       enabled INTEGER DEFAULT 0,
+      email_provider TEXT DEFAULT 'smtp',
       host TEXT,
       port INTEGER,
       use_tls INTEGER DEFAULT 1,
       username TEXT,
       password_encrypted TEXT,
       auth_method TEXT DEFAULT 'plain',
+      brevo_api_key_encrypted TEXT,
       from_name TEXT DEFAULT 'ACS Notifications',
       from_email TEXT,
       default_recipient TEXT,
@@ -1413,13 +1417,13 @@ const initDb = async () => {
 
     if (!hasProfileComplete) {
       console.log('Migrating users table: adding profile_complete column...');
-      
+
       // Add profile_complete column with default value of 1 (true) for existing users
       await dbRun('ALTER TABLE users ADD COLUMN profile_complete INTEGER DEFAULT 1');
-      
+
       // Ensure all existing users have profile_complete = 1
       await dbRun('UPDATE users SET profile_complete = 1 WHERE profile_complete IS NULL');
-      
+
       console.log('Migration complete: Added profile_complete column to users table');
     }
   } catch (err) {
@@ -1487,7 +1491,7 @@ const initDb = async () => {
 
     if (!hasNewColumns) {
       console.log('Migrating branding_settings table: adding new columns...');
-      
+
       // Add new columns with defaults
       await dbRun("ALTER TABLE branding_settings ADD COLUMN site_name TEXT DEFAULT 'ACS'");
       await dbRun("ALTER TABLE branding_settings ADD COLUMN sub_title TEXT DEFAULT 'KeyData Asset Registration System'");
@@ -1496,10 +1500,10 @@ const initDb = async () => {
       await dbRun("ALTER TABLE branding_settings ADD COLUMN favicon_content_type TEXT");
       await dbRun("ALTER TABLE branding_settings ADD COLUMN primary_color TEXT DEFAULT '#3B82F6'");
       await dbRun("ALTER TABLE branding_settings ADD COLUMN include_logo_in_emails INTEGER DEFAULT 0");
-      
+
       // Set defaults for existing row
       await dbRun("UPDATE branding_settings SET site_name = 'ACS', sub_title = 'Asset Compliance System', primary_color = '#3B82F6', include_logo_in_emails = 0 WHERE id = 1");
-      
+
       console.log('Migration complete: Added new branding columns');
     }
 
@@ -1540,7 +1544,7 @@ const initDb = async () => {
       await dbRun("ALTER TABLE attestation_campaigns ADD COLUMN target_user_ids TEXT");
       console.log('Migration complete: Added target_type and target_user_ids columns');
     }
-    
+
     // Add target_company_ids column
     const hasTargetCompanyIds = campaignCols.some(col => col.name === 'target_company_ids');
     if (!hasTargetCompanyIds) {
@@ -1548,7 +1552,7 @@ const initDb = async () => {
       await dbRun("ALTER TABLE attestation_campaigns ADD COLUMN target_company_ids TEXT");
       console.log('Migration complete: Added target_company_ids column');
     }
-    
+
     // Add unregistered_reminder_days column
     const hasUnregisteredReminderDays = campaignCols.some(col => col.name === 'unregistered_reminder_days');
     if (!hasUnregisteredReminderDays) {
@@ -1698,11 +1702,37 @@ const initDb = async () => {
     `, [now, now]);
   }
 
+  // Migration: Add email_provider column to smtp_settings if it doesn't exist
+  try {
+    const smtpCols = isPostgres
+      ? await dbAll(`
+          SELECT column_name as name
+          FROM information_schema.columns
+          WHERE table_name = 'smtp_settings'
+        `)
+      : await dbAll("PRAGMA table_info(smtp_settings)");
+
+    const hasEmailProvider = smtpCols.some(col => col.name === 'email_provider');
+    const hasBrevoApiKey = smtpCols.some(col => col.name === 'brevo_api_key_encrypted');
+
+    if (!hasEmailProvider) {
+      console.log('Migrating smtp_settings: adding email_provider column...');
+      await dbRun("ALTER TABLE smtp_settings ADD COLUMN email_provider TEXT DEFAULT 'smtp'");
+    }
+
+    if (!hasBrevoApiKey) {
+      console.log('Migrating smtp_settings: adding brevo_api_key_encrypted column...');
+      await dbRun('ALTER TABLE smtp_settings ADD COLUMN brevo_api_key_encrypted TEXT');
+    }
+  } catch (err) {
+    console.error('Migration for smtp_settings email_provider/brevo columns failed:', err.message);
+  }
+
   // Seed default asset types if table is empty
   const existingTypes = await dbAll('SELECT COUNT(*) as count FROM asset_types');
   // Ensure count is a number (handles both SQLite and PostgreSQL return types)
   const typeCount = parseInt(existingTypes[0]?.count, 10) || 0;
-  
+
   if (typeCount === 0) {
     console.log('Seeding default asset types...');
     const now = new Date().toISOString();
@@ -1727,7 +1757,7 @@ const initDb = async () => {
            VALUES ($1, $2, $3, 1, $4, $5, $6)`
         : `INSERT INTO asset_types (name, display_name, description, is_active, sort_order, created_at, updated_at)
            VALUES (?, ?, ?, 1, ?, ?, ?)`;
-      
+
       await dbRun(insertQuery, [type.name, type.display_name, type.description, type.sort_order, now, now]);
     }
     console.log(`Seeded ${defaultTypes.length} default asset types`);
@@ -1745,16 +1775,16 @@ const initDb = async () => {
       const selectQuery = isPostgres
         ? 'SELECT id FROM email_templates WHERE template_key = $1'
         : 'SELECT id FROM email_templates WHERE template_key = ?';
-      
+
       const existing = await dbGet(selectQuery, [template.template_key]);
-      
+
       if (!existing) {
         const insertQuery = isPostgres
           ? `INSERT INTO email_templates (template_key, name, description, subject, html_body, text_body, variables, is_custom, updated_at)
              VALUES ($1, $2, $3, $4, $5, $6, $7, 0, $8)`
           : `INSERT INTO email_templates (template_key, name, description, subject, html_body, text_body, variables, is_custom, updated_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)`;
-        
+
         await dbRun(insertQuery, [
           template.template_key,
           template.name,
@@ -1773,7 +1803,7 @@ const initDb = async () => {
       // Continue with other templates even if one fails
     }
   }
-  
+
   if (seededCount > 0) {
     console.log(`Seeded ${seededCount} missing email template(s)`);
   } else {
@@ -1783,21 +1813,21 @@ const initDb = async () => {
   // Migration: Update variables for existing templates that may have NULL or incomplete variables
   console.log('Checking for email templates with missing or incomplete variables...');
   let updatedCount = 0;
-  
+
   for (const template of DEFAULT_EMAIL_TEMPLATES) {
     try {
       const selectQuery = isPostgres
         ? 'SELECT id, variables FROM email_templates WHERE template_key = $1'
         : 'SELECT id, variables FROM email_templates WHERE template_key = ?';
-      
+
       const existing = await dbGet(selectQuery, [template.template_key]);
-      
+
       // Check if variables need updating
       let needsUpdate = false;
       if (!existing) {
         continue; // Template doesn't exist, skip
       }
-      
+
       if (!existing.variables || existing.variables === 'null') {
         needsUpdate = true;
       } else {
@@ -1814,12 +1844,12 @@ const initDb = async () => {
           needsUpdate = true;
         }
       }
-      
+
       if (needsUpdate) {
         const updateQuery = isPostgres
           ? 'UPDATE email_templates SET variables = $1 WHERE template_key = $2'
           : 'UPDATE email_templates SET variables = ? WHERE template_key = ?';
-        
+
         await dbRun(updateQuery, [template.variables, template.template_key]);
         console.log(`Updated variables for email template: ${template.template_key}`);
         updatedCount++;
@@ -1829,7 +1859,7 @@ const initDb = async () => {
       // Continue with other templates even if one fails
     }
   }
-  
+
   if (updatedCount > 0) {
     console.log(`Updated variables for ${updatedCount} email template(s)`);
   } else {
@@ -1840,28 +1870,28 @@ const initDb = async () => {
   console.log('Checking for templates with Handlebars block helpers...');
   const templatesNeedingUpdate = [
     'attestation_registration_invite',
-    'attestation_unregistered_reminder', 
+    'attestation_unregistered_reminder',
     'attestation_unregistered_escalation'
   ];
-  
+
   let migratedCount = 0;
   for (const templateKey of templatesNeedingUpdate) {
     try {
       const selectQuery = isPostgres
         ? 'SELECT id, html_body FROM email_templates WHERE template_key = $1'
         : 'SELECT id, html_body FROM email_templates WHERE template_key = ?';
-      
+
       const existing = await dbGet(selectQuery, [templateKey]);
-      
+
       if (existing && existing.html_body && existing.html_body.includes('{{#if')) {
         // Template has old syntax, update it
         const defaultTemplate = DEFAULT_EMAIL_TEMPLATES.find(t => t.template_key === templateKey);
-        
+
         if (defaultTemplate) {
           const updateQuery = isPostgres
             ? `UPDATE email_templates SET html_body = $1, text_body = $2, variables = $3, updated_at = $4 WHERE template_key = $5`
             : `UPDATE email_templates SET html_body = ?, text_body = ?, variables = ?, updated_at = ? WHERE template_key = ?`;
-          
+
           await dbRun(updateQuery, [
             defaultTemplate.html_body,
             defaultTemplate.text_body,
@@ -1878,7 +1908,7 @@ const initDb = async () => {
       // Continue with other templates even if one fails
     }
   }
-  
+
   if (migratedCount > 0) {
     console.log(`Migrated ${migratedCount} email template(s) to remove Handlebars conditionals`);
   }
@@ -1889,30 +1919,30 @@ const initDb = async () => {
     'attestation_registration_invite',
     'attestation_unregistered_reminder'
   ];
-  
+
   let fallbackUrlUpdatedCount = 0;
   for (const templateKey of templatesNeedingFallbackUrls) {
     try {
       const selectQuery = isPostgres
         ? 'SELECT id, html_body, text_body FROM email_templates WHERE template_key = $1'
         : 'SELECT id, html_body, text_body FROM email_templates WHERE template_key = ?';
-      
+
       const existing = await dbGet(selectQuery, [templateKey]);
-      
+
       if (existing && existing.html_body) {
         // Check if template already has fallback URL text (checking for both button and link phrases)
-        const hasFallbackUrl = existing.html_body.includes('If the button doesn\'t work') && 
-                               existing.html_body.includes('copy and paste this link');
-        
+        const hasFallbackUrl = existing.html_body.includes('If the button doesn\'t work') &&
+          existing.html_body.includes('copy and paste this link');
+
         if (!hasFallbackUrl) {
           // Template needs fallback URL, update it
           const defaultTemplate = DEFAULT_EMAIL_TEMPLATES.find(t => t.template_key === templateKey);
-          
+
           if (defaultTemplate) {
             const updateQuery = isPostgres
               ? `UPDATE email_templates SET html_body = $1, text_body = $2, variables = $3, updated_at = $4 WHERE template_key = $5`
               : `UPDATE email_templates SET html_body = ?, text_body = ?, variables = ?, updated_at = ? WHERE template_key = ?`;
-            
+
             await dbRun(updateQuery, [
               defaultTemplate.html_body,
               defaultTemplate.text_body,
@@ -1930,7 +1960,7 @@ const initDb = async () => {
       // Continue with other templates even if one fails
     }
   }
-  
+
   if (fallbackUrlUpdatedCount > 0) {
     console.log(`Added fallback URLs to ${fallbackUrlUpdatedCount} email template(s)`);
   } else {
@@ -2443,13 +2473,13 @@ export const assetDb = {
     if (!companyIds || companyIds.length === 0) {
       return [];
     }
-    
+
     // Validate that all company IDs are valid integers
     const validatedIds = companyIds.filter(id => Number.isInteger(Number(id)) && Number(id) > 0);
     if (validatedIds.length === 0) {
       return [];
     }
-    
+
     const placeholders = validatedIds.map((_, i) => isPostgres ? `$${i + 1}` : '?').join(', ');
     const query = `
       SELECT DISTINCT users.*
@@ -2459,20 +2489,20 @@ export const assetDb = {
         AND users.id IS NOT NULL
       ORDER BY users.email
     `;
-    
+
     const rows = await dbAll(query, validatedIds);
     return rows;
   },
   linkAssetsToUser: async (employeeEmail, managerFirstName, managerLastName, managerEmail) => {
     const now = new Date().toISOString();
-    
+
     // Look up manager_id from manager_email
     let managerId = null;
     if (managerEmail) {
       const manager = await dbGet('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [managerEmail]);
       managerId = manager?.id || null;
     }
-    
+
     // Store denormalized fields for unregistered managers
     // JOINs will override these values when user records exist
     return dbRun(`
@@ -2483,7 +2513,7 @@ export const assetDb = {
   },
   updateManagerForEmployee: async (employeeEmail, managerFirstName, managerLastName, managerEmail) => {
     const now = new Date().toISOString();
-    
+
     // Debug logging to catch data corruption
     console.log('updateManagerForEmployee called:', {
       employeeEmail,
@@ -2491,7 +2521,7 @@ export const assetDb = {
       managerLastName,
       managerEmail
     });
-    
+
     // Look up manager_id from manager_email
     let managerId = null;
     if (managerEmail) {
@@ -2502,7 +2532,7 @@ export const assetDb = {
     // Get the owner_id for this employee to update by both email AND ID
     const employee = await dbGet('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [employeeEmail]);
     const employeeId = employee?.id || null;
-    
+
     return dbRun(`
       UPDATE assets
       SET manager_first_name = ?, manager_last_name = ?, manager_email = ?, manager_id = ?, last_updated = ?
@@ -2565,14 +2595,14 @@ export const assetDb = {
   bulkUpdateManager: async (ids, managerFirstName, managerLastName, managerEmail) => {
     if (!ids || ids.length === 0) return { changes: 0 };
     const now = new Date().toISOString();
-    
+
     // Look up manager_id from manager_email
     let managerId = null;
     if (managerEmail) {
       const manager = await dbGet('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [managerEmail]);
       managerId = manager?.id || null;
     }
-    
+
     const placeholders = ids.map(() => '?').join(',');
     const query = `
       UPDATE assets
@@ -2651,13 +2681,13 @@ export const assetDb = {
     if (!companyIds || companyIds.length === 0) {
       return [];
     }
-    
+
     // Validate that all company IDs are valid integers
     const validatedIds = companyIds.filter(id => Number.isInteger(Number(id)) && Number(id) > 0);
     if (validatedIds.length === 0) {
       return [];
     }
-    
+
     const placeholders = validatedIds.map((_, i) => isPostgres ? `$${i + 1}` : '?').join(', ');
     const query = `
       SELECT DISTINCT 
@@ -2674,7 +2704,7 @@ export const assetDb = {
       GROUP BY assets.employee_email, assets.employee_first_name, assets.employee_last_name
       ORDER BY assets.employee_email
     `;
-    
+
     return dbAll(query, validatedIds);
   }
 };
@@ -2739,32 +2769,32 @@ export const companyDb = {
   },
   getAll: async () => {
     const rows = await dbAll('SELECT * FROM companies ORDER BY name ASC');
-    return rows.map((row) => ({ 
-      ...row, 
+    return rows.map((row) => ({
+      ...row,
       created_date: normalizeDates(row.created_date),
       hubspot_synced_at: normalizeDates(row.hubspot_synced_at)
     }));
   },
   getById: async (id) => {
     const row = await dbGet('SELECT * FROM companies WHERE id = ?', [id]);
-    return row ? { 
-      ...row, 
+    return row ? {
+      ...row,
       created_date: normalizeDates(row.created_date),
       hubspot_synced_at: normalizeDates(row.hubspot_synced_at)
     } : null;
   },
   getByName: async (name) => {
     const row = await dbGet('SELECT * FROM companies WHERE name = ?', [name]);
-    return row ? { 
-      ...row, 
+    return row ? {
+      ...row,
       created_date: normalizeDates(row.created_date),
       hubspot_synced_at: normalizeDates(row.hubspot_synced_at)
     } : null;
   },
   getByHubSpotId: async (hubspotId) => {
     const row = await dbGet('SELECT * FROM companies WHERE hubspot_id = ?', [hubspotId]);
-    return row ? { 
-      ...row, 
+    return row ? {
+      ...row,
       created_date: normalizeDates(row.created_date),
       hubspot_synced_at: normalizeDates(row.hubspot_synced_at)
     } : null;
@@ -2987,13 +3017,13 @@ export const userDb = {
   },
   createFromOIDC: async (userData) => {
     const now = new Date().toISOString();
-    
+
     // Determine if profile is complete based on manager data presence
-    const hasManagerData = userData.manager_first_name && 
-                          userData.manager_last_name && 
-                          userData.manager_email;
+    const hasManagerData = userData.manager_first_name &&
+      userData.manager_last_name &&
+      userData.manager_email;
     const profileComplete = hasManagerData ? 1 : 0;
-    
+
     const insertQuery = `
       INSERT INTO users (email, password_hash, name, role, created_at, first_name, last_name, manager_first_name, manager_last_name, manager_email, oidc_sub, profile_complete)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -3035,10 +3065,10 @@ export const userDb = {
   `, [managerData.manager_first_name, managerData.manager_last_name, managerData.manager_email, userId]),
   useBackupCode: async (userId, code) => {
     const user = await userDb.getMFAStatus(userId);
-    
+
     // Defensive check: ensure user exists and has backup codes
     if (!user || !user.mfa_backup_codes) return false;
-    
+
     // Additional defensive check for empty string edge case
     const backupCodesStr = user.mfa_backup_codes;
     if (backupCodesStr.trim() === '') {
@@ -3049,7 +3079,7 @@ export const userDb = {
     let backupCodes;
     try {
       backupCodes = JSON.parse(backupCodesStr);
-      
+
       // Validate that parsed result is an array
       if (!Array.isArray(backupCodes)) {
         return false;
@@ -3072,12 +3102,12 @@ export const userDb = {
     // Case-insensitive matching using OR conditions to leverage indexes
     // Build multiple OR conditions for case-insensitive matching
     const normalizedEmails = [...new Set(emails.map(e => e.toLowerCase()))];
-    
+
     if (normalizedEmails.length === 1) {
       // Single email - use existing indexed getByEmail logic
       return [await userDb.getByEmail(normalizedEmails[0])].filter(Boolean);
     }
-    
+
     // Multiple emails - use IN clause with LOWER on both sides
     // Note: In production, consider adding a functional index on LOWER(email)
     // or storing emails in lowercase for optimal index usage
@@ -3445,8 +3475,8 @@ export const smtpSettingsDb = {
     if (!settings) {
       const now = new Date().toISOString();
       await dbRun(`
-        INSERT INTO smtp_settings (id, enabled, created_at, updated_at)
-        VALUES (1, 0, ?, ?)
+        INSERT INTO smtp_settings (id, enabled, email_provider, created_at, updated_at)
+        VALUES (1, 0, 'smtp', ?, ?)
       `, [now, now]);
       settings = await dbGet('SELECT * FROM smtp_settings WHERE id = 1');
     }
@@ -3454,9 +3484,12 @@ export const smtpSettingsDb = {
     return {
       ...settings,
       enabled: settings.enabled ?? 0,
+      email_provider: settings.email_provider || 'smtp',
       has_password: !!settings.password_encrypted,
-      // Don't return the encrypted password for security
+      has_brevo_api_key: !!settings.brevo_api_key_encrypted,
+      // Don't return encrypted values for security
       password_encrypted: undefined,
+      brevo_api_key_encrypted: undefined,
       created_at: normalizeDates(settings.created_at),
       updated_at: normalizeDates(settings.updated_at)
     };
@@ -3464,6 +3497,10 @@ export const smtpSettingsDb = {
   getPassword: async () => {
     const settings = await dbGet('SELECT password_encrypted FROM smtp_settings WHERE id = 1');
     return settings?.password_encrypted || null;
+  },
+  getBrevoApiKey: async () => {
+    const settings = await dbGet('SELECT brevo_api_key_encrypted FROM smtp_settings WHERE id = 1');
+    return settings?.brevo_api_key_encrypted || null;
   },
   update: async (settings) => {
     const now = new Date().toISOString();
@@ -3475,6 +3512,10 @@ export const smtpSettingsDb = {
     if (settings.enabled !== undefined) {
       updates.push('enabled = ?');
       params.push(settings.enabled ? 1 : 0);
+    }
+    if (settings.email_provider !== undefined) {
+      updates.push('email_provider = ?');
+      params.push(settings.email_provider || 'smtp');
     }
     if (settings.host !== undefined) {
       updates.push('host = ?');
@@ -3505,6 +3546,16 @@ export const smtpSettingsDb = {
     if (settings.auth_method !== undefined) {
       updates.push('auth_method = ?');
       params.push(settings.auth_method || 'plain');
+    }
+    // Only update Brevo API key if explicitly provided
+    if (settings.brevo_api_key_encrypted !== undefined && settings.brevo_api_key_encrypted !== null) {
+      updates.push('brevo_api_key_encrypted = ?');
+      params.push(settings.brevo_api_key_encrypted);
+    }
+    // Clear Brevo API key if clear_brevo_api_key flag is set
+    if (settings.clear_brevo_api_key === true) {
+      updates.push('brevo_api_key_encrypted = ?');
+      params.push(null);
     }
     if (settings.from_name !== undefined) {
       updates.push('from_name = ?');
@@ -3623,7 +3674,7 @@ export const systemSettingsDb = {
     // Clear a specific field (set to null to use environment default)
     const now = new Date().toISOString();
     const validFields = ['trust_proxy', 'proxy_type', 'proxy_trust_level', 'rate_limit_enabled', 'rate_limit_window_ms', 'rate_limit_max_requests'];
-    
+
     if (!validFields.includes(field)) {
       throw new Error(`Invalid field: ${field}`);
     }
@@ -3828,7 +3879,7 @@ export const passwordResetTokenDb = {
       return { id: result.lastInsertRowid };
     }
   },
-  
+
   findByToken: async (token) => {
     const resetToken = await dbGet(
       'SELECT * FROM password_reset_tokens WHERE token = ?',
@@ -3843,14 +3894,14 @@ export const passwordResetTokenDb = {
     }
     return null;
   },
-  
+
   markAsUsed: async (tokenId) => {
     await dbRun(
       'UPDATE password_reset_tokens SET used = 1 WHERE id = ?',
       [tokenId]
     );
   },
-  
+
   deleteExpired: async () => {
     const now = new Date().toISOString();
     await dbRun(
@@ -3858,7 +3909,7 @@ export const passwordResetTokenDb = {
       [now]
     );
   },
-  
+
   deleteByUserId: async (userId) => {
     await dbRun(
       'DELETE FROM password_reset_tokens WHERE user_id = ?',
@@ -3966,13 +4017,13 @@ export const attestationCampaignDb = {
   create: async (campaign) => {
     const now = new Date().toISOString();
     const endDate = sanitizeDateValue(campaign.end_date);
-    
+
     if (isPostgres) {
       const result = await dbRun(
         `INSERT INTO attestation_campaigns (name, description, start_date, end_date, status, reminder_days, escalation_days, target_type, target_user_ids, target_company_ids, unregistered_reminder_days, created_by, created_at, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id`,
-        [campaign.name, campaign.description, campaign.start_date, endDate, campaign.status || 'draft', 
-         campaign.reminder_days || 7, campaign.escalation_days || 10, campaign.target_type || 'all', campaign.target_user_ids || null, campaign.target_company_ids || null, campaign.unregistered_reminder_days || 7, campaign.created_by, now, now]
+        [campaign.name, campaign.description, campaign.start_date, endDate, campaign.status || 'draft',
+        campaign.reminder_days || 7, campaign.escalation_days || 10, campaign.target_type || 'all', campaign.target_user_ids || null, campaign.target_company_ids || null, campaign.unregistered_reminder_days || 7, campaign.created_by, now, now]
       );
       return { id: result.rows[0].id };
     } else {
@@ -3980,7 +4031,7 @@ export const attestationCampaignDb = {
         `INSERT INTO attestation_campaigns (name, description, start_date, end_date, status, reminder_days, escalation_days, target_type, target_user_ids, target_company_ids, unregistered_reminder_days, created_by, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [campaign.name, campaign.description, campaign.start_date, endDate, campaign.status || 'draft',
-         campaign.reminder_days || 7, campaign.escalation_days || 10, campaign.target_type || 'all', campaign.target_user_ids || null, campaign.target_company_ids || null, campaign.unregistered_reminder_days || 7, campaign.created_by, now, now]
+        campaign.reminder_days || 7, campaign.escalation_days || 10, campaign.target_type || 'all', campaign.target_user_ids || null, campaign.target_company_ids || null, campaign.unregistered_reminder_days || 7, campaign.created_by, now, now]
       );
       return { id: result.lastInsertRowid };
     }
@@ -4015,7 +4066,7 @@ export const attestationCampaignDb = {
     const now = new Date().toISOString();
     const fields = [];
     const params = [];
-    
+
     if (updates.name !== undefined) {
       fields.push(isPostgres ? `name = $${fields.length + 1}` : 'name = ?');
       params.push(updates.name);
@@ -4060,11 +4111,11 @@ export const attestationCampaignDb = {
       fields.push(isPostgres ? `unregistered_reminder_days = $${fields.length + 1}` : 'unregistered_reminder_days = ?');
       params.push(updates.unregistered_reminder_days);
     }
-    
+
     fields.push(isPostgres ? `updated_at = $${fields.length + 1}` : 'updated_at = ?');
     params.push(now);
     params.push(id);
-    
+
     await dbRun(
       `UPDATE attestation_campaigns SET ${fields.join(', ')} WHERE id = ${isPostgres ? `$${params.length}` : '?'}`,
       params
@@ -4161,7 +4212,7 @@ export const attestationRecordDb = {
     const now = new Date().toISOString();
     const fields = [];
     const params = [];
-    
+
     if (updates.status !== undefined) {
       fields.push(isPostgres ? `status = $${fields.length + 1}` : 'status = ?');
       params.push(updates.status);
@@ -4186,11 +4237,11 @@ export const attestationRecordDb = {
       fields.push(isPostgres ? `notes = $${fields.length + 1}` : 'notes = ?');
       params.push(updates.notes);
     }
-    
+
     fields.push(isPostgres ? `updated_at = $${fields.length + 1}` : 'updated_at = ?');
     params.push(now);
     params.push(id);
-    
+
     await dbRun(
       `UPDATE attestation_records SET ${fields.join(', ')} WHERE id = ${isPostgres ? `$${params.length}` : '?'}`,
       params
@@ -4228,7 +4279,7 @@ export const attestationAssetDb = {
   update: async (id, updates) => {
     const fields = [];
     const params = [];
-    
+
     if (updates.attested_status !== undefined) {
       fields.push(isPostgres ? `attested_status = $${fields.length + 1}` : 'attested_status = ?');
       params.push(updates.attested_status);
@@ -4241,9 +4292,9 @@ export const attestationAssetDb = {
       fields.push(isPostgres ? `attested_at = $${fields.length + 1}` : 'attested_at = ?');
       params.push(updates.attested_at);
     }
-    
+
     params.push(id);
-    
+
     await dbRun(
       `UPDATE attestation_assets SET ${fields.join(', ')} WHERE id = ${isPostgres ? `$${params.length}` : '?'}`,
       params
@@ -4260,8 +4311,8 @@ export const attestationNewAssetDb = {
          employee_first_name, employee_last_name, employee_email, manager_first_name, manager_last_name, manager_email, status, issued_date, returned_date, created_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) RETURNING id`,
         [asset.attestation_record_id, asset.asset_type, asset.make, asset.model, asset.serial_number, asset.asset_tag, asset.company_id, asset.notes,
-         asset.employee_first_name, asset.employee_last_name, asset.employee_email, asset.manager_first_name, asset.manager_last_name, asset.manager_email,
-         asset.status || 'active', asset.issued_date || null, asset.returned_date || null, now]
+        asset.employee_first_name, asset.employee_last_name, asset.employee_email, asset.manager_first_name, asset.manager_last_name, asset.manager_email,
+        asset.status || 'active', asset.issued_date || null, asset.returned_date || null, now]
       );
       return { id: result.rows[0].id };
     } else {
@@ -4270,8 +4321,8 @@ export const attestationNewAssetDb = {
          employee_first_name, employee_last_name, employee_email, manager_first_name, manager_last_name, manager_email, status, issued_date, returned_date, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [asset.attestation_record_id, asset.asset_type, asset.make, asset.model, asset.serial_number, asset.asset_tag, asset.company_id, asset.notes,
-         asset.employee_first_name, asset.employee_last_name, asset.employee_email, asset.manager_first_name, asset.manager_last_name, asset.manager_email,
-         asset.status || 'active', asset.issued_date || null, asset.returned_date || null, now]
+        asset.employee_first_name, asset.employee_last_name, asset.employee_email, asset.manager_first_name, asset.manager_last_name, asset.manager_email,
+        asset.status || 'active', asset.issued_date || null, asset.returned_date || null, now]
       );
       return { id: result.lastInsertRowid };
     }
@@ -4386,7 +4437,7 @@ export const attestationPendingInviteDb = {
   update: async (id, updates) => {
     const fields = [];
     const params = [];
-    
+
     if (updates.invite_sent_at !== undefined) {
       fields.push(isPostgres ? `invite_sent_at = $${fields.length + 1}` : 'invite_sent_at = ?');
       params.push(updates.invite_sent_at);
@@ -4407,11 +4458,11 @@ export const attestationPendingInviteDb = {
       fields.push(isPostgres ? `converted_record_id = $${fields.length + 1}` : 'converted_record_id = ?');
       params.push(updates.converted_record_id);
     }
-    
+
     if (fields.length === 0) return;
-    
+
     params.push(id);
-    
+
     await dbRun(
       `UPDATE attestation_pending_invites SET ${fields.join(', ')} WHERE id = ${isPostgres ? `$${params.length}` : '?'}`,
       params
@@ -4527,10 +4578,10 @@ export const assetTypeDb = {
 
     // Count assets with this type
     const assetCount = await dbGet('SELECT COUNT(*) as count FROM assets WHERE asset_type = ?', [assetType.name]);
-    
+
     // Count attestation new assets with this type
     const attestationCount = await dbGet('SELECT COUNT(*) as count FROM attestation_new_assets WHERE asset_type = ?', [assetType.name]);
-    
+
     return Number(assetCount?.count || 0) + Number(attestationCount?.count || 0);
   },
 
@@ -4562,7 +4613,7 @@ export const emailTemplateDb = {
       updatedBy,
       key
     ];
-    
+
     await dbRun(
       `UPDATE email_templates 
        SET subject = ?, html_body = ?, text_body = ?, is_custom = ?, updated_at = ?, updated_by = ?
@@ -4577,7 +4628,7 @@ export const emailTemplateDb = {
     if (!defaultTemplate) {
       throw new Error(`No default template found for key: ${key}`);
     }
-    
+
     // Reset to default values
     const now = new Date().toISOString();
     await dbRun(

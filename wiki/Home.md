@@ -9,7 +9,7 @@ Welcome to the documentation for the **Asset Compliance System (ACS)** — a web
 - **Attestation workflow**: Campaign-based asset certification with automated reminders and escalations
 - **Bulk operations**: CSV imports for assets/companies and CSV exports for audits
 - **Configurable platform**: branding controls, passkey relying-party settings, email templates, and database engine selection (SQLite or PostgreSQL)
-- **Email notifications**: SMTP-based notifications for password reset, attestation campaigns, and system alerts
+- **Email notifications**: SMTP and Brevo API support for password reset, attestation campaigns, and system alerts
 - **Audit-ready reporting** with status summaries, manager/company rollups, and download-ready CSVs
 
 ## 📚 Documentation

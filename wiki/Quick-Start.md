@@ -125,7 +125,7 @@ ACS has **four roles** with different access levels:
 - ✅ Bulk import companies via CSV
 - ✅ Add, edit, and delete users
 - ✅ Change user roles
-- ✅ Access Admin Settings (OIDC/SSO, passkeys, branding, database, email/SMTP)
+- ✅ Access Admin Settings (OIDC/SSO, passkeys, branding, database, email/Brevo)
 
 For a complete permissions matrix, see the [Features → RBAC](Features#role-based-access-control-rbac) page.
 

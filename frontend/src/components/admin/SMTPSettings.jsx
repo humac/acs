@@ -15,12 +15,14 @@ const SMTPSettings = () => {
   const { toast } = useToast();
   const [settings, setSettings] = useState({
     enabled: false,
+    email_provider: 'smtp',
     host: '',
     port: 587,
     use_tls: true,
     username: '',
     password: '',
     auth_method: 'plain',
+    brevo_api_key: '',
     from_name: 'ACS Notifications',
     from_email: '',
     default_recipient: ''
@@ -28,6 +30,7 @@ const SMTPSettings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasPassword, setHasPassword] = useState(false);
+  const [hasBrevoApiKey, setHasBrevoApiKey] = useState(false);
   const [testDialogOpen, setTestDialogOpen] = useState(false);
   const [testRecipient, setTestRecipient] = useState('');
   const [testing, setTesting] = useState(false);
@@ -47,17 +50,20 @@ const SMTPSettings = () => {
         const data = await response.json();
         setSettings({
           enabled: data.enabled === 1 || data.enabled === true,
+          email_provider: data.email_provider || 'smtp',
           host: data.host || '',
           port: data.port || 587,
           use_tls: data.use_tls === 1 || data.use_tls === true,
           username: data.username || '',
           password: '',
           auth_method: data.auth_method || 'plain',
+          brevo_api_key: '',
           from_name: data.from_name || 'ACS Notifications',
           from_email: data.from_email || '',
           default_recipient: data.default_recipient || ''
         });
         setHasPassword(data.has_password);
+        setHasBrevoApiKey(data.has_brevo_api_key);
       }
     } catch (err) {
       toast({ title: "Error", description: 'Failed to load notification settings', variant: "destructive" });
@@ -80,16 +86,25 @@ const SMTPSettings = () => {
     const newErrors = {};
 
     if (settings.enabled) {
-      if (!settings.host) {
-        newErrors.host = 'Host is required when notifications are enabled';
-      }
-      if (!settings.port) {
-        newErrors.port = 'Port is required when notifications are enabled';
-      }
+      // Common validation
       if (!settings.from_email) {
         newErrors.from_email = 'From email is required when notifications are enabled';
       } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(settings.from_email)) {
         newErrors.from_email = 'Please enter a valid email address';
+      }
+
+      // Provider-specific validation
+      if (settings.email_provider === 'smtp') {
+        if (!settings.host) {
+          newErrors.host = 'Host is required for SMTP';
+        }
+        if (!settings.port) {
+          newErrors.port = 'Port is required for SMTP';
+        }
+      } else if (settings.email_provider === 'brevo') {
+        if (!hasBrevoApiKey && !settings.brevo_api_key) {
+          newErrors.brevo_api_key = 'Brevo API key is required';
+        }
       }
     }
 
@@ -114,6 +129,7 @@ const SMTPSettings = () => {
     try {
       const payload = {
         enabled: settings.enabled,
+        email_provider: settings.email_provider,
         host: settings.host,
         port: parseInt(settings.port),
         use_tls: settings.use_tls,
@@ -124,8 +140,14 @@ const SMTPSettings = () => {
         default_recipient: settings.default_recipient || null
       };
 
+      // Handle SMTP password
       if (settings.password && settings.password !== '[REDACTED]') {
         payload.password = settings.password;
+      }
+
+      // Handle Brevo API key
+      if (settings.brevo_api_key && settings.brevo_api_key !== '[REDACTED]') {
+        payload.brevo_api_key = settings.brevo_api_key;
       }
 
       const response = await fetch('/api/admin/notification-settings', {
@@ -143,9 +165,10 @@ const SMTPSettings = () => {
         throw new Error(data.error || 'Failed to save settings');
       }
 
-      toast({ title: "Success", description: 'Notification settings saved successfully!', variant: "success" });
+      toast({ title: "Success", description: 'Email settings saved successfully!', variant: "success" });
       setHasPassword(!!settings.password || hasPassword);
-      setSettings(prev => ({ ...prev, password: '' }));
+      setHasBrevoApiKey(!!settings.brevo_api_key || hasBrevoApiKey);
+      setSettings(prev => ({ ...prev, password: '', brevo_api_key: '' }));
     } catch (err) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
@@ -213,12 +236,12 @@ const SMTPSettings = () => {
 
   return (
     <div className="space-y-4">
-      {/* SMTP Email Notifications - Main Container */}
+      {/* Email Notifications - Main Container */}
       <div className="glass-panel rounded-xl p-4">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="text-sm font-semibold">SMTP Email Notifications</h3>
-            <p className="text-sm text-muted-foreground">Configure SMTP settings for sending email notifications from ACS.</p>
+            <h3 className="text-sm font-semibold">Email Notifications</h3>
+            <p className="text-sm text-muted-foreground">Configure email settings for sending notifications from ACS.</p>
           </div>
           <Switch
             checked={settings.enabled}
@@ -227,93 +250,143 @@ const SMTPSettings = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* SMTP Server Settings */}
+          {/* Email Provider Selection */}
           <div className="space-y-3">
-            <h4 className="caption-label">SMTP Server</h4>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="host" className="text-sm">Host *</Label>
-                <Input
-                  id="host"
-                  value={settings.host}
-                  onChange={(e) => handleChange('host', e.target.value)}
-                  placeholder="smtp.example.com"
-                  disabled={saving}
-                  className={errors.host ? 'border-destructive' : ''}
-                />
-                {errors.host && <p className="text-xs text-destructive">{errors.host}</p>}
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="port" className="text-sm">Port *</Label>
-                <Input
-                  id="port"
-                  type="number"
-                  value={settings.port}
-                  onChange={(e) => handleChange('port', e.target.value)}
-                  placeholder="587"
-                  disabled={saving}
-                  className={errors.port ? 'border-destructive' : ''}
-                />
-                {errors.port && <p className="text-xs text-destructive">{errors.port}</p>}
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch
-                id="use_tls"
-                checked={settings.use_tls}
-                onCheckedChange={(checked) => handleChange('use_tls', checked)}
-                disabled={saving}
-              />
-              <Label htmlFor="use_tls" className="text-sm cursor-pointer">Use TLS/SSL (recommended)</Label>
-            </div>
+            <h4 className="caption-label">Email Provider</h4>
+            <Select value={settings.email_provider} onValueChange={(value) => handleChange('email_provider', value)}>
+              <SelectTrigger disabled={saving}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="smtp">SMTP Server</SelectItem>
+                <SelectItem value="brevo">Brevo API</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {settings.email_provider === 'smtp'
+                ? 'Use your own SMTP server for sending emails.'
+                : 'Use Brevo (formerly Sendinblue) transactional email API.'}
+            </p>
           </div>
 
-          {/* Authentication */}
-          <div className="space-y-3">
-            <h4 className="caption-label">Authentication</h4>
-            <div className="space-y-1.5">
-              <Label htmlFor="auth_method" className="text-sm">Auth Method</Label>
-              <Select value={settings.auth_method} onValueChange={(value) => handleChange('auth_method', value)}>
-                <SelectTrigger id="auth_method" disabled={saving}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  <SelectItem value="plain">Plain</SelectItem>
-                  <SelectItem value="login">Login</SelectItem>
-                  <SelectItem value="cram-md5">CRAM-MD5</SelectItem>
-                </SelectContent>
-              </Select>
+          {/* Brevo API Settings - shown when Brevo is selected */}
+          {settings.email_provider === 'brevo' && (
+            <div className="space-y-3">
+              <h4 className="caption-label">Brevo API</h4>
+              <div className="space-y-1.5">
+                <Label htmlFor="brevo_api_key" className="text-sm">
+                  API Key *
+                  {hasBrevoApiKey && <span className="ml-1 text-muted-foreground text-xs">(leave blank to keep current)</span>}
+                </Label>
+                <Input
+                  id="brevo_api_key"
+                  type="password"
+                  value={settings.brevo_api_key}
+                  onChange={(e) => handleChange('brevo_api_key', e.target.value)}
+                  placeholder={hasBrevoApiKey ? '••••••••' : 'Enter Brevo API key'}
+                  disabled={saving}
+                  className={errors.brevo_api_key ? 'border-destructive' : ''}
+                />
+                {errors.brevo_api_key && <p className="text-xs text-destructive">{errors.brevo_api_key}</p>}
+                <p className="text-xs text-muted-foreground">
+                  Get your API key from <a href="https://app.brevo.com/settings/keys/api" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Brevo Settings → SMTP & API</a>
+                </p>
+              </div>
             </div>
-            {settings.auth_method !== 'none' && (
-              <>
+          )}
+
+          {/* SMTP Server Settings - shown when SMTP is selected */}
+          {settings.email_provider === 'smtp' && (
+            <div className="space-y-3">
+              <h4 className="caption-label">SMTP Server</h4>
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="username" className="text-sm">Username</Label>
+                  <Label htmlFor="host" className="text-sm">Host *</Label>
                   <Input
-                    id="username"
-                    value={settings.username}
-                    onChange={(e) => handleChange('username', e.target.value)}
-                    placeholder="user@example.com"
+                    id="host"
+                    value={settings.host}
+                    onChange={(e) => handleChange('host', e.target.value)}
+                    placeholder="smtp.example.com"
                     disabled={saving}
+                    className={errors.host ? 'border-destructive' : ''}
                   />
+                  {errors.host && <p className="text-xs text-destructive">{errors.host}</p>}
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="password" className="text-sm">
-                    Password
-                    {hasPassword && <span className="ml-1 text-muted-foreground text-xs">(leave blank to keep current)</span>}
-                  </Label>
+                  <Label htmlFor="port" className="text-sm">Port *</Label>
                   <Input
-                    id="password"
-                    type="password"
-                    value={settings.password}
-                    onChange={(e) => handleChange('password', e.target.value)}
-                    placeholder={hasPassword ? '••••••••' : 'Enter password'}
+                    id="port"
+                    type="number"
+                    value={settings.port}
+                    onChange={(e) => handleChange('port', e.target.value)}
+                    placeholder="587"
                     disabled={saving}
+                    className={errors.port ? 'border-destructive' : ''}
                   />
+                  {errors.port && <p className="text-xs text-destructive">{errors.port}</p>}
                 </div>
-              </>
-            )}
-          </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="use_tls"
+                  checked={settings.use_tls}
+                  onCheckedChange={(checked) => handleChange('use_tls', checked)}
+                  disabled={saving}
+                />
+                <Label htmlFor="use_tls" className="text-sm cursor-pointer">Use TLS/SSL (recommended)</Label>
+              </div>
+            </div>
+          )}
+
+
+          {/* Authentication - SMTP only */}
+          {settings.email_provider === 'smtp' && (
+            <div className="space-y-3">
+              <h4 className="caption-label">Authentication</h4>
+              <div className="space-y-1.5">
+                <Label htmlFor="auth_method" className="text-sm">Auth Method</Label>
+                <Select value={settings.auth_method} onValueChange={(value) => handleChange('auth_method', value)}>
+                  <SelectTrigger id="auth_method" disabled={saving}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="plain">Plain</SelectItem>
+                    <SelectItem value="login">Login</SelectItem>
+                    <SelectItem value="cram-md5">CRAM-MD5</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {settings.auth_method !== 'none' && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="username" className="text-sm">Username</Label>
+                    <Input
+                      id="username"
+                      value={settings.username}
+                      onChange={(e) => handleChange('username', e.target.value)}
+                      placeholder="user@example.com"
+                      disabled={saving}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="password" className="text-sm">
+                      Password
+                      {hasPassword && <span className="ml-1 text-muted-foreground text-xs">(leave blank to keep current)</span>}
+                    </Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={settings.password}
+                      onChange={(e) => handleChange('password', e.target.value)}
+                      placeholder={hasPassword ? '••••••••' : 'Enter password'}
+                      disabled={saving}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           {/* Email Settings */}
           <div className="space-y-3">
@@ -379,7 +452,7 @@ const SMTPSettings = () => {
       <Alert className="glow-info border-0">
         <Info className="h-4 w-4" />
         <AlertDescription className="text-sm">
-          <strong>Security:</strong> SMTP passwords are encrypted at rest using AES-256-GCM encryption.
+          <strong>Security:</strong> Passwords and API keys are encrypted at rest using AES-256-GCM encryption.
           Ensure the <code className="bg-muted px-1 py-0.5 rounded">KARS_MASTER_KEY</code> environment variable is set and kept secure.
         </AlertDescription>
       </Alert>

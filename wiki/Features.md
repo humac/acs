@@ -644,7 +644,7 @@ ACS implements a comprehensive role-based access control system with four distin
 
 While not currently implemented, the architecture supports:
 - ~~Advanced reporting dashboards with charts~~ ✅ **Implemented** - Summary reports, trends, and dashboards available
-- ~~Automated email notifications~~ ✅ **Implemented** - SMTP-based notifications for passwords, attestations, etc.
+- ~~Automated email notifications~~ ✅ **Implemented** - SMTP and Brevo API support for passwords, attestations, etc.
 - ~~Bulk import/export capabilities~~ ✅ **Implemented** - CSV import/export for assets, companies, and audit logs
 - Asset lifecycle management workflows
 - Custom fields configuration

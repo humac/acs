@@ -195,7 +195,7 @@ Assign the coordinator role to users who need to:
 - View and export audit logs
 
 ❌ **What They Cannot Do**
-- Access admin settings (OIDC, SMTP, security, branding)
+- Access admin settings (OIDC, Email/Brevo, security, branding)
 - Create, edit, or delete assets
 - Create, edit, or delete users
 - Create, edit, or delete companies
@@ -459,7 +459,21 @@ The attestation scheduler (if enabled with `RUN_ATTESTATION_SCHEDULER=true`) run
 
 ## Email Notification Workflows
 
-ACS includes a comprehensive email notification system to support password reset workflows and attestation campaigns. All email notifications require SMTP configuration via **Admin Settings → Notifications**. Email templates are fully customizable via **Admin Settings → Notifications → Email Templates**.
+ACS includes a comprehensive email notification system to support password reset workflows and attestation campaigns. Email notifications can be configured using either **SMTP** or **Brevo API** via **Admin Settings → Email Settings**. Email templates are fully customizable via **Admin Settings → Email Templates**.
+
+### Email Provider Configuration
+
+Navigate to **Admin Settings → Email Settings** to configure your email provider:
+
+| Provider | Description | Configuration Required |
+|----------|-------------|----------------------|
+| **SMTP Server** | Traditional SMTP mail server | Host, Port, TLS, Username, Password |
+| **Brevo API** | Brevo (formerly Sendinblue) transactional email API | API Key |
+
+**Common Settings (both providers):**
+- From Name
+- From Email (must be verified with Brevo)
+- Default Test Recipient
 
 **Scheduler Note:** When `RUN_ATTESTATION_SCHEDULER=true` is enabled, the scheduler runs daily automated checks for reminders, escalations, and campaign closures.
 
@@ -596,11 +610,11 @@ flowchart TD
 
 ---
 
-### SMTP Test Email
+### Test Email
 
 ```mermaid
 flowchart LR
-    A[Admin Opens<br/>Notification Settings] --> B[Admin Clicks<br/>Send Test Email]
+    A[Admin Opens<br/>Email Settings] --> B[Admin Clicks<br/>Send Test Email]
     B --> C[Send Test Email:<br/>test_email]
     C --> D[Admin Verifies<br/>Email Received]
     
@@ -611,7 +625,7 @@ flowchart LR
 ```
 
 **Email Template:** `test_email`  
-**Trigger:** Admin clicks "Send Test Email" in notification settings  
+**Trigger:** Admin clicks "Send Test Email" in email settings  
 **Frequency:** On-demand (admin-initiated)  
 **Recipients:** Test recipient specified by admin
 
@@ -623,7 +637,7 @@ All email templates are customizable via **Admin Settings → Notifications → 
 
 | Template Key | Template Name | Description | Trigger Event | Frequency | Recipient Type |
 |--------------|---------------|-------------|---------------|-----------|----------------|
-| `test_email` | Test Email | SMTP configuration verification | Admin sends test | On-demand | Admin-specified |
+| `test_email` | Test Email | Email configuration verification | Admin sends test | On-demand | Admin-specified |
 | `password_reset` | Password Reset | Secure password reset with time-limited token | User requests reset | On-demand | User |
 | `attestation_launch` | Attestation Campaign Launch | Notifies employees of new attestation campaign | Campaign launched | Once per campaign | Registered employees with assets |
 | `attestation_registration_invite` | Registration Invite | Invites unregistered asset owners to register | Campaign finds unregistered owners | Once per campaign per unregistered email | Unregistered users with assets |

@@ -3,9 +3,9 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { 
-  Settings, Image, Shield, Key, Mail, Server, Database, 
-  Plug, Laptop, Menu, Search, ChevronRight 
+import {
+  Settings, Image, Shield, Key, Mail, Server, Database,
+  Plug, Laptop, Menu, Search, ChevronRight
 } from 'lucide-react';
 
 const navItems = [
@@ -25,7 +25,7 @@ const navItems = [
   {
     category: 'Communications',
     items: [
-      { id: 'smtp', label: 'SMTP Settings', icon: Mail },
+      { id: 'smtp', label: 'Email Settings', icon: Mail },
       { id: 'templates', label: 'Email Templates', icon: Mail }
     ]
   },
@@ -50,13 +50,13 @@ const SettingsSidebar = ({ activeSection, onSectionChange, searchQuery, onSearch
   // Filter items based on search
   const filteredNavItems = searchQuery
     ? navItems
-        .map(group => ({
-          ...group,
-          items: group.items.filter(item =>
-            item.label.toLowerCase().includes(searchQuery.toLowerCase())
-          )
-        }))
-        .filter(group => group.items.length > 0)
+      .map(group => ({
+        ...group,
+        items: group.items.filter(item =>
+          item.label.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      }))
+      .filter(group => group.items.length > 0)
     : navItems;
 
   return (
@@ -73,7 +73,7 @@ const SettingsSidebar = ({ activeSection, onSectionChange, searchQuery, onSearch
           />
         </div>
       </div>
-      
+
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto p-4">
         <nav className="space-y-6">
