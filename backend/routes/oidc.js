@@ -176,6 +176,10 @@ export default function createOIDCRouter(deps) {
         }
       }
 
+      // Auto-verify email for OIDC users (trusted source)
+      await userDb.setEmailVerified(user.id);
+      user.email_verified = true;
+
       // Update last login
       await userDb.updateLastLogin(user.id);
 
@@ -229,7 +233,8 @@ export default function createOIDCRouter(deps) {
           manager_last_name: user.manager_last_name,
           manager_email: user.manager_email,
           profile_complete: user.profile_complete,
-          profile_image: user.profile_image
+          profile_image: user.profile_image,
+          email_verified: true
         },
         redirectToAttestations: hasActiveAttestation
       });

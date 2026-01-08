@@ -8,7 +8,7 @@ import { Loader2, CheckCircle, XCircle, Mail, RefreshCw } from 'lucide-react';
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { isAuthenticated, refreshUser } = useAuth();
+  const { isAuthenticated, refreshUser, user, updateUser } = useAuth();
   const token = searchParams.get('token');
 
   const [status, setStatus] = useState('loading'); // loading, success, error
@@ -68,6 +68,10 @@ export default function VerifyEmail() {
       // Refresh user data if authenticated
       if (isAuthenticated && refreshUser) {
         await refreshUser();
+        // Force update user state to ensure UI reflects the change immediately
+        if (updateUser && user) {
+          updateUser({ ...user, email_verified: true });
+        }
       }
     } catch (error) {
       console.error('Verification error:', error);
