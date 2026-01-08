@@ -2,12 +2,13 @@ import nodemailer from 'nodemailer';
 import { smtpSettingsDb, brandingSettingsDb, emailTemplateDb } from '../database.js';
 import { decryptValue } from '../utils/encryption.js';
 import { createChildLogger } from '../utils/logger.js';
+import * as brevoMailer from './brevoMailer.js';
 
-const logger = createChildLogger({ module: 'smtp' });
+const logger = createChildLogger({ module: 'email' });
 
 /**
- * SMTP Mailer Service
- * Handles sending emails via SMTP using stored settings
+ * Email Mailer Service
+ * Handles sending emails via SMTP or Brevo API based on stored settings
  */
 
 /**
@@ -34,7 +35,7 @@ const escapeHtml = (text) => {
  */
 const substituteVariables = (template, variables) => {
   if (!template) return '';
-  
+
   let result = template;
   for (const [key, value] of Object.entries(variables)) {
     const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
@@ -63,15 +64,15 @@ export const getAppUrl = async () => {
  */
 const createTransport = async () => {
   const settings = await smtpSettingsDb.get();
-  
+
   if (!settings || !settings.enabled) {
     throw new Error('SMTP settings are not enabled');
   }
-  
+
   if (!settings.host || !settings.port) {
     throw new Error('SMTP host and port are required');
   }
-  
+
   // Get encrypted password if it exists
   let password = null;
   const encryptedPassword = await smtpSettingsDb.getPassword();
@@ -82,7 +83,7 @@ const createTransport = async () => {
       throw new Error('Failed to decrypt SMTP password. Please check KARS_MASTER_KEY configuration.');
     }
   }
-  
+
   // Build auth config
   let auth = null;
   if (settings.username) {
@@ -90,13 +91,13 @@ const createTransport = async () => {
       user: settings.username,
       pass: password || ''
     };
-    
+
     // Set auth method if specified
     if (settings.auth_method && settings.auth_method !== 'plain') {
       auth.type = settings.auth_method;
     }
   }
-  
+
   // Create transport
   // Note: 'secure: true' is for port 465 (implicit TLS)
   // For port 587 and others, use 'secure: false' and let STARTTLS handle encryption
@@ -115,7 +116,7 @@ const createTransport = async () => {
     },
     requireTLS: useTls && settings.port !== 465 // Require STARTTLS for port 587 and similar
   };
-  
+
   return nodemailer.createTransport(transportConfig);
 };
 
@@ -146,24 +147,92 @@ const buildEmailHtml = (branding, siteName, content) => {
   `;
 };
 
+/**
+ * Dispatches an email using the configured email provider (SMTP or Brevo)
+ * @param {Object} options - Email options
+ * @param {Object} options.settings - Pre-fetched settings (optional, will fetch if not provided)
+ * @param {Object} options.branding - Pre-fetched branding (optional, will fetch if not provided)
+ * @param {string} options.to - Recipient email(s) - can be string or array
+ * @param {string} options.subject - Email subject
+ * @param {string} options.htmlContent - HTML email content
+ * @param {string} options.textContent - Plain text email content
+ * @returns {Promise<Object>} Result object with success status
+ */
+const dispatchEmail = async (options) => {
+  const { to, subject, htmlContent, textContent } = options;
+
+  // Get settings if not provided
+  const settings = options.settings || await smtpSettingsDb.get();
+  const branding = options.branding || await brandingSettingsDb.get();
+  const siteName = branding?.site_name || 'ACS';
+
+  if (!settings || !settings.enabled) {
+    throw new Error('Email settings are not enabled');
+  }
+
+  if (!settings.from_email) {
+    throw new Error('From email address is not configured');
+  }
+
+  const emailProvider = settings.email_provider || 'smtp';
+  const wrappedHtml = buildEmailHtml(branding, siteName, htmlContent);
+
+  if (emailProvider === 'brevo') {
+    // Use Brevo API
+    const toArray = Array.isArray(to)
+      ? to.map(email => ({ email }))
+      : [{ email: to }];
+
+    return brevoMailer.sendEmail({
+      sender: {
+        name: settings.from_name || `${siteName} Notifications`,
+        email: settings.from_email
+      },
+      to: toArray,
+      subject,
+      htmlContent: wrappedHtml,
+      textContent
+    });
+  } else {
+    // Use SMTP (default)
+    const transport = await createTransport();
+
+    const mailOptions = {
+      from: `"${settings.from_name || `${siteName} Notifications`}" <${settings.from_email}>`,
+      to: Array.isArray(to) ? to.join(', ') : to,
+      subject,
+      text: textContent,
+      html: wrappedHtml
+    };
+
+    const info = await transport.sendMail(mailOptions);
+
+    return {
+      success: true,
+      messageId: info.messageId,
+      response: info.response
+    };
+  }
+};
+
 export const sendTestEmail = async (recipient) => {
   try {
     const settings = await smtpSettingsDb.get();
-    
+
     if (!settings || !settings.enabled) {
       return {
         success: false,
-        error: 'SMTP settings are not enabled. Please enable them first.'
+        error: 'Email settings are not enabled. Please enable them first.'
       };
     }
-    
+
     if (!settings.from_email) {
       return {
         success: false,
         error: 'From email address is not configured'
       };
     }
-    
+
     // Use provided recipient or default
     const toEmail = recipient || settings.default_recipient;
     if (!toEmail) {
@@ -172,16 +241,22 @@ export const sendTestEmail = async (recipient) => {
         error: 'No recipient specified and no default recipient configured'
       };
     }
-    
+
+    // Route to Brevo if that's the selected provider
+    if (settings.email_provider === 'brevo') {
+      return brevoMailer.sendTestEmail(toEmail);
+    }
+
+    // Use SMTP (default)
     const transport = await createTransport();
-    
+
     // Get branding settings for email customization
     const branding = await brandingSettingsDb.get();
     const siteName = branding?.site_name || 'ACS';
-    
+
     // Try to get template from database
     const template = await emailTemplateDb.getByKey('test_email');
-    
+
     // Prepare variables for substitution
     const variables = {
       siteName,
@@ -189,10 +264,10 @@ export const sendTestEmail = async (recipient) => {
       smtpPort: settings.port,
       timestamp: new Date().toISOString()
     };
-    
+
     // Use template if available, otherwise fall back to hardcoded default
     let subject, emailContent, textContent;
-    
+
     if (template) {
       subject = substituteVariables(template.subject, variables);
       emailContent = substituteVariables(template.html_body, variables);
@@ -217,7 +292,7 @@ If you received this email, your SMTP settings are configured correctly.
 SMTP Server: ${settings.host}:${settings.port}
 Sent at: ${new Date().toISOString()}`;
     }
-    
+
     const mailOptions = {
       from: `"${settings.from_name || `${siteName} Notifications`}" <${settings.from_email}>`,
       to: toEmail,
@@ -225,9 +300,9 @@ Sent at: ${new Date().toISOString()}`;
       text: textContent,
       html: buildEmailHtml(branding, siteName, emailContent)
     };
-    
+
     const info = await transport.sendMail(mailOptions);
-    
+
     return {
       success: true,
       message: `Test email sent successfully to ${toEmail}`,
@@ -237,7 +312,7 @@ Sent at: ${new Date().toISOString()}`;
   } catch (error) {
     // Parse common SMTP errors into user-friendly messages
     let errorMessage = error.message;
-    
+
     if (error.code === 'ECONNREFUSED') {
       errorMessage = `Connection refused. Please check that the SMTP server is running and the host/port are correct.`;
     } else if (error.code === 'ETIMEDOUT' || error.code === 'ESOCKET') {
@@ -249,9 +324,7 @@ Sent at: ${new Date().toISOString()}`;
     } else if (error.responseCode >= 500 && error.responseCode < 600) {
       errorMessage = `SMTP server error (${error.responseCode}): ${error.response || error.message}`;
     }
-    
-    // console.error('SMTP test email failed:', error);
-    
+
     return {
       success: false,
       error: errorMessage,
@@ -291,40 +364,38 @@ export const verifyConnection = async () => {
 export const sendPasswordResetEmail = async (recipient, resetToken, resetUrl) => {
   try {
     const settings = await smtpSettingsDb.get();
-    
+
     if (!settings || !settings.enabled) {
       return {
         success: false,
-        error: 'SMTP settings are not enabled. Please enable them first.'
+        error: 'Email settings are not enabled. Please enable them first.'
       };
     }
-    
+
     if (!settings.from_email) {
       return {
         success: false,
         error: 'From email address is not configured'
       };
     }
-    
-    const transport = await createTransport();
-    
+
     // Get branding settings for email customization
     const branding = await brandingSettingsDb.get();
     const siteName = branding?.site_name || 'ACS';
-    
+
     // Try to get template from database
     const template = await emailTemplateDb.getByKey('password_reset');
-    
+
     // Prepare variables for substitution
     const variables = {
       siteName,
       resetUrl,
       expiryTime: '1 hour'
     };
-    
+
     // Use template if available, otherwise fall back to hardcoded default
     let subject, emailContent, textContent;
-    
+
     if (template) {
       subject = substituteVariables(template.subject, variables);
       emailContent = substituteVariables(template.html_body, variables);
@@ -357,34 +428,33 @@ ${resetUrl}
 
 If you didn't request a password reset, please ignore this email or contact support if you have concerns.`;
     }
-    
-    const mailOptions = {
-      from: `"${settings.from_name || `${siteName} Notifications`}" <${settings.from_email}>`,
+
+    const result = await dispatchEmail({
+      settings,
+      branding,
       to: recipient,
       subject,
-      text: textContent,
-      html: buildEmailHtml(branding, siteName, emailContent)
-    };
-    
-    const info = await transport.sendMail(mailOptions);
-    
+      htmlContent: emailContent,
+      textContent
+    });
+
     return {
       success: true,
       message: `Password reset email sent successfully to ${recipient}`,
-      messageId: info.messageId
+      messageId: result.messageId
     };
   } catch (error) {
-    // Parse common SMTP errors into user-friendly messages
+    // Parse common errors into user-friendly messages
     let errorMessage = error.message;
-    
+
     if (error.code === 'ECONNREFUSED') {
-      errorMessage = `Connection refused. Please check that the SMTP server is running and the host/port are correct.`;
+      errorMessage = `Connection refused. Please check that the email server is running and configured correctly.`;
     } else if (error.code === 'ETIMEDOUT' || error.code === 'ESOCKET') {
       errorMessage = `Connection timed out. Please check your network connection and firewall settings.`;
     } else if (error.code === 'EAUTH' || error.responseCode === 535) {
-      errorMessage = `Authentication failed. Please check your username and password.`;
+      errorMessage = `Authentication failed. Please check your credentials.`;
     }
-    
+
     return {
       success: false,
       error: errorMessage,
@@ -403,28 +473,27 @@ If you didn't request a password reset, please ignore this email or contact supp
 export const sendAttestationLaunchEmail = async (recipient, campaign, attestationUrl = null) => {
   try {
     const settings = await smtpSettingsDb.get();
-    
+
     if (!settings || !settings.enabled) {
-      return { success: false, error: 'SMTP settings are not enabled' };
+      return { success: false, error: 'Email settings are not enabled' };
     }
-    
+
     if (!settings.from_email) {
       return { success: false, error: 'From email address is not configured' };
     }
-    
-    const transport = await createTransport();
+
     const branding = await brandingSettingsDb.get();
     const siteName = branding?.site_name || 'ACS';
-    
+
     // Construct attestation URL using fallback priority: provided URL -> app_url
     if (!attestationUrl) {
       const baseUrl = await getAppUrl();
       attestationUrl = `${baseUrl}/my-attestations`;
     }
-    
+
     // Try to get template from database
     const template = await emailTemplateDb.getByKey('attestation_launch');
-    
+
     // Prepare variables for substitution
     const variables = {
       siteName,
@@ -432,10 +501,10 @@ export const sendAttestationLaunchEmail = async (recipient, campaign, attestatio
       campaignDescription: campaign.description || '',
       attestationUrl
     };
-    
+
     // Use template if available, otherwise fall back to hardcoded default
     let subject, emailContent, textContent;
-    
+
     if (template) {
       subject = substituteVariables(template.subject, variables);
       emailContent = substituteVariables(template.html_body, variables);
@@ -466,16 +535,15 @@ Please review and attest to the status of all your registered assets. You can al
 
 Complete your attestation here: ${attestationUrl}`;
     }
-    
-    const mailOptions = {
-      from: `"${settings.from_name || `${siteName} Notifications`}" <${settings.from_email}>`,
+
+    await dispatchEmail({
+      settings,
+      branding,
       to: recipient,
       subject,
-      text: textContent,
-      html: buildEmailHtml(branding, siteName, emailContent)
-    };
-    
-    await transport.sendMail(mailOptions);
+      htmlContent: emailContent,
+      textContent
+    });
     return { success: true };
   } catch (error) {
     logger.error({ err: error }, 'Failed to send attestation launch email');
@@ -493,38 +561,37 @@ Complete your attestation here: ${attestationUrl}`;
 export const sendAttestationReminderEmail = async (recipient, campaign, attestationUrl = null) => {
   try {
     const settings = await smtpSettingsDb.get();
-    
+
     if (!settings || !settings.enabled) {
-      return { success: false, error: 'SMTP settings are not enabled' };
+      return { success: false, error: 'Email settings are not enabled' };
     }
-    
+
     if (!settings.from_email) {
       return { success: false, error: 'From email address is not configured' };
     }
-    
-    const transport = await createTransport();
+
     const branding = await brandingSettingsDb.get();
     const siteName = branding?.site_name || 'ACS';
-    
+
     // Construct attestation URL using fallback priority: provided URL -> app_url
     if (!attestationUrl) {
       const baseUrl = await getAppUrl();
       attestationUrl = `${baseUrl}/my-attestations`;
     }
-    
+
     // Try to get template from database
     const template = await emailTemplateDb.getByKey('attestation_reminder');
-    
+
     // Prepare variables for substitution
     const variables = {
       siteName,
       campaignName: campaign.name,
       attestationUrl
     };
-    
+
     // Use template if available, otherwise fall back to hardcoded default
     let subject, emailContent, textContent;
-    
+
     if (template) {
       subject = substituteVariables(template.subject, variables);
       emailContent = substituteVariables(template.html_body, variables);
@@ -550,16 +617,15 @@ Please complete your attestation as soon as possible to help us maintain accurat
 
 Complete your attestation here: ${attestationUrl}`;
     }
-    
-    const mailOptions = {
-      from: `"${settings.from_name || `${siteName} Notifications`}" <${settings.from_email}>`,
+
+    await dispatchEmail({
+      settings,
+      branding,
       to: recipient,
       subject,
-      text: textContent,
-      html: buildEmailHtml(branding, siteName, emailContent)
-    };
-    
-    await transport.sendMail(mailOptions);
+      htmlContent: emailContent,
+      textContent
+    });
     return { success: true };
   } catch (error) {
     logger.error({ err: error }, 'Failed to send attestation reminder email');
@@ -578,22 +644,22 @@ Complete your attestation here: ${attestationUrl}`;
 export const sendAttestationEscalationEmail = async (managerEmail, employeeName, employeeEmail, campaign, customMessage = null) => {
   try {
     const settings = await smtpSettingsDb.get();
-    
+
     if (!settings || !settings.enabled) {
       return { success: false, error: 'SMTP settings are not enabled' };
     }
-    
+
     if (!settings.from_email) {
       return { success: false, error: 'From email address is not configured' };
     }
-    
+
     const transport = await createTransport();
     const branding = await brandingSettingsDb.get();
     const siteName = branding?.site_name || 'ACS';
-    
+
     // Try to get template from database
     const template = await emailTemplateDb.getByKey('attestation_escalation');
-    
+
     // Prepare variables for substitution
     const variables = {
       siteName,
@@ -603,10 +669,10 @@ export const sendAttestationEscalationEmail = async (managerEmail, employeeName,
       escalationDays: campaign.escalation_days || 10,
       customMessage: customMessage || ''
     };
-    
+
     // Use template if available, otherwise fall back to hardcoded default
     let subject, emailContent, textContent;
-    
+
     if (template) {
       subject = substituteVariables(template.subject, variables);
       emailContent = substituteVariables(template.html_body, variables);
@@ -614,17 +680,17 @@ export const sendAttestationEscalationEmail = async (managerEmail, employeeName,
     } else {
       // Fallback to hardcoded template
       subject = `Team Attestation Outstanding: ${employeeName} - ${campaign.name}`;
-      
+
       // Add custom message section if provided - escape HTML to prevent XSS
-      const customMessageHtml = customMessage 
+      const customMessageHtml = customMessage
         ? `<div style="padding: 12px; background-color: #fff3cd; border-left: 4px solid #ffc107; margin: 16px 0;"><strong>Additional Note:</strong> ${escapeHtml(customMessage)}</div>`
         : '';
-      
+
       // Plain text doesn't need HTML escaping but should still be sanitized
       const customMessageText = customMessage
         ? `\n\nAdditional Note: ${customMessage}\n`
         : '';
-      
+
       emailContent = `
         <h2 style="color: #333;">Action Required: Team Member Attestation Outstanding</h2>
         <p>This is a notification that one of your team members has not yet completed their asset attestation.</p>
@@ -648,7 +714,7 @@ Please follow up with this team member to ensure they complete their asset attes
 
 This is an automated escalation notification sent because the attestation has been outstanding for ${campaign.escalation_days} days.`;
     }
-    
+
     const mailOptions = {
       from: `"${settings.from_name || `${siteName} Notifications`}" <${settings.from_email}>`,
       to: managerEmail,
@@ -656,7 +722,7 @@ This is an automated escalation notification sent because the attestation has be
       text: textContent,
       html: buildEmailHtml(branding, siteName, emailContent)
     };
-    
+
     await transport.sendMail(mailOptions);
     return { success: true };
   } catch (error) {
@@ -676,22 +742,22 @@ This is an automated escalation notification sent because the attestation has be
 export const sendAttestationCompleteAdminNotification = async (adminEmails, employeeName, employeeEmail, campaign) => {
   try {
     const settings = await smtpSettingsDb.get();
-    
+
     if (!settings || !settings.enabled) {
       return { success: false, error: 'SMTP settings are not enabled' };
     }
-    
+
     if (!settings.from_email) {
       return { success: false, error: 'From email address is not configured' };
     }
-    
+
     const transport = await createTransport();
     const branding = await brandingSettingsDb.get();
     const siteName = branding?.site_name || 'ACS';
-    
+
     // Try to get template from database
     const template = await emailTemplateDb.getByKey('attestation_complete');
-    
+
     // Prepare variables for substitution
     const variables = {
       siteName,
@@ -700,10 +766,10 @@ export const sendAttestationCompleteAdminNotification = async (adminEmails, empl
       employeeEmail,
       completedAt: new Date().toLocaleString()
     };
-    
+
     // Use template if available, otherwise fall back to hardcoded default
     let subject, emailContent, textContent;
-    
+
     if (template) {
       subject = substituteVariables(template.subject, variables);
       emailContent = substituteVariables(template.html_body, variables);
@@ -726,7 +792,7 @@ Employee: ${employeeName} (${employeeEmail})
 Campaign: ${campaign.name}
 Completed: ${new Date().toLocaleString()}`;
     }
-    
+
     const mailOptions = {
       from: `"${settings.from_name || `${siteName} Notifications`}" <${settings.from_email}>`,
       to: adminEmails.join(', '),
@@ -734,7 +800,7 @@ Completed: ${new Date().toLocaleString()}`;
       text: textContent,
       html: buildEmailHtml(branding, siteName, emailContent)
     };
-    
+
     await transport.sendMail(mailOptions);
     return { success: true };
   } catch (error) {
@@ -758,38 +824,38 @@ Completed: ${new Date().toLocaleString()}`;
 export const sendAttestationRegistrationInvite = async (email, firstName, lastName, campaign, inviteToken, assetCount, ssoEnabled = false, ssoButtonText = 'Sign In with SSO') => {
   try {
     const settings = await smtpSettingsDb.get();
-    
+
     if (!settings || !settings.enabled) {
       return { success: false, error: 'SMTP settings are not enabled' };
     }
-    
+
     if (!settings.from_email) {
       return { success: false, error: 'From email address is not configured' };
     }
-    
+
     const transport = await createTransport();
     const branding = await brandingSettingsDb.get();
     const siteName = branding?.site_name || 'ACS';
-    
+
     // Construct registration URLs
     const baseUrl = await getAppUrl();
     const manualRegisterUrl = `${baseUrl}/register?token=${inviteToken}`;
     const ssoLoginUrl = `${baseUrl}/login`;
-    
+
     const fullName = `${firstName || ''} ${lastName || ''}`.trim() || 'there';
     const assetText = assetCount === 1 ? '1 asset' : `${assetCount} assets`;
-    
+
     // Pre-process conditional values
-    const endDateText = campaign.end_date 
+    const endDateText = campaign.end_date
       ? `runs until <strong>${new Date(campaign.end_date).toLocaleDateString()}</strong>`
       : 'is currently active';
     const endDateTextPlain = campaign.end_date
       ? `runs until ${new Date(campaign.end_date).toLocaleDateString()}`
       : 'is currently active';
-    
+
     // Try to get template from database
     const template = await emailTemplateDb.getByKey('attestation_registration_invite');
-    
+
     // Prepare variables for substitution
     const variables = {
       siteName,
@@ -808,10 +874,10 @@ export const sendAttestationRegistrationInvite = async (email, firstName, lastNa
       ssoButtonText,
       ssoEnabled: ssoEnabled ? 'true' : 'false'
     };
-    
+
     // Use template if available, otherwise fall back to hardcoded default
     let subject, emailContent, textContent;
-    
+
     if (template) {
       subject = substituteVariables(template.subject, variables);
       emailContent = substituteVariables(template.html_body, variables);
@@ -819,7 +885,7 @@ export const sendAttestationRegistrationInvite = async (email, firstName, lastNa
     } else {
       // Fallback to hardcoded template
       subject = `Action Required: Register for Asset Attestation - ${campaign.name}`;
-      
+
       const ssoSection = ssoEnabled ? `
         <div style="margin: 30px 0;">
           <h3 style="color: #333; font-size: 18px; margin-bottom: 15px;">Option 1: Sign in with SSO (Recommended)</h3>
@@ -847,7 +913,7 @@ export const sendAttestationRegistrationInvite = async (email, firstName, lastNa
           <a href="${manualRegisterUrl}" style="background-color: #3B82F6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600; font-size: 16px;">Create Your Account</a>
         </div>
       `;
-      
+
       emailContent = `
         <h2 style="color: #333;">Asset Attestation Required</h2>
         <p>Hello ${fullName},</p>
@@ -869,7 +935,7 @@ export const sendAttestationRegistrationInvite = async (email, firstName, lastNa
           This invitation is valid until the campaign ends${campaign.end_date ? ` on ${new Date(campaign.end_date).toLocaleDateString()}` : ''}. Please register and complete your attestation as soon as possible.
         </p>
       `;
-      
+
       textContent = `Asset Attestation Required
 
 Hello ${fullName},
@@ -891,7 +957,7 @@ Option 2: Register Manually
 
 This invitation is valid until the campaign ends${campaign.end_date ? ` on ${new Date(campaign.end_date).toLocaleDateString()}` : ''}. Please register and complete your attestation as soon as possible.`;
     }
-    
+
     const mailOptions = {
       from: `"${settings.from_name || `${siteName} Notifications`}" <${settings.from_email}>`,
       to: email,
@@ -899,7 +965,7 @@ This invitation is valid until the campaign ends${campaign.end_date ? ` on ${new
       text: textContent,
       html: buildEmailHtml(branding, siteName, emailContent)
     };
-    
+
     await transport.sendMail(mailOptions);
     return { success: true };
   } catch (error) {
@@ -923,38 +989,38 @@ This invitation is valid until the campaign ends${campaign.end_date ? ` on ${new
 export const sendAttestationUnregisteredReminder = async (email, firstName, lastName, campaign, inviteToken, assetCount, ssoEnabled = false, ssoButtonText = 'Sign In with SSO') => {
   try {
     const settings = await smtpSettingsDb.get();
-    
+
     if (!settings || !settings.enabled) {
       return { success: false, error: 'SMTP settings are not enabled' };
     }
-    
+
     if (!settings.from_email) {
       return { success: false, error: 'From email address is not configured' };
     }
-    
+
     const transport = await createTransport();
     const branding = await brandingSettingsDb.get();
     const siteName = branding?.site_name || 'ACS';
-    
+
     // Construct registration URLs
     const baseUrl = await getAppUrl();
     const manualRegisterUrl = `${baseUrl}/register?token=${inviteToken}`;
     const ssoLoginUrl = `${baseUrl}/login`;
-    
+
     const fullName = `${firstName || ''} ${lastName || ''}`.trim() || 'there';
     const assetText = assetCount === 1 ? '1 asset' : `${assetCount} assets`;
-    
+
     // Pre-process conditional values
-    const deadlineHtml = campaign.end_date 
+    const deadlineHtml = campaign.end_date
       ? `<p><strong>Deadline:</strong> ${new Date(campaign.end_date).toLocaleDateString()}</p>`
       : '';
     const deadlineText = campaign.end_date
       ? `Deadline: ${new Date(campaign.end_date).toLocaleDateString()}`
       : '';
-    
+
     // Try to get template from database
     const template = await emailTemplateDb.getByKey('attestation_unregistered_reminder');
-    
+
     // Prepare variables for substitution
     const variables = {
       siteName,
@@ -972,10 +1038,10 @@ export const sendAttestationUnregisteredReminder = async (email, firstName, last
       ssoButtonText,
       ssoEnabled: ssoEnabled ? 'true' : 'false'
     };
-    
+
     // Use template if available, otherwise fall back to hardcoded default
     let subject, emailContent, textContent;
-    
+
     if (template) {
       subject = substituteVariables(template.subject, variables);
       emailContent = substituteVariables(template.html_body, variables);
@@ -983,7 +1049,7 @@ export const sendAttestationUnregisteredReminder = async (email, firstName, last
     } else {
       // Fallback to hardcoded template
       subject = `Reminder: Register for Asset Attestation - ${campaign.name}`;
-      
+
       const ssoSection = ssoEnabled ? `
         <div style="margin: 30px 0; text-align: center;">
           <a href="${ssoLoginUrl}" style="background-color: #10B981; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600; font-size: 16px; margin: 0 10px;">🔐 ${ssoButtonText}</a>
@@ -994,7 +1060,7 @@ export const sendAttestationUnregisteredReminder = async (email, firstName, last
           <a href="${manualRegisterUrl}" style="background-color: #3B82F6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600; font-size: 16px;">Register Now</a>
         </div>
       `;
-      
+
       emailContent = `
         <h2 style="color: #333;">⏰ Attestation Reminder</h2>
         <p>Hello ${fullName},</p>
@@ -1012,7 +1078,7 @@ export const sendAttestationUnregisteredReminder = async (email, firstName, last
           Manual: <a href="${manualRegisterUrl}" style="color: #3B82F6;">${manualRegisterUrl}</a>
         </p>
       `;
-      
+
       textContent = `Attestation Reminder
 
 Hello ${fullName},
@@ -1027,7 +1093,7 @@ Please register for your ${siteName} account to complete your attestation:
 
 ${ssoEnabled ? `SSO Login: ${ssoLoginUrl}\n\n` : ''}Register Manually: ${manualRegisterUrl}`;
     }
-    
+
     const mailOptions = {
       from: `"${settings.from_name || `${siteName} Notifications`}" <${settings.from_email}>`,
       to: email,
@@ -1035,7 +1101,7 @@ ${ssoEnabled ? `SSO Login: ${ssoLoginUrl}\n\n` : ''}Register Manually: ${manualR
       text: textContent,
       html: buildEmailHtml(branding, siteName, emailContent)
     };
-    
+
     await transport.sendMail(mailOptions);
     return { success: true };
   } catch (error) {
@@ -1057,32 +1123,32 @@ ${ssoEnabled ? `SSO Login: ${ssoLoginUrl}\n\n` : ''}Register Manually: ${manualR
 export const sendAttestationUnregisteredEscalation = async (managerEmail, managerName, employeeEmail, employeeName, campaign, assetCount) => {
   try {
     const settings = await smtpSettingsDb.get();
-    
+
     if (!settings || !settings.enabled) {
       return { success: false, error: 'SMTP settings are not enabled' };
     }
-    
+
     if (!settings.from_email) {
       return { success: false, error: 'From email address is not configured' };
     }
-    
+
     const transport = await createTransport();
     const branding = await brandingSettingsDb.get();
     const siteName = branding?.site_name || 'ACS';
-    
+
     const assetText = assetCount === 1 ? '1 asset' : `${assetCount} assets`;
-    
+
     // Pre-process conditional values
-    const deadlineHtml = campaign.end_date 
+    const deadlineHtml = campaign.end_date
       ? `<p><strong>Campaign Deadline:</strong> ${new Date(campaign.end_date).toLocaleDateString()}</p>`
       : '';
     const deadlineText = campaign.end_date
       ? `Campaign Deadline: ${new Date(campaign.end_date).toLocaleDateString()}`
       : '';
-    
+
     // Try to get template from database
     const template = await emailTemplateDb.getByKey('attestation_unregistered_escalation');
-    
+
     // Prepare variables for substitution
     const variables = {
       siteName,
@@ -1096,10 +1162,10 @@ export const sendAttestationUnregisteredEscalation = async (managerEmail, manage
       deadlineHtml,
       deadlineText
     };
-    
+
     // Use template if available, otherwise fall back to hardcoded default
     let subject, emailContent, textContent;
-    
+
     if (template) {
       subject = substituteVariables(template.subject, variables);
       emailContent = substituteVariables(template.html_body, variables);
@@ -1107,7 +1173,7 @@ export const sendAttestationUnregisteredEscalation = async (managerEmail, manage
     } else {
       // Fallback to hardcoded template
       subject = `Manager Alert: Team Member Not Registered for Attestation - ${campaign.name}`;
-      
+
       emailContent = `
         <h2 style="color: #333;">👤 Team Member Registration Required</h2>
         <p>Hello ${managerName || 'Manager'},</p>
@@ -1124,7 +1190,7 @@ export const sendAttestationUnregisteredEscalation = async (managerEmail, manage
           This is an automated escalation notification to help ensure timely completion of asset attestations.
         </p>
       `;
-      
+
       textContent = `Team Member Registration Required
 
 Hello ${managerName || 'Manager'},
@@ -1139,7 +1205,7 @@ Please remind ${employeeName} to register and complete their asset attestation. 
 
 This is an automated escalation notification to help ensure timely completion of asset attestations.`;
     }
-    
+
     const mailOptions = {
       from: `"${settings.from_name || `${siteName} Notifications`}" <${settings.from_email}>`,
       to: managerEmail,
@@ -1147,7 +1213,7 @@ This is an automated escalation notification to help ensure timely completion of
       text: textContent,
       html: buildEmailHtml(branding, siteName, emailContent)
     };
-    
+
     await transport.sendMail(mailOptions);
     return { success: true };
   } catch (error) {

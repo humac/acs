@@ -389,7 +389,7 @@ export default function createAdminRouter(deps) {
     }
 
     if (databaseEngine !== 'postgres') {
-      await unlink(req.file.path).catch(() => {});
+      await unlink(req.file.path).catch(() => { });
       return res.status(400).json({ error: 'Switch to PostgreSQL before importing SQLite data' });
     }
 
@@ -403,7 +403,7 @@ export default function createAdminRouter(deps) {
       logger.error({ err: error, userId: req.user?.id }, 'SQLite import failed');
       res.status(500).json({ error: error.message || 'Failed to import SQLite data' });
     } finally {
-      await unlink(req.file.path).catch(() => {});
+      await unlink(req.file.path).catch(() => { });
     }
   });
 
@@ -474,9 +474,9 @@ export default function createAdminRouter(deps) {
   router.put('/system-settings', authenticate, authorize('admin'), async (req, res) => {
     try {
       const { proxy, rateLimiting } = req.body;
-      
+
       const settings = {};
-      
+
       // Process proxy settings
       if (proxy) {
         if (proxy.enabled !== undefined) {
@@ -489,7 +489,7 @@ export default function createAdminRouter(deps) {
           settings.proxy_trust_level = proxy.trustLevel;
         }
       }
-      
+
       // Process rate limiting settings
       if (rateLimiting) {
         if (rateLimiting.enabled !== undefined) {
@@ -502,10 +502,10 @@ export default function createAdminRouter(deps) {
           settings.rate_limit_max_requests = rateLimiting.maxRequests;
         }
       }
-      
+
       // Update settings in database
       await systemSettingsDb.update(settings, req.user.email);
-      
+
       // Log the change
       await auditDb.log(
         'update',
@@ -515,7 +515,7 @@ export default function createAdminRouter(deps) {
         'System settings updated',
         req.user.email
       );
-      
+
       // Return updated configuration
       const config = await getSystemConfig();
       const dbSettings = await systemSettingsDb.get();
@@ -716,6 +716,7 @@ export default function createAdminRouter(deps) {
     try {
       const {
         enabled,
+        email_provider,
         host,
         port,
         use_tls,
@@ -723,6 +724,8 @@ export default function createAdminRouter(deps) {
         password,
         clear_password,
         auth_method,
+        brevo_api_key,
+        clear_brevo_api_key,
         from_name,
         from_email,
         default_recipient
@@ -731,6 +734,7 @@ export default function createAdminRouter(deps) {
       // Build update object
       const updateData = {
         enabled,
+        email_provider,
         host,
         port,
         use_tls,
@@ -741,7 +745,7 @@ export default function createAdminRouter(deps) {
         default_recipient
       };
 
-      // Handle password encryption
+      // Handle SMTP password encryption
       // Only encrypt and update if password is provided and not the placeholder
       if (password && password !== '[REDACTED]' && password !== '') {
         try {
@@ -758,23 +762,40 @@ export default function createAdminRouter(deps) {
         updateData.clear_password = true;
       }
 
+      // Handle Brevo API key encryption
+      if (brevo_api_key && brevo_api_key !== '[REDACTED]' && brevo_api_key !== '') {
+        try {
+          const encryptedApiKey = encryptValue(brevo_api_key);
+          updateData.brevo_api_key_encrypted = encryptedApiKey;
+        } catch (error) {
+          logger.error({ err: error, userId: req.user?.id }, 'Brevo API key encryption error');
+          return res.status(500).json({
+            error: 'Failed to encrypt Brevo API key. Please check KARS_MASTER_KEY configuration.'
+          });
+        }
+      } else if (clear_brevo_api_key === true) {
+        // Explicitly clear the API key if requested
+        updateData.clear_brevo_api_key = true;
+      }
+
       await smtpSettingsDb.update(updateData);
 
       // Log the action
+      const providerText = email_provider === 'brevo' ? 'Brevo API' : 'SMTP';
       await auditDb.log(
         'update',
         'smtp_settings',
         1,
-        'SMTP Notification Settings',
-        `Updated SMTP settings. Enabled: ${enabled ? 'Yes' : 'No'}`,
+        'Email Notification Settings',
+        `Updated email settings. Provider: ${providerText}, Enabled: ${enabled ? 'Yes' : 'No'}`,
         req.user.email
       );
 
-      // Return updated settings (without password)
+      // Return updated settings (without sensitive data)
       const updatedSettings = await smtpSettingsDb.get();
       res.json(updatedSettings);
     } catch (error) {
-      logger.error({ err: error, userId: req.user?.id }, 'Update SMTP settings error');
+      logger.error({ err: error, userId: req.user?.id }, 'Update email settings error');
       res.status(500).json({ error: 'Failed to update notification settings' });
     }
   });

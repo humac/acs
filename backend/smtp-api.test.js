@@ -35,12 +35,14 @@ describe('SMTP API Endpoints', () => {
     // Reset SMTP settings to default state
     await smtpSettingsDb.update({
       enabled: false,
+      email_provider: 'smtp',
       host: null,
       port: 587,
       use_tls: true,
       username: null,
       clear_password: true,
       auth_method: 'plain',
+      clear_brevo_api_key: true,
       from_name: 'ACS Notifications',
       from_email: null,
       default_recipient: null
@@ -48,13 +50,16 @@ describe('SMTP API Endpoints', () => {
   });
 
   describe('GET /api/admin/notification-settings', () => {
-    it('should return SMTP settings for admin', async () => {
+    it('should return email settings for admin', async () => {
       const settings = await smtpSettingsDb.get();
-      
+
       expect(settings).toBeDefined();
       expect(typeof settings.enabled).toBe('number');
       expect(typeof settings.has_password).toBe('boolean');
+      expect(typeof settings.has_brevo_api_key).toBe('boolean');
+      expect(settings.email_provider).toBeDefined();
       expect(settings.password_encrypted).toBeUndefined(); // Should not be returned
+      expect(settings.brevo_api_key_encrypted).toBeUndefined(); // Should not be returned
     });
 
     it('should not expose encrypted password', async () => {
@@ -95,6 +100,24 @@ describe('SMTP API Endpoints', () => {
       const settings = await smtpSettingsDb.get();
       expect(settings.port).toBe(465);
       expect(settings.host).toBe('smtp.example.com'); // Should remain unchanged
+    });
+
+    it('should update email provider to brevo', async () => {
+      await smtpSettingsDb.update({
+        email_provider: 'brevo'
+      });
+
+      const settings = await smtpSettingsDb.get();
+      expect(settings.email_provider).toBe('brevo');
+    });
+
+    it('should reset email provider to smtp', async () => {
+      await smtpSettingsDb.update({
+        email_provider: 'smtp'
+      });
+
+      const settings = await smtpSettingsDb.get();
+      expect(settings.email_provider).toBe('smtp');
     });
   });
 
@@ -146,6 +169,33 @@ describe('SMTP API Endpoints', () => {
       const settings = await smtpSettingsDb.get();
       expect(settings.username).toBeNull();
       expect(settings.default_recipient).toBeNull();
+    });
+  });
+
+  describe('Brevo API key encryption', () => {
+    it('should store encrypted Brevo API key separately', async () => {
+      await smtpSettingsDb.update({
+        brevo_api_key_encrypted: 'brevo:encrypted:key'
+      });
+
+      const apiKey = await smtpSettingsDb.getBrevoApiKey();
+      expect(apiKey).toBe('brevo:encrypted:key');
+
+      const settings = await smtpSettingsDb.get();
+      expect(settings.has_brevo_api_key).toBe(true);
+      expect(settings.brevo_api_key_encrypted).toBeUndefined();
+    });
+
+    it('should clear Brevo API key when clear_brevo_api_key is true', async () => {
+      await smtpSettingsDb.update({
+        clear_brevo_api_key: true
+      });
+
+      const apiKey = await smtpSettingsDb.getBrevoApiKey();
+      expect(apiKey).toBeNull();
+
+      const settings = await smtpSettingsDb.get();
+      expect(settings.has_brevo_api_key).toBe(false);
     });
   });
 });

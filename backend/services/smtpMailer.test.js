@@ -3,7 +3,8 @@ import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals
 // Mock modules before importing the module under test
 const mockSmtpSettingsDb = {
   get: jest.fn(),
-  getPassword: jest.fn()
+  getPassword: jest.fn(),
+  getBrevoApiKey: jest.fn()
 };
 
 const mockBrandingSettingsDb = {
@@ -23,6 +24,11 @@ const mockCreateTransport = jest.fn(() => ({
   verify: mockVerify
 }));
 
+// Mock brevoMailer
+const mockBrevoSendEmail = jest.fn();
+const mockBrevoSendTestEmail = jest.fn();
+const mockBrevoVerifyConnection = jest.fn();
+
 jest.unstable_mockModule('../database.js', () => ({
   smtpSettingsDb: mockSmtpSettingsDb,
   brandingSettingsDb: mockBrandingSettingsDb,
@@ -39,6 +45,12 @@ jest.unstable_mockModule('nodemailer', () => ({
   }
 }));
 
+jest.unstable_mockModule('./brevoMailer.js', () => ({
+  sendEmail: mockBrevoSendEmail,
+  sendTestEmail: mockBrevoSendTestEmail,
+  verifyConnection: mockBrevoVerifyConnection
+}));
+
 // Now import the module under test
 const { sendTestEmail, verifyConnection, getAppUrl, sendEmailVerificationEmail, sendEmailChangeVerificationEmail } = await import('./smtpMailer.js');
 
@@ -46,30 +58,34 @@ describe('SMTP Mailer Service', () => {
   beforeEach(() => {
     // Reset all mocks to ensure test isolation
     jest.clearAllMocks();
-    
+
     // Reset mock implementations to defaults to prevent state bleeding between tests
     mockSmtpSettingsDb.get.mockReset();
     mockSmtpSettingsDb.getPassword.mockReset();
+    mockSmtpSettingsDb.getBrevoApiKey.mockReset();
     mockBrandingSettingsDb.get.mockReset();
     mockEmailTemplateDb.getByKey.mockReset();
     mockDecryptValue.mockReset();
     mockSendMail.mockReset();
     mockVerify.mockReset();
     mockCreateTransport.mockReset();
-    
+    mockBrevoSendEmail.mockReset();
+    mockBrevoSendTestEmail.mockReset();
+    mockBrevoVerifyConnection.mockReset();
+
     // Re-establish default mock behavior for createTransport
     mockCreateTransport.mockReturnValue({
       sendMail: mockSendMail,
       verify: mockVerify
     });
-    
+
     // Set default branding mock for all tests
     mockBrandingSettingsDb.get.mockResolvedValue({
       site_name: 'ACS',
       logo_data: null,
       include_logo_in_emails: 0
     });
-    
+
     // Set default emailTemplateDb mock to return null (use fallback templates)
     mockEmailTemplateDb.getByKey.mockResolvedValue(null);
   });
@@ -357,7 +373,7 @@ describe('SMTP Mailer Service', () => {
 
     it('should fallback to default localhost without trailing slash', async () => {
       mockBrandingSettingsDb.get.mockResolvedValue(null);
-      
+
       // Clear any environment variables that might interfere
       const originalFrontendUrl = process.env.FRONTEND_URL;
       const originalBaseUrl = process.env.BASE_URL;
@@ -367,7 +383,7 @@ describe('SMTP Mailer Service', () => {
       const url = await getAppUrl();
 
       expect(url).toBe('http://localhost:3000');
-      
+
       // Restore environment variables
       if (originalFrontendUrl) process.env.FRONTEND_URL = originalFrontendUrl;
       if (originalBaseUrl) process.env.BASE_URL = originalBaseUrl;
@@ -519,6 +535,76 @@ describe('SMTP Mailer Service', () => {
       expect(result.success).toBe(false);
       expect(result.error).toContain('From email');
       expect(mockSendMail).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Brevo Provider Tests', () => {
+    it('should route to Brevo when email_provider is brevo', async () => {
+      const mockSettings = {
+        enabled: 1,
+        email_provider: 'brevo',
+        from_name: 'ACS',
+        from_email: 'noreply@example.com',
+        default_recipient: 'admin@example.com'
+      };
+
+      mockSmtpSettingsDb.get.mockResolvedValue(mockSettings);
+      mockBrevoSendTestEmail.mockResolvedValue({
+        success: true,
+        message: 'Test email sent via Brevo'
+      });
+
+      const result = await sendTestEmail('test@example.com');
+
+      expect(result.success).toBe(true);
+      expect(mockBrevoSendTestEmail).toHaveBeenCalledWith('test@example.com');
+      expect(mockSendMail).not.toHaveBeenCalled();
+    });
+
+    it('should fall back to SMTP when email_provider is not brevo', async () => {
+      const mockSettings = {
+        enabled: 1,
+        email_provider: 'smtp',
+        host: 'smtp.example.com',
+        port: 587,
+        use_tls: 1,
+        from_name: 'ACS',
+        from_email: 'noreply@example.com',
+        default_recipient: 'admin@example.com'
+      };
+
+      mockSmtpSettingsDb.get.mockResolvedValue(mockSettings);
+      mockSmtpSettingsDb.getPassword.mockResolvedValue(null);
+      mockSendMail.mockResolvedValue({
+        messageId: '<test@example.com>',
+        response: '250 OK'
+      });
+
+      const result = await sendTestEmail('test@example.com');
+
+      expect(result.success).toBe(true);
+      expect(mockSendMail).toHaveBeenCalled();
+      expect(mockBrevoSendTestEmail).not.toHaveBeenCalled();
+    });
+
+    it('should handle Brevo test email failure', async () => {
+      const mockSettings = {
+        enabled: 1,
+        email_provider: 'brevo',
+        from_name: 'ACS',
+        from_email: 'noreply@example.com'
+      };
+
+      mockSmtpSettingsDb.get.mockResolvedValue(mockSettings);
+      mockBrevoSendTestEmail.mockResolvedValue({
+        success: false,
+        error: 'Invalid API key'
+      });
+
+      const result = await sendTestEmail('test@example.com');
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Invalid API key');
     });
   });
 });
