@@ -323,8 +323,8 @@ const Profile = () => {
   const getRoleClass = (role) => ({
     admin: 'glow-destructive',
     manager: 'glow-success',
-    coordinator: 'glow-primary',
-    employee: 'glow-muted'
+    coordinator: 'glow-info',
+    employee: 'glow-purple'
   }[role] || 'glow-muted');
 
   const handleImageChange = (event) => {
@@ -544,7 +544,7 @@ const Profile = () => {
                       ? `${user.first_name} ${user.last_name}`
                       : user?.email}
                   </h3>
-                  <Badge className={`${getRoleClass(user?.role)} mt-1`}>
+                  <Badge variant={getRoleClass(user?.role)} className="mt-1">
                     {user?.role?.toUpperCase()}
                   </Badge>
                 </div>

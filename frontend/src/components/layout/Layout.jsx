@@ -143,7 +143,7 @@ const Layout = ({ theme, setTheme }) => {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-bold truncate leading-snug mb-1.5 pb-0.5">{user?.first_name} {user?.last_name}</p>
-                <Badge variant={user?.role === 'admin' ? 'glow-destructive' : user?.role === 'manager' ? 'glow-success' : user?.role === 'coordinator' ? 'glow-info' : 'glow-purple'} className="caption-label h-5 px-2 bg-muted/40">
+                <Badge variant={user?.role === 'admin' ? 'glow-destructive' : user?.role === 'manager' ? 'glow-success' : user?.role === 'coordinator' ? 'glow-info' : 'glow-purple'} className="caption-label h-5 px-2">
                   {user?.role}
                 </Badge>
               </div>
