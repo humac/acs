@@ -150,7 +150,7 @@ const UserManagement = () => {
     const styles = {
       admin: { variant: 'glow-destructive', className: '' },
       manager: { variant: 'glow-success', className: '' },
-      employee: { variant: 'secondary', className: '' },
+      employee: { variant: 'glow-purple', className: '' },
       coordinator: { variant: 'glow-info', className: '' }
     };
     return styles[role] || { variant: 'secondary', className: '' };
@@ -265,8 +265,8 @@ const UserManagement = () => {
                         <div>
                           <span className="font-medium text-foreground">Manager</span>
                           <div className="text-xs">
-                            {u.manager_first_name && u.manager_last_name 
-                              ? `${u.manager_first_name} ${u.manager_last_name}` 
+                            {u.manager_first_name && u.manager_last_name
+                              ? `${u.manager_first_name} ${u.manager_last_name}`
                               : '—'}
                           </div>
                           <div className="text-xs">{u.manager_email || '—'}</div>
@@ -395,7 +395,7 @@ const UserManagement = () => {
               <div><Badge variant="glow-destructive" className="uppercase text-xs">Admin</Badge><p className="text-sm text-muted-foreground mt-1">Full system access, can manage all users and settings.</p></div>
               <div><Badge variant="glow-success" className="uppercase text-xs">Manager</Badge><p className="text-sm text-muted-foreground mt-1">View own + team assets, access team audit reports.</p></div>
               <div><Badge variant="glow-info" className="uppercase text-xs">Coordinator</Badge><p className="text-sm text-muted-foreground mt-1">Manage attestation campaigns and compliance reporting.</p></div>
-              <div><Badge variant="secondary" className="uppercase text-xs">Employee</Badge><p className="text-sm text-muted-foreground mt-1">Can only view and manage own asset registrations.</p></div>
+              <div><Badge variant="glow-purple" className="uppercase text-xs">Employee</Badge><p className="text-sm text-muted-foreground mt-1">Can only view and manage own asset registrations.</p></div>
             </div>
           </div>
         </CardContent>

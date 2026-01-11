@@ -1,13 +1,13 @@
 import React from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { 
-  Laptop, 
+import {
+  Laptop,
   Home,
-  Users, 
-  Building2, 
-  FileBarChart, 
-  Settings, 
+  Users,
+  Building2,
+  FileBarChart,
+  Settings,
   LogOut,
   User,
   Menu,
@@ -44,7 +44,7 @@ const Layout = ({ theme, setTheme }) => {
     { name: 'Admin Settings', path: '/admin', icon: Settings, roles: ['admin'] },
   ];
 
-  const filteredNav = navigation.filter(item => 
+  const filteredNav = navigation.filter(item =>
     !item.roles || item.roles.includes(user?.role)
   );
 
@@ -61,7 +61,7 @@ const Layout = ({ theme, setTheme }) => {
       </div>
 
       {/* 2. Desktop Floating Sidebar */}
-      <aside 
+      <aside
         className={cn(
           "fixed inset-y-4 left-4 z-50 w-72 hidden lg:flex flex-col",
           "glass-panel rounded-2xl shadow-2xl animate-fade-in"
@@ -92,8 +92,8 @@ const Layout = ({ theme, setTheme }) => {
                 onClick={() => { navigate(item.path); setIsMobileMenuOpen(false); }}
                 className={cn(
                   "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group relative",
-                  isActive 
-                    ? "bg-primary/10 text-primary shadow-sm border border-primary/20" 
+                  isActive
+                    ? "bg-primary/10 text-primary shadow-sm border border-primary/20"
                     : "text-muted-foreground hover:bg-white/5 hover:text-foreground border border-transparent"
                 )}
               >
@@ -103,9 +103,9 @@ const Layout = ({ theme, setTheme }) => {
                 )} />
                 <span className="flex-1 text-left">{item.name}</span>
                 {item.name === 'Attestation' && pendingCount > 0 && (
-                   <Badge variant="destructive" className="h-5 px-1.5 min-w-[20px] rounded-full text-[10px]">
-                      {pendingCount}
-                   </Badge>
+                  <Badge variant="destructive" className="h-5 px-1.5 min-w-[20px] rounded-full text-[10px]">
+                    {pendingCount}
+                  </Badge>
                 )}
                 {isActive && (
                   <ChevronRight size={16} className="text-primary animate-pulse" />
@@ -117,9 +117,9 @@ const Layout = ({ theme, setTheme }) => {
 
         {/* Footer Actions & Profile */}
         <div className="p-4 mt-auto space-y-3 border-t border-white/5">
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start gap-3 rounded-xl h-12 hover:bg-white/5 transition-all duration-200" 
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-3 rounded-xl h-12 hover:bg-white/5 transition-all duration-200"
             onClick={toggleTheme}
           >
             <div className="icon-box icon-box-sm bg-muted/30 border-muted/20">
@@ -143,26 +143,26 @@ const Layout = ({ theme, setTheme }) => {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-bold truncate leading-snug mb-1.5 pb-0.5">{user?.first_name} {user?.last_name}</p>
-                <Badge variant="secondary" className="caption-label h-5 px-2 bg-muted/40">
+                <Badge variant={user?.role === 'admin' ? 'glow-destructive' : user?.role === 'manager' ? 'glow-success' : user?.role === 'coordinator' ? 'glow-info' : 'glow-purple'} className="caption-label h-5 px-2 bg-muted/40">
                   {user?.role}
                 </Badge>
               </div>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-2">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-9 text-xs font-bold hover:bg-primary/10 hover:text-primary transition-all duration-200" 
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 text-xs font-bold hover:bg-primary/10 hover:text-primary transition-all duration-200"
                 onClick={() => navigate('/profile')}
               >
                 <User size={14} className="mr-1" />
                 Profile
               </Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-9 text-xs font-bold text-destructive hover:bg-destructive/15 hover:text-destructive transition-all duration-200" 
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 text-xs font-bold text-destructive hover:bg-destructive/15 hover:text-destructive transition-all duration-200"
                 onClick={logout}
               >
                 <LogOut size={14} className="mr-1" />
@@ -177,11 +177,11 @@ const Layout = ({ theme, setTheme }) => {
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           {/* Backdrop */}
-          <div 
-            className="absolute inset-0 bg-background/80 backdrop-blur-sm" 
+          <div
+            className="absolute inset-0 bg-background/80 backdrop-blur-sm"
             onClick={() => setIsMobileMenuOpen(false)}
           />
-          
+
           {/* Menu Panel */}
           <aside className="glass-overlay absolute inset-y-4 left-4 right-4 rounded-2xl flex flex-col max-w-sm mx-auto animate-scale-in">
             {/* Header */}
@@ -198,10 +198,10 @@ const Layout = ({ theme, setTheme }) => {
                   </>
                 )}
               </div>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="rounded-xl h-10 w-10" 
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-xl h-10 w-10"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 <X size={20} />
@@ -218,8 +218,8 @@ const Layout = ({ theme, setTheme }) => {
                     onClick={() => { navigate(item.path); setIsMobileMenuOpen(false); }}
                     className={cn(
                       "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group",
-                      isActive 
-                        ? "bg-primary/10 text-primary shadow-sm border border-primary/20" 
+                      isActive
+                        ? "bg-primary/10 text-primary shadow-sm border border-primary/20"
                         : "text-muted-foreground hover:bg-white/5 hover:text-foreground border border-transparent"
                     )}
                   >
@@ -228,9 +228,9 @@ const Layout = ({ theme, setTheme }) => {
                     )} />
                     <span className="flex-1 text-left">{item.name}</span>
                     {item.name === 'Attestation' && pendingCount > 0 && (
-                       <Badge variant="destructive" className="h-5 px-1.5 min-w-[20px] rounded-full text-[10px]">
-                          {pendingCount}
-                       </Badge>
+                      <Badge variant="destructive" className="h-5 px-1.5 min-w-[20px] rounded-full text-[10px]">
+                        {pendingCount}
+                      </Badge>
                     )}
                     {isActive && (
                       <ChevronRight size={16} className="text-primary" />
@@ -242,9 +242,9 @@ const Layout = ({ theme, setTheme }) => {
 
             {/* Footer */}
             <div className="p-4 border-t border-white/10 space-y-3">
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start gap-3 rounded-xl h-12" 
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-3 rounded-xl h-12"
                 onClick={toggleTheme}
               >
                 <div className="icon-box icon-box-sm bg-muted/30 border-muted/20">
@@ -263,25 +263,25 @@ const Layout = ({ theme, setTheme }) => {
                   </Avatar>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold truncate leading-snug pb-0.5">{user?.first_name} {user?.last_name}</p>
-                    <Badge variant="secondary" className="caption-label h-4 px-1.5 mt-1">
+                    <Badge variant={user?.role === 'admin' ? 'glow-destructive' : user?.role === 'manager' ? 'glow-success' : user?.role === 'coordinator' ? 'glow-info' : 'glow-purple'} className="caption-label h-4 px-1.5 mt-1">
                       {user?.role}
                     </Badge>
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-9 text-xs font-bold" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 text-xs font-bold"
                     onClick={() => { navigate('/profile'); setIsMobileMenuOpen(false); }}
                   >
                     Profile
                   </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-9 text-xs font-bold text-destructive hover:bg-destructive/15" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 text-xs font-bold text-destructive hover:bg-destructive/15"
                     onClick={logout}
                   >
                     Log Out
@@ -298,21 +298,21 @@ const Layout = ({ theme, setTheme }) => {
         {/* Mobile Header */}
         <div className="lg:hidden flex items-center justify-between mb-6 glass-panel p-4 rounded-2xl border-glass animate-fade-in">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-             {brandingLogo ? (
-               <img src={brandingLogo} className="h-6 w-auto" alt="Logo" />
-             ) : (
-               <div className="flex items-center gap-2">
-                 <div className="icon-box icon-box-sm bg-primary/10 border-primary/20">
-                   <Laptop className="text-primary h-4 w-4" />
-                 </div>
-                 <span className="font-bold tracking-tight text-gradient">ACS</span>
-               </div>
-             )}
+            {brandingLogo ? (
+              <img src={brandingLogo} className="h-6 w-auto" alt="Logo" />
+            ) : (
+              <div className="flex items-center gap-2">
+                <div className="icon-box icon-box-sm bg-primary/10 border-primary/20">
+                  <Laptop className="text-primary h-4 w-4" />
+                </div>
+                <span className="font-bold tracking-tight text-gradient">ACS</span>
+              </div>
+            )}
           </div>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="rounded-xl h-10 w-10 btn-interactive" 
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-xl h-10 w-10 btn-interactive"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -326,7 +326,7 @@ const Layout = ({ theme, setTheme }) => {
 
         {/* Global Footer */}
         <footer className="mt-auto py-8 text-center caption-label opacity-40">
-           {footerLabel}
+          {footerLabel}
         </footer>
       </main>
     </div>

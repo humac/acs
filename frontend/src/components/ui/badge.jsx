@@ -23,6 +23,7 @@ const badgeVariants = cva(
         "glow-info": "glow-info",
         "glow-primary": "glow-primary",
         "glow-muted": "glow-muted",
+        "glow-purple": "glow-purple",
       },
     },
     defaultVariants: {

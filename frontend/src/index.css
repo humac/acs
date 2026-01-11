@@ -34,6 +34,7 @@
     --success: 142 70% 45%;
     --warning: 38 92% 50%;
     --info: 199 89% 48%;
+    --purple: 270 95% 75%;
 
     /* Borders & Inputs */
     --border: 214.3 31.8% 91.4%;
@@ -156,6 +157,10 @@
   
   .glow-muted { 
     @apply bg-muted/30 text-muted-foreground border border-muted/20; 
+  }
+
+  .glow-purple {
+    @apply bg-[hsl(var(--purple))]/15 text-[hsl(var(--purple))] border border-[hsl(var(--purple))]/20 shadow-[0_0_15px_-3px] shadow-[hsl(var(--purple))]/30;
   }
 
   /* Micro-Interactions */
