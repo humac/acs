@@ -20,6 +20,7 @@ export default [
         }
       },
       globals: {
+        // Browser globals
         console: 'readonly',
         process: 'readonly',
         window: 'readonly',
@@ -29,6 +30,7 @@ export default [
         sessionStorage: 'readonly',
         fetch: 'readonly',
         URL: 'readonly',
+        URLSearchParams: 'readonly',
         FormData: 'readonly',
         alert: 'readonly',
         Image: 'readonly',
@@ -49,7 +51,20 @@ export default [
         location: 'readonly',
         history: 'readonly',
         HTMLCanvasElement: 'readonly',
-        CanvasRenderingContext2D: 'readonly'
+        CanvasRenderingContext2D: 'readonly',
+        // Timer functions
+        setTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearTimeout: 'readonly',
+        clearInterval: 'readonly',
+        // Encoding functions
+        atob: 'readonly',
+        btoa: 'readonly',
+        // Node.js/test globals
+        global: 'readonly',
+        require: 'readonly',
+        __dirname: 'readonly',
+        module: 'readonly'
       }
     },
     settings: {
@@ -58,7 +73,10 @@ export default [
       }
     },
     rules: {
-      'no-unused-vars': ['warn', { 
+      // Mark JSX variables as used (fixes false positives for component imports)
+      'react/jsx-uses-react': 'error',
+      'react/jsx-uses-vars': 'error',
+      'no-unused-vars': ['warn', {
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_',
         caughtErrors: 'none'
