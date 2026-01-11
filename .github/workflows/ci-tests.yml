@@ -59,8 +59,7 @@ jobs:
 
       - name: Security audit
         working-directory: ./${{ matrix.project }}
-        run: npm audit --audit-level=high
-        continue-on-error: true
+        run: npm audit --audit-level=high || echo "::warning::Security vulnerabilities found - run npm audit for details"
 
       - name: Clean test environment (backend)
         if: matrix.project == 'backend'
@@ -81,12 +80,11 @@ jobs:
 
       - name: Generate coverage report
         working-directory: ./${{ matrix.project }}
-        run: npm run test:coverage --if-present
+        run: npm run test:coverage --if-present || echo "::warning::Coverage report generation failed"
         env:
           NODE_ENV: test
           CI: true
           JWT_SECRET: test-jwt-secret-for-ci-only
-        continue-on-error: true
 
       - name: Build verification
         if: matrix.project == 'frontend'
