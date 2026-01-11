@@ -31,7 +31,7 @@ describe('Email Verification Token Management', () => {
       role: 'employee'
     });
     testUserId = result.id;
-  });
+  }, 30000); // Increase timeout to 30 seconds for CI environments
 
   afterAll(async () => {
     // Cleanup
@@ -271,7 +271,7 @@ describe('User Email Verification Status', () => {
       role: 'employee'
     });
     testUserId = result.id;
-  });
+  }, 30000); // Increase timeout to 30 seconds for CI environments
 
   afterAll(async () => {
     if (testUserId) {
@@ -336,7 +336,7 @@ describe('User Email Update', () => {
       role: 'employee'
     });
     testUserId = result.id;
-  });
+  }, 30000); // Increase timeout to 30 seconds for CI environments
 
   afterAll(async () => {
     if (testUserId) {

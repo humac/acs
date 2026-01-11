@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Navigate, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { Navigate, Routes, Route, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { applyPrimaryColor } from '@/utils/color';
 
