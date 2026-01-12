@@ -33,8 +33,6 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
   
   // Check user role
   const isEmployee = user && user.role === 'employee';
-  const isAdmin = user && user.role === 'admin';
-  const isManager = user && user.role === 'manager';
   
   // Get manager first and last name from user profile
   const managerFirstName = user?.manager_first_name || '';

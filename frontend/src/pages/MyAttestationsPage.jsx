@@ -55,7 +55,7 @@ export default function MyAttestationsPage() {
   const [selectedAttestation, setSelectedAttestation] = useState(null);
   const [attestationDetails, setAttestationDetails] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
-  const [attestedAssetIds, setAttestedAssetIds] = useState(new Set());
+  const [_attestedAssetIds, setAttestedAssetIds] = useState(new Set());
   const [certifiedAssetIds, setCertifiedAssetIds] = useState(new Set());
   const [selectedStatuses, setSelectedStatuses] = useState({});
   const [newAssetForm, setNewAssetForm] = useState({
@@ -398,18 +398,6 @@ export default function MyAttestationsPage() {
         variant: 'destructive'
       });
     }
-  };
-
-  const getStatusBadge = (status) => {
-    const config = {
-      pending: { variant: 'secondary', label: 'Pending' },
-      in_progress: { variant: 'default', label: 'In Progress' },
-      completed: { variant: 'outline', label: 'Completed' }
-    };
-
-    const { variant, label } = config[status] || config.pending;
-
-    return <Badge variant={variant}>{label}</Badge>;
   };
 
   if (loading) {

@@ -23,11 +23,9 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Download, Loader2, ChevronDown, Sparkles } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 /**
  * Consolidated bulk actions toolbar for assets.

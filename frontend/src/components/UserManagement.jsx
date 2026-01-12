@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { useTableFilters } from '@/hooks/useTableFilters';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -22,7 +22,7 @@ import AddUserDialog from '@/components/AddUserDialog';
 import EditUserDialog from '@/components/EditUserDialog';
 import UserBulkActions from '@/components/UserBulkActions';
 import { cn } from '@/lib/utils';
-import { Users, Trash2, Loader2, AlertTriangle, Edit, Search, Info, UserPlus } from 'lucide-react';
+import { Users, Trash2, AlertTriangle, Edit, Search, Info, UserPlus } from 'lucide-react';
 
 const UserManagement = () => {
   const { getAuthHeaders, user } = useAuth();
@@ -56,7 +56,7 @@ const UserManagement = () => {
     setPage: setUsersPage,
     pageSize: usersPageSize,
     setPageSize: setUsersPageSize,
-    totalPages: totalUserPages,
+    totalPages: _totalUserPages,
     filteredItems: filteredUsers,
     paginatedItems: paginatedUsers,
   } = useTableFilters(users, {

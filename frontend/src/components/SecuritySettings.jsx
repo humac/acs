@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
-import { Fingerprint, Loader2, AlertTriangle, Info, ExternalLink, Save } from 'lucide-react';
+import { Loader2, AlertTriangle, Info, ExternalLink, Save } from 'lucide-react';
 import OIDCSettings from './OIDCSettings';
 
 const SecuritySettings = () => {

@@ -1,8 +1,7 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUsers } from '../contexts/UsersContext';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
 import {
   Table,
   TableBody,
@@ -25,7 +24,7 @@ import AssetTableRow from '@/components/AssetTableRow';
 import AssetCard from '@/components/AssetCard';
 import AssetTableFilters from '@/components/AssetTableFilters';
 import BulkAssetActions from '@/components/BulkAssetActions';
-import { Laptop, SearchX } from 'lucide-react';
+import { SearchX } from 'lucide-react';
 
 export default function AssetTable({ assets = [], onEdit, onDelete, currentUser, onRefresh }) {
   const { getAuthHeaders } = useAuth();
@@ -129,8 +128,8 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
     }
   }
 
-  const canEdit = (asset) => currentUser?.role === 'admin' || (currentUser?.email?.toLowerCase() === asset.employee_email?.toLowerCase());
-  const canDelete = (asset) => currentUser?.role === 'admin';
+  const canEdit = (_asset) => currentUser?.role === 'admin' || (currentUser?.email?.toLowerCase() === _asset.employee_email?.toLowerCase());
+  const canDelete = (_asset) => currentUser?.role === 'admin';
 
   const assetsWithManagerData = useMemo(() => assets.map(asset => ({
     ...asset,

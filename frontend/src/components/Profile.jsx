@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -16,7 +15,7 @@ import { prepareCreationOptions, uint8ArrayToBase64Url } from '@/utils/webauthn'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const Profile = () => {
-  const { user, getAuthHeaders, updateUser, refreshUser } = useAuth();
+  const { user, getAuthHeaders, updateUser } = useAuth();
   const { toast } = useToast();
 
   // Edit mode state
@@ -51,7 +50,6 @@ const Profile = () => {
 
   // Profile image
   const [profileImage, setProfileImage] = useState(null);
-  const [profileImageName, setProfileImageName] = useState('');
 
   // MFA state
   const [mfaEnabled, setMfaEnabled] = useState(false);
@@ -76,7 +74,6 @@ const Profile = () => {
         manager_email: user.manager_email || ''
       });
       setProfileImage(user.profile_image || null);
-      setProfileImageName(user.profile_image ? 'Current profile image' : '');
     }
   }, [user]);
 
@@ -144,7 +141,6 @@ const Profile = () => {
         manager_email: user.manager_email || ''
       });
       setProfileImage(user.profile_image || null);
-      setProfileImageName(user.profile_image ? 'Current profile image' : '');
     }
     setIsEditing(false);
   };
@@ -344,12 +340,10 @@ const Profile = () => {
     const reader = new FileReader();
     reader.onloadend = () => setProfileImage(reader.result);
     reader.readAsDataURL(file);
-    setProfileImageName(file.name);
   };
 
   const handleRemoveImage = () => {
     setProfileImage(null);
-    setProfileImageName('');
   };
 
   return (

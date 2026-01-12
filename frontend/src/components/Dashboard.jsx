@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
-import { 
-  Loader2, Package, Users, Building2, 
+import {
+  Loader2, Package, Users, Building2,
   ClipboardCheck, User, FileBarChart, Settings, ArrowUpRight,
-  CheckCircle2, AlertCircle, UserPlus, Plus
+  AlertCircle, Plus
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

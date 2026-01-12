@@ -1,40 +1,24 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  ClipboardCheck, 
-  Plus, 
-  Loader2, 
-  PlayCircle, 
-  XCircle, 
+import {
+  ClipboardCheck,
+  Plus,
+  Loader2,
+  PlayCircle,
+  XCircle,
   Download,
   Eye,
   Calendar,
-  Users,
-  CheckCircle2,
   Clock,
   AlertCircle,
   Edit,
   Trash2,
-  Search,
-  Bell,
-  RefreshCw,
-  AlertTriangle,
-  Mail
+  Bell
 } from 'lucide-react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -43,13 +27,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { DashboardContent } from '@/components/DashboardContent';
 import {
   AlertDialog,
@@ -71,7 +48,6 @@ import { cn } from '@/lib/utils';
 export default function AttestationPage() {
   const { getAuthHeaders, user } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -536,21 +512,6 @@ export default function AttestationPage() {
         variant: 'destructive'
       });
     }
-  };
-
-  const getStatusBadge = (status) => {
-    const variants = {
-      draft: 'secondary',
-      active: 'default',
-      completed: 'outline',
-      cancelled: 'destructive'
-    };
-
-    return (
-      <Badge variant={variants[status] || 'secondary'}>
-        {status}
-      </Badge>
-    );
   };
 
   if (loading) {

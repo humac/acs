@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { AlertCircle, UserCheck, Loader2 } from 'lucide-react';
 
 const CompleteProfile = () => {
-  const { user, updateUser, getAuthHeaders } = useAuth();
+  const { updateUser, getAuthHeaders } = useAuth();
   const [formData, setFormData] = useState({
     manager_first_name: '',
     manager_last_name: '',

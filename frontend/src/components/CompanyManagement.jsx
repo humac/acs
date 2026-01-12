@@ -54,7 +54,7 @@ const CompanyManagementNew = () => {
     setPage,
     pageSize,
     setPageSize,
-    totalPages,
+    totalPages: _totalPages,
     filteredItems: filteredCompanies,
     paginatedItems: paginatedCompanies,
   } = useTableFilters(companies, {

@@ -27,14 +27,12 @@ import { Loader2, AlertCircle } from 'lucide-react';
 // Email validation regex
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export default function AssetEditModal({ asset, currentUser, onClose, onSaved }) {
+export default function AssetEditModal({ asset, currentUser: _currentUser, onClose, onSaved }) {
   const { getAuthHeaders, user } = useAuth();
   const { toast } = useToast();
 
   // Determine user permissions
   const isAdmin = user?.role === 'admin';
-  const isEmployee = user?.role === 'employee';
-  const isOwner = user?.email?.toLowerCase() === asset?.employee_email?.toLowerCase();
 
   // Initialize form with asset data
   const [form, setForm] = useState({

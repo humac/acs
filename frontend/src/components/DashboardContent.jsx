@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
@@ -32,7 +31,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
-export function DashboardContent({ campaign, compact = false, onClose = null }) {
+export function DashboardContent({ campaign, compact = false, onClose: _onClose = null }) {
   const { getAuthHeaders, user } = useAuth();
   const { toast } = useToast();
   const [dashboardData, setDashboardData] = useState(null);

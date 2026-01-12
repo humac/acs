@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import {
-  Settings, Image, Shield, Key, Mail, Server, Database,
+  Image, Shield, Key, Mail, Server, Database,
   Plug, Laptop, Menu, Search, ChevronRight
 } from 'lucide-react';
 
