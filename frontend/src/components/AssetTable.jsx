@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useUsers } from '../contexts/UsersContext';
 import { useToast } from '@/hooks/use-toast';
@@ -27,10 +28,11 @@ import BulkAssetActions from '@/components/BulkAssetActions';
 import { SearchX } from 'lucide-react';
 
 export default function AssetTable({ assets = [], onEdit, onDelete, currentUser, onRefresh }) {
-  const { getAuthHeaders } = useAuth();
+  const { getAuthHeaders, user } = useAuth();
   const { getFullName, getEmail } = useUsers();
   const { toast } = useToast();
-  
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [deleteDialog, setDeleteDialog] = useState({ open: false, asset: null });
   const [bulkDeleteDialog, setBulkDeleteDialog] = useState({ open: false });
   const [searchTerm, setSearchTerm] = useState('');
@@ -39,6 +41,7 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
   const [assetTypeFilter, setAssetTypeFilter] = useState('all');
   const [employeeFilter, setEmployeeFilter] = useState('all');
   const [managerFilter, setManagerFilter] = useState('all');
+  const [showMyTeam, setShowMyTeam] = useState(false);
   const [companies, setCompanies] = useState([]);
   const [assetTypes, setAssetTypes] = useState([]);
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -65,6 +68,20 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
     fetchData();
   }, [getAuthHeaders]);
 
+  // Handle query param for "my-assets" view
+  useEffect(() => {
+    const view = searchParams.get('view');
+    if (view === 'my-assets' && user) {
+      const userName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+      if (userName) {
+        setEmployeeFilter(userName);
+      }
+      // Clear the query param after applying
+      searchParams.delete('view');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, user, setSearchParams]);
+
   const handleStatusUpdated = () => {
     if (onRefresh) onRefresh();
   };
@@ -73,7 +90,7 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
     const asset = deleteDialog.asset;
     setDeleteDialog({ open: false, asset: null });
     try {
-      const res = await fetch(`/api/assets/${asset.id}`, { 
+      const res = await fetch(`/api/assets/${asset.id}`, {
         method: 'DELETE',
         headers: { ...getAuthHeaders() }
       });
@@ -93,7 +110,7 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
   async function handleBulkDeleteConfirm() {
     setBulkDeleteDialog({ open: false });
     const ids = Array.from(selectedIds);
-    
+
     try {
       const res = await fetch('/api/assets/bulk/delete', {
         method: 'DELETE',
@@ -103,27 +120,27 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
         },
         body: JSON.stringify({ ids })
       });
-      
+
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || 'Bulk delete failed');
       }
-      
+
       const data = await res.json();
-      toast({ 
-        title: "Success", 
-        description: data.message || `Deleted ${ids.length} asset${ids.length === 1 ? '' : 's'}`, 
-        variant: "success" 
+      toast({
+        title: "Success",
+        description: data.message || `Deleted ${ids.length} asset${ids.length === 1 ? '' : 's'}`,
+        variant: "success"
       });
-      
+
       // Clear selection and refresh
       setSelectedIds(new Set());
       if (onRefresh) onRefresh();
     } catch (err) {
-      toast({ 
-        title: "Error", 
-        description: err.message || 'Unable to delete assets.', 
-        variant: "destructive" 
+      toast({
+        title: "Error",
+        description: err.message || 'Unable to delete assets.',
+        variant: "destructive"
       });
     }
   }
@@ -147,14 +164,18 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
       const employeeName = `${asset.employee_first_name || ''} ${asset.employee_last_name || ''}`.trim();
       const managerName = `${asset.manager_first_name || ''} ${asset.manager_last_name || ''}`.trim();
 
+      // My Team filter: show only assets where the current user is the manager
+      const matchesMyTeam = !showMyTeam || (user && asset.manager_email?.toLowerCase() === user.email?.toLowerCase());
+
       return matchesSearch &&
+        matchesMyTeam &&
         (statusFilter === 'all' || asset.status === statusFilter) &&
         (companyFilter === 'all' || asset.company_name === companyFilter) &&
         (assetTypeFilter === 'all' || asset.asset_type === assetTypeFilter) &&
         (employeeFilter === 'all' || employeeName === employeeFilter) &&
         (managerFilter === 'all' || managerName === managerFilter);
     });
-  }, [assetsWithManagerData, searchTerm, statusFilter, companyFilter, assetTypeFilter, employeeFilter, managerFilter]);
+  }, [assetsWithManagerData, searchTerm, statusFilter, companyFilter, assetTypeFilter, employeeFilter, managerFilter, showMyTeam, user]);
 
   const uniqueEmployees = useMemo(() => {
     const employeeMap = new Map();
@@ -215,16 +236,19 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
         companyFilter={companyFilter} setCompanyFilter={setCompanyFilter}
         employeeFilter={employeeFilter} setEmployeeFilter={setEmployeeFilter}
         managerFilter={managerFilter} setManagerFilter={setManagerFilter}
+        showMyTeam={showMyTeam} setShowMyTeam={setShowMyTeam}
+        currentUser={user}
         companies={companies} assetTypes={assetTypes}
         uniqueEmployees={uniqueEmployees}
         uniqueManagers={uniqueManagers}
         onClearFilters={() => {
-          setSearchTerm(''); 
-          setStatusFilter('all'); 
+          setSearchTerm('');
+          setStatusFilter('all');
           setCompanyFilter('all');
           setAssetTypeFilter('all');
           setEmployeeFilter('all');
           setManagerFilter('all');
+          setShowMyTeam(false);
         }}
       />
 
@@ -232,7 +256,7 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
         selectedIds={selectedIds}
         filteredAssets={filteredAssets}
         allAssets={assets}
-        hasActiveFilters={searchTerm !== '' || statusFilter !== 'all' || companyFilter !== 'all' || assetTypeFilter !== 'all' || employeeFilter !== 'all' || managerFilter !== 'all'}
+        hasActiveFilters={searchTerm !== '' || statusFilter !== 'all' || companyFilter !== 'all' || assetTypeFilter !== 'all' || employeeFilter !== 'all' || managerFilter !== 'all' || showMyTeam}
         onClearSelection={() => setSelectedIds(new Set())}
         onBulkDelete={handleBulkDelete}
         onRefresh={onRefresh}
@@ -248,9 +272,55 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
         <>
           <div className="md:hidden space-y-4">
             {paginatedAssets.map((asset, index) => (
-              <AssetCard 
-                  key={asset.id} 
-                  asset={asset} 
+              <AssetCard
+                key={asset.id}
+                asset={asset}
+                isSelected={selectedIds.has(asset.id)}
+                canEdit={canEdit(asset)}
+                canDelete={canDelete(asset)}
+                onToggleSelect={() => {
+                  const next = new Set(selectedIds);
+                  next.has(asset.id) ? next.delete(asset.id) : next.add(asset.id);
+                  setSelectedIds(next);
+                }}
+                onEdit={() => onEdit(asset)}
+                onDelete={() => setDeleteDialog({ open: true, asset })}
+                onStatusUpdated={handleStatusUpdated}
+                index={index}
+              />
+            ))}
+          </div>
+
+          <Table className="hidden md:table w-full">
+            <TableHeader className="bg-muted/20 dark:bg-white/[0.02] border-b border-white/10">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-12 px-4">
+                  <Checkbox
+                    checked={
+                      paginatedAssets.length > 0 && paginatedAssets.every(a => selectedIds.has(a.id))
+                        ? true
+                        : paginatedAssets.some(a => selectedIds.has(a.id))
+                          ? "indeterminate"
+                          : false
+                    }
+                    onCheckedChange={toggleSelectAll}
+                  />
+                </TableHead>
+                <TableHead className="w-10"></TableHead>
+                <TableHead className="caption-label">Employee / Owner</TableHead>
+                <TableHead className="caption-label">Company</TableHead>
+                <TableHead className="caption-label">Asset Type</TableHead>
+                <TableHead className="caption-label">Asset Tag</TableHead>
+                <TableHead className="caption-label">Status</TableHead>
+                <TableHead className="text-right pr-4 caption-label">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedAssets.map((asset, index) => (
+                <AssetTableRow
+                  key={asset.id}
+                  asset={asset}
+                  index={index}
                   isSelected={selectedIds.has(asset.id)}
                   canEdit={canEdit(asset)}
                   canDelete={canDelete(asset)}
@@ -262,58 +332,12 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
                   onEdit={() => onEdit(asset)}
                   onDelete={() => setDeleteDialog({ open: true, asset })}
                   onStatusUpdated={handleStatusUpdated}
-                  index={index}
                 />
               ))}
-            </div>
-
-            <Table className="hidden md:table w-full">
-              <TableHeader className="bg-muted/20 dark:bg-white/[0.02] border-b border-white/10">
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-12 px-4">
-                    <Checkbox
-                      checked={
-                        paginatedAssets.length > 0 && paginatedAssets.every(a => selectedIds.has(a.id))
-                          ? true
-                          : paginatedAssets.some(a => selectedIds.has(a.id))
-                            ? "indeterminate"
-                            : false
-                      }
-                      onCheckedChange={toggleSelectAll}
-                    />
-                  </TableHead>
-                  <TableHead className="w-10"></TableHead>
-                  <TableHead className="caption-label">Employee / Owner</TableHead>
-                  <TableHead className="caption-label">Company</TableHead>
-                  <TableHead className="caption-label">Asset Type</TableHead>
-                  <TableHead className="caption-label">Asset Tag</TableHead>
-                  <TableHead className="caption-label">Status</TableHead>
-                  <TableHead className="text-right pr-4 caption-label">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedAssets.map((asset, index) => (
-                  <AssetTableRow 
-                    key={asset.id} 
-                    asset={asset}
-                    index={index}
-                    isSelected={selectedIds.has(asset.id)}
-                    canEdit={canEdit(asset)}
-                    canDelete={canDelete(asset)}
-                    onToggleSelect={() => {
-                      const next = new Set(selectedIds);
-                      next.has(asset.id) ? next.delete(asset.id) : next.add(asset.id);
-                      setSelectedIds(next);
-                    }}
-                    onEdit={() => onEdit(asset)}
-                    onDelete={() => setDeleteDialog({ open: true, asset })}
-                    onStatusUpdated={handleStatusUpdated}
-                  />
-                ))}
-              </TableBody>
-            </Table>
-          </>
-        )}
+            </TableBody>
+          </Table>
+        </>
+      )}
 
       <TablePaginationControls
         className="glass-panel p-2 rounded-xl border-glass bg-surface/50"

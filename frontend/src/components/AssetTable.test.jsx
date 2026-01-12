@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import AssetTable from './AssetTable';
 import { AuthProvider } from '../contexts/AuthContext';
 
@@ -32,6 +33,12 @@ vi.mock('../contexts/AuthContext', async () => {
     ...actual,
     useAuth: () => ({
       getAuthHeaders: mockGetAuthHeaders,
+      user: {
+        email: 'admin@test.com',
+        first_name: 'Admin',
+        last_name: 'User',
+        role: 'admin'
+      },
     }),
   };
 });
@@ -49,6 +56,14 @@ vi.mock('@/hooks/use-toast', () => ({
     toast: mockToast,
   }),
 }));
+
+// Helper to render with Router context
+const renderWithRouter = (ui, options = {}) => {
+  return render(
+    <MemoryRouter>{ui}</MemoryRouter>,
+    options
+  );
+};
 
 describe('AssetTable Component', () => {
   const mockOnEdit = vi.fn();
@@ -122,7 +137,7 @@ describe('AssetTable Component', () => {
   it('renders asset table with assets', async () => {
     const currentUser = { role: 'admin', email: 'admin@test.com' };
 
-    render(
+    renderWithRouter(
       <AssetTable
         assets={sampleAssets}
         onEdit={mockOnEdit}
@@ -135,7 +150,7 @@ describe('AssetTable Component', () => {
     await waitFor(() => {
       expect(screen.getAllByText('John Doe')[0]).toBeInTheDocument();
     });
-    
+
     // The table renders employee names (visible in main table)
     expect(screen.getAllByText('Jane Smith')[0]).toBeInTheDocument();
     // Serial numbers are visible in main table
@@ -146,7 +161,7 @@ describe('AssetTable Component', () => {
   it('shows "No assets found" when assets array is empty', async () => {
     const currentUser = { role: 'admin', email: 'admin@test.com' };
 
-    render(
+    renderWithRouter(
       <AssetTable
         assets={[]}
         onEdit={mockOnEdit}
@@ -165,7 +180,7 @@ describe('AssetTable Component', () => {
     const user = userEvent.setup();
     const currentUser = { role: 'admin', email: 'admin@test.com' };
 
-    render(
+    renderWithRouter(
       <AssetTable
         assets={sampleAssets}
         onEdit={mockOnEdit}
@@ -178,7 +193,7 @@ describe('AssetTable Component', () => {
     await waitFor(() => {
       expect(screen.getAllByText('John Doe')[0]).toBeInTheDocument();
     });
-    
+
     // The table now shows assets, so checkboxes and action buttons should be rendered
     const allButtons = screen.getAllByRole('button');
     // Filter buttons should exist (All, Active, etc.) and Edit/Delete buttons
@@ -189,7 +204,7 @@ describe('AssetTable Component', () => {
     const user = userEvent.setup();
     const currentUser = { role: 'employee', email: 'user@test.com' };
 
-    render(
+    renderWithRouter(
       <AssetTable
         assets={sampleAssets}
         onEdit={mockOnEdit}
@@ -202,7 +217,7 @@ describe('AssetTable Component', () => {
     await waitFor(() => {
       expect(screen.getAllByText('John Doe')[0]).toBeInTheDocument();
     });
-    
+
     // The table renders for non-admin users too
     const allButtons = screen.getAllByRole('button');
     expect(allButtons.length).toBeGreaterThan(0);
@@ -211,7 +226,7 @@ describe('AssetTable Component', () => {
   it('calls onEdit when edit button is clicked', async () => {
     const currentUser = { role: 'admin', email: 'admin@test.com' };
 
-    render(
+    renderWithRouter(
       <AssetTable
         assets={sampleAssets}
         onEdit={mockOnEdit}
@@ -231,7 +246,7 @@ describe('AssetTable Component', () => {
     const currentUser = { role: 'admin', email: 'admin@test.com' };
     global.fetch.mockResolvedValueOnce({ ok: true });
 
-    render(
+    renderWithRouter(
       <AssetTable
         assets={sampleAssets}
         onEdit={mockOnEdit}
@@ -260,7 +275,7 @@ describe('AssetTable Component', () => {
     const currentUser = { role: 'admin', email: 'admin@test.com' };
     global.fetch.mockResolvedValueOnce({ ok: true });
 
-    render(
+    renderWithRouter(
       <AssetTable
         assets={sampleAssets}
         onEdit={mockOnEdit}
@@ -295,7 +310,7 @@ describe('AssetTable Component', () => {
     const user = userEvent.setup();
     const currentUser = { role: 'admin', email: 'admin@test.com' };
 
-    render(
+    renderWithRouter(
       <AssetTable
         assets={sampleAssets}
         onEdit={mockOnEdit}
@@ -323,7 +338,7 @@ describe('AssetTable Component', () => {
     const user = userEvent.setup();
     const currentUser = { role: 'admin', email: 'admin@test.com' };
 
-    render(
+    renderWithRouter(
       <AssetTable
         assets={sampleAssets}
         onEdit={mockOnEdit}
@@ -353,7 +368,7 @@ describe('AssetTable Component', () => {
     const user = userEvent.setup();
     const currentUser = { role: 'admin', email: 'admin@test.com' };
 
-    render(
+    renderWithRouter(
       <AssetTable
         assets={sampleAssets}
         onEdit={mockOnEdit}
@@ -395,7 +410,7 @@ describe('AssetTable Component', () => {
       }
     ];
 
-    render(
+    renderWithRouter(
       <AssetTable
         assets={assetsWithDenormalizedManager}
         onEdit={mockOnEdit}
@@ -433,7 +448,7 @@ describe('AssetTable Component', () => {
       }
     ];
 
-    render(
+    renderWithRouter(
       <AssetTable
         assets={assetsWithManagerId}
         onEdit={mockOnEdit}
@@ -470,7 +485,7 @@ describe('AssetTable Component', () => {
       }
     ];
 
-    render(
+    renderWithRouter(
       <AssetTable
         assets={assetsWithNoManager}
         onEdit={mockOnEdit}
@@ -516,7 +531,7 @@ describe('AssetTable Component', () => {
       }
     ];
 
-    render(
+    renderWithRouter(
       <AssetTable
         assets={assetsWithManagerId}
         onEdit={mockOnEdit}
@@ -548,7 +563,7 @@ describe('AssetTable Component', () => {
       email: 'john@example.com'
     };
 
-    render(
+    renderWithRouter(
       <AssetTable
         assets={sampleAssets}
         onEdit={mockOnEdit}
@@ -582,7 +597,7 @@ describe('AssetTable Component', () => {
       status: 'active',
     };
 
-    render(
+    renderWithRouter(
       <AssetTable
         assets={[...sampleAssets, otherUserAsset]}
         onEdit={mockOnEdit}
@@ -603,7 +618,7 @@ describe('AssetTable Component', () => {
       email: 'manager@example.com'
     };
 
-    render(
+    renderWithRouter(
       <AssetTable
         assets={sampleAssets}
         onEdit={mockOnEdit}
@@ -616,7 +631,7 @@ describe('AssetTable Component', () => {
     await waitFor(() => {
       expect(screen.getAllByText('John Doe')[0]).toBeInTheDocument();
     });
-    
+
     // Manager should be able to see all assets
     expect(screen.getAllByText('Jane Smith')[0]).toBeInTheDocument();
   });
@@ -625,7 +640,7 @@ describe('AssetTable Component', () => {
     const user = userEvent.setup();
     const currentUser = { role: 'admin', email: 'admin@test.com' };
 
-    render(
+    renderWithRouter(
       <AssetTable
         assets={sampleAssets}
         onEdit={mockOnEdit}

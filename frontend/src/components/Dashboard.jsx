@@ -140,7 +140,7 @@ const Dashboard = () => {
                 const dashboardData = await dashboardRes.json();
                 const records = dashboardData.records || [];
                 // Count pending and in_progress records
-                const pendingCount = records.filter(r => 
+                const pendingCount = records.filter(r =>
                   r.status === 'pending' || r.status === 'in_progress'
                 ).length;
                 totalPendingResponses += pendingCount;
@@ -190,10 +190,10 @@ const Dashboard = () => {
           </p>
         </div>
         <div className="hidden md:block">
-           <div className="glass-panel px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
-              System Status: Operational
-           </div>
+          <div className="glass-panel px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
+            System Status: Operational
+          </div>
         </div>
       </header>
 
@@ -227,7 +227,7 @@ const Dashboard = () => {
         {/* My Assets Card */}
         <Card
           className="glass-panel cursor-pointer hover:scale-[1.02] transition-all duration-200 group"
-          onClick={() => navigate('/assets')}
+          onClick={() => navigate('/assets?view=my-assets')}
         >
           <CardContent className="p-5 flex flex-col h-full justify-between min-h-[140px]">
             <div className="flex items-start justify-between">
@@ -567,13 +567,13 @@ const Dashboard = () => {
               <ClipboardCheck className="text-primary" /> Quick Actions
             </h2>
           </div>
-          
+
           {[
             { label: 'Register New Asset', icon: Plus, path: '/assets', color: 'text-primary', bg: 'bg-primary/10' },
             { label: 'My Attestations', icon: ClipboardCheck, path: '/my-attestations', color: 'text-info', bg: 'bg-info/10' },
             { label: 'My Profile', icon: User, path: '/profile', color: 'text-success', bg: 'bg-success/10' }
           ].map((item) => (
-            <Card 
+            <Card
               key={item.label}
               className="glass-panel cursor-pointer hover:scale-[1.02] transition-transform duration-base group overflow-hidden relative"
               onClick={() => navigate(item.path)}
@@ -601,13 +601,13 @@ const Dashboard = () => {
               <ClipboardCheck className="text-primary" /> Quick Actions
             </h2>
           </div>
-          
+
           {[
             { label: 'View Team Assets', icon: Package, path: '/assets', color: 'text-primary', bg: 'bg-primary/10' },
             { label: 'My Attestations', icon: ClipboardCheck, path: '/my-attestations', color: 'text-info', bg: 'bg-info/10' },
             { label: 'Audit Logs', icon: FileBarChart, path: '/audit', color: 'text-warning', bg: 'bg-warning/10' }
           ].map((item) => (
-            <Card 
+            <Card
               key={item.label}
               className="glass-panel cursor-pointer hover:scale-[1.02] transition-transform duration-base group overflow-hidden relative"
               onClick={() => navigate(item.path)}
@@ -635,13 +635,13 @@ const Dashboard = () => {
               <ClipboardCheck className="text-primary" /> Quick Actions
             </h2>
           </div>
-          
+
           {[
             { label: 'Manage Campaigns', icon: ClipboardCheck, path: '/attestation', color: 'text-primary', bg: 'bg-primary/10' },
             { label: 'View Assets', icon: Package, path: '/assets', color: 'text-info', bg: 'bg-info/10' },
             { label: 'View Audit Logs', icon: FileBarChart, path: '/audit', color: 'text-warning', bg: 'bg-warning/10' }
           ].map((item) => (
-            <Card 
+            <Card
               key={item.label}
               className="glass-panel cursor-pointer hover:scale-[1.02] transition-transform duration-base group overflow-hidden relative"
               onClick={() => navigate(item.path)}
@@ -669,13 +669,13 @@ const Dashboard = () => {
               <ClipboardCheck className="text-primary" /> Quick Actions
             </h2>
           </div>
-          
+
           {[
             { label: 'Audit Logs', icon: FileBarChart, path: '/audit', color: 'text-info', bg: 'bg-info/10' },
             { label: 'Attestations', icon: ClipboardCheck, path: '/attestation', color: 'text-primary', bg: 'bg-primary/10' },
             { label: 'System Settings', icon: Settings, path: '/admin', color: 'text-warning', bg: 'bg-warning/10' }
           ].map((item) => (
-            <Card 
+            <Card
               key={item.label}
               className="glass-panel cursor-pointer hover:scale-[1.02] transition-transform duration-base group overflow-hidden relative"
               onClick={() => navigate(item.path)}

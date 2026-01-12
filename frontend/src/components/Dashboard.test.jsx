@@ -150,7 +150,7 @@ describe('Dashboard', () => {
       const assetsCard = screen.getByText('Assets assigned to me').closest('.glass-panel');
       await user.click(assetsCard);
 
-      expect(mockNavigate).toHaveBeenCalledWith('/assets');
+      expect(mockNavigate).toHaveBeenCalledWith('/assets?view=my-assets');
     });
 
     it('navigates to profile page when clicking My Profile card', async () => {
@@ -176,8 +176,8 @@ describe('Dashboard', () => {
 
   describe('loading state', () => {
     it('shows loading spinner while fetching stats', () => {
-      global.fetch.mockImplementation(() => new Promise(() => {})); // Never resolves
-      
+      global.fetch.mockImplementation(() => new Promise(() => { })); // Never resolves
+
       render(
         <BrowserRouter>
           <Dashboard />
