@@ -1,0 +1,60 @@
+employee_first_name,employee_last_name,employee_email,manager_first_name,manager_last_name,manager_email,company_name,asset_type,make,model,serial_number,asset_tag,status,issued_date,notes
+Sarah,Johnson,sarah.johnson@acmecorp.com,Marcus,Chen,marcus.chen@acmecorp.com,Acme Corporation,laptop,Apple,MacBook Pro 16,SN-APL-001,AT-001,active,2023-06-15,Director laptop
+Sarah,Johnson,sarah.johnson@acmecorp.com,Marcus,Chen,marcus.chen@acmecorp.com,Acme Corporation,mobile_phone,Apple,iPhone 15 Pro Max,SN-IPH-002,AT-002,active,2023-06-15,Director phone
+John,Smith,john.smith@acmecorp.com,Sarah,Johnson,sarah.johnson@acmecorp.com,Acme Corporation,laptop,Dell,XPS 15,SN-DELL-003,AT-003,active,2024-01-15,Primary work laptop
+Emily,Davis,emily.davis@acmecorp.com,Sarah,Johnson,sarah.johnson@acmecorp.com,Acme Corporation,laptop,Apple,MacBook Pro 14,SN-APL-004,AT-004,active,2024-02-20,Development machine
+Michael,Brown,michael.brown@acmecorp.com,Sarah,Johnson,sarah.johnson@acmecorp.com,Acme Corporation,mobile_phone,Apple,iPhone 15 Pro,SN-IPH-005,AT-005,active,2024-03-10,Company phone
+Robert,Taylor,robert.taylor@globaltech.com,Diana,Foster,diana.foster@globaltech.com,Global Tech Industries,laptop,Lenovo,ThinkPad X1 Carbon Gen 11,SN-LEN-006,AT-006,active,2023-05-20,Manager workstation
+Robert,Taylor,robert.taylor@globaltech.com,Diana,Foster,diana.foster@globaltech.com,Global Tech Industries,mobile_phone,Samsung,Galaxy S24 Ultra,SN-SAM-007,AT-007,active,2023-05-20,Manager phone
+Jennifer,Wilson,jennifer.wilson@globaltech.com,Robert,Taylor,robert.taylor@globaltech.com,Global Tech Industries,laptop,Lenovo,ThinkPad X1 Carbon,SN-LEN-008,AT-008,active,2024-01-08,Standard issue laptop
+David,Martinez,david.martinez@globaltech.com,Robert,Taylor,robert.taylor@globaltech.com,Global Tech Industries,laptop,HP,EliteBook 840,SN-HP-009,AT-009,active,2024-02-28,Upgraded model
+Amanda,Garcia,amanda.garcia@globaltech.com,Robert,Taylor,robert.taylor@globaltech.com,Global Tech Industries,mobile_phone,Samsung,Galaxy S24,SN-SAM-010,AT-010,active,2024-03-15,Android device
+Lisa,Thomas,lisa.thomas@sunrisefin.com,Victor,Reynolds,victor.reynolds@sunrisefin.com,Sunrise Financial Group,laptop,Dell,Precision 5680,SN-DELL-011,AT-011,active,2023-04-12,Finance manager laptop
+Lisa,Thomas,lisa.thomas@sunrisefin.com,Victor,Reynolds,victor.reynolds@sunrisefin.com,Sunrise Financial Group,mobile_phone,Apple,iPhone 15 Pro,SN-IPH-012,AT-012,active,2023-04-12,Secure finance phone
+Christopher,Anderson,christopher.anderson@sunrisefin.com,Lisa,Thomas,lisa.thomas@sunrisefin.com,Sunrise Financial Group,laptop,Dell,Latitude 7440,SN-DELL-013,AT-013,active,2024-01-22,Secure finance laptop
+Jessica,Thompson,jessica.thompson@sunrisefin.com,Lisa,Thomas,lisa.thomas@sunrisefin.com,Sunrise Financial Group,laptop,Microsoft,Surface Pro 9,SN-MS-014,AT-014,active,2024-02-14,Portable workstation
+Matthew,White,matthew.white@sunrisefin.com,Lisa,Thomas,lisa.thomas@sunrisefin.com,Sunrise Financial Group,mobile_phone,Apple,iPhone 15,SN-IPH-015,AT-015,active,2024-03-05,Standard company phone
+Kevin,Clark,kevin.clark@pacifichealth.com,Evelyn,Morgan,evelyn.morgan@pacifichealth.com,Pacific Healthcare Systems,laptop,Dell,Precision 7780,SN-DELL-016,AT-016,active,2023-07-08,Healthcare IT manager
+Kevin,Clark,kevin.clark@pacifichealth.com,Evelyn,Morgan,evelyn.morgan@pacifichealth.com,Pacific Healthcare Systems,mobile_phone,Apple,iPhone 15 Pro,SN-IPH-017,AT-017,active,2023-07-08,On-call manager device
+Ashley,Harris,ashley.harris@pacifichealth.com,Kevin,Clark,kevin.clark@pacifichealth.com,Pacific Healthcare Systems,laptop,Dell,Precision 5570,SN-DELL-018,AT-018,active,2024-01-30,Medical imaging workstation
+Daniel,Lewis,daniel.lewis@pacifichealth.com,Kevin,Clark,kevin.clark@pacifichealth.com,Pacific Healthcare Systems,laptop,Apple,MacBook Air M3,SN-APL-019,AT-019,active,2024-02-08,Clinical documentation
+Nicole,Robinson,nicole.robinson@pacifichealth.com,Kevin,Clark,kevin.clark@pacifichealth.com,Pacific Healthcare Systems,mobile_phone,Google,Pixel 8 Pro,SN-GOO-020,AT-020,active,2024-03-20,On-call device
+Patricia,Hall,patricia.hall@atlasmanuf.com,Raymond,Brooks,raymond.brooks@atlasmanuf.com,Atlas Manufacturing Co.,laptop,Lenovo,ThinkPad P16 Gen 2,SN-LEN-021,AT-021,active,2023-03-15,Engineering manager workstation
+Patricia,Hall,patricia.hall@atlasmanuf.com,Raymond,Brooks,raymond.brooks@atlasmanuf.com,Atlas Manufacturing Co.,mobile_phone,Samsung,Galaxy S24 Ultra,SN-SAM-022,AT-022,active,2023-03-15,Manager field device
+James,Walker,james.walker@atlasmanuf.com,Patricia,Hall,patricia.hall@atlasmanuf.com,Atlas Manufacturing Co.,laptop,Lenovo,ThinkPad P16,SN-LEN-023,AT-023,active,2024-01-12,CAD workstation
+Stephanie,Young,stephanie.young@atlasmanuf.com,Patricia,Hall,patricia.hall@atlasmanuf.com,Atlas Manufacturing Co.,laptop,Dell,Inspiron 16,SN-DELL-024,AT-024,active,2024-02-25,General office use
+Andrew,King,andrew.king@atlasmanuf.com,Patricia,Hall,patricia.hall@atlasmanuf.com,Atlas Manufacturing Co.,mobile_phone,Samsung,Galaxy A54,SN-SAM-025,AT-025,active,2024-03-08,Field operations
+Brian,Scott,brian.scott@novacreative.com,Olivia,Hayes,olivia.hayes@novacreative.com,Nova Creative Agency,laptop,Apple,MacBook Pro 16 M3 Max,SN-APL-026,AT-026,active,2023-08-22,Creative director machine
+Brian,Scott,brian.scott@novacreative.com,Olivia,Hayes,olivia.hayes@novacreative.com,Nova Creative Agency,mobile_phone,Apple,iPhone 15 Pro Max,SN-IPH-027,AT-027,active,2023-08-22,Content creation phone
+Lauren,Wright,lauren.wright@novacreative.com,Brian,Scott,brian.scott@novacreative.com,Nova Creative Agency,laptop,Apple,MacBook Pro 16,SN-APL-028,AT-028,active,2024-01-18,Video editing machine
+Ryan,Lopez,ryan.lopez@novacreative.com,Brian,Scott,brian.scott@novacreative.com,Nova Creative Agency,laptop,ASUS,ProArt StudioBook,SN-ASUS-029,AT-029,active,2024-02-12,Graphic design workstation
+Megan,Hill,megan.hill@novacreative.com,Brian,Scott,brian.scott@novacreative.com,Nova Creative Agency,mobile_phone,Apple,iPhone 15 Pro Max,SN-IPH-030,AT-030,active,2024-03-25,Photography and video
+Michelle,Adams,michelle.adams@summitenergy.com,Nathan,Pierce,nathan.pierce@summitenergy.com,Summit Energy Partners,laptop,HP,ZBook Fury G10,SN-HP-031,AT-031,active,2023-09-10,Engineering manager laptop
+Michelle,Adams,michelle.adams@summitenergy.com,Nathan,Pierce,nathan.pierce@summitenergy.com,Summit Energy Partners,mobile_phone,Google,Pixel 8 Pro,SN-GOO-032,AT-032,active,2023-09-10,Field manager device
+Joshua,Green,joshua.green@summitenergy.com,Michelle,Adams,michelle.adams@summitenergy.com,Summit Energy Partners,laptop,HP,ZBook Studio G10,SN-HP-033,AT-033,active,2024-01-25,Engineering workstation
+Rachel,Baker,rachel.baker@summitenergy.com,Michelle,Adams,michelle.adams@summitenergy.com,Summit Energy Partners,laptop,Dell,XPS 17,SN-DELL-034,AT-034,active,2024-02-18,Data analysis
+Brandon,Nelson,brandon.nelson@summitenergy.com,Michelle,Adams,michelle.adams@summitenergy.com,Summit Energy Partners,mobile_phone,Google,Pixel 8,SN-GOO-035,AT-035,active,2024-03-12,Field surveys
+William,Mitchell,william.mitchell@horizonlog.com,Grace,Sullivan,grace.sullivan@horizonlog.com,Horizon Logistics Inc.,laptop,Lenovo,ThinkPad X1 Extreme,SN-LEN-036,AT-036,active,2023-02-28,Logistics manager laptop
+William,Mitchell,william.mitchell@horizonlog.com,Grace,Sullivan,grace.sullivan@horizonlog.com,Horizon Logistics Inc.,mobile_phone,Samsung,Galaxy S24,SN-SAM-037,AT-037,active,2023-02-28,Fleet coordination device
+Samantha,Carter,samantha.carter@horizonlog.com,William,Mitchell,william.mitchell@horizonlog.com,Horizon Logistics Inc.,laptop,Lenovo,IdeaPad 5 Pro,SN-LEN-038,AT-038,active,2024-01-05,Dispatch operations
+Tyler,Perez,tyler.perez@horizonlog.com,William,Mitchell,william.mitchell@horizonlog.com,Horizon Logistics Inc.,laptop,Acer,TravelMate P4,SN-ACER-039,AT-039,active,2024-02-22,Mobile logistics
+Brittany,Roberts,brittany.roberts@horizonlog.com,William,Mitchell,william.mitchell@horizonlog.com,Horizon Logistics Inc.,mobile_phone,Samsung,Galaxy S23,SN-SAM-040,AT-040,active,2024-03-18,Driver communication
+Elizabeth,Phillips,elizabeth.phillips@evergreenenv.com,Derek,Watson,derek.watson@evergreenenv.com,Evergreen Environmental,laptop,Dell,Latitude 7640,SN-DELL-041,AT-041,active,2023-06-05,Environmental manager laptop
+Elizabeth,Phillips,elizabeth.phillips@evergreenenv.com,Derek,Watson,derek.watson@evergreenenv.com,Evergreen Environmental,mobile_phone,Apple,iPhone 15,SN-IPH-042,AT-042,active,2023-06-05,Field coordination
+Charles,Turner,charles.turner@evergreenenv.com,Elizabeth,Phillips,elizabeth.phillips@evergreenenv.com,Evergreen Environmental,laptop,Dell,Latitude 5540,SN-DELL-043,AT-043,active,2024-01-28,Environmental monitoring
+Heather,Campbell,heather.campbell@evergreenenv.com,Elizabeth,Phillips,elizabeth.phillips@evergreenenv.com,Evergreen Environmental,laptop,HP,EliteBook 850,SN-HP-044,AT-044,active,2024-02-10,Field research
+Justin,Parker,justin.parker@evergreenenv.com,Elizabeth,Phillips,elizabeth.phillips@evergreenenv.com,Evergreen Environmental,mobile_phone,Apple,iPhone 14,SN-IPH-045,AT-045,active,2024-03-02,Site inspections
+Thomas,Edwards,thomas.edwards@quantumresearch.com,Sophia,Kim,sophia.kim@quantumresearch.com,Quantum Research Labs,laptop,Apple,Mac Studio,SN-APL-046,AT-046,active,2023-04-18,Research director workstation
+Thomas,Edwards,thomas.edwards@quantumresearch.com,Sophia,Kim,sophia.kim@quantumresearch.com,Quantum Research Labs,mobile_phone,Google,Pixel 8 Pro,SN-GOO-047,AT-047,active,2023-04-18,Research coordination
+Angela,Evans,angela.evans@quantumresearch.com,Thomas,Edwards,thomas.edwards@quantumresearch.com,Quantum Research Labs,laptop,Apple,Mac Studio,SN-APL-048,AT-048,active,2024-01-10,Computational research
+Kevin,Collins,kevin.collins@quantumresearch.com,Thomas,Edwards,thomas.edwards@quantumresearch.com,Quantum Research Labs,laptop,System76,Pangolin,SN-SYS-049,AT-049,active,2024-02-05,Linux development
+Tiffany,Stewart,tiffany.stewart@quantumresearch.com,Thomas,Edwards,thomas.edwards@quantumresearch.com,Quantum Research Labs,mobile_phone,Google,Pixel 7 Pro,SN-GOO-050,AT-050,active,2024-03-28,Lab communications
+Huy (Test),Manager1,huy.nguyen+manager1@keydata.ca,Huy (Test),Director,huy.nguyen+director@keydata.ca,Acme Corporation,laptop,Apple,MacBook Pro 16,SN-TEST-M1-001,AT-TEST-M1-001,active,2024-01-01,Test Manager 1 laptop
+Huy (Test),Manager1,huy.nguyen+manager1@keydata.ca,Huy (Test),Director,huy.nguyen+director@keydata.ca,Acme Corporation,mobile_phone,Apple,iPhone 15 Pro,SN-TEST-M1-002,AT-TEST-M1-002,active,2024-01-01,Test Manager 1 phone
+Huy (Test),Manager2,huy.nguyen+manager2@keydata.ca,Huy (Test),Director,huy.nguyen+director@keydata.ca,Global Tech Industries,laptop,Dell,XPS 15,SN-TEST-M2-001,AT-TEST-M2-001,active,2024-01-01,Test Manager 2 laptop
+Huy (Test),Manager2,huy.nguyen+manager2@keydata.ca,Huy (Test),Director,huy.nguyen+director@keydata.ca,Global Tech Industries,mobile_phone,Samsung,Galaxy S24 Ultra,SN-TEST-M2-002,AT-TEST-M2-002,active,2024-01-01,Test Manager 2 phone
+Huy (Test),Employee1,huy.nguyen+employee1@keydata.ca,Huy (Test),Manager1,huy.nguyen+manager1@keydata.ca,Acme Corporation,laptop,Dell,Latitude 7440,SN-TEST-E1-001,AT-TEST-E1-001,active,2024-01-15,Test Employee 1 laptop
+Huy (Test),Employee2,huy.nguyen+employee2@keydata.ca,Huy (Test),Manager1,huy.nguyen+manager1@keydata.ca,Acme Corporation,laptop,Lenovo,ThinkPad X1,SN-TEST-E2-001,AT-TEST-E2-001,active,2024-01-15,Test Employee 2 laptop
+Huy (Test),Employee3,huy.nguyen+employee3@keydata.ca,Huy (Test),Manager1,huy.nguyen+manager1@keydata.ca,Acme Corporation,mobile_phone,Google,Pixel 8,SN-TEST-E3-001,AT-TEST-E3-001,active,2024-01-15,Test Employee 3 phone
+Huy (Test),Employee4,huy.nguyen+employee4@keydata.ca,Huy (Test),Manager2,huy.nguyen+manager2@keydata.ca,Global Tech Industries,laptop,HP,EliteBook 840,SN-TEST-E4-001,AT-TEST-E4-001,active,2024-01-15,Test Employee 4 laptop
+Huy (Test),Employee5,huy.nguyen+employee5@keydata.ca,Huy (Test),Manager2,huy.nguyen+manager2@keydata.ca,Global Tech Industries,laptop,Apple,MacBook Air M3,SN-TEST-E5-001,AT-TEST-E5-001,active,2024-01-15,Test Employee 5 laptop
