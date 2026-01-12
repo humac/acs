@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Filter, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { Search, Filter, ChevronDown, ChevronUp, X, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
 /**
@@ -29,6 +31,9 @@ export default function AssetTableFilters({
   setEmployeeFilter,
   managerFilter,
   setManagerFilter,
+  showMyTeam,
+  setShowMyTeam,
+  currentUser,
   companies = [],
   assetTypes = [],
   uniqueEmployees = [],
@@ -44,9 +49,13 @@ export default function AssetTableFilters({
     companyFilter !== 'all',
     employeeFilter !== 'all',
     managerFilter !== 'all',
+    showMyTeam,
   ].filter(Boolean).length;
 
   const hasActiveFilters = activeFilterCount > 0 || searchTerm !== '';
+
+  // Determine if user can use "My Team" filter
+  const canUseMyTeamFilter = currentUser && ['manager', 'admin', 'coordinator'].includes(currentUser.role);
 
   const handleClearFilters = () => {
     onClearFilters();
@@ -112,7 +121,23 @@ export default function AssetTableFilters({
         )}
       >
         <div className="min-h-0">
-          <div className="glass-panel rounded-xl p-4">
+          <div className="glass-panel rounded-xl p-4 space-y-4">
+            {/* My Team Quick Filter */}
+            {canUseMyTeamFilter && (
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                <Users className="h-4 w-4 text-primary" />
+                <Label htmlFor="my-team-toggle" className="flex-1 cursor-pointer text-sm font-medium">
+                  My Team
+                  <span className="ml-2 text-xs text-muted-foreground font-normal">Assets I manage</span>
+                </Label>
+                <Switch
+                  id="my-team-toggle"
+                  checked={showMyTeam}
+                  onCheckedChange={setShowMyTeam}
+                />
+              </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
               {/* Status Filter */}
               <div className="space-y-1.5">
