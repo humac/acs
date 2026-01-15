@@ -156,7 +156,11 @@ export default function CompanyCombobox({
                         className="h-9"
                     />
                 </div>
-                <div className="max-h-60 overflow-y-auto">
+                <div
+                    className="max-h-60 overflow-y-auto"
+                    style={{ overscrollBehavior: 'contain' }}
+                    onWheel={(e) => e.stopPropagation()}
+                >
                     {loading ? (
                         <div className="flex items-center justify-center py-6 text-muted-foreground">
                             <Loader2 className="h-5 w-5 animate-spin mr-2" />
