@@ -192,6 +192,7 @@ export default function CompanyMultiSelect({
             ) : (
                 <div
                     className="border rounded-lg max-h-64 overflow-y-auto"
+                    style={{ overscrollBehavior: 'contain' }}
                     onWheel={(e) => e.stopPropagation()}
                 >
                     <div className="p-2 space-y-1">
