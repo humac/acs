@@ -190,7 +190,10 @@ export default function CompanyMultiSelect({
                     {query ? 'No companies found' : 'No companies available'}
                 </div>
             ) : (
-                <div className="border rounded-lg max-h-64 overflow-y-auto">
+                <div
+                    className="border rounded-lg max-h-64 overflow-y-auto"
+                    onWheel={(e) => e.stopPropagation()}
+                >
                     <div className="p-2 space-y-1">
                         {companies.map((company) => {
                             const isSelected = value.includes(company.id);
