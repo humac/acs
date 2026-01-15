@@ -48,6 +48,19 @@ export default function createCompaniesRouter(deps) {
     }
   });
 
+  // Search companies by name (all authenticated users) - for typeahead/combobox
+  router.get('/search', authenticate, async (req, res) => {
+    try {
+      const { q = '', limit = '20' } = req.query;
+      const maxLimit = Math.min(parseInt(limit) || 20, 50);
+      const companies = await companyDb.search(q, maxLimit);
+      res.json(companies);
+    } catch (error) {
+      logger.error({ err: error, userId: req.user?.id }, 'Error searching companies');
+      res.status(500).json({ error: 'Failed to search companies' });
+    }
+  });
+
   // Bulk import companies via CSV (admin only)
   router.post('/import', authenticate, authorize('admin'), upload.single('file'), async (req, res) => {
     if (!req.file) {

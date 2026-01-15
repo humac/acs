@@ -44,6 +44,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
+import CompanyMultiSelect from '@/components/CompanyMultiSelect';
 
 export default function AttestationPage() {
   const { getAuthHeaders, user } = useAuth();
@@ -53,11 +54,11 @@ export default function AttestationPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState(null);
-  
+
   // Dashboard modal state
   const [showDashboardModal, setShowDashboardModal] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
-  
+
   const [campaignStats, setCampaignStats] = useState({});
   const [formData, setFormData] = useState({
     name: '',
@@ -71,13 +72,11 @@ export default function AttestationPage() {
     target_user_ids: [],
     target_company_ids: []
   });
-  
+
   const [wizardStep, setWizardStep] = useState(1);
   const [availableUsers, setAvailableUsers] = useState([]);
-  const [availableCompanies, setAvailableCompanies] = useState([]);
   const [userSearchQuery, setUserSearchQuery] = useState('');
-  const [companySearchQuery, setCompanySearchQuery] = useState('');
-  
+
   // Alert dialog states
   const [showStartDialog, setShowStartDialog] = useState(false);
   const [campaignToStart, setCampaignToStart] = useState(null);
@@ -111,13 +110,13 @@ export default function AttestationPage() {
   // Helper function to get user count message for campaign start
   const getStartCampaignMessage = (campaign) => {
     if (!campaign) return '';
-    
+
     if (campaign.target_type === 'companies' && campaign.target_company_ids) {
       const companyIds = parseTargetCompanyIds(campaign.target_company_ids);
       const count = companyIds.length;
       return `Emails will be sent to employees with assets in ${count} selected compan${count !== 1 ? 'ies' : 'y'}.`;
     }
-    
+
     if (campaign.target_type === 'selected' && campaign.target_user_ids) {
       const targetIds = parseTargetUserIds(campaign.target_user_ids);
       const count = targetIds.length;
@@ -129,18 +128,18 @@ export default function AttestationPage() {
   // Helper function to format progress display with pending invites
   const getProgressDisplay = (campaign, stats) => {
     if (!stats) return '-';
-    
+
     const { completed, total } = stats;
     const pending_invites_count = campaign.pending_invites_count || 0;
-    
+
     if (total === 0 && pending_invites_count > 0) {
       return `0/0 (${pending_invites_count} pending invite${pending_invites_count !== 1 ? 's' : ''})`;
     }
-    
+
     if (pending_invites_count > 0) {
       return `${completed}/${total} (${pending_invites_count} pending invite${pending_invites_count !== 1 ? 's' : ''})`;
     }
-    
+
     return `${completed}/${total} - ${total > 0 ? Math.round((completed / total) * 100) : 0}% Complete`;
   };
 
@@ -154,7 +153,7 @@ export default function AttestationPage() {
       const data = await res.json();
       const campaignsData = data.campaigns || [];
       setCampaigns(campaignsData);
-      
+
       // Load stats for active campaigns in parallel
       const activeCampaigns = campaignsData.filter(c => c.status === 'active');
       const statsPromises = activeCampaigns.map(async (campaign) => {
@@ -175,7 +174,7 @@ export default function AttestationPage() {
         }
         return null;
       });
-      
+
       const statsResults = await Promise.all(statsPromises);
       const stats = {};
       statsResults.forEach(result => {
@@ -222,31 +221,7 @@ export default function AttestationPage() {
     }
   };
 
-  const loadCompanies = async () => {
-    try {
-      const res = await fetch('/api/companies/names', {
-        headers: { ...getAuthHeaders() }
-      });
-      if (!res.ok) throw new Error('Failed to load companies');
-      const data = await res.json();
-      setAvailableCompanies(data || []);
-    } catch (err) {
-      console.error(err);
-      toast({
-        title: 'Error',
-        description: 'Failed to load companies',
-        variant: 'destructive'
-      });
-    }
-  };
-
-  // Helper function to filter companies by search query
-  const filterCompaniesBySearch = (companies, searchQuery) => {
-    return companies.filter(c => 
-      searchQuery === '' ||
-      c.name?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  };
+  // loadCompanies removed - using CompanyMultiSelect which handles its own data loading
 
   const handleCreateCampaign = async () => {
     try {
@@ -419,12 +394,12 @@ export default function AttestationPage() {
     });
     setWizardStep(1);
     setShowEditModal(true);
-    
+
     // Load users if target type is selected
     if (campaign.target_type === 'selected' && availableUsers.length === 0) {
       loadUsers();
     }
-    
+
     // Load companies if target type is companies
     if (campaign.target_type === 'companies' && availableCompanies.length === 0) {
       loadCompanies();
@@ -566,7 +541,7 @@ export default function AttestationPage() {
           )}
         </CardHeader>
 
-      {/* Campaign Cards */}
+        {/* Campaign Cards */}
         <CardContent>
           {campaigns.length === 0 ? (
             <div className="glass-panel rounded-2xl text-center py-16 animate-fade-in">
@@ -575,7 +550,7 @@ export default function AttestationPage() {
               </div>
               <h3 className="text-2xl font-bold mb-2">No campaigns yet</h3>
               <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                {canManageCampaigns 
+                {canManageCampaigns
                   ? 'Create your first attestation campaign to get started'
                   : 'No attestation campaigns have been created yet'}
               </p>
@@ -592,7 +567,7 @@ export default function AttestationPage() {
               <div className="bento-grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                 {campaigns.map((campaign, index) => {
                   const stats = campaignStats[campaign.id];
-                  
+
                   // Determine badge styling based on status
                   const statusConfig = {
                     draft: { class: 'glow-muted', label: 'Draft' },
@@ -601,10 +576,10 @@ export default function AttestationPage() {
                     cancelled: { class: 'glow-destructive', label: 'Cancelled' }
                   };
                   const statusInfo = statusConfig[campaign.status] || statusConfig.draft;
-                  
+
                   return (
-                    <div 
-                      key={campaign.id} 
+                    <div
+                      key={campaign.id}
                       className="bento-card p-5 animate-fade-in"
                       style={{ animationDelay: `${index * 50}ms` }}
                     >
@@ -794,7 +769,7 @@ export default function AttestationPage() {
               {wizardStep === 1 ? 'Configure campaign details' : 'Select target employees'}
             </DialogDescription>
           </DialogHeader>
-          
+
           {/* Step 1: Campaign Details */}
           {wizardStep === 1 && (
             <div className="space-y-4">
@@ -880,7 +855,7 @@ export default function AttestationPage() {
               </div>
             </div>
           )}
-          
+
           {/* Step 2: Target Selection */}
           {wizardStep === 2 && (
             <div className="space-y-4">
@@ -924,7 +899,7 @@ export default function AttestationPage() {
                   </Label>
                 </div>
               </RadioGroup>
-              
+
               {formData.target_type === 'selected' && (
                 <div className="space-y-3 mt-4">
                   <div>
@@ -937,7 +912,7 @@ export default function AttestationPage() {
                       onChange={(e) => setUserSearchQuery(e.target.value)}
                     />
                   </div>
-                  
+
                   {availableUsers.length === 0 ? (
                     <div className="flex items-center justify-center py-8 text-muted-foreground">
                       <Loader2 className="h-6 w-6 animate-spin mr-2" />
@@ -947,7 +922,7 @@ export default function AttestationPage() {
                     <div className="border rounded-lg max-h-64 overflow-y-auto">
                       <div className="p-2 space-y-1">
                         {availableUsers
-                          .filter(u => 
+                          .filter(u =>
                             userSearchQuery === '' ||
                             u.name?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
                             u.email?.toLowerCase().includes(userSearchQuery.toLowerCase())
@@ -979,7 +954,7 @@ export default function AttestationPage() {
                       </div>
                     </div>
                   )}
-                  
+
                   {formData.target_user_ids.length > 0 && (
                     <div className="text-sm text-muted-foreground">
                       Selected: {formData.target_user_ids.length} employee{formData.target_user_ids.length !== 1 ? 's' : ''}
@@ -987,66 +962,20 @@ export default function AttestationPage() {
                   )}
                 </div>
               )}
-              
+
               {formData.target_type === 'companies' && (
-                <div className="space-y-3 mt-4">
-                  <div>
-                    <Label htmlFor="company-search">Search Companies</Label>
-                    <Input
-                      id="company-search"
-                      type="text"
-                      placeholder="Search by company name..."
-                      value={companySearchQuery}
-                      onChange={(e) => setCompanySearchQuery(e.target.value)}
-                    />
-                  </div>
-                  
-                  {availableCompanies.length === 0 ? (
-                    <div className="flex items-center justify-center py-8 text-muted-foreground">
-                      <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                      Loading companies...
-                    </div>
-                  ) : (
-                    <div className="border rounded-lg max-h-64 overflow-y-auto">
-                      <div className="p-2 space-y-1">
-                        {filterCompaniesBySearch(availableCompanies, companySearchQuery)
-                          .map((c) => (
-                            <div
-                              key={c.id}
-                              className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded cursor-pointer"
-                              onClick={() => {
-                                const isSelected = formData.target_company_ids.includes(c.id);
-                                setFormData({
-                                  ...formData,
-                                  target_company_ids: isSelected
-                                    ? formData.target_company_ids.filter(id => id !== c.id)
-                                    : [...formData.target_company_ids, c.id]
-                                });
-                              }}
-                            >
-                              <Checkbox
-                                checked={formData.target_company_ids.includes(c.id)}
-                                readOnly
-                              />
-                              <div className="flex-1">
-                                <div className="font-medium text-sm">{c.name}</div>
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {formData.target_company_ids.length > 0 && (
-                    <div className="text-sm text-muted-foreground">
-                      Selected: {formData.target_company_ids.length} compan{formData.target_company_ids.length !== 1 ? 'ies' : 'y'}
-                    </div>
-                  )}
+                <div className="mt-4">
+                  <Label>Select Companies</Label>
+                  <CompanyMultiSelect
+                    value={formData.target_company_ids}
+                    onChange={(ids) => setFormData({ ...formData, target_company_ids: ids })}
+                    placeholder="Search companies..."
+                  />
                 </div>
               )}
             </div>
           )}
-          
+
           <DialogFooter>
             {wizardStep === 1 ? (
               <>
@@ -1056,8 +985,8 @@ export default function AttestationPage() {
                 }} className="btn-interactive">
                   Cancel
                 </Button>
-                <Button 
-                  onClick={() => setWizardStep(2)} 
+                <Button
+                  onClick={() => setWizardStep(2)}
                   disabled={!formData.name || !formData.start_date}
                   className="btn-interactive"
                 >
@@ -1069,7 +998,7 @@ export default function AttestationPage() {
                 <Button variant="outline" onClick={() => setWizardStep(1)} className="btn-interactive">
                   Back
                 </Button>
-                <Button 
+                <Button
                   onClick={handleCreateCampaign}
                   disabled={
                     (formData.target_type === 'selected' && formData.target_user_ids.length === 0) ||
@@ -1106,8 +1035,8 @@ export default function AttestationPage() {
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-4 sm:pb-6">
-            <DashboardContent 
-              campaign={selectedCampaign} 
+            <DashboardContent
+              campaign={selectedCampaign}
               compact={false}
               onClose={() => setShowDashboardModal(false)}
             />
@@ -1132,7 +1061,7 @@ export default function AttestationPage() {
               {wizardStep === 1 ? 'Update campaign details' : 'Update target employees'}
             </DialogDescription>
           </DialogHeader>
-          
+
           {/* Step 1: Campaign Details */}
           {wizardStep === 1 && (
             <div className="space-y-4">
@@ -1218,7 +1147,7 @@ export default function AttestationPage() {
               </div>
             </div>
           )}
-          
+
           {/* Step 2: Target Selection */}
           {wizardStep === 2 && (
             <div className="space-y-4">
@@ -1262,7 +1191,7 @@ export default function AttestationPage() {
                   </Label>
                 </div>
               </RadioGroup>
-              
+
               {formData.target_type === 'selected' && (
                 <div className="space-y-3 mt-4">
                   <div>
@@ -1275,7 +1204,7 @@ export default function AttestationPage() {
                       onChange={(e) => setUserSearchQuery(e.target.value)}
                     />
                   </div>
-                  
+
                   {availableUsers.length === 0 ? (
                     <div className="flex items-center justify-center py-8 text-muted-foreground">
                       <Loader2 className="h-6 w-6 animate-spin mr-2" />
@@ -1285,7 +1214,7 @@ export default function AttestationPage() {
                     <div className="border rounded-lg max-h-64 overflow-y-auto">
                       <div className="p-2 space-y-1">
                         {availableUsers
-                          .filter(u => 
+                          .filter(u =>
                             userSearchQuery === '' ||
                             u.name?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
                             u.email?.toLowerCase().includes(userSearchQuery.toLowerCase())
@@ -1317,7 +1246,7 @@ export default function AttestationPage() {
                       </div>
                     </div>
                   )}
-                  
+
                   {formData.target_user_ids.length > 0 && (
                     <div className="text-sm text-muted-foreground">
                       Selected: {formData.target_user_ids.length} employee{formData.target_user_ids.length !== 1 ? 's' : ''}
@@ -1325,66 +1254,20 @@ export default function AttestationPage() {
                   )}
                 </div>
               )}
-              
+
               {formData.target_type === 'companies' && (
-                <div className="space-y-3 mt-4">
-                  <div>
-                    <Label htmlFor="edit-company-search">Search Companies</Label>
-                    <Input
-                      id="edit-company-search"
-                      type="text"
-                      placeholder="Search by company name..."
-                      value={companySearchQuery}
-                      onChange={(e) => setCompanySearchQuery(e.target.value)}
-                    />
-                  </div>
-                  
-                  {availableCompanies.length === 0 ? (
-                    <div className="flex items-center justify-center py-8 text-muted-foreground">
-                      <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                      Loading companies...
-                    </div>
-                  ) : (
-                    <div className="border rounded-lg max-h-64 overflow-y-auto">
-                      <div className="p-2 space-y-1">
-                        {filterCompaniesBySearch(availableCompanies, companySearchQuery)
-                          .map((c) => (
-                            <div
-                              key={c.id}
-                              className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded cursor-pointer"
-                              onClick={() => {
-                                const isSelected = formData.target_company_ids.includes(c.id);
-                                setFormData({
-                                  ...formData,
-                                  target_company_ids: isSelected
-                                    ? formData.target_company_ids.filter(id => id !== c.id)
-                                    : [...formData.target_company_ids, c.id]
-                                });
-                              }}
-                            >
-                              <Checkbox
-                                checked={formData.target_company_ids.includes(c.id)}
-                                readOnly
-                              />
-                              <div className="flex-1">
-                                <div className="font-medium text-sm">{c.name}</div>
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {formData.target_company_ids.length > 0 && (
-                    <div className="text-sm text-muted-foreground">
-                      Selected: {formData.target_company_ids.length} compan{formData.target_company_ids.length !== 1 ? 'ies' : 'y'}
-                    </div>
-                  )}
+                <div className="mt-4">
+                  <Label>Select Companies</Label>
+                  <CompanyMultiSelect
+                    value={formData.target_company_ids}
+                    onChange={(ids) => setFormData({ ...formData, target_company_ids: ids })}
+                    placeholder="Search companies..."
+                  />
                 </div>
               )}
             </div>
           )}
-          
+
           <DialogFooter>
             {wizardStep === 1 ? (
               <>
@@ -1395,8 +1278,8 @@ export default function AttestationPage() {
                 }} className="btn-interactive">
                   Cancel
                 </Button>
-                <Button 
-                  onClick={() => setWizardStep(2)} 
+                <Button
+                  onClick={() => setWizardStep(2)}
                   disabled={!formData.name || !formData.start_date}
                   className="btn-interactive"
                 >
@@ -1408,7 +1291,7 @@ export default function AttestationPage() {
                 <Button variant="outline" onClick={() => setWizardStep(1)} className="btn-interactive">
                   Back
                 </Button>
-                <Button 
+                <Button
                   onClick={handleUpdateCampaign}
                   disabled={
                     (formData.target_type === 'selected' && formData.target_user_ids.length === 0) ||

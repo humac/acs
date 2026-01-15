@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Loader2, AlertCircle } from 'lucide-react';
+import CompanyCombobox from '@/components/CompanyCombobox';
 
 // Email validation regex
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -30,14 +31,14 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export default function AssetRegisterModal({ onClose, onRegistered }) {
   const { getAuthHeaders, user } = useAuth();
   const { toast } = useToast();
-  
+
   // Check user role
   const isEmployee = user && user.role === 'employee';
-  
+
   // Get manager first and last name from user profile
   const managerFirstName = user?.manager_first_name || '';
   const managerLastName = user?.manager_last_name || '';
-  
+
   // Initialize form with required fields
   // For employees, prepopulate their information and manager information
   const [form, setForm] = useState({
@@ -58,36 +59,15 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
     returned_date: '',
     notes: '',
   });
-  
+
   const [saving, setSaving] = useState(false);
   const [emailError, setEmailError] = useState('');
-  const [companies, setCompanies] = useState([]);
-  const [loadingCompanies, setLoadingCompanies] = useState(true);
+  const [selectedCompany, setSelectedCompany] = useState(null);
   const [assetTypes, setAssetTypes] = useState([]);
   const [loadingAssetTypes, setLoadingAssetTypes] = useState(true);
 
-  // Fetch companies and asset types on mount
+  // Fetch asset types on mount
   React.useEffect(() => {
-    async function fetchCompanies() {
-      try {
-        const response = await fetch('/api/companies/names', {
-          headers: getAuthHeaders(),
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setCompanies(data);
-        } else {
-          console.error('Failed to fetch companies');
-          setCompanies([]);
-        }
-      } catch (error) {
-        console.error('Error fetching companies:', error);
-        setCompanies([]);
-      } finally {
-        setLoadingCompanies(false);
-      }
-    }
-    
     async function fetchAssetTypes() {
       try {
         const response = await fetch('/api/asset-types', {
@@ -113,8 +93,7 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
         setLoadingAssetTypes(false);
       }
     }
-    
-    fetchCompanies();
+
     fetchAssetTypes();
   }, [getAuthHeaders]);
 
@@ -134,13 +113,13 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
 
   function onChange(e) {
     const { name, value } = e.target;
-    
+
     // Apply max length constraints
     const maxLength = MAX_LENGTHS[name];
     const finalValue = maxLength && value.length > maxLength ? value.slice(0, maxLength) : value;
-    
+
     setForm(prev => ({ ...prev, [name]: finalValue }));
-    
+
     // Validate email on change
     if (name === 'employee_email') {
       if (finalValue && !EMAIL_REGEX.test(finalValue)) {
@@ -153,7 +132,7 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
 
   async function save(e) {
     e.preventDefault();
-    
+
     // Validate email before saving
     if (form.employee_email && !EMAIL_REGEX.test(form.employee_email)) {
       setEmailError('Please enter a valid email address');
@@ -162,7 +141,7 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
 
     // Validate required fields
     if (!form.employee_first_name || !form.employee_last_name || !form.employee_email || !form.company_name ||
-        !form.asset_type || !form.serial_number || !form.asset_tag) {
+      !form.asset_type || !form.serial_number || !form.asset_tag) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -201,28 +180,28 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
         returned_date: form.status === 'returned' ? form.returned_date : null,
         notes: form.notes,
       };
-      
+
       const res = await fetch('/api/assets', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           ...getAuthHeaders()
         },
         body: JSON.stringify(payload),
       });
-      
+
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || 'Registration failed');
       }
-      
+
       const result = await res.json();
       toast({
         title: "Success",
         description: "Asset registered successfully",
         variant: "success",
       });
-      
+
       onRegistered(result.asset);
       onClose();
     } catch (err) {
@@ -252,161 +231,143 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
             {/* Employee Information */}
             <div className="glass-panel rounded-xl p-4 space-y-3">
               <h4 className="caption-label">Employee Information</h4>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2">
-                <Label htmlFor="employee_first_name">First Name *</Label>
-                <Input 
-                  id="employee_first_name" 
-                  name="employee_first_name" 
-                  value={form.employee_first_name} 
-                  onChange={onChange}
-                  maxLength={100}
-                  placeholder="John"
-                  required
-                  readOnly={isEmployee}
-                  disabled={isEmployee}
-                  className={cn('text-base', isEmployee && 'bg-muted cursor-not-allowed')}
-                />
+                  <Label htmlFor="employee_first_name">First Name *</Label>
+                  <Input
+                    id="employee_first_name"
+                    name="employee_first_name"
+                    value={form.employee_first_name}
+                    onChange={onChange}
+                    maxLength={100}
+                    placeholder="John"
+                    required
+                    readOnly={isEmployee}
+                    disabled={isEmployee}
+                    className={cn('text-base', isEmployee && 'bg-muted cursor-not-allowed')}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="employee_last_name">Last Name *</Label>
+                  <Input
+                    id="employee_last_name"
+                    name="employee_last_name"
+                    value={form.employee_last_name}
+                    onChange={onChange}
+                    maxLength={100}
+                    placeholder="Doe"
+                    required
+                    readOnly={isEmployee}
+                    disabled={isEmployee}
+                    className={cn('text-base', isEmployee && 'bg-muted cursor-not-allowed')}
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="employee_last_name">Last Name *</Label>
-                <Input 
-                  id="employee_last_name" 
-                  name="employee_last_name" 
-                  value={form.employee_last_name} 
+                <Label htmlFor="employee_email">Employee Email *</Label>
+                <Input
+                  id="employee_email"
+                  name="employee_email"
+                  type="email"
+                  value={form.employee_email}
                   onChange={onChange}
-                  maxLength={100}
-                  placeholder="Doe"
+                  placeholder="john.doe@company.com"
+                  className={cn('text-base', emailError && 'border-destructive', isEmployee && 'bg-muted cursor-not-allowed')}
                   required
                   readOnly={isEmployee}
                   disabled={isEmployee}
-                  className={cn('text-base', isEmployee && 'bg-muted cursor-not-allowed')}
+                />
+                {emailError && (
+                  <div className="flex items-center gap-1 text-sm text-destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>{emailError}</span>
+                  </div>
+                )}
+                {isEmployee && (
+                  <p className="text-xs text-muted-foreground">
+                    As an employee, you can only register assets for yourself
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="company_name">Company Name *</Label>
+                <CompanyCombobox
+                  value={selectedCompany?.id || null}
+                  onChange={(company) => {
+                    setSelectedCompany(company);
+                    setForm(prev => ({ ...prev, company_name: company?.name || '' }));
+                  }}
+                  placeholder="Search for a company..."
+                  disabled={isEmployee}
                 />
               </div>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="employee_email">Employee Email *</Label>
-              <Input 
-                id="employee_email" 
-                name="employee_email" 
-                type="email"
-                value={form.employee_email} 
-                onChange={onChange}
-                placeholder="john.doe@company.com"
-                className={cn('text-base', emailError && 'border-destructive', isEmployee && 'bg-muted cursor-not-allowed')}
-                required
-                readOnly={isEmployee}
-                disabled={isEmployee}
-              />
-              {emailError && (
-                <div className="flex items-center gap-1 text-sm text-destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <span>{emailError}</span>
-                </div>
-              )}
-              {isEmployee && (
-                <p className="text-xs text-muted-foreground">
-                  As an employee, you can only register assets for yourself
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="company_name">Company Name *</Label>
-              {loadingCompanies ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Loading companies...
-                </div>
-              ) : companies.length > 0 ? (
-                <Select
-                  value={form.company_name}
-                  onValueChange={(value) => setForm(prev => ({ ...prev, company_name: value }))}
-                  required
-                >
-                  <SelectTrigger id="company_name">
-                    <SelectValue placeholder="Select a company" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {companies.map((company) => (
-                      <SelectItem key={company.id} value={company.name}>
-                        {company.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <div className="text-sm text-muted-foreground">
-                  No companies available. Please contact an administrator to add companies.
-                </div>
-              )}
-            </div>
-          </div>
 
             {/* Manager Information */}
             <div className="glass-panel rounded-xl p-4 space-y-3">
               <h4 className="caption-label">Manager Information</h4>
-              
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="manager_first_name">Manager First Name</Label>
+                  <Input
+                    id="manager_first_name"
+                    name="manager_first_name"
+                    value={form.manager_first_name}
+                    onChange={onChange}
+                    maxLength={100}
+                    placeholder="Sarah"
+                    readOnly={isEmployee}
+                    disabled={isEmployee}
+                    className={cn('text-base', isEmployee && 'bg-muted cursor-not-allowed')}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="manager_last_name">Manager Last Name</Label>
+                  <Input
+                    id="manager_last_name"
+                    name="manager_last_name"
+                    value={form.manager_last_name}
+                    onChange={onChange}
+                    maxLength={100}
+                    placeholder="Manager"
+                    readOnly={isEmployee}
+                    disabled={isEmployee}
+                    className={cn('text-base', isEmployee && 'bg-muted cursor-not-allowed')}
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="manager_first_name">Manager First Name</Label>
+                <Label htmlFor="manager_email">Manager Email</Label>
                 <Input
-                  id="manager_first_name"
-                  name="manager_first_name"
-                  value={form.manager_first_name}
+                  id="manager_email"
+                  name="manager_email"
+                  type="email"
+                  value={form.manager_email}
                   onChange={onChange}
-                  maxLength={100}
-                  placeholder="Sarah"
+                  placeholder="manager@example.com"
+                  className={cn('text-base', isEmployee && 'bg-muted cursor-not-allowed')}
                   readOnly={isEmployee}
                   disabled={isEmployee}
-                  className={cn('text-base', isEmployee && 'bg-muted cursor-not-allowed')}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="manager_last_name">Manager Last Name</Label>
-                <Input 
-                  id="manager_last_name" 
-                  name="manager_last_name" 
-                  value={form.manager_last_name} 
-                  onChange={onChange}
-                  maxLength={100}
-                  placeholder="Manager"
-                  readOnly={isEmployee}
-                  disabled={isEmployee}
-                  className={cn('text-base', isEmployee && 'bg-muted cursor-not-allowed')}
-                />
+                {isEmployee && form.manager_email && (
+                  <p className="text-xs text-muted-foreground">
+                    Manager information from your profile
+                  </p>
+                )}
               </div>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="manager_email">Manager Email</Label>
-              <Input 
-                id="manager_email" 
-                name="manager_email" 
-                type="email"
-                value={form.manager_email} 
-                onChange={onChange}
-                placeholder="manager@example.com"
-                className={cn('text-base', isEmployee && 'bg-muted cursor-not-allowed')}
-                readOnly={isEmployee}
-                disabled={isEmployee}
-              />
-              {isEmployee && form.manager_email && (
-                <p className="text-xs text-muted-foreground">
-                  Manager information from your profile
-                </p>
-              )}
-            </div>
-          </div>
 
             {/* Asset Information */}
             <div className="glass-panel rounded-xl p-4 space-y-3">
               <h4 className="caption-label">Asset Information</h4>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="asset_type">Asset Type *</Label>
                 {loadingAssetTypes ? (
@@ -415,8 +376,8 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
                     Loading asset types...
                   </div>
                 ) : assetTypes.length > 0 ? (
-                  <Select 
-                    value={form.asset_type} 
+                  <Select
+                    value={form.asset_type}
                     onValueChange={(value) => setForm(prev => ({ ...prev, asset_type: value }))}
                     required
                   >
@@ -439,124 +400,124 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="make">Make</Label>
-                <Input 
-                  id="make" 
-                  name="make" 
-                  value={form.make} 
-                  onChange={onChange}
-                  maxLength={100}
-                  placeholder="Dell, Apple, Samsung"
-                  className="text-base"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="model">Model</Label>
-                <Input 
-                  id="model" 
-                  name="model" 
-                  value={form.model} 
-                  onChange={onChange}
-                  maxLength={100}
-                  placeholder="XPS 15, iPhone 15"
-                  className="text-base"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="serial_number">Serial Number *</Label>
-              <Input 
-                id="serial_number" 
-                name="serial_number" 
-                value={form.serial_number} 
-                onChange={onChange}
-                maxLength={100}
-                placeholder="ABC123456789"
-                required
-                className="text-base"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="asset_tag">Asset Tag *</Label>
-              <Input 
-                id="asset_tag" 
-                name="asset_tag" 
-                value={form.asset_tag} 
-                onChange={onChange}
-                maxLength={100}
-                placeholder="AT-1001"
-                required
-                className="text-base"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select
-                value={form.status}
-                onValueChange={(value) => setForm(prev => ({ ...prev, status: value, returned_date: value !== 'returned' ? '' : prev.returned_date }))}
-              >
-                <SelectTrigger id="status">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ASSET_STATUS_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="issued_date">Issued Date</Label>
-                <Input
-                  id="issued_date"
-                  name="issued_date"
-                  type="date"
-                  value={form.issued_date}
-                  onChange={onChange}
-                  className="text-base"
-                />
-              </div>
-
-              {form.status === 'returned' && (
                 <div className="space-y-2">
-                  <Label htmlFor="returned_date">Returned Date *</Label>
+                  <Label htmlFor="make">Make</Label>
                   <Input
-                    id="returned_date"
-                    name="returned_date"
-                    type="date"
-                    value={form.returned_date}
+                    id="make"
+                    name="make"
+                    value={form.make}
                     onChange={onChange}
-                    required
+                    maxLength={100}
+                    placeholder="Dell, Apple, Samsung"
                     className="text-base"
                   />
                 </div>
-              )}
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea 
-                id="notes" 
-                name="notes" 
-                value={form.notes} 
-                onChange={onChange}
-                rows={3}
-                maxLength={1000}
-                placeholder="Add any additional notes..."
-              />
-              <div className="text-xs text-muted-foreground text-right">
-                {form.notes.length}/1000
+                <div className="space-y-2">
+                  <Label htmlFor="model">Model</Label>
+                  <Input
+                    id="model"
+                    name="model"
+                    value={form.model}
+                    onChange={onChange}
+                    maxLength={100}
+                    placeholder="XPS 15, iPhone 15"
+                    className="text-base"
+                  />
+                </div>
               </div>
-            </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="serial_number">Serial Number *</Label>
+                <Input
+                  id="serial_number"
+                  name="serial_number"
+                  value={form.serial_number}
+                  onChange={onChange}
+                  maxLength={100}
+                  placeholder="ABC123456789"
+                  required
+                  className="text-base"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="asset_tag">Asset Tag *</Label>
+                <Input
+                  id="asset_tag"
+                  name="asset_tag"
+                  value={form.asset_tag}
+                  onChange={onChange}
+                  maxLength={100}
+                  placeholder="AT-1001"
+                  required
+                  className="text-base"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Select
+                  value={form.status}
+                  onValueChange={(value) => setForm(prev => ({ ...prev, status: value, returned_date: value !== 'returned' ? '' : prev.returned_date }))}
+                >
+                  <SelectTrigger id="status">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ASSET_STATUS_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label htmlFor="issued_date">Issued Date</Label>
+                  <Input
+                    id="issued_date"
+                    name="issued_date"
+                    type="date"
+                    value={form.issued_date}
+                    onChange={onChange}
+                    className="text-base"
+                  />
+                </div>
+
+                {form.status === 'returned' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="returned_date">Returned Date *</Label>
+                    <Input
+                      id="returned_date"
+                      name="returned_date"
+                      type="date"
+                      value={form.returned_date}
+                      onChange={onChange}
+                      required
+                      className="text-base"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notes</Label>
+                <Textarea
+                  id="notes"
+                  name="notes"
+                  value={form.notes}
+                  onChange={onChange}
+                  rows={3}
+                  maxLength={1000}
+                  placeholder="Add any additional notes..."
+                />
+                <div className="text-xs text-muted-foreground text-right">
+                  {form.notes.length}/1000
+                </div>
+              </div>
             </div>
           </div>
 

@@ -2828,6 +2828,14 @@ export const companyDb = {
   getAssetCount: async (companyId) => {
     const row = await dbGet('SELECT COUNT(*) as count FROM assets WHERE company_id = ?', [companyId]);
     return row?.count || 0;
+  },
+  search: async (query, limit = 20) => {
+    const searchTerm = `%${query}%`;
+    const rows = await dbAll(
+      'SELECT id, name FROM companies WHERE LOWER(name) LIKE LOWER(?) ORDER BY name ASC LIMIT ?',
+      [searchTerm, limit]
+    );
+    return rows;
   }
 };
 

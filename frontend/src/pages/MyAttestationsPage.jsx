@@ -5,9 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  ClipboardCheck, 
-  Loader2, 
+import {
+  ClipboardCheck,
+  Loader2,
   CheckCircle2,
   AlertCircle,
   Package,
@@ -44,6 +44,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import CompanyCombobox from '@/components/CompanyCombobox';
 
 export default function MyAttestationsPage() {
   const { getAuthHeaders, user } = useAuth();
@@ -79,8 +80,7 @@ export default function MyAttestationsPage() {
   const [returnedDates, setReturnedDates] = useState({});
   const [assetTypes, setAssetTypes] = useState([]);
   const [loadingAssetTypes, setLoadingAssetTypes] = useState(false);
-  const [companies, setCompanies] = useState([]);
-  const [loadingCompanies, setLoadingCompanies] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState(null);
 
   const loadAttestations = async () => {
     setLoading(true);
@@ -127,29 +127,12 @@ export default function MyAttestationsPage() {
     }
   };
 
-  const fetchCompanies = async () => {
-    setLoadingCompanies(true);
-    try {
-      const response = await fetch('/api/companies/names', {
-        headers: getAuthHeaders(),
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setCompanies(data);
-      } else {
-        console.error('Failed to fetch companies');
-      }
-    } catch (error) {
-      console.error('Error fetching companies:', error);
-    } finally {
-      setLoadingCompanies(false);
-    }
-  };
+  // fetchCompanies removed - using CompanyCombobox which handles its own data loading
 
   const handleOpenAddAssetModal = async () => {
     const campaign = attestationDetails?.campaign;
     const isCompanyScoped = campaign?.target_type === 'companies';
-    
+
     // Get the target company ID for company-scoped campaigns
     let targetCompanyId = null;
     if (isCompanyScoped && campaign?.target_company_ids) {
@@ -160,7 +143,7 @@ export default function MyAttestationsPage() {
         console.error('Error parsing target_company_ids:', e);
       }
     }
-    
+
     // Initialize form with user info
     setNewAssetForm({
       asset_type: '',
@@ -180,12 +163,14 @@ export default function MyAttestationsPage() {
       issued_date: '',
       returned_date: ''
     });
-    
-    // Load companies if needed
-    if (companies.length === 0) {
-      fetchCompanies();
+
+    // Set selected company for company-scoped campaigns
+    if (targetCompanyId) {
+      setSelectedCompany({ id: targetCompanyId, name: '' }); // Name will be loaded by CompanyCombobox
+    } else {
+      setSelectedCompany(null);
     }
-    
+
     setShowAddAssetModal(true);
   };
 
@@ -203,14 +188,14 @@ export default function MyAttestationsPage() {
 
       const data = await res.json();
       setAttestationDetails(data);
-      
+
       // Track which assets have been attested
       const attestedIds = new Set(data.attestedAssets?.map(a => a.asset_id) || []);
       setAttestedAssetIds(attestedIds);
       // Note: Already attested assets from previous sessions are considered certified
       // to avoid requiring users to re-certify assets they've already confirmed
       setCertifiedAssetIds(attestedIds);
-      
+
       // Initialize selected statuses with current asset statuses
       const statuses = {};
       data.assets?.forEach(asset => {
@@ -304,8 +289,8 @@ export default function MyAttestationsPage() {
   const handleAddNewAsset = async () => {
     // Validate required fields
     if (!newAssetForm.asset_type || !newAssetForm.serial_number || !newAssetForm.asset_tag ||
-        !newAssetForm.employee_first_name || !newAssetForm.employee_last_name || !newAssetForm.employee_email ||
-        !newAssetForm.company_id) {
+      !newAssetForm.employee_first_name || !newAssetForm.employee_last_name || !newAssetForm.employee_email ||
+      !newAssetForm.company_id) {
       toast({
         title: 'Validation Error',
         description: 'Please fill in all required fields',
@@ -442,108 +427,108 @@ export default function MyAttestationsPage() {
           </div>
         </CardHeader>
         <CardContent>
-        {attestations.length === 0 ? (
-          <div className="glass-panel rounded-2xl text-center py-16 animate-fade-in">
-            <div className="icon-box icon-box-lg bg-primary/10 border-primary/20 mx-auto mb-6">
-              <ClipboardCheck className="h-8 w-8 text-primary" />
+          {attestations.length === 0 ? (
+            <div className="glass-panel rounded-2xl text-center py-16 animate-fade-in">
+              <div className="icon-box icon-box-lg bg-primary/10 border-primary/20 mx-auto mb-6">
+                <ClipboardCheck className="h-8 w-8 text-primary" />
+              </div>
+              <h3 className="text-2xl font-bold mb-2">No pending attestations</h3>
+              <p className="text-muted-foreground max-w-md mx-auto">
+                You don't have any pending asset attestations at this time
+              </p>
             </div>
-            <h3 className="text-2xl font-bold mb-2">No pending attestations</h3>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              You don't have any pending asset attestations at this time
-            </p>
-          </div>
-        ) : (
-          <div className="bento-grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            {attestations.map((attestation, index) => {
-              const statusConfig = {
-                pending: { class: 'glow-warning', label: 'Pending', icon: AlertCircle },
-                in_progress: { class: 'glow-primary', label: 'In Progress', icon: RefreshCw },
-                completed: { class: 'glow-success', label: 'Completed', icon: CheckCircle2 }
-              };
-              const statusInfo = statusConfig[attestation.status] || statusConfig.pending;
-              const StatusIcon = statusInfo.icon;
-              
-              return (
-                <div 
-                  key={attestation.id} 
-                  className="bento-card p-5 animate-fade-in"
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  {/* Campaign Header */}
-                  <div className="flex items-start justify-between gap-3 mb-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="icon-box icon-box-sm bg-primary/10 border-primary/20">
-                          <StatusIcon className="h-4 w-4 text-primary" />
-                        </div>
-                        <h3 className="font-bold text-lg truncate">{attestation.campaign?.name}</h3>
-                      </div>
-                      {attestation.campaign?.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {attestation.campaign?.description}
-                        </p>
-                      )}
-                    </div>
-                    <Badge className={cn("shrink-0", statusInfo.class)}>
-                      {statusInfo.label}
-                    </Badge>
-                  </div>
+          ) : (
+            <div className="bento-grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+              {attestations.map((attestation, index) => {
+                const statusConfig = {
+                  pending: { class: 'glow-warning', label: 'Pending', icon: AlertCircle },
+                  in_progress: { class: 'glow-primary', label: 'In Progress', icon: RefreshCw },
+                  completed: { class: 'glow-success', label: 'Completed', icon: CheckCircle2 }
+                };
+                const statusInfo = statusConfig[attestation.status] || statusConfig.pending;
+                const StatusIcon = statusInfo.icon;
 
-                  {/* Date Info */}
-                  <div className="grid grid-cols-2 gap-3 mb-4 p-3 rounded-xl bg-surface/50">
-                    <div>
-                      <p className="caption-label mb-1">Started</p>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-3 w-3 text-muted-foreground" />
-                        <p className="text-sm font-medium">
-                          {new Date(attestation.campaign?.start_date).toLocaleDateString()}
-                        </p>
+                return (
+                  <div
+                    key={attestation.id}
+                    className="bento-card p-5 animate-fade-in"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    {/* Campaign Header */}
+                    <div className="flex items-start justify-between gap-3 mb-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="icon-box icon-box-sm bg-primary/10 border-primary/20">
+                            <StatusIcon className="h-4 w-4 text-primary" />
+                          </div>
+                          <h3 className="font-bold text-lg truncate">{attestation.campaign?.name}</h3>
+                        </div>
+                        {attestation.campaign?.description && (
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {attestation.campaign?.description}
+                          </p>
+                        )}
+                      </div>
+                      <Badge className={cn("shrink-0", statusInfo.class)}>
+                        {statusInfo.label}
+                      </Badge>
+                    </div>
+
+                    {/* Date Info */}
+                    <div className="grid grid-cols-2 gap-3 mb-4 p-3 rounded-xl bg-surface/50">
+                      <div>
+                        <p className="caption-label mb-1">Started</p>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-3 w-3 text-muted-foreground" />
+                          <p className="text-sm font-medium">
+                            {new Date(attestation.campaign?.start_date).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="caption-label mb-1">Completed</p>
+                        <div className="flex items-center gap-2">
+                          {attestation.completed_at ? (
+                            <>
+                              <CheckCircle2 className="h-3 w-3 text-success" />
+                              <p className="text-sm font-medium text-success">
+                                {new Date(attestation.completed_at).toLocaleDateString()}
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <Clock className="h-3 w-3 text-muted-foreground" />
+                              <p className="text-sm font-medium text-muted-foreground">Not yet</p>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div>
-                      <p className="caption-label mb-1">Completed</p>
-                      <div className="flex items-center gap-2">
-                        {attestation.completed_at ? (
+
+                    {/* Action Button */}
+                    {attestation.status !== 'completed' && (
+                      <Button
+                        onClick={() => handleStartAttestation(attestation)}
+                        className="w-full btn-interactive"
+                      >
+                        {attestation.status === 'pending' ? (
                           <>
-                            <CheckCircle2 className="h-3 w-3 text-success" />
-                            <p className="text-sm font-medium text-success">
-                              {new Date(attestation.completed_at).toLocaleDateString()}
-                            </p>
+                            <PlayCircle className="h-4 w-4 mr-2" />
+                            Start Attestation
                           </>
                         ) : (
                           <>
-                            <Clock className="h-3 w-3 text-muted-foreground" />
-                            <p className="text-sm font-medium text-muted-foreground">Not yet</p>
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                            Continue Attestation
                           </>
                         )}
-                      </div>
-                    </div>
+                      </Button>
+                    )}
                   </div>
-
-                  {/* Action Button */}
-                  {attestation.status !== 'completed' && (
-                    <Button
-                      onClick={() => handleStartAttestation(attestation)}
-                      className="w-full btn-interactive"
-                    >
-                      {attestation.status === 'pending' ? (
-                        <>
-                          <PlayCircle className="h-4 w-4 mr-2" />
-                          Start Attestation
-                        </>
-                      ) : (
-                        <>
-                          <RefreshCw className="h-4 w-4 mr-2" />
-                          Continue Attestation
-                        </>
-                      )}
-                    </Button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -703,8 +688,8 @@ export default function MyAttestationsPage() {
                         const selectedStatus = selectedStatuses[asset.id] || asset.status;
                         const showReturnedDate = selectedStatus === 'returned' && !isCertified;
                         return (
-                          <div 
-                            key={asset.id} 
+                          <div
+                            key={asset.id}
                             className={cn(
                               "bento-card animate-slide-up",
                               isCertified && "border-success/30 bg-success/5"
@@ -870,11 +855,11 @@ export default function MyAttestationsPage() {
                   <Button variant="outline" onClick={() => setShowAttestationModal(false)} className="btn-interactive">
                     Close
                   </Button>
-                  <Button 
+                  <Button
                     onClick={handleCompleteAttestation}
                     disabled={
                       // Disable if there are assets but not all are certified
-                      attestationDetails.assets?.length > 0 && 
+                      attestationDetails.assets?.length > 0 &&
                       certifiedAssetIds.size < attestationDetails.assets.length
                     }
                     className="btn-interactive"
@@ -1103,41 +1088,26 @@ export default function MyAttestationsPage() {
               {attestationDetails?.campaign?.target_type === 'companies' ? (
                 <div>
                   <Label>Company (Auto-selected from campaign)</Label>
-                  <Input
-                    value={companies.find(c => c.id === newAssetForm.company_id)?.name || (companies.length > 0 ? 'Company not found' : 'Loading...')}
-                    readOnly
-                    className="bg-muted"
+                  <CompanyCombobox
+                    value={newAssetForm.company_id}
+                    onChange={(company) => {
+                      setSelectedCompany(company);
+                      setNewAssetForm({ ...newAssetForm, company_id: company?.id || null });
+                    }}
+                    disabled={true}
                   />
                 </div>
               ) : (
                 <div>
                   <Label htmlFor="company_id">Company *</Label>
-                  {loadingCompanies ? (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Loading companies...
-                    </div>
-                  ) : companies.length > 0 ? (
-                    <Select
-                      value={newAssetForm.company_id?.toString() || ''}
-                      onValueChange={(value) => setNewAssetForm({ ...newAssetForm, company_id: parseInt(value) })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select company" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {companies.map((company) => (
-                          <SelectItem key={company.id} value={company.id.toString()}>
-                            {company.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <div className="text-sm text-muted-foreground">
-                      No companies available
-                    </div>
-                  )}
+                  <CompanyCombobox
+                    value={newAssetForm.company_id}
+                    onChange={(company) => {
+                      setSelectedCompany(company);
+                      setNewAssetForm({ ...newAssetForm, company_id: company?.id || null });
+                    }}
+                    placeholder="Search for a company..."
+                  />
                 </div>
               )}
             </div>
