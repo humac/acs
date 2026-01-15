@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { Loader2, Check, ChevronsUpDown, Building2 } from 'lucide-react';
@@ -30,17 +31,26 @@ export default function CompanyCombobox({
     const [loading, setLoading] = useState(false);
     const [selectedCompany, setSelectedCompany] = useState(null);
     const debounceRef = useRef(null);
-    const inputRef = useRef(null);
+    const searchInputRef = useRef(null);
 
     // Fetch company by ID when value changes (for initial load)
     useEffect(() => {
         if (value && !selectedCompany) {
+            fetchCompanyById(value);
+        } else if (value && selectedCompany && selectedCompany.id !== value) {
             fetchCompanyById(value);
         } else if (!value) {
             setSelectedCompany(null);
             setQuery('');
         }
     }, [value]);
+
+    // Focus search input when popover opens
+    useEffect(() => {
+        if (open && searchInputRef.current) {
+            setTimeout(() => searchInputRef.current?.focus(), 0);
+        }
+    }, [open]);
 
     const fetchCompanyById = async (id) => {
         try {
@@ -102,69 +112,50 @@ export default function CompanyCombobox({
 
     const handleInputChange = (e) => {
         setQuery(e.target.value);
-        if (!open) {
-            setOpen(true);
-        }
-    };
-
-    const handleClear = () => {
-        setSelectedCompany(null);
-        setQuery('');
-        onChange?.(null);
     };
 
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild disabled={disabled}>
-                <div className={cn('relative w-full', className)}>
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                        <Building2 className="h-4 w-4" />
+                <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={open}
+                    className={cn(
+                        'w-full justify-between h-11 px-3 font-normal',
+                        !selectedCompany && 'text-muted-foreground',
+                        className
+                    )}
+                    disabled={disabled}
+                >
+                    <div className="flex items-center gap-2 min-w-0">
+                        <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span className="truncate">
+                            {selectedCompany ? selectedCompany.name : placeholder}
+                        </span>
                     </div>
-                    <Input
-                        ref={inputRef}
-                        type="text"
-                        value={selectedCompany ? selectedCompany.name : query}
-                        onChange={handleInputChange}
-                        onFocus={() => !disabled && setOpen(true)}
-                        placeholder={placeholder}
-                        disabled={disabled}
-                        className={cn(
-                            'pl-9 pr-8 cursor-pointer',
-                            selectedCompany && 'text-foreground'
-                        )}
-                        readOnly={!!selectedCompany}
-                        onClick={() => {
-                            if (selectedCompany && !disabled) {
-                                handleClear();
-                            }
-                        }}
-                    />
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                        {loading ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                            <ChevronsUpDown className="h-4 w-4" />
-                        )}
-                    </div>
-                </div>
+                    {loading ? (
+                        <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                    ) : (
+                        <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+                    )}
+                </Button>
             </PopoverTrigger>
             <PopoverContent
                 className="w-[var(--radix-popover-trigger-width)] p-0"
                 align="start"
                 sideOffset={4}
             >
-                {!selectedCompany && (
-                    <div className="p-2 border-b border-white/10">
-                        <Input
-                            type="text"
-                            value={query}
-                            onChange={handleInputChange}
-                            placeholder="Type to search..."
-                            className="h-9"
-                            autoFocus
-                        />
-                    </div>
-                )}
+                <div className="p-2 border-b border-white/10">
+                    <Input
+                        ref={searchInputRef}
+                        type="text"
+                        value={query}
+                        onChange={handleInputChange}
+                        placeholder="Type to search..."
+                        className="h-9"
+                    />
+                </div>
                 <div className="max-h-60 overflow-y-auto">
                     {loading ? (
                         <div className="flex items-center justify-center py-6 text-muted-foreground">
