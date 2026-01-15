@@ -400,10 +400,7 @@ export default function AttestationPage() {
       loadUsers();
     }
 
-    // Load companies if target type is companies
-    if (campaign.target_type === 'companies' && availableCompanies.length === 0) {
-      loadCompanies();
-    }
+    // CompanyMultiSelect handles its own data loading
   };
 
   const handleUpdateCampaign = async () => {
@@ -866,9 +863,7 @@ export default function AttestationPage() {
                   if (value === 'selected' && availableUsers.length === 0) {
                     loadUsers();
                   }
-                  if (value === 'companies' && availableCompanies.length === 0) {
-                    loadCompanies();
-                  }
+                  // CompanyMultiSelect handles its own data loading
                 }}
               >
                 <div className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-muted/50">
@@ -1158,9 +1153,7 @@ export default function AttestationPage() {
                   if (value === 'selected' && availableUsers.length === 0) {
                     loadUsers();
                   }
-                  if (value === 'companies' && availableCompanies.length === 0) {
-                    loadCompanies();
-                  }
+                  // CompanyMultiSelect handles its own data loading
                 }}
               >
                 <div className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-muted/50">

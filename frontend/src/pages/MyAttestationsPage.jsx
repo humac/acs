@@ -80,7 +80,7 @@ export default function MyAttestationsPage() {
   const [returnedDates, setReturnedDates] = useState({});
   const [assetTypes, setAssetTypes] = useState([]);
   const [loadingAssetTypes, setLoadingAssetTypes] = useState(false);
-  const [selectedCompany, setSelectedCompany] = useState(null);
+  const [_selectedCompany, setSelectedCompany] = useState(null);
 
   const loadAttestations = async () => {
     setLoading(true);

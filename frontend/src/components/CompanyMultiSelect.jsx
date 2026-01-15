@@ -29,7 +29,7 @@ export default function CompanyMultiSelect({
     const [companies, setCompanies] = useState([]);
     const [selectedCompanies, setSelectedCompanies] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [isFocused, setIsFocused] = useState(false);
+    const [_isFocused, setIsFocused] = useState(false);
     const debounceRef = useRef(null);
 
     // Load selected companies on mount or when value changes
