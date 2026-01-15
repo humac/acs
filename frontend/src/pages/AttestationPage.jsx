@@ -254,7 +254,7 @@ export default function AttestationPage() {
         target_company_ids: []
       });
       setUserSearchQuery('');
-      setCompanySearchQuery('');
+
       loadCampaigns();
     } catch (err) {
       console.error(err);
@@ -438,7 +438,7 @@ export default function AttestationPage() {
         target_company_ids: []
       });
       setUserSearchQuery('');
-      setCompanySearchQuery('');
+
       loadCampaigns();
     } catch (err) {
       console.error(err);
@@ -1050,7 +1050,7 @@ export default function AttestationPage() {
         if (!open) {
           setWizardStep(1);
           setUserSearchQuery('');
-          setCompanySearchQuery('');
+
           setEditingCampaign(null);
         }
       }}>
