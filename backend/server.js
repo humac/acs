@@ -2,7 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
-import { assetDb, companyDb, auditDb, userDb, oidcSettingsDb, brandingSettingsDb, passkeySettingsDb, databaseSettings, databaseEngine, importSqliteDatabase, passkeyDb, hubspotSettingsDb, hubspotSyncLogDb, smtpSettingsDb, passwordResetTokenDb, emailVerificationTokenDb, syncAssetOwnership, attestationCampaignDb, attestationRecordDb, attestationAssetDb, attestationNewAssetDb, assetTypeDb, emailTemplateDb, sanitizeDateValue, attestationPendingInviteDb, systemSettingsDb } from './database.js';
+import { assetDb, companyDb, auditDb, userDb, oidcSettingsDb, brandingSettingsDb, passkeySettingsDb, databaseSettings, databaseEngine, importSqliteDatabase, passkeyDb, hubspotSettingsDb, hubspotSyncLogDb, smtpSettingsDb, passwordResetTokenDb, emailVerificationTokenDb, syncAssetOwnership, attestationCampaignDb, attestationRecordDb, attestationAssetDb, attestationNewAssetDb, assetTypeDb, emailTemplateDb, sanitizeDateValue, attestationPendingInviteDb, systemSettingsDb, dangerZoneDb } from './database.js';
 import { authenticate, authorize, hashPassword, comparePassword, generateToken } from './auth.js';
 import { initializeOIDC, getAuthorizationUrl, handleCallback, getUserInfo, extractUserData, isOIDCEnabled } from './oidc.js';
 import { generateMFASecret, verifyTOTP, generateBackupCodes, formatBackupCode } from './mfa.js';
@@ -177,7 +177,7 @@ const getClientIp = (req) => {
   // Check for Cloudflare header first (most reliable when behind Cloudflare)
   const cfIp = req.headers['cf-connecting-ip'];
   if (cfIp) return cfIp;
-  
+
   // Fall back to Express req.ip (respects trust proxy setting)
   return req.ip;
 };
@@ -340,6 +340,7 @@ mountRoutes(app, {
   smtpSettingsDb,
   emailTemplateDb,
   systemSettingsDb,
+  dangerZoneDb,
   // Auth middleware
   authenticate,
   authorize,
@@ -404,16 +405,16 @@ mountRoutes(app, {
 const startServer = async () => {
   try {
     await assetDb.init();
-    
+
     // Load system configuration and apply proxy settings
     const systemConfig = await getSystemConfig();
-    
+
     // Configure trust proxy for reverse proxy/Cloudflare support
     if (systemConfig.proxy.enabled) {
       app.set('trust proxy', systemConfig.proxy.trustLevel);
       console.log(`Trust proxy enabled: level ${systemConfig.proxy.trustLevel}, type: ${systemConfig.proxy.type}`);
     }
-    
+
     await initializeOIDCFromSettings();
     logger.info({ engine: databaseEngine.toUpperCase() }, 'Database backend initialized');
 

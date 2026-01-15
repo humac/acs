@@ -22,6 +22,8 @@ import OIDCSettings from './OIDCSettings';
 import HubSpotSettings from './HubSpotSettings';
 import AssetTypesSettings from './AssetTypesSettings';
 import EmailTemplates from './EmailTemplates';
+import DangerZoneSettings from './DangerZoneSettings';
+
 
 const AdminSettingsNew = () => {
   const { getAuthHeaders, user } = useAuth();
@@ -33,7 +35,7 @@ const AdminSettingsNew = () => {
   const [brandingLoading, setBrandingLoading] = useState(false);
   const [logoPreview, setLogoPreview] = useState(null);
   const [logoFilename, setLogoFilename] = useState('');
-  
+
   // New branding fields
   const [siteName, setSiteName] = useState('ACS');
   const [subTitle, setSubTitle] = useState('Asset Compliance System');
@@ -207,15 +209,15 @@ const AdminSettingsNew = () => {
       if (!response.ok) throw new Error(data.error || 'Failed to save branding settings');
 
       toast({ title: "Success", description: "Branding settings saved successfully", variant: "success" });
-      
+
       // Trigger a custom event to notify App.jsx to reload branding
       window.dispatchEvent(new CustomEvent('brandingUpdated'));
-      
+
       fetchBrandingSettings();
     } catch (err) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
-    } finally { 
-      setBrandingLoading(false); 
+    } finally {
+      setBrandingLoading(false);
     }
   };
 
@@ -390,7 +392,7 @@ const AdminSettingsNew = () => {
                     <div className="space-y-2">
                       <Label htmlFor="primary-color" className="text-sm font-semibold">Primary Brand Color</Label>
                       <div className="flex items-center gap-3">
-                        <div 
+                        <div
                           className="h-10 w-10 rounded-full border-2 border-gray-300 cursor-pointer"
                           style={{ backgroundColor: primaryColor }}
                           onClick={() => document.getElementById('primary-color')?.click()}
@@ -455,7 +457,7 @@ const AdminSettingsNew = () => {
                         className="max-w-md"
                       />
                       <p className="text-xs text-muted-foreground">
-                        Base URL used for links in email notifications (attestation links, password reset, etc.). 
+                        Base URL used for links in email notifications (attestation links, password reset, etc.).
                         Falls back to FRONTEND_URL environment variable if not set.
                       </p>
                     </div>
@@ -483,8 +485,8 @@ const AdminSettingsNew = () => {
 
                     {/* Save Button */}
                     <div className="flex justify-end pt-2">
-                      <Button 
-                        onClick={handleBrandingSave} 
+                      <Button
+                        onClick={handleBrandingSave}
                         disabled={brandingLoading}
                         size="default"
                         className="btn-interactive"
@@ -553,9 +555,9 @@ const AdminSettingsNew = () => {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold">Database Engine</Label>
-                  <Select 
-                    value={dbSettings.engine} 
-                    onValueChange={(v) => setDbSettings({ ...dbSettings, engine: v })} 
+                  <Select
+                    value={dbSettings.engine}
+                    onValueChange={(v) => setDbSettings({ ...dbSettings, engine: v })}
                     disabled={dbSettings.managedByEnv || dbLoading}
                   >
                     <SelectTrigger className="w-48">
@@ -573,18 +575,18 @@ const AdminSettingsNew = () => {
                 {dbSettings.engine === 'postgres' && (
                   <div className="space-y-2">
                     <Label htmlFor="postgres-url" className="text-sm font-semibold">PostgreSQL Connection URL</Label>
-                    <Input 
+                    <Input
                       id="postgres-url"
-                      placeholder="postgresql://user:pass@host:5432/database" 
-                      value={dbSettings.postgresUrl} 
-                      onChange={(e) => setDbSettings({ ...dbSettings, postgresUrl: e.target.value })} 
-                      disabled={dbSettings.managedByEnv || dbLoading} 
+                      placeholder="postgresql://user:pass@host:5432/database"
+                      value={dbSettings.postgresUrl}
+                      onChange={(e) => setDbSettings({ ...dbSettings, postgresUrl: e.target.value })}
+                      disabled={dbSettings.managedByEnv || dbLoading}
                     />
                   </div>
                 )}
-                <Button 
-                  onClick={handleDatabaseSave} 
-                  disabled={dbSettings.managedByEnv || dbLoading} 
+                <Button
+                  onClick={handleDatabaseSave}
+                  disabled={dbSettings.managedByEnv || dbLoading}
                   size="sm"
                   className="btn-interactive"
                 >
@@ -615,6 +617,9 @@ const AdminSettingsNew = () => {
 
       case 'hubspot':
         return <HubSpotSettings />;
+
+      case 'danger-zone':
+        return <DangerZoneSettings />;
 
       default:
         return <div>Section not found</div>;

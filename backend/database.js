@@ -4655,4 +4655,87 @@ export const emailTemplateDb = {
   }
 };
 
+/**
+ * Danger Zone Database Operations
+ * Destructive operations for bulk data deletion
+ */
+export const dangerZoneDb = {
+  /**
+   * Delete all companies and their associated assets
+   * Assets must be deleted first due to FK constraint with ON DELETE RESTRICT
+   * Also resets HubSpot sync status
+   * @returns {Promise<{companiesDeleted: number, assetsDeleted: number}>}
+   */
+  deleteAllCompanies: async () => {
+    // First delete all assets (FK constraint)
+    const assetResult = await dbRun('DELETE FROM assets');
+    const assetsDeleted = assetResult?.changes || 0;
+
+    // Then delete all companies
+    const companyResult = await dbRun('DELETE FROM companies');
+    const companiesDeleted = companyResult?.changes || 0;
+
+    // Reset HubSpot sync status
+    await dbRun(`
+      UPDATE hubspot_settings 
+      SET last_sync = NULL, last_sync_status = NULL, companies_synced = 0, updated_at = ?
+      WHERE id = 1
+    `, [new Date().toISOString()]);
+
+    return { companiesDeleted, assetsDeleted };
+  },
+
+  /**
+   * Delete all assets
+   * @returns {Promise<{assetsDeleted: number}>}
+   */
+  deleteAllAssets: async () => {
+    const result = await dbRun('DELETE FROM assets');
+    return { assetsDeleted: result?.changes || 0 };
+  },
+
+  /**
+   * Delete all attestation data (campaigns, records, and pending invites)
+   * Records and pending invites cascade delete with campaigns
+   * @returns {Promise<{campaignsDeleted: number, recordsDeleted: number, invitesDeleted: number}>}
+   */
+  deleteAllAttestations: async () => {
+    // Count records and invites before deletion (for reporting)
+    const recordsCount = await dbGet('SELECT COUNT(*) as count FROM attestation_records');
+    const invitesCount = await dbGet('SELECT COUNT(*) as count FROM attestation_pending_invites');
+
+    // Delete campaigns (cascades to records and pending invites)
+    const campaignResult = await dbRun('DELETE FROM attestation_campaigns');
+
+    return {
+      campaignsDeleted: campaignResult?.changes || 0,
+      recordsDeleted: recordsCount?.count || 0,
+      invitesDeleted: invitesCount?.count || 0
+    };
+  },
+
+  /**
+   * Get counts for all deletable data
+   * @returns {Promise<{companies: number, assets: number, campaigns: number, records: number, invites: number}>}
+   */
+  getCounts: async () => {
+    const [companies, assets, campaigns, records, invites] = await Promise.all([
+      dbGet('SELECT COUNT(*) as count FROM companies'),
+      dbGet('SELECT COUNT(*) as count FROM assets'),
+      dbGet('SELECT COUNT(*) as count FROM attestation_campaigns'),
+      dbGet('SELECT COUNT(*) as count FROM attestation_records'),
+      dbGet('SELECT COUNT(*) as count FROM attestation_pending_invites')
+    ]);
+
+    return {
+      companies: companies?.count || 0,
+      assets: assets?.count || 0,
+      campaigns: campaigns?.count || 0,
+      records: records?.count || 0,
+      invites: invites?.count || 0
+    };
+  }
+};
+
 export default { databaseEngine };
+

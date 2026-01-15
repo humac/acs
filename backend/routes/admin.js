@@ -1212,5 +1212,143 @@ export default function createAdminRouter(deps) {
     }
   });
 
+  // ===== Danger Zone =====
+
+  const { dangerZoneDb } = deps;
+
+  // Get counts for all deletable data
+  router.get('/danger-zone/counts', authenticate, authorize('admin'), async (req, res) => {
+    try {
+      const counts = await dangerZoneDb.getCounts();
+      res.json(counts);
+    } catch (error) {
+      logger.error({ err: error, userId: req.user?.id }, 'Error getting danger zone counts');
+      res.status(500).json({ error: 'Failed to get data counts' });
+    }
+  });
+
+  // Delete all companies (and assets)
+  router.delete('/danger-zone/companies', authenticate, authorize('admin'), async (req, res) => {
+    try {
+      const { confirmation } = req.body;
+
+      // Require exact confirmation phrase
+      if (confirmation !== 'DELETE ALL COMPANIES') {
+        return res.status(400).json({
+          error: 'Invalid confirmation phrase. Please type "DELETE ALL COMPANIES" to confirm.'
+        });
+      }
+
+      const result = await dangerZoneDb.deleteAllCompanies();
+
+      // Log the action
+      await auditDb.log(
+        'delete',
+        'danger_zone',
+        null,
+        'Bulk Delete - Companies',
+        `Deleted all companies (${result.companiesDeleted}) and assets (${result.assetsDeleted})`,
+        req.user.email
+      );
+
+      logger.warn({
+        userId: req.user?.id,
+        userEmail: req.user?.email,
+        companiesDeleted: result.companiesDeleted,
+        assetsDeleted: result.assetsDeleted
+      }, 'DANGER ZONE: All companies and assets deleted');
+
+      res.json({
+        message: 'All companies and assets have been deleted',
+        ...result
+      });
+    } catch (error) {
+      logger.error({ err: error, userId: req.user?.id }, 'Error in danger zone delete companies');
+      res.status(500).json({ error: 'Failed to delete companies' });
+    }
+  });
+
+  // Delete all assets
+  router.delete('/danger-zone/assets', authenticate, authorize('admin'), async (req, res) => {
+    try {
+      const { confirmation } = req.body;
+
+      // Require exact confirmation phrase
+      if (confirmation !== 'DELETE ALL ASSETS') {
+        return res.status(400).json({
+          error: 'Invalid confirmation phrase. Please type "DELETE ALL ASSETS" to confirm.'
+        });
+      }
+
+      const result = await dangerZoneDb.deleteAllAssets();
+
+      // Log the action
+      await auditDb.log(
+        'delete',
+        'danger_zone',
+        null,
+        'Bulk Delete - Assets',
+        `Deleted all assets (${result.assetsDeleted})`,
+        req.user.email
+      );
+
+      logger.warn({
+        userId: req.user?.id,
+        userEmail: req.user?.email,
+        assetsDeleted: result.assetsDeleted
+      }, 'DANGER ZONE: All assets deleted');
+
+      res.json({
+        message: 'All assets have been deleted',
+        ...result
+      });
+    } catch (error) {
+      logger.error({ err: error, userId: req.user?.id }, 'Error in danger zone delete assets');
+      res.status(500).json({ error: 'Failed to delete assets' });
+    }
+  });
+
+  // Delete all attestation data
+  router.delete('/danger-zone/attestations', authenticate, authorize('admin'), async (req, res) => {
+    try {
+      const { confirmation } = req.body;
+
+      // Require exact confirmation phrase
+      if (confirmation !== 'DELETE ALL ATTESTATIONS') {
+        return res.status(400).json({
+          error: 'Invalid confirmation phrase. Please type "DELETE ALL ATTESTATIONS" to confirm.'
+        });
+      }
+
+      const result = await dangerZoneDb.deleteAllAttestations();
+
+      // Log the action
+      await auditDb.log(
+        'delete',
+        'danger_zone',
+        null,
+        'Bulk Delete - Attestations',
+        `Deleted all attestation data: ${result.campaignsDeleted} campaigns, ${result.recordsDeleted} records, ${result.invitesDeleted} pending invites`,
+        req.user.email
+      );
+
+      logger.warn({
+        userId: req.user?.id,
+        userEmail: req.user?.email,
+        campaignsDeleted: result.campaignsDeleted,
+        recordsDeleted: result.recordsDeleted,
+        invitesDeleted: result.invitesDeleted
+      }, 'DANGER ZONE: All attestation data deleted');
+
+      res.json({
+        message: 'All attestation data has been deleted',
+        ...result
+      });
+    } catch (error) {
+      logger.error({ err: error, userId: req.user?.id }, 'Error in danger zone delete attestations');
+      res.status(500).json({ error: 'Failed to delete attestation data' });
+    }
+  });
+
   return router;
 }
