@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import {
   Image, Shield, Key, Mail, Server, Database,
-  Plug, Laptop, Menu, Search, ChevronRight
+  Plug, Laptop, Menu, Search, ChevronRight, AlertTriangle
 } from 'lucide-react';
 
 const navItems = [
@@ -42,6 +42,12 @@ const navItems = [
     category: 'Integrations',
     items: [
       { id: 'hubspot', label: 'HubSpot CRM', icon: Plug }
+    ]
+  },
+  {
+    category: 'Danger Zone',
+    items: [
+      { id: 'danger-zone', label: 'Danger Zone', icon: AlertTriangle }
     ]
   }
 ];

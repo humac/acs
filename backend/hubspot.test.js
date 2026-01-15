@@ -25,7 +25,7 @@ describe('HubSpot Integration', () => {
   describe('testHubSpotConnection', () => {
     test('should return error when access token is missing', async () => {
       const result = await testHubSpotConnection('');
-      
+
       expect(result.success).toBe(false);
       expect(result.message).toBe('Access token is required');
       expect(fetch).not.toHaveBeenCalled();
@@ -38,7 +38,7 @@ describe('HubSpot Integration', () => {
       });
 
       const result = await testHubSpotConnection('test-token');
-      
+
       expect(result.success).toBe(true);
       expect(result.message).toBe('Successfully connected to HubSpot API');
       expect(fetch).toHaveBeenCalledWith(
@@ -61,7 +61,7 @@ describe('HubSpot Integration', () => {
       });
 
       const result = await testHubSpotConnection('invalid-token');
-      
+
       expect(result.success).toBe(false);
       expect(result.message).toBe('HubSpot API error: Invalid token');
     });
@@ -74,7 +74,7 @@ describe('HubSpot Integration', () => {
       });
 
       const result = await testHubSpotConnection('test-token');
-      
+
       expect(result.success).toBe(false);
       expect(result.message).toBe('HubSpot API error: Bad Request');
     });
@@ -83,7 +83,7 @@ describe('HubSpot Integration', () => {
       fetch.mockRejectedValueOnce(new Error('Network error'));
 
       const result = await testHubSpotConnection('test-token');
-      
+
       expect(result.success).toBe(false);
       expect(result.message).toBe('Connection failed: Network error');
     });
@@ -95,7 +95,7 @@ describe('HubSpot Integration', () => {
       expect(fetch).not.toHaveBeenCalled();
     });
 
-    test('should fetch companies successfully without pagination', async () => {
+    test('should fetch companies successfully without pagination using Search API', async () => {
       const mockCompanies = [
         { id: '1', properties: { name: 'Company A', description: 'Description A' } },
         { id: '2', properties: { name: 'Company B', description: 'Description B' } }
@@ -107,12 +107,37 @@ describe('HubSpot Integration', () => {
       });
 
       const companies = await fetchHubSpotCompanies('test-token');
-      
+
       expect(companies).toEqual(mockCompanies);
       expect(fetch).toHaveBeenCalledTimes(1);
+      expect(fetch).toHaveBeenCalledWith(
+        'https://api.hubapi.com/crm/v3/objects/companies/search',
+        expect.objectContaining({
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer test-token',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            filterGroups: [
+              {
+                filters: [
+                  {
+                    propertyName: 'lifecyclestage',
+                    operator: 'EQ',
+                    value: 'customer'
+                  }
+                ]
+              }
+            ],
+            properties: ['name', 'description'],
+            limit: 100
+          })
+        })
+      );
     });
 
-    test('should handle pagination correctly', async () => {
+    test('should handle pagination correctly with Search API', async () => {
       const firstBatch = [
         { id: '1', properties: { name: 'Company A' } }
       ];
@@ -136,9 +161,13 @@ describe('HubSpot Integration', () => {
         });
 
       const companies = await fetchHubSpotCompanies('test-token');
-      
+
       expect(companies).toEqual([...firstBatch, ...secondBatch]);
       expect(fetch).toHaveBeenCalledTimes(2);
+
+      // Verify second call includes 'after' in request body
+      const secondCallBody = JSON.parse(fetch.mock.calls[1][1].body);
+      expect(secondCallBody.after).toBe('cursor-1');
     });
 
     test('should throw error when API request fails', async () => {

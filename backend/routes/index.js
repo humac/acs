@@ -118,6 +118,7 @@ export function mountRoutes(app, deps) {
     assetTypeDb: deps.assetTypeDb,
     companyDb: deps.companyDb,
     systemSettingsDb: deps.systemSettingsDb,
+    dangerZoneDb: deps.dangerZoneDb,
     // Auth middleware
     authenticate: deps.authenticate,
     authorize: deps.authorize,

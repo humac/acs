@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 import { assetDb, userDb, companyDb } from './database.js';
 
-const uniqueSuffix = Date.now();
+// Use timestamp + random string to avoid collisions in parallel test runs
+const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 describe('Unregistered Manager Name Display', () => {
   let testAssetId;

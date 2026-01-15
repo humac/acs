@@ -51,7 +51,8 @@ export const testHubSpotConnection = async (accessToken) => {
 };
 
 /**
- * Fetch all companies from HubSpot with pagination support
+ * Fetch companies from HubSpot with pagination support
+ * Uses the Search API to filter for only "Won" customers (lifecyclestage = customer)
  * @param {string} accessToken - HubSpot Private App Access Token
  * @returns {Promise<Array>} Array of company objects
  */
@@ -66,19 +67,37 @@ export const fetchHubSpotCompanies = async (accessToken) => {
 
   try {
     do {
-      const url = new URL('https://api.hubapi.com/crm/v3/objects/companies');
-      url.searchParams.append('limit', limit);
-      url.searchParams.append('properties', 'name,description');
+      const url = 'https://api.hubapi.com/crm/v3/objects/companies/search';
+
+      // Build request body with filter for customers only
+      const requestBody = {
+        filterGroups: [
+          {
+            filters: [
+              {
+                propertyName: 'lifecyclestage',
+                operator: 'EQ',
+                value: 'customer'
+              }
+            ]
+          }
+        ],
+        properties: ['name', 'description'],
+        limit
+      };
+
+      // Add pagination cursor if available
       if (after) {
-        url.searchParams.append('after', after);
+        requestBody.after = after;
       }
 
-      const response = await fetch(url.toString(), {
-        method: 'GET',
+      const response = await fetch(url, {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
@@ -87,7 +106,7 @@ export const fetchHubSpotCompanies = async (accessToken) => {
       }
 
       const data = await response.json();
-      
+
       if (data.results && Array.isArray(data.results)) {
         companies.push(...data.results);
       }
@@ -141,7 +160,7 @@ export const syncCompaniesToACS = async (accessToken, companyDb, auditDb, userEm
           if (existingCompany.name !== name || existingDesc !== newDesc) {
             await companyDb.updateByHubSpotId(hubspotId, { name, description });
             result.companiesUpdated++;
-            
+
             await auditDb.log(
               'update',
               'company',
@@ -154,12 +173,12 @@ export const syncCompaniesToACS = async (accessToken, companyDb, auditDb, userEm
         } else {
           // Check if a company with the same name already exists (but different HubSpot ID)
           const companyByName = await companyDb.getByName(name);
-          
+
           if (companyByName) {
             // Company exists with same name but no HubSpot ID - link it
             await companyDb.setHubSpotId(companyByName.id, hubspotId);
             result.companiesUpdated++;
-            
+
             await auditDb.log(
               'update',
               'company',
@@ -176,7 +195,7 @@ export const syncCompaniesToACS = async (accessToken, companyDb, auditDb, userEm
               hubspot_id: hubspotId
             });
             result.companiesCreated++;
-            
+
             await auditDb.log(
               'create',
               'company',
