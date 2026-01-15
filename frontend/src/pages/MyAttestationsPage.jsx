@@ -56,6 +56,7 @@ export default function MyAttestationsPage() {
   const [selectedAttestation, setSelectedAttestation] = useState(null);
   const [attestationDetails, setAttestationDetails] = useState(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [completingAttestation, setCompletingAttestation] = useState(false);
   const [_attestedAssetIds, setAttestedAssetIds] = useState(new Set());
   const [certifiedAssetIds, setCertifiedAssetIds] = useState(new Set());
   const [selectedStatuses, setSelectedStatuses] = useState({});
@@ -357,6 +358,7 @@ export default function MyAttestationsPage() {
   };
 
   const handleCompleteAttestation = async () => {
+    setCompletingAttestation(true);
     try {
       const res = await fetch(`/api/attestation/records/${selectedAttestation.id}/complete`, {
         method: 'POST',
@@ -382,6 +384,8 @@ export default function MyAttestationsPage() {
         description: 'Failed to complete attestation',
         variant: 'destructive'
       });
+    } finally {
+      setCompletingAttestation(false);
     }
   };
 
@@ -858,14 +862,19 @@ export default function MyAttestationsPage() {
                   <Button
                     onClick={handleCompleteAttestation}
                     disabled={
+                      completingAttestation ||
                       // Disable if there are assets but not all are certified
-                      attestationDetails.assets?.length > 0 &&
-                      certifiedAssetIds.size < attestationDetails.assets.length
+                      (attestationDetails.assets?.length > 0 &&
+                        certifiedAssetIds.size < attestationDetails.assets.length)
                     }
                     className="btn-interactive"
                   >
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    Complete Attestation
+                    {completingAttestation ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                    )}
+                    {completingAttestation ? 'Completing...' : 'Complete Attestation'}
                   </Button>
                 </div>
               </div>
