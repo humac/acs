@@ -13,10 +13,16 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Checkbox } from '@/components/ui/checkbox';
 import TablePaginationControls from '@/components/TablePaginationControls';
 import { cn } from '@/lib/utils';
-import { Building2, Plus, Edit, Trash2, Upload, Download, Loader2, Search, Sparkles } from 'lucide-react';
+import { Building2, Plus, Edit, Trash2, Upload, Download, Loader2, Search, Sparkles, ChevronDown } from 'lucide-react';
 
 const CompanyManagementNew = () => {
   const { getAuthHeaders, user } = useAuth();
@@ -165,27 +171,43 @@ const CompanyManagementNew = () => {
 
   const formatDate = (dateString) => new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
-  const handleExport = async () => {
-    try {
-      const response = await fetch('/api/companies/export', {
-        headers: { ...getAuthHeaders() }
-      });
-      if (!response.ok) throw new Error('Failed to export companies');
+  // Client-side CSV export
+  const exportCompaniesToCSV = (companiesToExport, exportType = 'export') => {
+    const headers = ['ID', 'Name', 'Description', 'Created Date', 'Asset Count'];
+    const csvContent = [
+      headers.join(','),
+      ...companiesToExport.map(company => {
+        const row = [
+          company.id,
+          `"${(company.name || '').replace(/"/g, '""')}"`,
+          `"${(company.description || '').replace(/"/g, '""')}"`,
+          company.created_date || '',
+          assetCountByCompany[company.name] || 0
+        ];
+        return row.join(',');
+      }),
+    ].join('\n');
 
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `companies-${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `companies_${exportType}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
 
-      toast({ title: "Success", description: "Companies exported successfully", variant: "success" });
-    } catch (err) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    }
+    toast({
+      title: "Export Complete",
+      description: `Exported ${companiesToExport.length} compan${companiesToExport.length === 1 ? 'y' : 'ies'} to CSV`,
+      variant: "success"
+    });
+  };
+
+  const handleExportSelected = () => {
+    const selectedCompanies = companies.filter(c => selectedIds.has(c.id));
+    exportCompaniesToCSV(selectedCompanies, 'selected');
+  };
+
+  const handleExportAll = () => {
+    exportCompaniesToCSV(companies, 'all');
   };
 
   const handleAddClick = () => {
@@ -306,9 +328,27 @@ const CompanyManagementNew = () => {
             </div>
             {canManageCompanies && (
               <div className="flex gap-2 flex-wrap">
-                <Button variant="outline" onClick={handleExport} className="flex-1 sm:flex-none btn-interactive">
-                  <Download size={20} className="mr-2" />Export
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="flex-1 sm:flex-none btn-interactive">
+                      <Download size={20} className="mr-2" />
+                      Export
+                      <ChevronDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {selectedIds.size > 0 && (
+                      <DropdownMenuItem onClick={handleExportSelected}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Export Selected ({selectedIds.size})
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuItem onClick={handleExportAll}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Export All ({companies.length})
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Button variant="outline" onClick={() => setShowImportModal(true)} className="flex-1 sm:flex-none btn-interactive">
                   <Upload size={20} className="mr-2" />Bulk Import
                 </Button>
