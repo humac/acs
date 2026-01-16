@@ -165,6 +165,29 @@ const CompanyManagementNew = () => {
 
   const formatDate = (dateString) => new Date(dateString).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 
+  const handleExport = async () => {
+    try {
+      const response = await fetch('/api/companies/export', {
+        headers: { ...getAuthHeaders() }
+      });
+      if (!response.ok) throw new Error('Failed to export companies');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `companies-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast({ title: "Success", description: "Companies exported successfully", variant: "success" });
+    } catch (err) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+  };
+
   const handleAddClick = () => {
     setEditingCompany(null);
     setFormData({ name: '', description: '' });
@@ -283,6 +306,9 @@ const CompanyManagementNew = () => {
             </div>
             {canManageCompanies && (
               <div className="flex gap-2 flex-wrap">
+                <Button variant="outline" onClick={handleExport} className="flex-1 sm:flex-none btn-interactive">
+                  <Download size={20} className="mr-2" />Export
+                </Button>
                 <Button variant="outline" onClick={() => setShowImportModal(true)} className="flex-1 sm:flex-none btn-interactive">
                   <Upload size={20} className="mr-2" />Bulk Import
                 </Button>
@@ -381,44 +407,44 @@ const CompanyManagementNew = () => {
                         />
                       </TableHead>
                     )}
-                      <TableHead className="caption-label">Company Name</TableHead>
-                      <TableHead className="hidden md:table-cell caption-label">Description</TableHead>
-                      <TableHead className="hidden md:table-cell text-center caption-label">Assets</TableHead>
-                      <TableHead className="hidden xl:table-cell caption-label">Created</TableHead>
-                      {canManageCompanies && <TableHead className="text-right caption-label">Actions</TableHead>}
+                    <TableHead className="caption-label">Company Name</TableHead>
+                    <TableHead className="hidden md:table-cell caption-label">Description</TableHead>
+                    <TableHead className="hidden md:table-cell text-center caption-label">Assets</TableHead>
+                    <TableHead className="hidden xl:table-cell caption-label">Created</TableHead>
+                    {canManageCompanies && <TableHead className="text-right caption-label">Actions</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedCompanies.map((company) => (
+                    <TableRow
+                      key={company.id}
+                      data-state={canManageCompanies && selectedIds.has(company.id) ? "selected" : undefined}
+                      className={cn(canManageCompanies && selectedIds.has(company.id) && "bg-primary/5 border-primary/40")}
+                    >
+                      {canManageCompanies && (
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedIds.has(company.id)}
+                            onCheckedChange={() => toggleSelect(company.id)}
+                          />
+                        </TableCell>
+                      )}
+                      <TableCell className="font-medium">{company.name}</TableCell>
+                      <TableCell className="hidden md:table-cell text-muted-foreground">{company.description || '-'}</TableCell>
+                      <TableCell className="hidden md:table-cell text-center">{assetCountByCompany[company.name] || 0}</TableCell>
+                      <TableCell className="hidden xl:table-cell">{formatDate(company.created_date)}</TableCell>
+                      {canManageCompanies && (
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => handleEdit(company)} className="btn-interactive"><Edit size={20} /></Button>
+                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive btn-interactive" onClick={() => setDeleteDialog({ open: true, company })}><Trash2 size={20} /></Button>
+                          </div>
+                        </TableCell>
+                      )}
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedCompanies.map((company) => (
-                      <TableRow
-                        key={company.id}
-                        data-state={canManageCompanies && selectedIds.has(company.id) ? "selected" : undefined}
-                        className={cn(canManageCompanies && selectedIds.has(company.id) && "bg-primary/5 border-primary/40")}
-                      >
-                        {canManageCompanies && (
-                          <TableCell>
-                            <Checkbox
-                              checked={selectedIds.has(company.id)}
-                              onCheckedChange={() => toggleSelect(company.id)}
-                            />
-                          </TableCell>
-                        )}
-                        <TableCell className="font-medium">{company.name}</TableCell>
-                        <TableCell className="hidden md:table-cell text-muted-foreground">{company.description || '-'}</TableCell>
-                        <TableCell className="hidden md:table-cell text-center">{assetCountByCompany[company.name] || 0}</TableCell>
-                        <TableCell className="hidden xl:table-cell">{formatDate(company.created_date)}</TableCell>
-                        {canManageCompanies && (
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-1">
-                              <Button variant="ghost" size="icon" onClick={() => handleEdit(company)} className="btn-interactive"><Edit size={20} /></Button>
-                              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive btn-interactive" onClick={() => setDeleteDialog({ open: true, company })}><Trash2 size={20} /></Button>
-                            </div>
-                          </TableCell>
-                        )}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                  ))}
+                </TableBody>
+              </Table>
               <TablePaginationControls
                 className="mt-4"
                 page={page}

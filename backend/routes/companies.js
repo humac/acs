@@ -61,6 +61,37 @@ export default function createCompaniesRouter(deps) {
     }
   });
 
+  // Export companies as CSV (admin only)
+  router.get('/export', authenticate, authorize('admin'), async (req, res) => {
+    try {
+      const companies = await companyDb.getAll();
+
+      // Generate CSV
+      const headers = ['ID', 'Name', 'Description', 'Created Date'];
+      const csvRows = [headers.join(',')];
+
+      companies.forEach(company => {
+        const row = [
+          company.id,
+          `"${(company.name || '').replace(/"/g, '""')}"`,
+          `"${(company.description || '').replace(/"/g, '""')}"`,
+          company.created_date || ''
+        ];
+        csvRows.push(row.join(','));
+      });
+
+      const csv = csvRows.join('\n');
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename=companies-${new Date().toISOString().split('T')[0]}.csv`);
+      res.send(csv);
+    } catch (error) {
+      logger.error({ err: error, userId: req.user?.id }, 'Error exporting companies');
+      res.status(500).json({ error: 'Failed to export companies' });
+    }
+  });
+
+
   // Bulk import companies via CSV (admin only)
   router.post('/import', authenticate, authorize('admin'), upload.single('file'), async (req, res) => {
     if (!req.file) {
