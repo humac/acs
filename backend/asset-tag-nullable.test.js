@@ -127,7 +127,8 @@ describe('Asset Tag Nullable Support', () => {
     expect(retrieved1.asset_tag).toBe(uniqueTag);
 
     // Attempt to create another asset with the same non-NULL asset_tag should fail
-    await expect(async () => {
+    let errorThrown = false;
+    try {
       await assetDb.create({
         employee_first_name: 'Charlie',
         employee_last_name: 'Brown',
@@ -138,7 +139,13 @@ describe('Asset Tag Nullable Support', () => {
         asset_tag: uniqueTag,
         status: 'active'
       });
-    }).rejects.toThrow();
+    } catch (err) {
+      errorThrown = true;
+      // Verify it's a UNIQUE constraint error
+      expect(err.message).toMatch(/UNIQUE constraint failed|duplicate key|asset_tag/i);
+    }
+
+    expect(errorThrown).toBe(true);
   });
 
   it('should convert empty string to NULL when creating asset', async () => {
