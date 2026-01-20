@@ -8,6 +8,7 @@ import { assetDb, companyDb, userDb } from './database.js';
 
 describe('Asset Tag Nullable Support', () => {
   let testCompany;
+  let testCompanyName;
   let testUser;
   const timestamp = Date.now();
 
@@ -16,8 +17,9 @@ describe('Asset Tag Nullable Support', () => {
     await assetDb.init();
 
     // Create test company
+    testCompanyName = `Test Company ${timestamp}`;
     testCompany = await companyDb.create({
-      name: `Test Company ${timestamp}`,
+      name: testCompanyName,
       description: 'Test company for asset_tag nullable tests'
     });
 
@@ -54,7 +56,7 @@ describe('Asset Tag Nullable Support', () => {
       employee_first_name: 'John',
       employee_last_name: 'Doe',
       employee_email: testUser.email,
-      company_name: testCompany.name,
+      company_name: testCompanyName,
       asset_type: 'laptop',
       make: 'Apple',
       model: 'MacBook Pro',
@@ -75,7 +77,7 @@ describe('Asset Tag Nullable Support', () => {
       employee_first_name: 'Jane',
       employee_last_name: 'Doe',
       employee_email: testUser.email,
-      company_name: testCompany.name,
+      company_name: testCompanyName,
       asset_type: 'laptop',
       serial_number: `NULL-TEST-${timestamp}-2`,
       asset_tag: null,
@@ -86,7 +88,7 @@ describe('Asset Tag Nullable Support', () => {
       employee_first_name: 'Bob',
       employee_last_name: 'Smith',
       employee_email: testUser.email,
-      company_name: testCompany.name,
+      company_name: testCompanyName,
       asset_type: 'mobile_phone',
       serial_number: `NULL-TEST-${timestamp}-3`,
       asset_tag: null,
@@ -111,7 +113,7 @@ describe('Asset Tag Nullable Support', () => {
       employee_first_name: 'Alice',
       employee_last_name: 'Johnson',
       employee_email: testUser.email,
-      company_name: testCompany.name,
+      company_name: testCompanyName,
       asset_type: 'laptop',
       serial_number: `NULL-TEST-${timestamp}-4`,
       asset_tag: uniqueTag,
@@ -126,7 +128,7 @@ describe('Asset Tag Nullable Support', () => {
         employee_first_name: 'Charlie',
         employee_last_name: 'Brown',
         employee_email: testUser.email,
-        company_name: testCompany.name,
+        company_name: testCompanyName,
         asset_type: 'laptop',
         serial_number: `NULL-TEST-${timestamp}-5`,
         asset_tag: uniqueTag,
@@ -140,7 +142,7 @@ describe('Asset Tag Nullable Support', () => {
       employee_first_name: 'Empty',
       employee_last_name: 'Tag',
       employee_email: testUser.email,
-      company_name: testCompany.name,
+      company_name: testCompanyName,
       asset_type: 'laptop',
       serial_number: `NULL-TEST-${timestamp}-6`,
       asset_tag: '', // Empty string should become NULL
@@ -158,7 +160,7 @@ describe('Asset Tag Nullable Support', () => {
       employee_first_name: 'Update',
       employee_last_name: 'Test',
       employee_email: testUser.email,
-      company_name: testCompany.name,
+      company_name: testCompanyName,
       asset_type: 'laptop',
       serial_number: `NULL-TEST-${timestamp}-7`,
       asset_tag: `TAG-${timestamp}`,
