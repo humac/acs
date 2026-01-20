@@ -2145,7 +2145,8 @@ const initDb = async () => {
   }
   await dbRun('CREATE INDEX IF NOT EXISTS idx_status ON assets(status)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_serial_number ON assets(serial_number)');
-  await dbRun('CREATE INDEX IF NOT EXISTS idx_asset_tag ON assets(asset_tag)');
+  // Create UNIQUE index for asset_tag to enforce uniqueness (asset_tag can be NULL, multiple NULLs allowed)
+  await dbRun('CREATE UNIQUE INDEX IF NOT EXISTS idx_asset_tag_unique ON assets(asset_tag) WHERE asset_tag IS NOT NULL');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_company_name ON companies(name)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_logs(timestamp)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_logs(entity_type, entity_id)');
