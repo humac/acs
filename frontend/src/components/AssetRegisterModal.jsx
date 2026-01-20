@@ -141,7 +141,7 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
 
     // Validate required fields
     if (!form.employee_first_name || !form.employee_last_name || !form.employee_email || !form.company_name ||
-      !form.asset_type || !form.serial_number || !form.asset_tag) {
+      !form.asset_type || !form.serial_number) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
@@ -174,7 +174,7 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
         make: form.make,
         model: form.model,
         serial_number: form.serial_number,
-        asset_tag: form.asset_tag,
+        asset_tag: form.asset_tag.trim() || null,
         status: form.status,
         issued_date: form.issued_date || null,
         returned_date: form.status === 'returned' ? form.returned_date : null,
@@ -442,15 +442,14 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="asset_tag">Asset Tag *</Label>
+                <Label htmlFor="asset_tag">Asset Tag (Optional)</Label>
                 <Input
                   id="asset_tag"
                   name="asset_tag"
                   value={form.asset_tag}
                   onChange={onChange}
                   maxLength={100}
-                  placeholder="AT-1001"
-                  required
+                  placeholder="Leave blank if unknown"
                   className="text-base"
                 />
               </div>

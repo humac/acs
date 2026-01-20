@@ -84,8 +84,7 @@ export default function createAssetsRouter(deps) {
         'employee_email',
         'company_name',
         'asset_type',
-        'serial_number',
-        'asset_tag'
+        'serial_number'
       ];
       const validAssetTypes = (await assetTypeDb.getActive()).map(t => t.name.toLowerCase());
 
@@ -169,7 +168,7 @@ export default function createAssetsRouter(deps) {
   });
 
   // Create new asset
-  router.post('/', authenticate, requireFields('employee_first_name', 'employee_last_name', 'employee_email', 'company_name', 'asset_type', 'serial_number', 'asset_tag'), async (req, res) => {
+  router.post('/', authenticate, requireFields('employee_first_name', 'employee_last_name', 'employee_email', 'company_name', 'asset_type', 'serial_number'), async (req, res) => {
     try {
       const {
         employee_first_name,
@@ -424,7 +423,7 @@ export default function createAssetsRouter(deps) {
   });
 
   // Update asset
-  router.put('/:id', authenticate, requireEditPermission, requireFields('employee_first_name', 'employee_last_name', 'employee_email', 'company_name', 'asset_type', 'serial_number', 'asset_tag'), async (req, res) => {
+  router.put('/:id', authenticate, requireEditPermission, requireFields('employee_first_name', 'employee_last_name', 'employee_email', 'company_name', 'asset_type', 'serial_number'), async (req, res) => {
     try {
       const asset = req.asset;
       const {

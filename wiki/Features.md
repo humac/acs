@@ -11,8 +11,9 @@ Complete feature overview of the Asset Compliance System (ACS).
 - Required fields:
   - Employee first name, last name, email
   - Company name
-  - Laptop serial number (unique), asset tag (unique)
+  - Laptop serial number (unique)
 - Optional fields:
+  - Asset tag (unique if provided - leave blank if unknown)
   - Manager first name, last name, email
   - Laptop make, model
   - Status (defaults to 'active')
@@ -39,8 +40,8 @@ Complete feature overview of the Asset Compliance System (ACS).
 - Sortable table view with pagination
 - **Bulk Import** (Admin & Manager Only)
   - CSV import with validation feedback for admins and managers
-  - Required CSV fields: employee_first_name, employee_last_name, employee_email, company_name, laptop_serial_number, laptop_asset_tag
-  - Optional CSV fields: manager_first_name, manager_last_name, manager_email, laptop_make, laptop_model, status, issued_date, returned_date, notes
+  - Required CSV fields: employee_first_name, employee_last_name, employee_email, company_name, laptop_serial_number
+  - Optional CSV fields: laptop_asset_tag (unique if provided), manager_first_name, manager_last_name, manager_email, laptop_make, laptop_model, status, issued_date, returned_date, notes
   - Displays per-row success/errors after upload
   - Refreshes asset table after import completes
   - Download example CSV template with proper field names
@@ -182,7 +183,7 @@ The Attestation Workflow system enables administrators to create periodic campai
   - If status is "Returned", must provide the returned date before certifying
   - Add notes about asset condition
 - Report new/unregistered assets discovered during review:
-  - Full asset details (type, make, model, serial number, asset tag)
+  - Full asset details (type, make, model, serial number, asset tag - optional)
   - Assets flagged for admin registration
 - Complete attestation when all assets reviewed
 - Admin notified upon completion

@@ -289,7 +289,7 @@ export default function MyAttestationsPage() {
 
   const handleAddNewAsset = async () => {
     // Validate required fields
-    if (!newAssetForm.asset_type || !newAssetForm.serial_number || !newAssetForm.asset_tag ||
+    if (!newAssetForm.asset_type || !newAssetForm.serial_number ||
       !newAssetForm.employee_first_name || !newAssetForm.employee_last_name || !newAssetForm.employee_email ||
       !newAssetForm.company_id) {
       toast({
@@ -314,7 +314,10 @@ export default function MyAttestationsPage() {
       const res = await fetch(`/api/attestation/records/${selectedAttestation.id}/assets/new`, {
         method: 'POST',
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
-        body: JSON.stringify(newAssetForm)
+        body: JSON.stringify({
+          ...newAssetForm,
+          asset_tag: newAssetForm.asset_tag.trim() || null
+        })
       });
 
       if (!res.ok) throw new Error('Failed to add new asset');
@@ -952,12 +955,12 @@ export default function MyAttestationsPage() {
               />
             </div>
             <div>
-              <Label htmlFor="asset_tag">Asset Tag *</Label>
+              <Label htmlFor="asset_tag">Asset Tag (Optional)</Label>
               <Input
                 id="asset_tag"
                 value={newAssetForm.asset_tag}
                 onChange={(e) => setNewAssetForm({ ...newAssetForm, asset_tag: e.target.value })}
-                placeholder="Enter asset tag"
+                placeholder="Leave blank if unknown"
               />
             </div>
             <div>

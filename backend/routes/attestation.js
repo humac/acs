@@ -666,8 +666,8 @@ export default function createAttestationRouter(deps) {
               manager_first_name, manager_last_name, manager_email,
               status, issued_date, returned_date } = req.body;
 
-      if (!asset_type || !serial_number || !asset_tag) {
-        return res.status(400).json({ error: 'Asset type, serial number, and asset tag are required' });
+      if (!asset_type || !serial_number) {
+        return res.status(400).json({ error: 'Asset type and serial number are required' });
       }
       if (!employee_first_name || !employee_last_name || !employee_email) {
         return res.status(400).json({ error: 'Employee first name, last name, and email are required' });
@@ -694,7 +694,7 @@ export default function createAttestationRouter(deps) {
         make,
         model,
         serial_number,
-        asset_tag,
+        asset_tag: asset_tag || null,
         company_id,
         notes,
         employee_first_name,

@@ -378,7 +378,7 @@ const newAsset = await assetDb.create({
   make: 'Apple',
   model: 'MacBook Pro',
   serial_number: 'ABC123',
-  asset_tag: 'ASSET-001',
+  asset_tag: 'ASSET-001',  // Optional: can be null if unknown
   status: 'active',
   issued_date: '2025-01-15',  // Optional: when asset was issued
   notes: 'Optional notes'

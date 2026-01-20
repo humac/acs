@@ -25,7 +25,7 @@ The ACS application has been updated to support multiple asset types (laptops an
 - `make` (TEXT) - Generic manufacturer/make
 - `model` (TEXT) - Generic model
 - `serial_number` (TEXT NOT NULL UNIQUE) - Generic serial number
-- `asset_tag` (TEXT NOT NULL UNIQUE) - Generic asset tag
+- `asset_tag` (TEXT UNIQUE) - Generic asset tag (optional - unique if provided)
 
 ### Index Changes
 
@@ -38,15 +38,15 @@ The ACS application has been updated to support multiple asset types (laptops an
 All asset-related API endpoints now require the `asset_type` field and use generic field names:
 
 **POST /api/assets**
-- Required: `asset_type` ('laptop' or 'mobile_phone'), `serial_number`, `asset_tag`
-- Optional: `make`, `model`
+- Required: `asset_type` ('laptop' or 'mobile_phone'), `serial_number`
+- Optional: `asset_tag` (unique if provided), `make`, `model`
 
 **PUT /api/assets/:id**
 - Same field requirements as POST
 
 **POST /api/assets/import**
-- CSV must include: `asset_type`, `serial_number`, `asset_tag`
-- CSV may include: `make`, `model`
+- CSV must include: `asset_type`, `serial_number`
+- CSV may include: `asset_tag` (unique if provided), `make`, `model`
 
 ### CSV Template Changes
 
