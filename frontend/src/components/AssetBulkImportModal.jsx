@@ -134,10 +134,10 @@ export default function AssetBulkImportModal({ onClose, onImported }) {
                   <li>company_name</li>
                   <li>asset_type (laptop or mobile_phone)</li>
                   <li>serial_number (must be unique)</li>
-                  <li>asset_tag (must be unique)</li>
                 </ul>
                 <p className="font-medium mt-3">Optional fields:</p>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                  <li>asset_tag (must be unique if provided - leave blank if unknown)</li>
                   <li>manager_first_name</li>
                   <li>manager_last_name</li>
                   <li>manager_email</li>

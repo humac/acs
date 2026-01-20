@@ -61,12 +61,12 @@ describe('AssetBulkImportModal', () => {
       expect(screen.getByText('company_name')).toBeInTheDocument();
       expect(screen.getByText(/asset_type/)).toBeInTheDocument();
       expect(screen.getByText('serial_number (must be unique)')).toBeInTheDocument();
-      expect(screen.getByText('asset_tag (must be unique)')).toBeInTheDocument();
     });
 
     it('renders optional fields list', () => {
       renderModal();
       expect(screen.getByText('Optional fields:')).toBeInTheDocument();
+      expect(screen.getByText('asset_tag (must be unique if provided - leave blank if unknown)')).toBeInTheDocument();
       expect(screen.getByText('manager_first_name')).toBeInTheDocument();
       expect(screen.getByText('manager_last_name')).toBeInTheDocument();
       expect(screen.getByText('manager_email')).toBeInTheDocument();

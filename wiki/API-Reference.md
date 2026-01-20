@@ -944,9 +944,9 @@ POST /api/assets
 - `employee_email` - Employee's email address
 - `company_name` - Client company name
 - `laptop_serial_number` - Unique laptop serial number
-- `laptop_asset_tag` - Unique asset tag
 
 **Optional Fields:**
+- `laptop_asset_tag` - Unique asset tag (leave blank if unknown)
 - `manager_first_name` - Manager's first name
 - `manager_last_name` - Manager's last name
 - `manager_email` - Manager's email address
@@ -987,7 +987,7 @@ POST /api/assets
 ```
 
 **Errors:**
-- `400` - Missing required fields (employee_first_name, employee_last_name, employee_email, company_name, laptop_serial_number, laptop_asset_tag)
+- `400` - Missing required fields (employee_first_name, employee_last_name, employee_email, company_name, laptop_serial_number)
 - `400` - Missing returned_date when status is 'returned'
 - `409` - Duplicate serial number or asset tag
 
@@ -1012,9 +1012,9 @@ Required columns:
 - `employee_email`
 - `company_name`
 - `laptop_serial_number`
-- `laptop_asset_tag`
 
 Optional columns:
+- `laptop_asset_tag` (must be unique if provided - leave blank if unknown)
 - `manager_first_name`
 - `manager_last_name`
 - `manager_email`
@@ -1029,7 +1029,7 @@ Optional columns:
 ```csv
 employee_first_name,employee_last_name,employee_email,manager_first_name,manager_last_name,manager_email,company_name,laptop_make,laptop_model,laptop_serial_number,laptop_asset_tag,status,issued_date,returned_date,notes
 Jane,Doe,jane.doe@example.com,John,Manager,john.manager@example.com,Acme Corp,Lenovo,ThinkPad T14,ABC12345,AT-1001,active,2024-01-15,,Primary laptop issued Q1
-Sam,Smith,sam.smith@example.com,John,Manager,john.manager@example.com,Globex Inc,Apple,MacBook Pro,XYZ98765,AT-1002,returned,2023-06-01,2024-01-10,Returned after project completion
+Sam,Smith,sam.smith@example.com,John,Manager,john.manager@example.com,Globex Inc,Apple,MacBook Pro,XYZ98765,,returned,2023-06-01,2024-01-10,Returned after project completion - asset tag unknown
 ```
 
 **Response:** `200 OK`
@@ -1776,14 +1776,16 @@ POST /api/attestation/records/:id/assets/new
 }
 ```
 
-**Fields:**
+**Required Fields:**
 - `asset_type` - Type of asset (laptop, mobile phone)
+- `laptop_serial_number` - Serial number
+
+**Optional Fields:**
+- `laptop_asset_tag` - Asset tag (leave blank if unknown)
 - `laptop_make` - Manufacturer
 - `laptop_model` - Model name
-- `laptop_serial_number` - Serial number
-- `laptop_asset_tag` - Asset tag
-- `issued_date` - Optional date asset was issued (YYYY-MM-DD format)
-- `notes` - Optional notes
+- `issued_date` - Date asset was issued (YYYY-MM-DD format)
+- `notes` - Additional notes
 
 **Response:** `201 Created`
 ```json
