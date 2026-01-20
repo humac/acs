@@ -2046,6 +2046,88 @@ const initDb = async () => {
     // Don't fail initialization
   }
 
+  // Migration: Make asset_tag nullable (remove NOT NULL constraint)
+  // This migration allows assets to have NULL asset_tag while maintaining uniqueness
+  console.log('Checking if asset_tag column needs migration to nullable...');
+  try {
+    // Check current schema
+    const assetColumns = isPostgres
+      ? await dbAll(`
+          SELECT column_name as name, is_nullable
+          FROM information_schema.columns
+          WHERE table_name = $1 AND column_name = $2
+        `, ['assets', 'asset_tag'])
+      : await dbAll("PRAGMA table_info(assets)");
+
+    const assetTagCol = isPostgres
+      ? assetColumns[0]
+      : assetColumns.find(col => col.name === 'asset_tag');
+
+    // For SQLite: notnull=1 means NOT NULL, notnull=0 means nullable
+    // For Postgres: is_nullable='NO' means NOT NULL, is_nullable='YES' means nullable
+    const isNotNull = isPostgres
+      ? (assetTagCol?.is_nullable === 'NO')
+      : (assetTagCol?.notnull === 1);
+
+    if (isNotNull) {
+      console.log('Migrating asset_tag column to nullable...');
+
+      if (isPostgres) {
+        // PostgreSQL: Can directly ALTER column to drop NOT NULL
+        await dbRun('ALTER TABLE assets ALTER COLUMN asset_tag DROP NOT NULL');
+        console.log('Migration complete: asset_tag is now nullable (PostgreSQL)');
+      } else {
+        // SQLite: Must recreate table (no ALTER COLUMN support)
+        // This is the proper way to modify column constraints in SQLite
+
+        // 1. Create new table with correct schema
+        await dbRun(`
+          CREATE TABLE assets_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            employee_first_name TEXT NOT NULL,
+            employee_last_name TEXT NOT NULL,
+            employee_email TEXT NOT NULL,
+            owner_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            manager_first_name TEXT,
+            manager_last_name TEXT,
+            manager_email TEXT,
+            manager_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+            company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE RESTRICT,
+            asset_type TEXT NOT NULL,
+            make TEXT,
+            model TEXT,
+            serial_number TEXT NOT NULL UNIQUE,
+            asset_tag TEXT UNIQUE,
+            status TEXT NOT NULL DEFAULT 'active',
+            issued_date TEXT,
+            returned_date TEXT,
+            registration_date TEXT NOT NULL,
+            last_updated TEXT NOT NULL,
+            notes TEXT
+          )
+        `);
+
+        // 2. Copy all data from old table to new table
+        await dbRun(`
+          INSERT INTO assets_new SELECT * FROM assets
+        `);
+
+        // 3. Drop old table
+        await dbRun('DROP TABLE assets');
+
+        // 4. Rename new table to original name
+        await dbRun('ALTER TABLE assets_new RENAME TO assets');
+
+        console.log('Migration complete: asset_tag is now nullable (SQLite)');
+      }
+    } else {
+      console.log('asset_tag column is already nullable, no migration needed');
+    }
+  } catch (err) {
+    console.error('asset_tag nullable migration error:', err.message);
+    // Don't fail initialization - the schema may already be correct
+  }
+
   // Indexes
   await dbRun('CREATE INDEX IF NOT EXISTS idx_employee_first_name ON assets(employee_first_name)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_employee_last_name ON assets(employee_last_name)');
@@ -2063,7 +2145,8 @@ const initDb = async () => {
   }
   await dbRun('CREATE INDEX IF NOT EXISTS idx_status ON assets(status)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_serial_number ON assets(serial_number)');
-  await dbRun('CREATE INDEX IF NOT EXISTS idx_asset_tag ON assets(asset_tag)');
+  // Create UNIQUE index for asset_tag to enforce uniqueness (asset_tag can be NULL, multiple NULLs allowed)
+  await dbRun('CREATE UNIQUE INDEX IF NOT EXISTS idx_asset_tag_unique ON assets(asset_tag) WHERE asset_tag IS NOT NULL');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_company_name ON companies(name)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_audit_timestamp ON audit_logs(timestamp)');
   await dbRun('CREATE INDEX IF NOT EXISTS idx_audit_entity ON audit_logs(entity_type, entity_id)');
