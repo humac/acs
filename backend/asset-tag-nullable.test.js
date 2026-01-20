@@ -134,7 +134,7 @@ describe('Asset Tag Nullable Support', () => {
         asset_tag: uniqueTag,
         status: 'active'
       })
-    ).rejects.toThrow();
+    ).rejects.toThrow(/UNIQUE constraint failed|duplicate key value violates unique constraint/);
   });
 
   it('should convert empty string to NULL when creating asset', async () => {
