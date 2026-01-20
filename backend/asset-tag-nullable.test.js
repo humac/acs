@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
-import { assetDb, companyDb, userDb, initialize } from './database.js';
+import { assetDb, companyDb, userDb } from './database.js';
 
 describe('Asset Tag Nullable Support', () => {
   let testCompany;
@@ -12,7 +12,8 @@ describe('Asset Tag Nullable Support', () => {
   const timestamp = Date.now();
 
   beforeAll(async () => {
-    await initialize();
+    // Initialize database
+    await assetDb.init();
 
     // Create test company
     testCompany = await companyDb.create({
