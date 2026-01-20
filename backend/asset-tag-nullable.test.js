@@ -123,8 +123,8 @@ describe('Asset Tag Nullable Support', () => {
     expect(asset1.id).toBeDefined();
 
     // Attempt to create another asset with the same non-NULL asset_tag should fail
-    await expect(async () => {
-      await assetDb.create({
+    await expect(
+      assetDb.create({
         employee_first_name: 'Charlie',
         employee_last_name: 'Brown',
         employee_email: testUser.email,
@@ -133,8 +133,8 @@ describe('Asset Tag Nullable Support', () => {
         serial_number: `NULL-TEST-${timestamp}-5`,
         asset_tag: uniqueTag,
         status: 'active'
-      });
-    }).rejects.toThrow();
+      })
+    ).rejects.toThrow();
   });
 
   it('should convert empty string to NULL when creating asset', async () => {
@@ -156,7 +156,7 @@ describe('Asset Tag Nullable Support', () => {
   });
 
   it('should convert empty string to NULL when updating asset', async () => {
-    const asset = await assetDb.create({
+    const created = await assetDb.create({
       employee_first_name: 'Update',
       employee_last_name: 'Test',
       employee_email: testUser.email,
@@ -167,7 +167,10 @@ describe('Asset Tag Nullable Support', () => {
       status: 'active'
     });
 
-    expect(asset.id).toBeDefined();
+    expect(created.id).toBeDefined();
+
+    // Fetch the full asset object
+    const asset = await assetDb.getById(created.id);
 
     // Update with empty string
     await assetDb.update(asset.id, {
