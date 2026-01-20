@@ -34,19 +34,33 @@ const Layout = ({ theme, setTheme }) => {
   const brandingLogo = localStorage.getItem('branding_logo');
   const footerLabel = localStorage.getItem('footer_label') || 'SOC2 Compliance - Asset Compliance System';
 
-  const navigation = [
-    { name: 'Dashboard', path: '/', icon: Home },
-    { name: 'Assets', path: '/assets', icon: Laptop },
-    { name: 'Attestation', path: '/attestation', icon: ClipboardCheck, roles: ['admin', 'manager', 'coordinator'] },
-    { name: 'Companies', path: '/companies', icon: Building2, roles: ['admin', 'manager', 'coordinator'] },
-    { name: 'Users', path: '/users', icon: Users, roles: ['admin', 'manager', 'coordinator'] },
-    { name: 'Audit', path: '/audit', icon: FileBarChart, roles: ['admin', 'manager', 'coordinator'] },
-    { name: 'Admin Settings', path: '/admin', icon: Settings, roles: ['admin'] },
+  const navigationSections = [
+    {
+      title: 'Personal',
+      items: [
+        { name: 'Dashboard', path: '/', icon: Home },
+        { name: 'Assets', path: '/assets', icon: Laptop },
+        { name: 'My Attestations', path: '/my-attestations', icon: ClipboardCheck },
+      ]
+    },
+    {
+      title: 'Management',
+      items: [
+        { name: 'Campaigns', path: '/attestation', icon: ClipboardCheck, roles: ['admin', 'manager', 'coordinator'] },
+        { name: 'Companies', path: '/companies', icon: Building2, roles: ['admin', 'manager', 'coordinator'] },
+        { name: 'Users', path: '/users', icon: Users, roles: ['admin', 'manager', 'coordinator'] },
+        { name: 'Audit', path: '/audit', icon: FileBarChart, roles: ['admin', 'manager', 'coordinator'] },
+        { name: 'Admin Settings', path: '/admin', icon: Settings, roles: ['admin'] },
+      ]
+    },
   ];
 
-  const filteredNav = navigation.filter(item =>
-    !item.roles || item.roles.includes(user?.role)
-  );
+  const filteredSections = navigationSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter(item => !item.roles || item.roles.includes(user?.role))
+    }))
+    .filter((section) => section.items.length > 0);
 
   const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
 
@@ -84,35 +98,42 @@ const Layout = ({ theme, setTheme }) => {
 
         {/* Navigation */}
         <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
-          {filteredNav.map((item) => {
-            const isActive = location.pathname === item.path;
-            return (
-              <button
-                key={item.name}
-                onClick={() => { navigate(item.path); setIsMobileMenuOpen(false); }}
-                className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group relative",
-                  isActive
-                    ? "bg-primary/10 text-primary shadow-sm border border-primary/20"
-                    : "text-muted-foreground hover:bg-white/5 hover:text-foreground border border-transparent"
-                )}
-              >
-                <item.icon size={20} className={cn(
-                  "transition-all duration-200",
-                  isActive ? "text-primary" : "opacity-50 group-hover:opacity-100"
-                )} />
-                <span className="flex-1 text-left">{item.name}</span>
-                {item.name === 'Attestation' && pendingCount > 0 && (
-                  <Badge variant="destructive" className="h-5 px-1.5 min-w-[20px] rounded-full text-[10px]">
-                    {pendingCount}
-                  </Badge>
-                )}
-                {isActive && (
-                  <ChevronRight size={16} className="text-primary animate-pulse" />
-                )}
-              </button>
-            );
-          })}
+          {filteredSections.map((section) => (
+            <div key={section.title} className="space-y-1 pt-4 first:pt-0">
+              <div className="px-4 pt-2 pb-1">
+                <p className="caption-label text-[9px] tracking-[0.28em] text-muted-foreground/70">{section.title}</p>
+              </div>
+              {section.items.map((item) => {
+                const isActive = location.pathname === item.path;
+                return (
+                  <button
+                    key={item.name}
+                    onClick={() => { navigate(item.path); setIsMobileMenuOpen(false); }}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group relative",
+                      isActive
+                        ? "bg-primary/10 text-primary shadow-sm border border-primary/20"
+                        : "text-muted-foreground hover:bg-white/5 hover:text-foreground border border-transparent"
+                    )}
+                  >
+                    <item.icon size={20} className={cn(
+                      "transition-all duration-200",
+                      isActive ? "text-primary" : "opacity-50 group-hover:opacity-100"
+                    )} />
+                    <span className="flex-1 text-left">{item.name}</span>
+                    {item.name === 'My Attestations' && pendingCount > 0 && (
+                      <Badge variant="destructive" className="h-5 px-1.5 min-w-[20px] rounded-full text-[10px]">
+                        {pendingCount}
+                      </Badge>
+                    )}
+                    {isActive && (
+                      <ChevronRight size={16} className="text-primary animate-pulse" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         {/* Footer Actions & Profile */}
@@ -210,34 +231,41 @@ const Layout = ({ theme, setTheme }) => {
 
             {/* Navigation */}
             <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-              {filteredNav.map((item) => {
-                const isActive = location.pathname === item.path;
-                return (
-                  <button
-                    key={item.name}
-                    onClick={() => { navigate(item.path); setIsMobileMenuOpen(false); }}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group",
-                      isActive
-                        ? "bg-primary/10 text-primary shadow-sm border border-primary/20"
-                        : "text-muted-foreground hover:bg-white/5 hover:text-foreground border border-transparent"
-                    )}
-                  >
-                    <item.icon size={20} className={cn(
-                      isActive ? "text-primary" : "opacity-50 group-hover:opacity-100"
-                    )} />
-                    <span className="flex-1 text-left">{item.name}</span>
-                    {item.name === 'Attestation' && pendingCount > 0 && (
-                      <Badge variant="destructive" className="h-5 px-1.5 min-w-[20px] rounded-full text-[10px]">
-                        {pendingCount}
-                      </Badge>
-                    )}
-                    {isActive && (
-                      <ChevronRight size={16} className="text-primary" />
-                    )}
-                  </button>
-                );
-              })}
+              {filteredSections.map((section) => (
+                <div key={section.title} className="space-y-2 pt-4 first:pt-0">
+                  <div className="px-4 pt-1 pb-2">
+                    <p className="caption-label text-[9px] tracking-[0.28em] text-muted-foreground/70">{section.title}</p>
+                  </div>
+                  {section.items.map((item) => {
+                    const isActive = location.pathname === item.path;
+                    return (
+                      <button
+                        key={item.name}
+                        onClick={() => { navigate(item.path); setIsMobileMenuOpen(false); }}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 group",
+                          isActive
+                            ? "bg-primary/10 text-primary shadow-sm border border-primary/20"
+                            : "text-muted-foreground hover:bg-white/5 hover:text-foreground border border-transparent"
+                        )}
+                      >
+                        <item.icon size={20} className={cn(
+                          isActive ? "text-primary" : "opacity-50 group-hover:opacity-100"
+                        )} />
+                        <span className="flex-1 text-left">{item.name}</span>
+                        {item.name === 'My Attestations' && pendingCount > 0 && (
+                          <Badge variant="destructive" className="h-5 px-1.5 min-w-[20px] rounded-full text-[10px]">
+                            {pendingCount}
+                          </Badge>
+                        )}
+                        {isActive && (
+                          <ChevronRight size={16} className="text-primary" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
             </nav>
 
             {/* Footer */}
