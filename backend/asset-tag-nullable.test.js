@@ -25,6 +25,7 @@ describe('Asset Tag Nullable Support', () => {
     testUser = await userDb.create({
       email: `test-asset-tag-${timestamp}@example.com`,
       password_hash: 'test-hash',
+      name: 'Test User',
       first_name: 'Test',
       last_name: 'User',
       role: 'employee'
