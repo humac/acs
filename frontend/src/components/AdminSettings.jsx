@@ -15,6 +15,7 @@ import { Settings, Database, Loader2, AlertTriangle, Image, Shield } from 'lucid
 import SettingsLayout from './admin/SettingsLayout';
 import RestartRequiredBanner from './admin/RestartRequiredBanner';
 import PasskeySettings from './admin/PasskeySettings';
+import AuthSettings from './admin/AuthSettings';
 import SMTPSettings from './admin/SMTPSettings';
 import ProxySettings from './admin/ProxySettings';
 import RateLimitingSettings from './admin/RateLimitingSettings';
@@ -501,6 +502,9 @@ const AdminSettingsNew = () => {
             </Card>
           </div>
         );
+
+      case 'auth':
+        return <AuthSettings />;
 
       case 'passkeys':
         return <PasskeySettings />;

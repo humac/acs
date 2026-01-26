@@ -2,7 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
-import { assetDb, companyDb, auditDb, userDb, oidcSettingsDb, brandingSettingsDb, passkeySettingsDb, databaseSettings, databaseEngine, importSqliteDatabase, passkeyDb, hubspotSettingsDb, hubspotSyncLogDb, smtpSettingsDb, passwordResetTokenDb, emailVerificationTokenDb, syncAssetOwnership, attestationCampaignDb, attestationRecordDb, attestationAssetDb, attestationNewAssetDb, assetTypeDb, emailTemplateDb, sanitizeDateValue, attestationPendingInviteDb, systemSettingsDb, dangerZoneDb } from './database.js';
+import { assetDb, companyDb, auditDb, userDb, oidcSettingsDb, brandingSettingsDb, passkeySettingsDb, databaseSettings, databaseEngine, importSqliteDatabase, passkeyDb, hubspotSettingsDb, hubspotSyncLogDb, smtpSettingsDb, passwordResetTokenDb, emailVerificationTokenDb, syncAssetOwnership, attestationCampaignDb, attestationRecordDb, attestationAssetDb, attestationNewAssetDb, assetTypeDb, emailTemplateDb, sanitizeDateValue, attestationPendingInviteDb, systemSettingsDb, authSettingsDb, dangerZoneDb } from './database.js';
 import { authenticate, authorize, hashPassword, comparePassword, generateToken } from './auth.js';
 import { initializeOIDC, getAuthorizationUrl, handleCallback, getUserInfo, extractUserData, isOIDCEnabled } from './oidc.js';
 import { generateMFASecret, verifyTOTP, generateBackupCodes, formatBackupCode } from './mfa.js';
@@ -340,6 +340,7 @@ mountRoutes(app, {
   smtpSettingsDb,
   emailTemplateDb,
   systemSettingsDb,
+  authSettingsDb,
   dangerZoneDb,
   // Auth middleware
   authenticate,

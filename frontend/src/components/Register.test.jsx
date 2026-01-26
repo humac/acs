@@ -10,6 +10,12 @@ global.fetch = vi.fn();
 describe('Register Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    global.fetch.mockReset();
+    // Mock auth config fetch
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ registration_enabled: true }),
+    });
   });
 
   it('renders register form with default ACS logo when no branding logo exists', async () => {

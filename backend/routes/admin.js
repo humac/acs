@@ -33,6 +33,7 @@ export default function createAdminRouter(deps) {
     assetTypeDb,
     companyDb,
     systemSettingsDb,
+    authSettingsDb,
     // Auth middleware
     authenticate,
     authorize,
@@ -104,6 +105,26 @@ export default function createAdminRouter(deps) {
         await initializeOIDC(settings);
       }
 
+      // Safety check: If disabling OIDC, ensure password login is enabled to prevent lockout
+      if (!settings.enabled) {
+        const authSettings = await authSettingsDb.get();
+        if (authSettings?.password_login_enabled === 0) {
+          await authSettingsDb.update({
+            ...authSettings,
+            password_login_enabled: true
+          }, req.user.email);
+
+          await auditDb.log(
+            'update',
+            'auth_settings',
+            1,
+            'Authentication Settings',
+            'Password login auto-enabled due to OIDC being disabled (lockout prevention)',
+            req.user.email
+          );
+        }
+      }
+
       // Log the change
       await auditDb.log(
         'update',
@@ -118,6 +139,55 @@ export default function createAdminRouter(deps) {
     } catch (error) {
       logger.error({ err: error, userId: req.user?.id }, 'Update OIDC settings error');
       res.status(500).json({ error: 'Failed to update OIDC settings' });
+    }
+  });
+
+  // ===== Authentication Settings =====
+
+  // Get auth settings
+  router.get('/auth-settings', authenticate, authorize('admin'), async (req, res) => {
+    try {
+      const settings = await authSettingsDb.get();
+      res.json(settings || { registration_enabled: 1, password_login_enabled: 1 });
+    } catch (error) {
+      logger.error({ err: error, userId: req.user?.id }, 'Get auth settings error');
+      res.status(500).json({ error: 'Failed to get authentication settings' });
+    }
+  });
+
+  // Update auth settings
+  router.put('/auth-settings', authenticate, authorize('admin'), async (req, res) => {
+    try {
+      const { registration_enabled, password_login_enabled } = req.body;
+
+      // Validation: Cannot disable password login unless OIDC is enabled
+      if (password_login_enabled === false) {
+        const oidcSettings = await oidcSettingsDb.get();
+        if (!oidcSettings?.enabled) {
+          return res.status(400).json({
+            error: 'Cannot disable password login without enabling OIDC/SSO first'
+          });
+        }
+      }
+
+      const updatedSettings = await authSettingsDb.update({
+        registration_enabled,
+        password_login_enabled
+      }, req.user.email);
+
+      await auditDb.log(
+        'update',
+        'auth_settings',
+        1,
+        'Authentication Settings',
+        `Auth settings updated (registration: ${registration_enabled ? 'enabled' : 'disabled'}, password login: ${password_login_enabled ? 'enabled' : 'disabled'})`,
+        req.user.email
+      );
+
+      res.json({ message: 'Authentication settings updated successfully', settings: updatedSettings });
+    } catch (error) {
+      logger.error({ err: error, userId: req.user?.id }, 'Update auth settings error');
+      res.status(500).json({ error: 'Failed to update authentication settings' });
     }
   });
 

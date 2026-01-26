@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { AlertCircle, CheckCircle2, ArrowLeft, Mail } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ArrowLeft, Mail, ShieldX } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const ForgotPassword = () => {
@@ -11,7 +11,16 @@ const ForgotPassword = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [passwordLoginEnabled, setPasswordLoginEnabled] = useState(true);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Check if password login is enabled
+    fetch('/api/auth/config')
+      .then(res => res.json())
+      .then(data => setPasswordLoginEnabled(data.password_login_enabled))
+      .catch(err => console.error('Failed to fetch auth config:', err));
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -40,6 +49,30 @@ const ForgotPassword = () => {
     }
   };
 
+  // Show disabled message if password login is disabled
+  if (!passwordLoginEnabled) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-subtle p-4 relative overflow-hidden bg-dot-pattern">
+        <div className="w-full max-w-md relative z-10 animate-fade-in">
+          <Card className="glass-panel">
+            <CardContent className="p-8 text-center">
+              <div className="icon-box icon-box-lg glow-muted mx-auto mb-6">
+                <ShieldX className="h-8 w-8" />
+              </div>
+              <h2 className="text-xl font-semibold mb-3">Password Reset Unavailable</h2>
+              <p className="text-muted-foreground mb-6">
+                Password login is disabled for this system. Please use SSO to sign in.
+              </p>
+              <Button onClick={() => navigate('/')} className="btn-interactive">
+                Back to Login
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-subtle p-4 relative overflow-hidden bg-dot-pattern">
       <div className="w-full max-w-md relative z-10 animate-fade-in">
@@ -66,7 +99,7 @@ const ForgotPassword = () => {
                 <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-sm border border-green-200 dark:border-green-800">
                   <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
                   <span>
-                    If an account with that email exists, a password reset link has been sent. 
+                    If an account with that email exists, a password reset link has been sent.
                     Please check your email.
                   </span>
                 </div>
