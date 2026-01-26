@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import {
   Image, Shield, Key, Mail, Server, Database,
-  Plug, Laptop, Menu, Search, ChevronRight, AlertTriangle
+  Plug, Laptop, Menu, Search, ChevronRight, AlertTriangle, UserCog
 } from 'lucide-react';
 
 const navItems = [
@@ -18,6 +18,7 @@ const navItems = [
   {
     category: 'Authentication & Security',
     items: [
+      { id: 'auth', label: 'Authentication', icon: UserCog },
       { id: 'passkeys', label: 'Passkeys/WebAuthn', icon: Key, badge: 'Restart Required' },
       { id: 'oidc', label: 'SSO/OIDC', icon: Shield }
     ]

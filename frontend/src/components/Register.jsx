@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { UserPlus, Loader2, AlertCircle, Laptop, User, Briefcase, Lock, CheckCircle, KeyRound, Moon, Sun } from 'lucide-react';
+import { UserPlus, Loader2, AlertCircle, Laptop, User, Briefcase, Lock, CheckCircle, KeyRound, Moon, Sun, ShieldX } from 'lucide-react';
+import { applyPrimaryColor } from '@/utils/color';
 
 const RegisterNew = ({ onSwitchToLogin }) => {
   const { register } = useAuth();
+  const [registrationEnabled, setRegistrationEnabled] = useState(true);
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -45,6 +47,12 @@ const RegisterNew = ({ onSwitchToLogin }) => {
   }, [theme]);
 
   useEffect(() => {
+    // Fetch auth config
+    fetch('/api/auth/config')
+      .then(res => res.json())
+      .then(data => setRegistrationEnabled(data.registration_enabled))
+      .catch(err => console.error('Failed to fetch auth config:', err));
+
     // Fetch branding settings
     fetch('/api/branding')
       .then(res => res.json())
@@ -54,6 +62,9 @@ const RegisterNew = ({ onSwitchToLogin }) => {
         }
         if (data.footer_label) {
           setFooterLabel(data.footer_label);
+        }
+        if (data.primary_color) {
+          applyPrimaryColor(data.primary_color);
         }
       })
       .catch(err => console.error('Failed to fetch branding:', err));
@@ -148,6 +159,30 @@ const RegisterNew = ({ onSwitchToLogin }) => {
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
+
+  // Show disabled message if registration is disabled
+  if (!registrationEnabled) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-subtle p-4 relative overflow-hidden bg-dot-pattern">
+        <div className="w-full max-w-md relative z-10 animate-fade-in">
+          <Card className="glass-panel">
+            <CardContent className="p-8 text-center">
+              <div className="icon-box icon-box-lg glow-warning mx-auto mb-6">
+                <ShieldX className="h-8 w-8" />
+              </div>
+              <h2 className="text-xl font-semibold mb-3">Registration Disabled</h2>
+              <p className="text-muted-foreground mb-6">
+                New account registration is currently disabled. Please contact your administrator for access.
+              </p>
+              <Button onClick={onSwitchToLogin} className="btn-interactive">
+                Back to Login
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-subtle p-4 relative overflow-hidden bg-dot-pattern">

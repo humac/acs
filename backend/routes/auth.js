@@ -42,12 +42,46 @@ export default function createAuthRouter(deps) {
     sendEmailVerificationEmail,
     sendEmailChangeVerificationEmail,
     getAppUrl,
+    // Settings
+    authSettingsDb,
+    oidcSettingsDb,
   } = deps;
+
+  // ===== Public Auth Configuration =====
+
+  router.get('/config', async (req, res) => {
+    try {
+      const authSettings = await authSettingsDb?.get();
+      const oidcSettings = await oidcSettingsDb?.get();
+
+      res.json({
+        registration_enabled: authSettings?.registration_enabled !== 0,
+        password_login_enabled: authSettings?.password_login_enabled !== 0,
+        oidc_enabled: oidcSettings?.enabled === 1
+      });
+    } catch (error) {
+      // Default to all enabled on error to prevent lockout
+      logger.error({ err: error }, 'Failed to fetch auth config');
+      res.json({
+        registration_enabled: true,
+        password_login_enabled: true,
+        oidc_enabled: false
+      });
+    }
+  });
 
   // ===== Registration =====
 
   router.post('/register', authRateLimiter, async (req, res) => {
     try {
+      // Check if registration is enabled
+      const authSettings = await authSettingsDb?.get();
+      if (authSettings?.registration_enabled === 0) {
+        return res.status(403).json({
+          error: 'Registration is currently disabled. Please contact your administrator.'
+        });
+      }
+
       let { email, password, name, first_name, last_name, manager_first_name, manager_last_name, manager_name, manager_email } = req.body;
 
       // Validation
@@ -275,6 +309,14 @@ export default function createAuthRouter(deps) {
 
   router.post('/login', authRateLimiter, requireFields('email', 'password'), async (req, res) => {
     try {
+      // Check if password login is enabled
+      const authSettings = await authSettingsDb?.get();
+      if (authSettings?.password_login_enabled === 0) {
+        return res.status(403).json({
+          error: 'Password login is disabled. Please use SSO to sign in.'
+        });
+      }
+
       const { email, password } = req.body;
 
       const user = await userDb.getByEmail(email);
@@ -351,6 +393,14 @@ export default function createAuthRouter(deps) {
 
   router.post('/forgot-password', passwordResetRateLimiter, requireFields('email'), async (req, res) => {
     try {
+      // Check if password login is enabled (password reset is irrelevant if password login is disabled)
+      const authSettings = await authSettingsDb?.get();
+      if (authSettings?.password_login_enabled === 0) {
+        return res.status(403).json({
+          error: 'Password reset is not available when password login is disabled.'
+        });
+      }
+
       const { email } = req.body;
 
       const user = await userDb.getByEmail(email);

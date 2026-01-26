@@ -1004,6 +1004,24 @@ const initDb = async () => {
     )
   `;
 
+  const authSettingsTable = isPostgres ? `
+    CREATE TABLE IF NOT EXISTS auth_settings (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      registration_enabled INTEGER NOT NULL DEFAULT 1,
+      password_login_enabled INTEGER NOT NULL DEFAULT 1,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_by TEXT
+    )
+  ` : `
+    CREATE TABLE IF NOT EXISTS auth_settings (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      registration_enabled INTEGER NOT NULL DEFAULT 1,
+      password_login_enabled INTEGER NOT NULL DEFAULT 1,
+      updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      updated_by TEXT
+    )
+  `;
+
   const passwordResetTokensTable = isPostgres ? `
     CREATE TABLE IF NOT EXISTS password_reset_tokens (
       id SERIAL PRIMARY KEY,
@@ -1282,7 +1300,8 @@ const initDb = async () => {
   await dbRun(hubspotSyncLogTable);  // 10. Create HubSpot sync log table
   await dbRun(smtpSettingsTable);    // 11. Create SMTP settings table
   await dbRun(systemSettingsTable);  // 12. Create system settings table
-  await dbRun(passwordResetTokensTable); // 13. Create password reset tokens table (depends on users)
+  await dbRun(authSettingsTable);    // 13. Create auth settings table
+  await dbRun(passwordResetTokensTable); // 14. Create password reset tokens table (depends on users)
   await dbRun(emailVerificationTokensTable); // 14. Create email verification tokens table (depends on users)
   await dbRun(attestationCampaignsTable); // 15. Create attestation campaigns table (depends on users)
   await dbRun(attestationRecordsTable); // 15. Create attestation records table (depends on campaigns and users)
@@ -3775,6 +3794,67 @@ export const systemSettingsDb = {
       SET ${field} = NULL, updated_at = ?, updated_by = ?
       WHERE id = 1
     `, [now, userEmail]);
+  }
+};
+
+/**
+ * Authentication Settings Database Operations
+ * Manages authentication-level configuration including registration and password login settings
+ */
+export const authSettingsDb = {
+  get: async () => {
+    let settings = await dbGet('SELECT * FROM auth_settings WHERE id = 1');
+
+    // If no settings exist, return defaults
+    if (!settings) {
+      return {
+        registration_enabled: 1,
+        password_login_enabled: 1,
+        updated_at: null,
+        updated_by: null
+      };
+    }
+
+    return {
+      ...settings,
+      updated_at: normalizeDates(settings.updated_at)
+    };
+  },
+  update: async (settings, userEmail) => {
+    const now = new Date().toISOString();
+
+    // Check if settings row exists
+    const existing = await dbGet('SELECT id FROM auth_settings WHERE id = 1');
+
+    if (!existing) {
+      // Create the row
+      await dbRun(`
+        INSERT INTO auth_settings (id, registration_enabled, password_login_enabled, updated_at, updated_by)
+        VALUES (1, ?, ?, ?, ?)
+      `, [
+        settings.registration_enabled !== undefined ? (settings.registration_enabled ? 1 : 0) : 1,
+        settings.password_login_enabled !== undefined ? (settings.password_login_enabled ? 1 : 0) : 1,
+        now,
+        userEmail
+      ]);
+    } else {
+      // Update the row
+      await dbRun(`
+        UPDATE auth_settings
+        SET registration_enabled = ?,
+            password_login_enabled = ?,
+            updated_at = ?,
+            updated_by = ?
+        WHERE id = 1
+      `, [
+        settings.registration_enabled !== undefined ? (settings.registration_enabled ? 1 : 0) : 1,
+        settings.password_login_enabled !== undefined ? (settings.password_login_enabled ? 1 : 0) : 1,
+        now,
+        userEmail
+      ]);
+    }
+
+    return authSettingsDb.get();
   }
 };
 

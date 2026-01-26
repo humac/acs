@@ -38,6 +38,10 @@ const LoginNew = ({ onSwitchToRegister }) => {
   const [siteName, setSiteName] = useState('ACS');
   const [subTitle, setSubTitle] = useState('Asset Compliance System');
   const [footerLabel, setFooterLabel] = useState('SOC2 Compliance - Asset Compliance System');
+  const [authConfig, setAuthConfig] = useState({
+    registration_enabled: true,
+    password_login_enabled: true
+  });
 
   // Dark mode state - default to light mode
   const [theme, setTheme] = useState(() => {
@@ -83,6 +87,12 @@ const LoginNew = ({ onSwitchToRegister }) => {
       .then(res => res.json())
       .then(data => setPasskeysEnabled(data.enabled !== false))
       .catch(err => console.error('Failed to check passkey config:', err));
+
+    // Fetch auth configuration
+    fetch('/api/auth/config')
+      .then(res => res.json())
+      .then(data => setAuthConfig(data))
+      .catch(err => console.error('Failed to fetch auth config:', err));
 
     // Fetch branding settings
     fetch('/api/branding')
@@ -358,59 +368,61 @@ const LoginNew = ({ onSwitchToRegister }) => {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="you@company.com"
-                  autoComplete="email"
-                  required
-                  className="transition-all"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-sm font-medium">Password</Label>
-                  <a
-                    href="/forgot-password"
-                    className="text-xs text-primary hover:underline"
-                  >
-                    Forgot password?
-                  </a>
+            {authConfig.password_login_enabled && (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="you@company.com"
+                    autoComplete="email"
+                    required
+                    className="transition-all"
+                  />
                 </div>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="Enter your password"
-                  autoComplete="current-password"
-                  required
-                  className="transition-all"
-                />
-              </div>
 
-              <Button type="submit" className="w-full mt-2" disabled={isLoading}>
-                {loading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Signing in...
-                  </>
-                ) : (
-                  <>
-                    <LogIn className="h-4 w-4" />
-                    Sign In
-                  </>
-                )}
-              </Button>
-            </form>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="password" className="text-sm font-medium">Password</Label>
+                    <a
+                      href="/forgot-password"
+                      className="text-xs text-primary hover:underline"
+                    >
+                      Forgot password?
+                    </a>
+                  </div>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="Enter your password"
+                    autoComplete="current-password"
+                    required
+                    className="transition-all"
+                  />
+                </div>
+
+                <Button type="submit" className="w-full mt-2" disabled={isLoading}>
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    <>
+                      <LogIn className="h-4 w-4" />
+                      Sign In
+                    </>
+                  )}
+                </Button>
+              </form>
+            )}
 
             {passkeysEnabled ? (
               <Button
@@ -473,18 +485,20 @@ const LoginNew = ({ onSwitchToRegister }) => {
               </>
             )}
 
-            <div className="pt-4 border-t">
-              <p className="text-center text-sm text-muted-foreground">
-                Don't have an account?{' '}
-                <button
-                  type="button"
-                  onClick={onSwitchToRegister}
-                  className="font-semibold text-gradient hover:opacity-80 transition-opacity"
-                >
-                  Register here
-                </button>
-              </p>
-            </div>
+            {authConfig.registration_enabled && (
+              <div className="pt-4 border-t">
+                <p className="text-center text-sm text-muted-foreground">
+                  Don't have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={onSwitchToRegister}
+                    className="font-semibold text-gradient hover:opacity-80 transition-opacity"
+                  >
+                    Register here
+                  </button>
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
