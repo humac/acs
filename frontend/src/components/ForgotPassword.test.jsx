@@ -28,6 +28,11 @@ const renderComponent = () => {
 describe('ForgotPassword', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    global.fetch.mockReset();
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ password_login_enabled: true }),
+    });
   });
 
   describe('rendering', () => {
