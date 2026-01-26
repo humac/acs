@@ -10,6 +10,7 @@ global.fetch = vi.fn();
 describe('Login Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    global.fetch.mockReset();
     // Mock OIDC config check
     global.fetch.mockResolvedValueOnce({
       ok: true,
@@ -19,6 +20,11 @@ describe('Login Component', () => {
     global.fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({ enabled: true }),
+    });
+    // Mock auth config
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ registration_enabled: true, password_login_enabled: true }),
     });
     // Mock branding fetch
     global.fetch.mockResolvedValueOnce({
