@@ -322,4 +322,54 @@ describe('AssetEditModal Component', () => {
 
     expect(screen.getByText('Update all asset details. Fields marked with * are required.')).toBeInTheDocument();
   });
+
+  describe('Returned Date Field', () => {
+    it('does not show returned date field when status is not returned', () => {
+      const currentUser = { roles: ['admin'] };
+
+      render(
+        <AssetEditModal
+          asset={sampleAsset}
+          currentUser={currentUser}
+          onClose={mockOnClose}
+          onSaved={mockOnSaved}
+        />
+      );
+
+      expect(screen.queryByLabelText(/Returned Date/)).not.toBeInTheDocument();
+    });
+
+    it('shows returned date field with Optional label when status is returned', () => {
+      const currentUser = { roles: ['admin'] };
+      const returnedAsset = { ...sampleAsset, status: 'returned' };
+
+      render(
+        <AssetEditModal
+          asset={returnedAsset}
+          currentUser={currentUser}
+          onClose={mockOnClose}
+          onSaved={mockOnSaved}
+        />
+      );
+
+      expect(screen.getByLabelText(/Returned Date \(Optional\)/)).toBeInTheDocument();
+    });
+
+    it('returned date field does not have required attribute', () => {
+      const currentUser = { roles: ['admin'] };
+      const returnedAsset = { ...sampleAsset, status: 'returned' };
+
+      render(
+        <AssetEditModal
+          asset={returnedAsset}
+          currentUser={currentUser}
+          onClose={mockOnClose}
+          onSaved={mockOnSaved}
+        />
+      );
+
+      const dateInput = screen.getByLabelText(/Returned Date \(Optional\)/);
+      expect(dateInput).not.toHaveAttribute('required');
+    });
+  });
 });

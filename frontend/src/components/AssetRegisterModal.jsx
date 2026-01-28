@@ -150,16 +150,6 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
       return;
     }
 
-    // Validate returned_date is required when status is 'returned'
-    if (form.status === 'returned' && !form.returned_date) {
-      toast({
-        title: "Validation Error",
-        description: "Returned date is required when status is 'Returned'",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setSaving(true);
     try {
       const payload = {
@@ -488,14 +478,13 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
 
                 {form.status === 'returned' && (
                   <div className="space-y-2">
-                    <Label htmlFor="returned_date">Returned Date *</Label>
+                    <Label htmlFor="returned_date">Returned Date (Optional)</Label>
                     <Input
                       id="returned_date"
                       name="returned_date"
                       type="date"
                       value={form.returned_date}
                       onChange={onChange}
-                      required
                       className="text-base"
                     />
                   </div>

@@ -221,16 +221,6 @@ export default function MyAttestationsPage() {
       const status = selectedStatuses[asset.id] || asset.status;
       const returnedDate = returnedDates[asset.id] || '';
 
-      // Validate returned_date is required when status is 'returned'
-      if (status === 'returned' && !returnedDate) {
-        toast({
-          title: 'Validation Error',
-          description: 'Returned date is required when status is Returned',
-          variant: 'destructive'
-        });
-        return;
-      }
-
       const res = await fetch(`/api/attestation/records/${selectedAttestation.id}/assets/${asset.id}`, {
         method: 'PUT',
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
@@ -295,16 +285,6 @@ export default function MyAttestationsPage() {
       toast({
         title: 'Validation Error',
         description: 'Please fill in all required fields',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    // Validate returned_date is required when status is 'returned'
-    if (newAssetForm.status === 'returned' && !newAssetForm.returned_date) {
-      toast({
-        title: 'Validation Error',
-        description: 'Returned date is required when status is Returned',
         variant: 'destructive'
       });
       return;
