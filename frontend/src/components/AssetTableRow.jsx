@@ -66,15 +66,6 @@ const AssetTableRow = memo(function AssetTableRow({
   const statusKey = (asset.status || '').toLowerCase();
 
   const handleStatusChange = async () => {
-    if (pendingStatus === 'returned' && !returnedDate) {
-      toast({
-        title: "Validation Error",
-        description: "Returned date is required for status 'Returned'",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setSaving(true);
     try {
       const payload = {
@@ -186,7 +177,7 @@ const AssetTableRow = memo(function AssetTableRow({
                   </div>
                   {pendingStatus === 'returned' && (
                     <div className="space-y-2">
-                      <Label className="text-xs font-bold uppercase tracking-tighter opacity-70">Returned Date *</Label>
+                      <Label className="text-xs font-bold uppercase tracking-tighter opacity-70">Returned Date (Optional)</Label>
                       <Input type="date" className="bg-surface/50" value={returnedDate} onChange={(e) => setReturnedDate(e.target.value)} />
                     </div>
                   )}

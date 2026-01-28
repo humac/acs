@@ -221,16 +221,6 @@ export default function MyAttestationsPage() {
       const status = selectedStatuses[asset.id] || asset.status;
       const returnedDate = returnedDates[asset.id] || '';
 
-      // Validate returned_date is required when status is 'returned'
-      if (status === 'returned' && !returnedDate) {
-        toast({
-          title: 'Validation Error',
-          description: 'Returned date is required when status is Returned',
-          variant: 'destructive'
-        });
-        return;
-      }
-
       const res = await fetch(`/api/attestation/records/${selectedAttestation.id}/assets/${asset.id}`, {
         method: 'PUT',
         headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
@@ -295,16 +285,6 @@ export default function MyAttestationsPage() {
       toast({
         title: 'Validation Error',
         description: 'Please fill in all required fields',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    // Validate returned_date is required when status is 'returned'
-    if (newAssetForm.status === 'returned' && !newAssetForm.returned_date) {
-      toast({
-        title: 'Validation Error',
-        description: 'Returned date is required when status is Returned',
         variant: 'destructive'
       });
       return;
@@ -645,7 +625,7 @@ export default function MyAttestationsPage() {
                                       {showReturnedDate && (
                                         <div className="space-y-1">
                                           <Label htmlFor={`returned-date-${asset.id}`} className="text-xs text-muted-foreground">
-                                            Returned Date *
+                                            Returned Date (Optional)
                                           </Label>
                                           <Input
                                             id={`returned-date-${asset.id}`}
@@ -653,7 +633,6 @@ export default function MyAttestationsPage() {
                                             value={returnedDates[asset.id] || ''}
                                             onChange={(e) => handleReturnedDateChange(asset.id, e.target.value)}
                                             className="w-[180px]"
-                                            required
                                           />
                                         </div>
                                       )}
@@ -673,7 +652,6 @@ export default function MyAttestationsPage() {
                                       size="icon"
                                       variant="ghost"
                                       onClick={() => handleCertifyAsset(asset)}
-                                      disabled={selectedStatus === 'returned' && !returnedDates[asset.id]}
                                       title="Certify this asset"
                                       className="btn-interactive"
                                     >
@@ -767,14 +745,13 @@ export default function MyAttestationsPage() {
                                       {showReturnedDate && (
                                         <div className="space-y-1">
                                           <Label htmlFor={`returned-date-mobile-${asset.id}`} className="text-xs text-muted-foreground">
-                                            Returned Date *
+                                            Returned Date (Optional)
                                           </Label>
                                           <Input
                                             id={`returned-date-mobile-${asset.id}`}
                                             type="date"
                                             value={returnedDates[asset.id] || ''}
                                             onChange={(e) => handleReturnedDateChange(asset.id, e.target.value)}
-                                            required
                                           />
                                         </div>
                                       )}
@@ -787,7 +764,6 @@ export default function MyAttestationsPage() {
                                 <Button
                                   className="w-full btn-interactive"
                                   onClick={() => handleCertifyAsset(asset)}
-                                  disabled={selectedStatus === 'returned' && !returnedDates[asset.id]}
                                 >
                                   <CheckCircle2 className="h-4 w-4 mr-2" />
                                   Certify Asset
@@ -1000,13 +976,12 @@ export default function MyAttestationsPage() {
               </div>
               {newAssetForm.status === 'returned' && (
                 <div>
-                  <Label htmlFor="new_asset_returned_date">Returned Date *</Label>
+                  <Label htmlFor="new_asset_returned_date">Returned Date (Optional)</Label>
                   <Input
                     id="new_asset_returned_date"
                     type="date"
                     value={newAssetForm.returned_date}
                     onChange={(e) => setNewAssetForm({ ...newAssetForm, returned_date: e.target.value })}
-                    required
                   />
                 </div>
               )}
