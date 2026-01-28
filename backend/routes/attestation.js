@@ -603,11 +603,6 @@ export default function createAttestationRouter(deps) {
         return res.status(404).json({ error: 'Asset not found' });
       }
 
-      // Validate returned_date is provided when status is 'returned'
-      if (attested_status === 'returned' && !returned_date) {
-        return res.status(400).json({ error: 'Returned date is required when status is returned' });
-      }
-
       await attestationAssetDb.create({
         attestation_record_id: record.id,
         asset_id: asset.id,
@@ -681,11 +676,6 @@ export default function createAttestationRouter(deps) {
       const assetStatus = status || 'active';
       if (!validStatuses.includes(assetStatus)) {
         return res.status(400).json({ error: 'Invalid status. Must be one of: active, returned, lost, damaged, retired' });
-      }
-
-      // Validate returned_date is required when status is 'returned'
-      if (assetStatus === 'returned' && !returned_date) {
-        return res.status(400).json({ error: 'Returned date is required when status is returned' });
       }
 
       await attestationNewAssetDb.create({

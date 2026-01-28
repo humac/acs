@@ -957,7 +957,7 @@ POST /api/assets
 - `notes` - Additional notes
 
 **Conditional Fields:**
-- `returned_date` - Required when status is 'returned' (YYYY-MM-DD format)
+- `returned_date` - Optional, date asset was returned (YYYY-MM-DD format)
 
 **Response:** `201 Created`
 ```json
@@ -988,7 +988,6 @@ POST /api/assets
 
 **Errors:**
 - `400` - Missing required fields (employee_first_name, employee_last_name, employee_email, company_name, laptop_serial_number)
-- `400` - Missing returned_date when status is 'returned'
 - `409` - Duplicate serial number or asset tag
 
 ---
@@ -1022,7 +1021,7 @@ Optional columns:
 - `laptop_model`
 - `status` (active, returned, lost, damaged, retired)
 - `issued_date` (YYYY-MM-DD format)
-- `returned_date` (YYYY-MM-DD format, should be provided when status is 'returned')
+- `returned_date` (YYYY-MM-DD format, optional)
 - `notes`
 
 **Example CSV:**
@@ -1079,7 +1078,7 @@ PATCH /api/assets/:id/status
 
 **Fields:**
 - `status` - New status (active, returned, lost, damaged, retired)
-- `returned_date` - Required when status is 'returned' (YYYY-MM-DD format)
+- `returned_date` - Optional, date asset was returned (YYYY-MM-DD format)
 - `notes` - Optional notes about the status change
 
 **Response:** `200 OK`
@@ -1099,7 +1098,6 @@ PATCH /api/assets/:id/status
 **Errors:**
 - `404` - Asset not found
 - `400` - Invalid status
-- `400` - Missing returned_date when status is 'returned'
 
 ---
 
@@ -1738,7 +1736,7 @@ PUT /api/attestation/records/:id/assets/:assetId
 
 **Fields:**
 - `status` - Asset status (active, returned, lost, damaged)
-- `returned_date` - Required when status is 'returned' (YYYY-MM-DD format)
+- `returned_date` - Optional, date asset was returned (YYYY-MM-DD format)
 - `notes` - Optional notes
 
 **Response:** `200 OK`
@@ -1749,7 +1747,6 @@ PUT /api/attestation/records/:id/assets/:assetId
 ```
 
 **Errors:**
-- `400` - Missing returned_date when status is 'returned'
 - `403` - Not your attestation record
 - `404` - Record or asset not found
 

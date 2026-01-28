@@ -223,4 +223,19 @@ describe('AssetRegisterModal', () => {
       expect(screen.getByPlaceholderText('ABC123456789')).toBeInTheDocument();
     });
   });
+
+  describe('Returned Date Field', () => {
+    it('does not show returned date field when status is not returned (default active status)', () => {
+      renderModal();
+      // By default, status is 'active', so returned date should not be visible
+      expect(screen.queryByLabelText(/Returned Date/)).not.toBeInTheDocument();
+    });
+
+    it('has Status dropdown available for selection', () => {
+      renderModal();
+      // Verify status select is present
+      const statusTrigger = screen.getByRole('combobox', { name: /status/i });
+      expect(statusTrigger).toBeInTheDocument();
+    });
+  });
 });
