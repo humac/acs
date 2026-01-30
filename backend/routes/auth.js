@@ -77,9 +77,34 @@ export default function createAuthRouter(deps) {
       // Check if registration is enabled
       const authSettings = await authSettingsDb?.get();
       if (authSettings?.registration_enabled === 0) {
-        return res.status(403).json({
-          error: 'Registration is currently disabled. Please contact your administrator.'
-        });
+        // Allow registration if user has a valid invite token
+        const { invite_token } = req.body;
+        let inviteValid = false;
+
+        if (invite_token && attestationPendingInviteDb && attestationCampaignDb) {
+          try {
+            const invite = await attestationPendingInviteDb.getByToken(invite_token);
+            if (invite && !invite.registered_at) {
+              const campaign = await attestationCampaignDb.getById(invite.campaign_id);
+              if (campaign && campaign.status === 'active') {
+                const { email } = req.body;
+                if (email && invite.employee_email.toLowerCase() === email.toLowerCase()) {
+                  inviteValid = true;
+                }
+              }
+            }
+          } catch (inviteError) {
+            logger.error({ err: inviteError }, 'Error validating invite token during registration');
+          }
+        }
+
+        if (!inviteValid) {
+          return res.status(403).json({
+            error: 'Registration is currently disabled. Please contact your administrator.'
+          });
+        }
+
+        logger.info({ invite_token }, 'Allowing invite-based registration despite registration being disabled');
       }
 
       let { email, password, name, first_name, last_name, manager_first_name, manager_last_name, manager_name, manager_email } = req.body;
