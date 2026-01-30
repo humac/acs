@@ -466,7 +466,7 @@ docker run --rm \
 
 For advanced features, see `backend/.env.example`:
 
-- **Attestation Scheduler**: `RUN_ATTESTATION_SCHEDULER=true` - Automated reminders and escalations
+- **Attestation Scheduler**: The Docker backend image starts the scheduler automatically alongside the API. If you run the backend outside Docker, start `node services/attestationScheduler.js` separately (or set `RUN_ATTESTATION_SCHEDULER=true` to run it inside another Node process).
 - **Proxy Settings**: `TRUST_PROXY=true` and `PROXY_TYPE=cloudflare|standard|none` - For reverse proxy deployments
 - **Rate Limiting**: `RATE_LIMIT_ENABLED=true` - Protect against abuse
 - **SSO/OIDC**: `OIDC_ENABLED=true` plus issuer/client configuration
@@ -478,7 +478,7 @@ For advanced features, see `backend/.env.example`:
 
 ACS includes a comprehensive email notification system for password reset workflows and attestation campaigns. All email notifications require SMTP configuration (see "Email Notifications Setup" above). Email templates are fully customizable via **Admin Settings → Notifications → Email Templates**.
 
-**Note:** When `RUN_ATTESTATION_SCHEDULER=true` is enabled, the scheduler runs daily automated checks for reminders, escalations, and campaign closures.
+**Note:** When the scheduler process is running, it performs daily automated checks for reminders, escalations, and campaign closures.
 
 ### 1. Password Reset Flow
 
@@ -651,7 +651,7 @@ All email templates are customizable via **Admin Settings → Notifications → 
 | `attestation_unregistered_escalation` | Unregistered User Escalation | Notifies managers of unregistered team members | Scheduler after escalation_days | Once per unregistered user | Manager on assets |
 | `attestation_complete` | Attestation Complete | Confirms attestation completion to admins | Employee completes attestation | Once per completion | Admin users |
 
-**Note:** The attestation scheduler processes reminders and escalations through daily automated checks when `RUN_ATTESTATION_SCHEDULER=true` is enabled.
+**Note:** The attestation scheduler processes reminders and escalations through daily automated checks while the scheduler process is running.
 
 ---
 

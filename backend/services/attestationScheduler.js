@@ -1,3 +1,5 @@
+import { resolve } from 'path';
+import { fileURLToPath } from 'url';
 import { attestationCampaignDb, attestationRecordDb, userDb } from '../database.js';
 import { sendAttestationReminderEmail, sendAttestationEscalationEmail } from './smtpMailer.js';
 import { createChildLogger } from '../utils/logger.js';
@@ -289,8 +291,17 @@ export const runScheduledTasks = async () => {
   logger.info('Attestation scheduled tasks completed');
 };
 
+const isDirectRun = (() => {
+  if (!process.argv[1]) return false;
+  try {
+    return fileURLToPath(import.meta.url) === resolve(process.argv[1]);
+  } catch {
+    return false;
+  }
+})();
+
 // If running as a standalone process, run tasks every 24 hours
-if (process.env.RUN_ATTESTATION_SCHEDULER === 'true') {
+if (process.env.RUN_ATTESTATION_SCHEDULER === 'true' || isDirectRun) {
   const INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
   
   // Run immediately on start
