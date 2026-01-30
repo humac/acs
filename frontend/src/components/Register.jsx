@@ -134,6 +134,10 @@ const RegisterNew = ({ onSwitchToLogin }) => {
       return;
     }
 
+    // Pass invite token if present so backend can bypass registration-disabled check
+    const urlParams = new URLSearchParams(window.location.search);
+    const inviteToken = urlParams.get('token');
+
     const result = await register(
       formData.email,
       formData.password,
@@ -141,7 +145,8 @@ const RegisterNew = ({ onSwitchToLogin }) => {
       formData.last_name,
       formData.manager_first_name,
       formData.manager_last_name,
-      formData.manager_email
+      formData.manager_email,
+      inviteToken
     );
 
     if (!result.success) {
@@ -160,8 +165,12 @@ const RegisterNew = ({ onSwitchToLogin }) => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
 
-  // Show disabled message if registration is disabled
-  if (!registrationEnabled) {
+  // Determine if manual registration form should be shown
+  // Hide manual form when OIDC is enabled AND user has an invite token (SSO-only registration)
+  const showManualForm = !(oidcConfig && inviteData);
+
+  // Show disabled message if registration is disabled AND user does not have a valid invite
+  if (!registrationEnabled && !inviteData && !loadingInvite) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-subtle p-4 relative overflow-hidden bg-dot-pattern">
         <div className="w-full max-w-md relative z-10 animate-fade-in">
@@ -316,17 +325,20 @@ const RegisterNew = ({ onSwitchToLogin }) => {
                   </div>
                 </div>
 
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
+                {showManualForm && (
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-card px-2 text-muted-foreground">Or register manually</span>
+                    </div>
                   </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">Or register manually</span>
-                  </div>
-                </div>
+                )}
               </>
             )}
 
+            {showManualForm && (
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Personal Information */}
               <div className="glass-panel rounded-xl p-4 space-y-4">
@@ -473,6 +485,7 @@ const RegisterNew = ({ onSwitchToLogin }) => {
                 )}
               </Button>
             </form>
+            )}
 
             <div className="pt-4 border-t">
               <p className="text-center text-sm text-muted-foreground">
