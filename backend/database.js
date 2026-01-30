@@ -2292,14 +2292,17 @@ export const assetDb = {
       managerId = manager?.id || null;
     }
 
-    // Look up company_id from company_name (or use provided company_id)
-    let companyId = asset.company_id || null;
-    if (!companyId && asset.company_name) {
+    // Look up company_id from company_name (preferred) or use provided company_id
+    // company_name takes precedence since the frontend sends the user-selected name
+    let companyId = null;
+    if (asset.company_name) {
       const company = await dbGet('SELECT id FROM companies WHERE name = ?', [asset.company_name]);
       if (!company) {
         throw new Error(`Company not found: ${asset.company_name}`);
       }
       companyId = company.id;
+    } else {
+      companyId = asset.company_id || null;
     }
     if (!companyId) {
       throw new Error('Company is required');
@@ -2472,14 +2475,17 @@ export const assetDb = {
       managerId = manager?.id || null;
     }
 
-    // Look up company_id from company_name (or use provided company_id)
-    let companyId = asset.company_id || null;
-    if (!companyId && asset.company_name) {
+    // Look up company_id from company_name (preferred) or use provided company_id
+    // company_name takes precedence since the frontend sends the user-selected name
+    let companyId = null;
+    if (asset.company_name) {
       const company = await dbGet('SELECT id FROM companies WHERE name = ?', [asset.company_name]);
       if (!company) {
         throw new Error(`Company not found: ${asset.company_name}`);
       }
       companyId = company.id;
+    } else {
+      companyId = asset.company_id || null;
     }
     if (!companyId) {
       throw new Error('Company is required');
