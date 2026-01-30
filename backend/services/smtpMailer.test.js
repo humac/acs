@@ -606,5 +606,60 @@ describe('SMTP Mailer Service', () => {
       expect(result.success).toBe(false);
       expect(result.error).toContain('Invalid API key');
     });
+
+    it('should route verification email to Brevo when email_provider is brevo', async () => {
+      const mockSettings = {
+        enabled: 1,
+        email_provider: 'brevo',
+        from_name: 'ACS',
+        from_email: 'noreply@example.com'
+      };
+
+      mockSmtpSettingsDb.get.mockResolvedValue(mockSettings);
+      mockBrevoSendEmail.mockResolvedValue({
+        success: true,
+        messageId: '<brevo-verify@example.com>'
+      });
+
+      const result = await sendEmailVerificationEmail(
+        'newuser@example.com',
+        'verification-token-123',
+        'https://example.com/verify-email?token=verification-token-123'
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.messageId).toBe('<brevo-verify@example.com>');
+      expect(mockBrevoSendEmail).toHaveBeenCalled();
+      expect(mockSendMail).not.toHaveBeenCalled();
+      expect(mockCreateTransport).not.toHaveBeenCalled();
+    });
+
+    it('should route email change verification to Brevo when email_provider is brevo', async () => {
+      const mockSettings = {
+        enabled: 1,
+        email_provider: 'brevo',
+        from_name: 'ACS',
+        from_email: 'noreply@example.com'
+      };
+
+      mockSmtpSettingsDb.get.mockResolvedValue(mockSettings);
+      mockBrevoSendEmail.mockResolvedValue({
+        success: true,
+        messageId: '<brevo-change@example.com>'
+      });
+
+      const result = await sendEmailChangeVerificationEmail(
+        'newemail@example.com',
+        'oldemail@example.com',
+        'change-token-456',
+        'https://example.com/verify-email?token=change-token-456'
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.messageId).toBe('<brevo-change@example.com>');
+      expect(mockBrevoSendEmail).toHaveBeenCalled();
+      expect(mockSendMail).not.toHaveBeenCalled();
+      expect(mockCreateTransport).not.toHaveBeenCalled();
+    });
   });
 });
