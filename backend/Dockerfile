@@ -14,5 +14,6 @@ COPY . .
 # Expose port
 EXPOSE 3001
 
-# Start the application
-CMD ["node", "server.js"]
+# Start API and scheduler in one container
+RUN chmod +x /app/docker-entrypoint.sh
+CMD ["/app/docker-entrypoint.sh"]
