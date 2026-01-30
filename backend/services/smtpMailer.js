@@ -646,14 +646,13 @@ export const sendAttestationEscalationEmail = async (managerEmail, employeeName,
     const settings = await smtpSettingsDb.get();
 
     if (!settings || !settings.enabled) {
-      return { success: false, error: 'SMTP settings are not enabled' };
+      return { success: false, error: 'Email settings are not enabled' };
     }
 
     if (!settings.from_email) {
       return { success: false, error: 'From email address is not configured' };
     }
 
-    const transport = await createTransport();
     const branding = await brandingSettingsDb.get();
     const siteName = branding?.site_name || 'ACS';
 
@@ -715,15 +714,14 @@ Please follow up with this team member to ensure they complete their asset attes
 This is an automated escalation notification sent because the attestation has been outstanding for ${campaign.escalation_days} days.`;
     }
 
-    const mailOptions = {
-      from: `"${settings.from_name || `${siteName} Notifications`}" <${settings.from_email}>`,
+    await dispatchEmail({
+      settings,
+      branding,
       to: managerEmail,
       subject,
-      text: textContent,
-      html: buildEmailHtml(branding, siteName, emailContent)
-    };
-
-    await transport.sendMail(mailOptions);
+      htmlContent: emailContent,
+      textContent
+    });
     return { success: true };
   } catch (error) {
     logger.error({ err: error }, 'Failed to send attestation escalation email');
@@ -744,14 +742,13 @@ export const sendAttestationCompleteAdminNotification = async (adminEmails, empl
     const settings = await smtpSettingsDb.get();
 
     if (!settings || !settings.enabled) {
-      return { success: false, error: 'SMTP settings are not enabled' };
+      return { success: false, error: 'Email settings are not enabled' };
     }
 
     if (!settings.from_email) {
       return { success: false, error: 'From email address is not configured' };
     }
 
-    const transport = await createTransport();
     const branding = await brandingSettingsDb.get();
     const siteName = branding?.site_name || 'ACS';
 
@@ -793,15 +790,14 @@ Campaign: ${campaign.name}
 Completed: ${new Date().toLocaleString()}`;
     }
 
-    const mailOptions = {
-      from: `"${settings.from_name || `${siteName} Notifications`}" <${settings.from_email}>`,
-      to: adminEmails.join(', '),
+    await dispatchEmail({
+      settings,
+      branding,
+      to: adminEmails,
       subject,
-      text: textContent,
-      html: buildEmailHtml(branding, siteName, emailContent)
-    };
-
-    await transport.sendMail(mailOptions);
+      htmlContent: emailContent,
+      textContent
+    });
     return { success: true };
   } catch (error) {
     logger.error({ err: error }, 'Failed to send attestation completion notification');
@@ -826,14 +822,13 @@ export const sendAttestationRegistrationInvite = async (email, firstName, lastNa
     const settings = await smtpSettingsDb.get();
 
     if (!settings || !settings.enabled) {
-      return { success: false, error: 'SMTP settings are not enabled' };
+      return { success: false, error: 'Email settings are not enabled' };
     }
 
     if (!settings.from_email) {
       return { success: false, error: 'From email address is not configured' };
     }
 
-    const transport = await createTransport();
     const branding = await brandingSettingsDb.get();
     const siteName = branding?.site_name || 'ACS';
 
@@ -958,15 +953,14 @@ Option 2: Register Manually
 This invitation is valid until the campaign ends${campaign.end_date ? ` on ${new Date(campaign.end_date).toLocaleDateString()}` : ''}. Please register and complete your attestation as soon as possible.`;
     }
 
-    const mailOptions = {
-      from: `"${settings.from_name || `${siteName} Notifications`}" <${settings.from_email}>`,
+    await dispatchEmail({
+      settings,
+      branding,
       to: email,
       subject,
-      text: textContent,
-      html: buildEmailHtml(branding, siteName, emailContent)
-    };
-
-    await transport.sendMail(mailOptions);
+      htmlContent: emailContent,
+      textContent
+    });
     return { success: true };
   } catch (error) {
     logger.error({ err: error }, 'Failed to send attestation registration invite');
@@ -991,14 +985,13 @@ export const sendAttestationUnregisteredReminder = async (email, firstName, last
     const settings = await smtpSettingsDb.get();
 
     if (!settings || !settings.enabled) {
-      return { success: false, error: 'SMTP settings are not enabled' };
+      return { success: false, error: 'Email settings are not enabled' };
     }
 
     if (!settings.from_email) {
       return { success: false, error: 'From email address is not configured' };
     }
 
-    const transport = await createTransport();
     const branding = await brandingSettingsDb.get();
     const siteName = branding?.site_name || 'ACS';
 
@@ -1094,15 +1087,14 @@ Please register for your ${siteName} account to complete your attestation:
 ${ssoEnabled ? `SSO Login: ${ssoLoginUrl}\n\n` : ''}Register Manually: ${manualRegisterUrl}`;
     }
 
-    const mailOptions = {
-      from: `"${settings.from_name || `${siteName} Notifications`}" <${settings.from_email}>`,
+    await dispatchEmail({
+      settings,
+      branding,
       to: email,
       subject,
-      text: textContent,
-      html: buildEmailHtml(branding, siteName, emailContent)
-    };
-
-    await transport.sendMail(mailOptions);
+      htmlContent: emailContent,
+      textContent
+    });
     return { success: true };
   } catch (error) {
     logger.error({ err: error }, 'Failed to send attestation unregistered reminder');
@@ -1125,14 +1117,13 @@ export const sendAttestationUnregisteredEscalation = async (managerEmail, manage
     const settings = await smtpSettingsDb.get();
 
     if (!settings || !settings.enabled) {
-      return { success: false, error: 'SMTP settings are not enabled' };
+      return { success: false, error: 'Email settings are not enabled' };
     }
 
     if (!settings.from_email) {
       return { success: false, error: 'From email address is not configured' };
     }
 
-    const transport = await createTransport();
     const branding = await brandingSettingsDb.get();
     const siteName = branding?.site_name || 'ACS';
 
@@ -1206,15 +1197,14 @@ Please remind ${employeeName} to register and complete their asset attestation. 
 This is an automated escalation notification to help ensure timely completion of asset attestations.`;
     }
 
-    const mailOptions = {
-      from: `"${settings.from_name || `${siteName} Notifications`}" <${settings.from_email}>`,
+    await dispatchEmail({
+      settings,
+      branding,
       to: managerEmail,
       subject,
-      text: textContent,
-      html: buildEmailHtml(branding, siteName, emailContent)
-    };
-
-    await transport.sendMail(mailOptions);
+      htmlContent: emailContent,
+      textContent
+    });
     return { success: true };
   } catch (error) {
     logger.error({ err: error }, 'Failed to send attestation unregistered escalation');
@@ -1237,7 +1227,7 @@ export const sendEmailVerificationEmail = async (recipient, verificationToken, v
     if (!settings || !settings.enabled) {
       return {
         success: false,
-        error: 'SMTP settings are not enabled. Please enable them first.'
+        error: 'Email settings are not enabled. Please enable them first.'
       };
     }
 
@@ -1247,8 +1237,6 @@ export const sendEmailVerificationEmail = async (recipient, verificationToken, v
         error: 'From email address is not configured'
       };
     }
-
-    const transport = await createTransport();
 
     // Get branding settings for email customization
     const branding = await brandingSettingsDb.get();
@@ -1303,31 +1291,30 @@ If you didn't create an account with ${siteName}, please ignore this email.
 This link will expire in 24 hours for security reasons.`;
     }
 
-    const mailOptions = {
-      from: `"${settings.from_name || `${siteName} Notifications`}" <${settings.from_email}>`,
+    const result = await dispatchEmail({
+      settings,
+      branding,
       to: recipient,
       subject,
-      text: textContent,
-      html: buildEmailHtml(branding, siteName, emailContent)
-    };
-
-    const info = await transport.sendMail(mailOptions);
+      htmlContent: emailContent,
+      textContent
+    });
 
     return {
       success: true,
       message: `Verification email sent successfully to ${recipient}`,
-      messageId: info.messageId
+      messageId: result.messageId
     };
   } catch (error) {
-    // Parse common SMTP errors into user-friendly messages
+    // Parse common errors into user-friendly messages
     let errorMessage = error.message;
 
     if (error.code === 'ECONNREFUSED') {
-      errorMessage = `Connection refused. Please check that the SMTP server is running and the host/port are correct.`;
+      errorMessage = `Connection refused. Please check that the email server is running and configured correctly.`;
     } else if (error.code === 'ETIMEDOUT' || error.code === 'ESOCKET') {
       errorMessage = `Connection timed out. Please check your network connection and firewall settings.`;
     } else if (error.code === 'EAUTH' || error.responseCode === 535) {
-      errorMessage = `Authentication failed. Please check your username and password.`;
+      errorMessage = `Authentication failed. Please check your credentials.`;
     }
 
     logger.error({ err: error }, 'Failed to send email verification email');
@@ -1356,7 +1343,7 @@ export const sendEmailChangeVerificationEmail = async (newEmail, currentEmail, v
     if (!settings || !settings.enabled) {
       return {
         success: false,
-        error: 'SMTP settings are not enabled. Please enable them first.'
+        error: 'Email settings are not enabled. Please enable them first.'
       };
     }
 
@@ -1366,8 +1353,6 @@ export const sendEmailChangeVerificationEmail = async (newEmail, currentEmail, v
         error: 'From email address is not configured'
       };
     }
-
-    const transport = await createTransport();
 
     // Get branding settings for email customization
     const branding = await brandingSettingsDb.get();
@@ -1429,31 +1414,30 @@ If you didn't request this email change, please ignore this email. Your account 
 This link will expire in 24 hours for security reasons.`;
     }
 
-    const mailOptions = {
-      from: `"${settings.from_name || `${siteName} Notifications`}" <${settings.from_email}>`,
+    const result = await dispatchEmail({
+      settings,
+      branding,
       to: newEmail,
       subject,
-      text: textContent,
-      html: buildEmailHtml(branding, siteName, emailContent)
-    };
-
-    const info = await transport.sendMail(mailOptions);
+      htmlContent: emailContent,
+      textContent
+    });
 
     return {
       success: true,
       message: `Email change verification sent successfully to ${newEmail}`,
-      messageId: info.messageId
+      messageId: result.messageId
     };
   } catch (error) {
-    // Parse common SMTP errors into user-friendly messages
+    // Parse common errors into user-friendly messages
     let errorMessage = error.message;
 
     if (error.code === 'ECONNREFUSED') {
-      errorMessage = `Connection refused. Please check that the SMTP server is running and the host/port are correct.`;
+      errorMessage = `Connection refused. Please check that the email server is running and configured correctly.`;
     } else if (error.code === 'ETIMEDOUT' || error.code === 'ESOCKET') {
       errorMessage = `Connection timed out. Please check your network connection and firewall settings.`;
     } else if (error.code === 'EAUTH' || error.responseCode === 535) {
-      errorMessage = `Authentication failed. Please check your username and password.`;
+      errorMessage = `Authentication failed. Please check your credentials.`;
     }
 
     logger.error({ err: error }, 'Failed to send email change verification email');

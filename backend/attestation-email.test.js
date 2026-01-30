@@ -47,6 +47,14 @@ jest.unstable_mockModule('nodemailer', () => ({
   }
 }));
 
+// Mock brevoMailer
+const mockBrevoSendEmail = jest.fn();
+jest.unstable_mockModule('./services/brevoMailer.js', () => ({
+  sendEmail: mockBrevoSendEmail,
+  sendTestEmail: jest.fn(),
+  verifyConnection: jest.fn()
+}));
+
 // Import module under test
 const { 
   sendAttestationLaunchEmail,
@@ -573,7 +581,7 @@ describe('Attestation Email Functions - sendAttestationUnregisteredEscalation', 
     const campaign = {
       name: 'Test Campaign'
     };
-    
+
     const result = await sendAttestationUnregisteredEscalation(
       'manager@example.com',
       'Bob Manager',
@@ -582,8 +590,80 @@ describe('Attestation Email Functions - sendAttestationUnregisteredEscalation', 
       campaign,
       2
     );
-    
+
     expect(result.success).toBe(true);
     expect(mockSendMail).toHaveBeenCalled();
+  });
+});
+
+describe('Attestation Email Functions - Brevo Provider Routing', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    mockSmtpSettingsDb.get.mockResolvedValue({
+      enabled: 1,
+      email_provider: 'brevo',
+      from_name: 'ACS',
+      from_email: 'noreply@example.com'
+    });
+
+    mockBrandingSettingsDb.get.mockResolvedValue({
+      site_name: 'ACS Test',
+      app_url: 'http://localhost:3000'
+    });
+    mockEmailTemplateDb.getByKey.mockResolvedValue(null);
+    mockBrevoSendEmail.mockResolvedValue({ success: true, messageId: 'brevo-id' });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should route escalation email to Brevo when configured', async () => {
+    const result = await sendAttestationEscalationEmail(
+      'manager@example.com',
+      'John Doe',
+      'employee@example.com',
+      { name: 'Test Campaign', escalation_days: 10 }
+    );
+
+    expect(result.success).toBe(true);
+    expect(mockBrevoSendEmail).toHaveBeenCalled();
+    expect(mockSendMail).not.toHaveBeenCalled();
+    expect(mockCreateTransport).not.toHaveBeenCalled();
+  });
+
+  it('should route unregistered reminder to Brevo when configured', async () => {
+    const result = await sendAttestationUnregisteredReminder(
+      'unregistered@example.com',
+      'Jane',
+      'Smith',
+      { name: 'Test Campaign' },
+      'test-token-123',
+      3,
+      false,
+      'Sign In with SSO'
+    );
+
+    expect(result.success).toBe(true);
+    expect(mockBrevoSendEmail).toHaveBeenCalled();
+    expect(mockSendMail).not.toHaveBeenCalled();
+    expect(mockCreateTransport).not.toHaveBeenCalled();
+  });
+
+  it('should route unregistered escalation to Brevo when configured', async () => {
+    const result = await sendAttestationUnregisteredEscalation(
+      'manager@example.com',
+      'Bob Manager',
+      'unregistered@example.com',
+      'Jane Smith',
+      { name: 'Test Campaign' },
+      4
+    );
+
+    expect(result.success).toBe(true);
+    expect(mockBrevoSendEmail).toHaveBeenCalled();
+    expect(mockSendMail).not.toHaveBeenCalled();
+    expect(mockCreateTransport).not.toHaveBeenCalled();
   });
 });
