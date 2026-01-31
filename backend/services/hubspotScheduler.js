@@ -120,14 +120,22 @@ const scheduleNext = async () => {
     logger.debug({ interval: settings.sync_interval, intervalMs }, 'Scheduling next HubSpot sync');
 
     setTimeout(async () => {
-      await runHubSpotSync();
+      try {
+        await runHubSpotSync();
+      } catch (err) {
+        logger.error({ err }, 'Unhandled error during HubSpot sync cycle');
+      }
       scheduleNext();
     }, intervalMs);
   } catch (error) {
     // If we can't read settings, default to daily and retry
     logger.error({ err: error }, 'Failed to read settings for scheduling, defaulting to daily');
     setTimeout(async () => {
-      await runHubSpotSync();
+      try {
+        await runHubSpotSync();
+      } catch (err) {
+        logger.error({ err }, 'Unhandled error during HubSpot sync cycle');
+      }
       scheduleNext();
     }, 24 * 60 * 60 * 1000);
   }
