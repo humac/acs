@@ -80,6 +80,8 @@ export default function AttestationPage() {
   // Alert dialog states
   const [showStartDialog, setShowStartDialog] = useState(false);
   const [campaignToStart, setCampaignToStart] = useState(null);
+  const [scopePreview, setScopePreview] = useState(null);
+  const [scopeLoading, setScopeLoading] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [campaignToCancel, setCampaignToCancel] = useState(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -266,9 +268,25 @@ export default function AttestationPage() {
     }
   };
 
-  const handleStartCampaignClick = (campaign) => {
+  const handleStartCampaignClick = async (campaign) => {
     setCampaignToStart(campaign);
     setShowStartDialog(true);
+    setScopePreview(null);
+    setScopeLoading(true);
+
+    try {
+      const res = await fetch(`/api/attestation/campaigns/${campaign.id}/scope-preview`, {
+        headers: { ...getAuthHeaders() }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setScopePreview(data.scope);
+      }
+    } catch (err) {
+      console.error('Failed to load scope preview:', err);
+    } finally {
+      setScopeLoading(false);
+    }
   };
 
   const handleStartCampaign = async () => {
@@ -283,9 +301,10 @@ export default function AttestationPage() {
       if (!res.ok) throw new Error('Failed to start campaign');
 
       const data = await res.json();
+      const totalEmails = (data.emailsSent || 0) + (data.inviteEmailsSent || 0);
       toast({
         title: 'Campaign Started',
-        description: `Created ${data.recordsCreated} attestation records and sent ${data.emailsSent} emails`
+        description: `Created ${data.recordsCreated} attestation record${data.recordsCreated !== 1 ? 's' : ''}${data.pendingInvitesCreated ? ` and ${data.pendingInvitesCreated} pending invite${data.pendingInvitesCreated !== 1 ? 's' : ''}` : ''}. Sent ${totalEmails} email${totalEmails !== 1 ? 's' : ''}.`
       });
 
       loadCampaigns();
@@ -1301,22 +1320,67 @@ export default function AttestationPage() {
       </Dialog>
 
       {/* Start Campaign Confirmation Dialog */}
-      <AlertDialog open={showStartDialog} onOpenChange={setShowStartDialog}>
+      <AlertDialog open={showStartDialog} onOpenChange={(open) => {
+        setShowStartDialog(open);
+        if (!open) {
+          setCampaignToStart(null);
+          setScopePreview(null);
+        }
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Start Campaign</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to start the campaign "{campaignToStart?.name}"?
-              {campaignToStart && (
-                <div className="mt-2 text-sm font-medium">
-                  {getStartCampaignMessage(campaignToStart)}
-                </div>
-              )}
+            <AlertDialogDescription asChild>
+              <div>
+                <p>Are you sure you want to start the campaign &ldquo;{campaignToStart?.name}&rdquo;?</p>
+
+                {scopeLoading && (
+                  <div className="flex items-center gap-2 mt-3 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm">Computing campaign scope...</span>
+                  </div>
+                )}
+
+                {scopePreview && !scopeLoading && (
+                  <div className="mt-3 p-4 rounded-xl bg-muted/30 border border-white/10 space-y-3">
+                    <p className="caption-label">Campaign Scope</p>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Registered Users</span>
+                        <p className="font-bold text-foreground">{scopePreview.registeredUsers}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Invites (Unregistered)</span>
+                        <p className="font-bold text-foreground">{scopePreview.unregisteredOwners}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Total Assets</span>
+                        <p className="font-bold text-foreground">{scopePreview.totalAssets}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Companies</span>
+                        <p className="font-bold text-foreground">{scopePreview.companiesInScope}</p>
+                      </div>
+                    </div>
+                    {scopePreview.unregisteredOwners > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {scopePreview.unregisteredOwners} unregistered owner{scopePreview.unregisteredOwners !== 1 ? 's' : ''} will receive registration invites.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {!scopeLoading && !scopePreview && campaignToStart && (
+                  <div className="mt-2 text-sm font-medium">
+                    {getStartCampaignMessage(campaignToStart)}
+                  </div>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleStartCampaign}>
+            <AlertDialogAction onClick={handleStartCampaign} disabled={scopeLoading}>
               Start Campaign
             </AlertDialogAction>
           </AlertDialogFooter>
