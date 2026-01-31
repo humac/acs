@@ -162,6 +162,73 @@ export default function createAttestationRouter(deps) {
     }
   });
 
+  // Get campaign scope preview (for draft campaigns before starting)
+  router.get('/campaigns/:id/scope-preview', authenticate, authorize('admin', 'coordinator'), async (req, res) => {
+    try {
+      const campaign = await attestationCampaignDb.getById(req.params.id);
+
+      if (!campaign) {
+        return res.status(404).json({ error: 'Campaign not found' });
+      }
+
+      if (campaign.status !== 'draft') {
+        return res.status(400).json({ error: 'Scope preview is only available for draft campaigns' });
+      }
+
+      let registeredUsers = [];
+      let unregisteredOwners = [];
+      let totalAssets = 0;
+      const scopeCompanyIds = new Set();
+
+      if (campaign.target_type === 'companies' && campaign.target_company_ids) {
+        const companyIds = JSON.parse(campaign.target_company_ids);
+        const companies = await companyDb.getAll();
+        const validCompanyIds = companyIds.filter(id => companies.some(c => c.id === id));
+
+        registeredUsers = await assetDb.getRegisteredOwnersByCompanyIds(validCompanyIds);
+        unregisteredOwners = await assetDb.getUnregisteredOwnersByCompanyIds(validCompanyIds);
+
+        for (const cId of validCompanyIds) {
+          const count = await companyDb.getAssetCount(cId);
+          totalAssets += count;
+          scopeCompanyIds.add(cId);
+        }
+      } else if (campaign.target_type === 'selected' && campaign.target_user_ids) {
+        const targetIds = JSON.parse(campaign.target_user_ids);
+        const allUsers = await userDb.getAll();
+        registeredUsers = allUsers.filter(u => targetIds.includes(u.id));
+
+        for (const user of registeredUsers) {
+          const assets = await assetDb.getByEmployeeEmail(user.email);
+          totalAssets += assets.length;
+          assets.forEach(a => { if (a.company_id) scopeCompanyIds.add(a.company_id); });
+        }
+      } else {
+        // 'all' mode
+        registeredUsers = await userDb.getAll();
+        unregisteredOwners = await assetDb.getUnregisteredOwners();
+        const allAssets = await assetDb.getAll();
+        totalAssets = allAssets.length;
+        allAssets.forEach(a => { if (a.company_id) scopeCompanyIds.add(a.company_id); });
+      }
+
+      res.json({
+        success: true,
+        scope: {
+          registeredUsers: registeredUsers.length,
+          unregisteredOwners: unregisteredOwners.length,
+          totalEmployees: registeredUsers.length + unregisteredOwners.length,
+          totalAssets,
+          companiesInScope: scopeCompanyIds.size,
+          targetType: campaign.target_type
+        }
+      });
+    } catch (error) {
+      logger.error({ err: error, userId: req.user?.id }, 'Error computing campaign scope preview');
+      res.status(500).json({ error: 'Failed to compute scope preview' });
+    }
+  });
+
   // Update campaign
   router.put('/campaigns/:id', authenticate, authorize('admin', 'coordinator'), async (req, res) => {
     try {
