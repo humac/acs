@@ -26,6 +26,7 @@ const RegisterNew = ({ onSwitchToLogin }) => {
   const [brandingLogo, setBrandingLogo] = useState(null);
   const [inviteData, setInviteData] = useState(null);
   const [oidcConfig, setOidcConfig] = useState(null);
+  const [inviteToken, setInviteToken] = useState(null);
   const [loadingInvite, setLoadingInvite] = useState(false);
   const [oidcLoading, setOidcLoading] = useState(false);
   const [footerLabel, setFooterLabel] = useState('SOC2 Compliance - KeyData Asset Registration System');
@@ -74,6 +75,7 @@ const RegisterNew = ({ onSwitchToLogin }) => {
     const token = urlParams.get('token');
     
     if (token) {
+      setInviteToken(token);
       setLoadingInvite(true);
       // Validate the invite token
       fetch(`/api/attestation/validate-invite/${token}`)
@@ -133,10 +135,6 @@ const RegisterNew = ({ onSwitchToLogin }) => {
       setLoading(false);
       return;
     }
-
-    // Pass invite token if present so backend can bypass registration-disabled check
-    const urlParams = new URLSearchParams(window.location.search);
-    const inviteToken = urlParams.get('token');
 
     const result = await register(
       formData.email,
@@ -285,10 +283,8 @@ const RegisterNew = ({ onSwitchToLogin }) => {
                         
                         try {
                           // Store invite token if present so we can redirect after OIDC callback
-                          const urlParams = new URLSearchParams(window.location.search);
-                          const token = urlParams.get('token');
-                          if (token) {
-                            sessionStorage.setItem('attestation_invite_token', token);
+                          if (inviteToken) {
+                            sessionStorage.setItem('attestation_invite_token', inviteToken);
                           }
                           
                           const response = await fetch('/api/auth/oidc/login');

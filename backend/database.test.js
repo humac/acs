@@ -380,4 +380,112 @@ describe('Database Module', () => {
       await expect(assetDb.init()).resolves.not.toThrow();
     });
   });
+
+  describe('company_name vs company_id precedence', () => {
+    let companyA, companyB;
+    let companyAName, companyBName;
+    const assetIdsToCleanup = [];
+
+    beforeAll(async () => {
+      const ts = Date.now();
+      companyAName = `Precedence Co A ${ts}`;
+      companyBName = `Precedence Co B ${ts}`;
+      companyA = await companyDb.create({ name: companyAName });
+      companyB = await companyDb.create({ name: companyBName });
+    });
+
+    afterAll(async () => {
+      for (const id of assetIdsToCleanup) {
+        try { await assetDb.delete(id); } catch (err) { /* ignore */ }
+      }
+      try { if (companyA?.id) await companyDb.delete(companyA.id); } catch (err) { /* ignore */ }
+      try { if (companyB?.id) await companyDb.delete(companyB.id); } catch (err) { /* ignore */ }
+    });
+
+    test('assetDb.create: company_name should take precedence over company_id', async () => {
+      const asset = await assetDb.create({
+        company_id: companyA.id,
+        company_name: companyBName,
+        employee_email: `prec-create-${Date.now()}@test.com`,
+        asset_type: 'Laptop',
+        serial_number: `PREC-CREATE-${Date.now()}`,
+        status: 'active'
+      });
+      assetIdsToCleanup.push(asset.id);
+
+      const retrieved = await assetDb.getById(asset.id);
+      expect(retrieved.company_id).toBe(companyB.id);
+    });
+
+    test('assetDb.create: should use company_id when company_name is not provided', async () => {
+      const asset = await assetDb.create({
+        company_id: companyA.id,
+        employee_email: `prec-fallback-${Date.now()}@test.com`,
+        asset_type: 'Laptop',
+        serial_number: `PREC-FALLBACK-${Date.now()}`,
+        status: 'active'
+      });
+      assetIdsToCleanup.push(asset.id);
+
+      const retrieved = await assetDb.getById(asset.id);
+      expect(retrieved.company_id).toBe(companyA.id);
+    });
+
+    test('assetDb.create: should throw when company_name does not exist in DB', async () => {
+      await expect(assetDb.create({
+        company_name: `Nonexistent Company ${Date.now()}`,
+        employee_email: `prec-notfound-${Date.now()}@test.com`,
+        asset_type: 'Laptop',
+        serial_number: `PREC-NOTFOUND-${Date.now()}`,
+        status: 'active'
+      })).rejects.toThrow('Company not found');
+    });
+
+    test('assetDb.update: company_name should take precedence over company_id', async () => {
+      const ts = Date.now();
+      const asset = await assetDb.create({
+        company_id: companyA.id,
+        employee_email: `prec-update-${ts}@test.com`,
+        asset_type: 'Laptop',
+        serial_number: `PREC-UPDATE-${ts}`,
+        status: 'active'
+      });
+      assetIdsToCleanup.push(asset.id);
+
+      await assetDb.update(asset.id, {
+        company_id: companyA.id,
+        company_name: companyBName,
+        employee_email: `prec-update-${ts}@test.com`,
+        asset_type: 'Laptop',
+        serial_number: `PREC-UPDATE-${ts}`,
+        status: 'active'
+      });
+
+      const retrieved = await assetDb.getById(asset.id);
+      expect(retrieved.company_id).toBe(companyB.id);
+    });
+
+    test('assetDb.update: should use company_id when company_name is not provided', async () => {
+      const ts = Date.now();
+      const asset = await assetDb.create({
+        company_id: companyA.id,
+        employee_email: `prec-upd-fb-${ts}@test.com`,
+        asset_type: 'Laptop',
+        serial_number: `PREC-UPD-FB-${ts}`,
+        status: 'active'
+      });
+      assetIdsToCleanup.push(asset.id);
+
+      await assetDb.update(asset.id, {
+        company_id: companyB.id,
+        employee_email: `prec-upd-fb-${ts}@test.com`,
+        asset_type: 'Laptop',
+        serial_number: `PREC-UPD-FB-${ts}`,
+        status: 'active'
+      });
+
+      const retrieved = await assetDb.getById(asset.id);
+      expect(retrieved.company_id).toBe(companyB.id);
+    });
+  });
 });

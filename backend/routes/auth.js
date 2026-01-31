@@ -104,7 +104,7 @@ export default function createAuthRouter(deps) {
           });
         }
 
-        logger.info({ invite_token }, 'Allowing invite-based registration despite registration being disabled');
+        logger.info({ invite_token: invite_token.slice(0, 8) + '...' }, 'Allowing invite-based registration despite registration being disabled');
       }
 
       let { email, password, name, first_name, last_name, manager_first_name, manager_last_name, manager_name, manager_email } = req.body;
