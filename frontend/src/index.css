@@ -74,6 +74,13 @@
     --accent-foreground: 210 40% 98%;
     --border: 224 71% 12%;
     --input: 224 71% 15%;
+
+    /* Native form controls: date pickers, number spinners, select arrows */
+    color-scheme: dark;
+  }
+
+  :root {
+    color-scheme: light;
   }
 
   * {
@@ -82,6 +89,18 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased selection:bg-primary/30;
+  }
+
+  /* Dark mode native form controls (date picker icon, number spinners, calendar) */
+  .dark input[type="date"]::-webkit-calendar-picker-indicator,
+  .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+  .dark input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
+
+  .dark input[type="number"]::-webkit-inner-spin-button,
+  .dark input[type="number"]::-webkit-outer-spin-button {
+    filter: invert(1);
   }
 }
 
