@@ -44,6 +44,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { DatePicker } from '@/components/ui/date-picker';
 import CompanyCombobox from '@/components/CompanyCombobox';
 
 export default function MyAttestationsPage() {
@@ -627,11 +628,11 @@ export default function MyAttestationsPage() {
                                           <Label htmlFor={`returned-date-${asset.id}`} className="text-xs text-muted-foreground">
                                             Returned Date (Optional)
                                           </Label>
-                                          <Input
+                                          <DatePicker
                                             id={`returned-date-${asset.id}`}
-                                            type="date"
                                             value={returnedDates[asset.id] || ''}
-                                            onChange={(e) => handleReturnedDateChange(asset.id, e.target.value)}
+                                            onChange={(val) => handleReturnedDateChange(asset.id, val)}
+                                            placeholder="Pick a date"
                                             className="w-[180px]"
                                           />
                                         </div>
@@ -747,11 +748,11 @@ export default function MyAttestationsPage() {
                                           <Label htmlFor={`returned-date-mobile-${asset.id}`} className="text-xs text-muted-foreground">
                                             Returned Date (Optional)
                                           </Label>
-                                          <Input
+                                          <DatePicker
                                             id={`returned-date-mobile-${asset.id}`}
-                                            type="date"
                                             value={returnedDates[asset.id] || ''}
-                                            onChange={(e) => handleReturnedDateChange(asset.id, e.target.value)}
+                                            onChange={(val) => handleReturnedDateChange(asset.id, val)}
+                                            placeholder="Pick a date"
                                           />
                                         </div>
                                       )}
@@ -967,21 +968,21 @@ export default function MyAttestationsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="issued_date">Issued Date</Label>
-                <Input
+                <DatePicker
                   id="issued_date"
-                  type="date"
                   value={newAssetForm.issued_date}
-                  onChange={(e) => setNewAssetForm({ ...newAssetForm, issued_date: e.target.value })}
+                  onChange={(val) => setNewAssetForm({ ...newAssetForm, issued_date: val })}
+                  placeholder="Pick a date"
                 />
               </div>
               {newAssetForm.status === 'returned' && (
                 <div>
                   <Label htmlFor="new_asset_returned_date">Returned Date (Optional)</Label>
-                  <Input
+                  <DatePicker
                     id="new_asset_returned_date"
-                    type="date"
                     value={newAssetForm.returned_date}
-                    onChange={(e) => setNewAssetForm({ ...newAssetForm, returned_date: e.target.value })}
+                    onChange={(val) => setNewAssetForm({ ...newAssetForm, returned_date: val })}
+                    placeholder="Pick a date"
                   />
                 </div>
               )}

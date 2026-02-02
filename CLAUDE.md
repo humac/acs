@@ -754,6 +754,8 @@ Located in `/frontend/src/components/ui/`:
 - `select.jsx` - Dropdowns
 - `table.jsx` - Data tables
 - `input.jsx`, `textarea.jsx`, `label.jsx` - Form fields
+- `date-picker.jsx` - Custom themed date picker (replaces `<Input type="date">`)
+- `number-input.jsx` - Custom themed number input with +/- buttons (replaces `<Input type="number">`)
 - `checkbox.jsx`, `switch.jsx` - Toggles
 - `tabs.jsx` - Tab navigation
 - `toast.jsx`, `toaster.jsx` - Notifications
@@ -995,6 +997,12 @@ When creating or modifying frontend components:
 - [ ] Include entrance animations (`animate-fade-in`, etc.)
 - [ ] Use `icon-box` for icon containers
 - [ ] Ensure proper layer hierarchy (Floor → Surface → Overlay)
+- [ ] **NEVER use native browser form controls** - use the custom themed components instead:
+  - `<DatePicker>` instead of `<Input type="date">` or `<Input type="datetime-local">`
+  - `<NumberInput>` instead of `<Input type="number">`
+  - `<Select>` (shadcn) instead of native `<select>`
+  - `<Checkbox>` (shadcn) instead of native `<input type="checkbox">`
+  - `<Switch>` (shadcn) instead of native toggle/checkbox for boolean settings
 
 ---
 
@@ -1760,6 +1768,24 @@ try {
   console.error('Operation failed:', error);
   res.status(500).json({ success: false, message: 'Operation failed' });
 }
+```
+
+❌ **Use Native Browser Form Controls:**
+```javascript
+// Wrong - Native browser controls look inconsistent across browsers/themes
+<Input type="date" ... />
+<Input type="number" ... />
+<Input type="datetime-local" ... />
+<select>...</select>
+
+// Correct - Use the custom themed components
+import { DatePicker } from '@/components/ui/date-picker';
+import { NumberInput } from '@/components/ui/number-input';
+import { Select } from '@/components/ui/select';
+
+<DatePicker value={date} onChange={setDate} />
+<NumberInput value={count} onChange={setCount} min={1} max={100} />
+<Select value={status} onValueChange={setStatus}>...</Select>
 ```
 
 ---

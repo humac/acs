@@ -203,6 +203,28 @@ The dark theme uses a deep obsidian base:
 - Stagger entrance animations: `style={{ animationDelay: \`${index * 40}ms\` }}`
 - Prefer `transform` and `opacity` for GPU-accelerated animations
 
+### No Native Browser Form Controls
+
+**NEVER use native HTML form controls that expose browser-specific UI.** Native controls render differently across browsers and break in dark mode. Always use the project's custom themed components:
+
+| Instead of | Use |
+|------------|-----|
+| `<Input type="date">` | `<DatePicker>` from `@/components/ui/date-picker` |
+| `<Input type="number">` | `<NumberInput>` from `@/components/ui/number-input` |
+| `<Input type="datetime-local">` | `<DatePicker>` from `@/components/ui/date-picker` |
+| `<select>` (native) | `<Select>` from `@/components/ui/select` |
+| `<input type="checkbox">` (native) | `<Checkbox>` from `@/components/ui/checkbox` |
+
+```jsx
+// Wrong
+<Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+<Input type="number" min="1" value={count} onChange={(e) => setCount(e.target.value)} />
+
+// Correct
+<DatePicker value={date} onChange={setDate} placeholder="Pick a date" />
+<NumberInput value={count} onChange={setCount} min={1} />
+```
+
 ## Database Objects
 
 ```javascript

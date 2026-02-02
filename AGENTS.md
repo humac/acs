@@ -308,7 +308,31 @@ Available in `/frontend/src/components/ui/`:
 - `button`, `card`, `dialog`, `alert-dialog`
 - `dropdown-menu`, `select`, `table`
 - `input`, `textarea`, `label`, `checkbox`, `switch`
+- `date-picker` - Custom themed date picker (replaces `<Input type="date">`)
+- `number-input` - Custom themed number input with +/- buttons (replaces `<Input type="number">`)
 - `tabs`, `toast`, `toaster`, `badge`, `avatar`, `separator`
+
+### No Native Browser Form Controls
+
+**NEVER use native HTML form controls.** Native controls render differently across browsers and break in dark mode. Always use the project's custom themed components:
+
+| Instead of | Use |
+|------------|-----|
+| `<Input type="date">` | `<DatePicker>` from `@/components/ui/date-picker` |
+| `<Input type="number">` | `<NumberInput>` from `@/components/ui/number-input` |
+| `<Input type="datetime-local">` | `<DatePicker>` from `@/components/ui/date-picker` |
+| Native `<select>` | `<Select>` from `@/components/ui/select` |
+| Native `<input type="checkbox">` | `<Checkbox>` from `@/components/ui/checkbox` |
+
+```jsx
+// Wrong
+<Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+<Input type="number" min="1" value={count} onChange={(e) => setCount(e.target.value)} />
+
+// Correct
+<DatePicker value={date} onChange={setDate} placeholder="Pick a date" />
+<NumberInput value={count} onChange={setCount} min={1} />
+```
 
 ### Tailwind Patterns
 
@@ -398,6 +422,7 @@ describe('MyComponent', () => {
 - Hardcode URLs or secrets
 - Skip error handling
 - Bypass validation
+- Use native browser form controls (`type="date"`, `type="number"`, native `<select>`) — use `DatePicker`, `NumberInput`, `Select` instead
 
 ### Always Do This
 

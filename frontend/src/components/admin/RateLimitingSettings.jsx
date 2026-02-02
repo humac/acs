@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Loader2 } from 'lucide-react';
+import { NumberInput } from '@/components/ui/number-input';
 import { Switch } from '@/components/ui/switch';
 
 const RateLimitingSettings = () => {
@@ -155,12 +156,11 @@ const RateLimitingSettings = () => {
               Time Window (minutes)
               {getSourceBadge(settings.rateLimiting.windowMs.source)}
             </Label>
-            <Input
-              type="number"
-              min="1"
-              max="1440"
+            <NumberInput
+              min={1}
+              max={1440}
               value={Math.round(settings.rateLimiting.windowMs.value / 60000)}
-              onChange={(e) => updateSetting('rateLimiting', 'windowMs', parseInt(e.target.value, 10) * 60000)}
+              onChange={(val) => updateSetting('rateLimiting', 'windowMs', parseInt(val, 10) * 60000)}
               className="w-32"
             />
             <p className="text-xs text-muted-foreground">
@@ -175,12 +175,11 @@ const RateLimitingSettings = () => {
               Maximum Requests
               {getSourceBadge(settings.rateLimiting.maxRequests.source)}
             </Label>
-            <Input
-              type="number"
-              min="1"
-              max="10000"
+            <NumberInput
+              min={1}
+              max={10000}
               value={settings.rateLimiting.maxRequests.value}
-              onChange={(e) => updateSetting('rateLimiting', 'maxRequests', parseInt(e.target.value, 10))}
+              onChange={(val) => updateSetting('rateLimiting', 'maxRequests', parseInt(val, 10))}
               className="w-32"
             />
             <p className="text-xs text-muted-foreground">

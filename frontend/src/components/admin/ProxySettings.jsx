@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Server } from 'lucide-react';
+import { NumberInput } from '@/components/ui/number-input';
 import { Switch } from '@/components/ui/switch';
 import RestartRequiredBanner from './RestartRequiredBanner';
 
@@ -187,12 +188,11 @@ const ProxySettings = () => {
               Trust Level
               {getSourceBadge(settings.proxy.trustLevel.source)}
             </Label>
-            <Input
-              type="number"
-              min="1"
-              max="10"
+            <NumberInput
+              min={1}
+              max={10}
               value={settings.proxy.trustLevel.value}
-              onChange={(e) => updateSetting('proxy', 'trustLevel', parseInt(e.target.value, 10))}
+              onChange={(val) => updateSetting('proxy', 'trustLevel', parseInt(val, 10))}
               className="w-32"
             />
             <p className="text-xs text-muted-foreground">

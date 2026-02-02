@@ -18,6 +18,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Edit, Trash2, ChevronDown, ChevronRight, Loader2, Laptop, User, Calendar, FileText } from 'lucide-react';
+import { DatePicker } from '@/components/ui/date-picker';
 import { cn } from '@/lib/utils';
 import { formatEmployeeName } from '@/utils/user';
 import { ASSET_STATUS_OPTIONS } from '@/lib/constants';
@@ -178,7 +179,7 @@ const AssetTableRow = memo(function AssetTableRow({
                   {pendingStatus === 'returned' && (
                     <div className="space-y-2">
                       <Label className="text-xs font-bold uppercase tracking-tighter opacity-70">Returned Date (Optional)</Label>
-                      <Input type="date" className="bg-surface/50" value={returnedDate} onChange={(e) => setReturnedDate(e.target.value)} />
+                      <DatePicker value={returnedDate} onChange={setReturnedDate} placeholder="Pick a date" />
                     </div>
                   )}
                   <div className="flex justify-end gap-2 pt-2 border-t border-white/5">

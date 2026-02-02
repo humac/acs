@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { DatePicker } from '@/components/ui/date-picker';
 
 // Email validation regex
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -522,26 +523,22 @@ export default function AssetEditModal({ asset, currentUser: _currentUser, onClo
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label htmlFor="issued_date">Issued Date</Label>
-                  <Input
+                  <DatePicker
                     id="issued_date"
-                    name="issued_date"
-                    type="date"
                     value={form.issued_date}
-                    onChange={onChange}
-                    className="text-base"
+                    onChange={(val) => setForm(prev => ({ ...prev, issued_date: val }))}
+                    placeholder="Pick a date"
                   />
                 </div>
 
                 {form.status === 'returned' && (
                   <div className="space-y-2">
                     <Label htmlFor="returned_date">Returned Date (Optional)</Label>
-                    <Input
+                    <DatePicker
                       id="returned_date"
-                      name="returned_date"
-                      type="date"
                       value={form.returned_date}
-                      onChange={onChange}
-                      className="text-base"
+                      onChange={(val) => setForm(prev => ({ ...prev, returned_date: val }))}
+                      placeholder="Pick a date"
                     />
                   </div>
                 )}

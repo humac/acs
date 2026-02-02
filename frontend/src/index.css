@@ -89,17 +89,6 @@
     @apply bg-background text-foreground font-sans antialiased selection:bg-primary/30;
   }
 
-  /* Dark mode native form controls (date picker icon, number spinners, calendar) */
-  .dark input[type="date"]::-webkit-calendar-picker-indicator,
-  .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator,
-  .dark input[type="time"]::-webkit-calendar-picker-indicator {
-    filter: invert(1);
-  }
-
-  .dark input[type="number"]::-webkit-inner-spin-button,
-  .dark input[type="number"]::-webkit-outer-spin-button {
-    filter: invert(1);
-  }
 }
 
 @layer components {
