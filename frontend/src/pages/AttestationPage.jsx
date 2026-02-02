@@ -41,6 +41,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { DatePicker } from '@/components/ui/date-picker';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
@@ -811,20 +812,21 @@ export default function AttestationPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="start_date">Start Date *</Label>
-                  <Input
+                  <DatePicker
                     id="start_date"
-                    type="date"
                     value={formData.start_date}
-                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                    onChange={(val) => setFormData({ ...formData, start_date: val })}
+                    placeholder="yyyy-mm-dd"
+                    clearable={false}
                   />
                 </div>
                 <div>
                   <Label htmlFor="end_date">End Date (Optional)</Label>
-                  <Input
+                  <DatePicker
                     id="end_date"
-                    type="date"
                     value={formData.end_date}
-                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                    onChange={(val) => setFormData({ ...formData, end_date: val })}
+                    placeholder="yyyy-mm-dd"
                   />
                 </div>
               </div>
@@ -1101,20 +1103,21 @@ export default function AttestationPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="edit-start_date">Start Date *</Label>
-                  <Input
+                  <DatePicker
                     id="edit-start_date"
-                    type="date"
                     value={formData.start_date}
-                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                    onChange={(val) => setFormData({ ...formData, start_date: val })}
+                    placeholder="yyyy-mm-dd"
+                    clearable={false}
                   />
                 </div>
                 <div>
                   <Label htmlFor="edit-end_date">End Date (Optional)</Label>
-                  <Input
+                  <DatePicker
                     id="edit-end_date"
-                    type="date"
                     value={formData.end_date}
-                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                    onChange={(val) => setFormData({ ...formData, end_date: val })}
+                    placeholder="yyyy-mm-dd"
                   />
                 </div>
               </div>
