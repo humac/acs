@@ -133,9 +133,9 @@ const SettingsLayout = ({ children, activeSection, onSectionChange }) => {
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)]">
+    <div className="flex min-h-[500px] border-t border-border/50">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:block w-64 border-r border-border/50 bg-card/30">
+      <aside className="hidden lg:block w-64 border-r border-border/50">
         <SettingsSidebar
           activeSection={activeSection}
           onSectionChange={handleSectionChange}

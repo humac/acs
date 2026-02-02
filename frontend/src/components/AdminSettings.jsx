@@ -643,11 +643,12 @@ const AdminSettingsNew = () => {
             </div>
           </div>
         </CardHeader>
+        <CardContent className="p-0">
+          <SettingsLayout activeSection={activeView} onSectionChange={setActiveView}>
+            {renderSectionContent()}
+          </SettingsLayout>
+        </CardContent>
       </Card>
-
-      <SettingsLayout activeSection={activeView} onSectionChange={setActiveView}>
-        {renderSectionContent()}
-      </SettingsLayout>
     </div>
   );
 };
