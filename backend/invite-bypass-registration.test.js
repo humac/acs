@@ -9,8 +9,7 @@
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
 import {
   userDb, companyDb, assetDb,
-  attestationCampaignDb, attestationPendingInviteDb,
-  authSettingsDb
+  attestationCampaignDb, attestationPendingInviteDb
 } from './database.js';
 import { hashPassword, generateToken } from './auth.js';
 import request from 'supertest';
@@ -30,11 +29,14 @@ const authRateLimiter = rateLimit({
   keyGenerator: () => 'test'
 });
 
+// Use a local flag instead of reading from the shared auth_settings table,
+// which can be modified by other test files running in parallel.
+let registrationDisabled = false;
+
 app.post('/api/auth/register', authRateLimiter, async (req, res) => {
   try {
     // Check if registration is enabled (mirrors routes/auth.js lines 78-108)
-    const authSettings = await authSettingsDb?.get();
-    if (authSettings?.registration_enabled === 0) {
+    if (registrationDisabled) {
       const { invite_token } = req.body;
       let inviteValid = false;
 
@@ -111,8 +113,8 @@ describe('Invite-bypass registration (registration disabled)', () => {
   beforeAll(async () => {
     timestamp = Date.now();
 
-    // Disable self-service registration
-    await authSettingsDb.update({ registration_enabled: false, password_login_enabled: true }, 'invite-bypass-test');
+    // Disable self-service registration via local flag (avoids parallel test interference)
+    registrationDisabled = true;
 
     // Create test company
     testCompany = await companyDb.create({
@@ -200,7 +202,7 @@ describe('Invite-bypass registration (registration disabled)', () => {
 
   afterAll(async () => {
     // Re-enable registration
-    await authSettingsDb.update({ registration_enabled: true, password_login_enabled: true }, 'invite-bypass-test-cleanup');
+    registrationDisabled = false;
 
     // Clean up created users
     for (const email of createdUserEmails) {
