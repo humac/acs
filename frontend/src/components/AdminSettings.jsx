@@ -632,7 +632,7 @@ const AdminSettingsNew = () => {
 
   return (
     <div className="space-y-6 p-1 md:p-2 animate-fade-in bg-surface/30 min-h-screen rounded-2xl">
-      <Card variant="glass" className="glass-panel rounded-2xl">
+      <Card className="glass-panel rounded-2xl">
         <CardHeader className="space-y-3 md:space-y-4 px-4 sm:px-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
