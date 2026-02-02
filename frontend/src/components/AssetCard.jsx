@@ -17,6 +17,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { Edit, Trash2, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { DatePicker } from '@/components/ui/date-picker';
 import { cn } from '@/lib/utils';
 import { formatEmployeeName } from '@/utils/user';
 import { ASSET_STATUS_OPTIONS } from '@/lib/constants';
@@ -202,12 +203,11 @@ const AssetCard = memo(function AssetCard({
                         <Label htmlFor={`returned-date-card-${asset.id}`}>
                           Returned Date *
                         </Label>
-                        <Input
+                        <DatePicker
                           id={`returned-date-card-${asset.id}`}
-                          type="date"
                           value={returnedDate}
-                          onChange={(e) => setReturnedDate(e.target.value)}
-                          required
+                          onChange={setReturnedDate}
+                          placeholder="Pick a date"
                         />
                       </div>
                     )}

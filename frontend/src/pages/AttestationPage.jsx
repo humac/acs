@@ -42,6 +42,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { DatePicker } from '@/components/ui/date-picker';
+import { NumberInput } from '@/components/ui/number-input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
@@ -833,12 +834,11 @@ export default function AttestationPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="reminder_days">Reminder (days)</Label>
-                  <Input
+                  <NumberInput
                     id="reminder_days"
-                    type="number"
-                    min="1"
+                    min={1}
                     value={formData.reminder_days}
-                    onChange={(e) => setFormData({ ...formData, reminder_days: parseInt(e.target.value) || 7 })}
+                    onChange={(val) => setFormData({ ...formData, reminder_days: parseInt(val) || 7 })}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     Send reminder to registered users after X days
@@ -846,12 +846,11 @@ export default function AttestationPage() {
                 </div>
                 <div>
                   <Label htmlFor="escalation_days">Escalation (days)</Label>
-                  <Input
+                  <NumberInput
                     id="escalation_days"
-                    type="number"
-                    min="1"
+                    min={1}
                     value={formData.escalation_days}
-                    onChange={(e) => setFormData({ ...formData, escalation_days: parseInt(e.target.value) || 10 })}
+                    onChange={(val) => setFormData({ ...formData, escalation_days: parseInt(val) || 10 })}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     Notify manager after X days
@@ -859,12 +858,11 @@ export default function AttestationPage() {
                 </div>
                 <div className="col-span-2">
                   <Label htmlFor="unregistered_reminder_days">Unregistered Owner Reminder (days)</Label>
-                  <Input
+                  <NumberInput
                     id="unregistered_reminder_days"
-                    type="number"
-                    min="1"
+                    min={1}
                     value={formData.unregistered_reminder_days}
-                    onChange={(e) => setFormData({ ...formData, unregistered_reminder_days: parseInt(e.target.value) || 7 })}
+                    onChange={(val) => setFormData({ ...formData, unregistered_reminder_days: parseInt(val) || 7 })}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     Send reminder to unregistered asset owners after X days
@@ -1124,12 +1122,11 @@ export default function AttestationPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="edit-reminder_days">Reminder (days)</Label>
-                  <Input
+                  <NumberInput
                     id="edit-reminder_days"
-                    type="number"
-                    min="1"
+                    min={1}
                     value={formData.reminder_days}
-                    onChange={(e) => setFormData({ ...formData, reminder_days: parseInt(e.target.value) || 7 })}
+                    onChange={(val) => setFormData({ ...formData, reminder_days: parseInt(val) || 7 })}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     Send reminder to registered users after X days
@@ -1137,12 +1134,11 @@ export default function AttestationPage() {
                 </div>
                 <div>
                   <Label htmlFor="edit-escalation_days">Escalation (days)</Label>
-                  <Input
+                  <NumberInput
                     id="edit-escalation_days"
-                    type="number"
-                    min="1"
+                    min={1}
                     value={formData.escalation_days}
-                    onChange={(e) => setFormData({ ...formData, escalation_days: parseInt(e.target.value) || 10 })}
+                    onChange={(val) => setFormData({ ...formData, escalation_days: parseInt(val) || 10 })}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     Notify manager after X days
@@ -1150,12 +1146,11 @@ export default function AttestationPage() {
                 </div>
                 <div className="col-span-2">
                   <Label htmlFor="edit-unregistered_reminder_days">Unregistered Owner Reminder (days)</Label>
-                  <Input
+                  <NumberInput
                     id="edit-unregistered_reminder_days"
-                    type="number"
-                    min="1"
+                    min={1}
                     value={formData.unregistered_reminder_days}
-                    onChange={(e) => setFormData({ ...formData, unregistered_reminder_days: parseInt(e.target.value) || 7 })}
+                    onChange={(val) => setFormData({ ...formData, unregistered_reminder_days: parseInt(val) || 7 })}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     Send reminder to unregistered asset owners after X days

@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, AlertTriangle, Server } from 'lucide-react';
+import { NumberInput } from '@/components/ui/number-input';
 import { Switch } from '@/components/ui/switch';
 
 const SystemSettings = () => {
@@ -195,12 +196,11 @@ const SystemSettings = () => {
               Trust Level
               {getSourceBadge(settings.proxy.trustLevel.source)}
             </Label>
-            <Input
-              type="number"
-              min="1"
-              max="10"
+            <NumberInput
+              min={1}
+              max={10}
               value={settings.proxy.trustLevel.value}
-              onChange={(e) => updateSetting('proxy', 'trustLevel', parseInt(e.target.value, 10))}
+              onChange={(val) => updateSetting('proxy', 'trustLevel', parseInt(val, 10))}
               className="w-32"
             />
             <p className="text-xs text-muted-foreground">
@@ -244,12 +244,11 @@ const SystemSettings = () => {
               Time Window (minutes)
               {getSourceBadge(settings.rateLimiting.windowMs.source)}
             </Label>
-            <Input
-              type="number"
-              min="1"
-              max="1440"
+            <NumberInput
+              min={1}
+              max={1440}
               value={Math.round(settings.rateLimiting.windowMs.value / 60000)}
-              onChange={(e) => updateSetting('rateLimiting', 'windowMs', parseInt(e.target.value, 10) * 60000)}
+              onChange={(val) => updateSetting('rateLimiting', 'windowMs', parseInt(val, 10) * 60000)}
               className="w-32"
             />
             <p className="text-xs text-muted-foreground">
@@ -264,12 +263,11 @@ const SystemSettings = () => {
               Maximum Requests
               {getSourceBadge(settings.rateLimiting.maxRequests.source)}
             </Label>
-            <Input
-              type="number"
-              min="1"
-              max="10000"
+            <NumberInput
+              min={1}
+              max={10000}
               value={settings.rateLimiting.maxRequests.value}
-              onChange={(e) => updateSetting('rateLimiting', 'maxRequests', parseInt(e.target.value, 10))}
+              onChange={(val) => updateSetting('rateLimiting', 'maxRequests', parseInt(val, 10))}
               className="w-32"
             />
             <p className="text-xs text-muted-foreground">

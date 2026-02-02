@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Loader2, Info, Send } from 'lucide-react';
+import { NumberInput } from '@/components/ui/number-input';
 
 const SMTPSettings = () => {
   const { getAuthHeaders } = useAuth();
@@ -314,11 +315,12 @@ const SMTPSettings = () => {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="port" className="text-sm">Port *</Label>
-                  <Input
+                  <NumberInput
                     id="port"
-                    type="number"
+                    min={1}
+                    max={65535}
                     value={settings.port}
-                    onChange={(e) => handleChange('port', e.target.value)}
+                    onChange={(val) => handleChange('port', val)}
                     placeholder="587"
                     disabled={saving}
                     className={errors.port ? 'border-destructive' : ''}

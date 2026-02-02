@@ -12,6 +12,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { FileText, BarChart3, Filter, Download, Loader2, X, TrendingUp, Shield, Activity, Laptop, Users, FileDown } from 'lucide-react';
+import { DatePicker } from '@/components/ui/date-picker';
 import { cn } from '@/lib/utils';
 import TablePaginationControls from '@/components/TablePaginationControls';
 import { AssetStatusPieChart, CompanyBarChart, ActivityAreaChart, TrendLineChart, ManagerBarChart } from '@/components/charts';
@@ -263,8 +264,8 @@ const AuditReportingNew = () => {
                     <SelectItem value="company">Company</SelectItem>
                   </SelectContent>
                 </Select>
-                <Input type="date" value={filters.startDate} onChange={(e) => setFilters({ ...filters, startDate: e.target.value })} placeholder="Start Date" />
-                <Input type="date" value={filters.endDate} onChange={(e) => setFilters({ ...filters, endDate: e.target.value })} placeholder="End Date" />
+                <DatePicker value={filters.startDate} onChange={(val) => setFilters({ ...filters, startDate: val })} placeholder="Start Date" clearable />
+                <DatePicker value={filters.endDate} onChange={(val) => setFilters({ ...filters, endDate: val })} placeholder="End Date" clearable />
                 <Input type="email" value={filters.userEmail} onChange={(e) => setFilters({ ...filters, userEmail: e.target.value })} placeholder="User Email" />
                 <Select value={filters.limit} onValueChange={(v) => setFilters({ ...filters, limit: v })}>
                   <SelectTrigger><SelectValue placeholder="Limit" /></SelectTrigger>
