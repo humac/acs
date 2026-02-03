@@ -11,7 +11,7 @@ import TablePaginationControls from '@/components/TablePaginationControls';
 import AttestationCampaignTableRow from '@/components/AttestationCampaignTableRow';
 import AttestationCampaignTableFilters from '@/components/AttestationCampaignTableFilters';
 import BulkCampaignActions from '@/components/BulkCampaignActions';
-import { SearchX } from 'lucide-react';
+import { SearchX, ClipboardCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function AttestationCampaignTable({
@@ -89,7 +89,17 @@ export default function AttestationCampaignTable({
                 currentUser={currentUser}
             />
 
-            {filteredCampaigns.length === 0 ? (
+            {campaigns.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground animate-in fade-in zoom-in-95 duration-300">
+                    <div className="icon-box icon-box-lg bg-primary/10 border-primary/20 mb-6">
+                        <ClipboardCheck className="h-8 w-8 text-primary" />
+                    </div>
+                    <h3 className="text-xl font-bold mb-2 text-foreground">No campaigns yet</h3>
+                    <p className="text-muted-foreground mb-6 max-w-sm text-center">
+                        There are no active campaigns. Create your first campaign to get started.
+                    </p>
+                </div>
+            ) : filteredCampaigns.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
                     <SearchX className="h-12 w-12 mb-4 opacity-20" />
                     <p className="text-lg font-medium">No campaigns found matching your criteria</p>

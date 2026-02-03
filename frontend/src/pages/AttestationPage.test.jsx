@@ -138,6 +138,20 @@ describe('AttestationPage', () => {
       expect(screen.getByText(/draft/i)).toBeInTheDocument();
       expect(screen.getAllByRole('checkbox')).toHaveLength(2); // Header + Row checkbox
     });
+
+    it('displays empty state message when no campaigns exist', async () => {
+      setupFetchMock([]);
+      render(
+        <BrowserRouter>
+          <AttestationPage />
+        </BrowserRouter>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('No campaigns yet')).toBeInTheDocument();
+        expect(screen.getByText('There are no active campaigns. Create your first campaign to get started.')).toBeInTheDocument();
+      }, { timeout: 3000 });
+    });
   });
 
   describe('Error Handling', () => {
