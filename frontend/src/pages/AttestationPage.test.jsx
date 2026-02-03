@@ -55,7 +55,7 @@ describe('AttestationPage', () => {
   describe('Initial Load', () => {
     it('shows loading state initially', () => {
       // Setup mock that returns pending promise
-      global.fetch.mockImplementation(() => new Promise(() => {}));
+      global.fetch.mockImplementation(() => new Promise(() => { }));
 
       render(
         <BrowserRouter>
@@ -100,10 +100,7 @@ describe('AttestationPage', () => {
       }, { timeout: 3000 });
     });
 
-    // NOTE: This test has timing issues with the mocked async fetch/useEffect cycle
-    // The component renders correctly in actual usage (mobile & desktop views work)
-    // TODO: Fix test mock to properly handle async state updates
-    it.skip('renders campaign list when campaigns exist', async () => {
+    it('renders campaign list when campaigns exist', async () => {
       const mockCampaigns = [
         {
           id: 1,
@@ -129,8 +126,31 @@ describe('AttestationPage', () => {
         expect(screen.getByText(/Attestation Campaigns \(1\)/)).toBeInTheDocument();
       }, { timeout: 3000 });
 
-      // Then check that campaign name is rendered (in either mobile or desktop view)
+      // Check for table headers
+      expect(screen.getByText('Campaign Name / Description')).toBeInTheDocument();
+      expect(screen.getByText('Timeline')).toBeInTheDocument();
+      // Status might appear in filters too, so check specifically for column header or valid instance
+      const statusHeaders = screen.getAllByText('Status');
+      expect(statusHeaders.length).toBeGreaterThan(0);
+
+      // Check for campaign data in table row
       expect(screen.getByText('Q4 2024 Attestation')).toBeInTheDocument();
+      expect(screen.getByText(/draft/i)).toBeInTheDocument();
+      expect(screen.getAllByRole('checkbox')).toHaveLength(2); // Header + Row checkbox
+    });
+
+    it('displays empty state message when no campaigns exist', async () => {
+      setupFetchMock([]);
+      render(
+        <BrowserRouter>
+          <AttestationPage />
+        </BrowserRouter>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('No campaigns yet')).toBeInTheDocument();
+        expect(screen.getByText('There are no active campaigns. Create your first campaign to get started.')).toBeInTheDocument();
+      }, { timeout: 3000 });
     });
   });
 
