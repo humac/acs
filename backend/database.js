@@ -1478,22 +1478,17 @@ const initDb = async () => {
     // Don't fail initialization
   }
 
-  // Insert default OIDC settings if not exists
-  const checkSettings = await dbGet('SELECT id FROM oidc_settings WHERE id = 1');
-  if (!checkSettings) {
+  // Insert default OIDC settings if not exists (uses ON CONFLICT to avoid race conditions in parallel tests)
+  {
     const now = new Date().toISOString();
     await dbRun(`
       INSERT INTO oidc_settings (id, enabled, sso_button_text, sso_button_help_text, sso_button_variant, updated_at)
       VALUES (1, 0, 'Sign In with SSO', '', 'outline', ?)
+      ON CONFLICT (id) DO UPDATE SET
+        sso_button_text = COALESCE(oidc_settings.sso_button_text, 'Sign In with SSO'),
+        sso_button_help_text = COALESCE(oidc_settings.sso_button_help_text, ''),
+        sso_button_variant = COALESCE(oidc_settings.sso_button_variant, 'outline')
     `, [now]);
-  } else {
-    await dbRun(`
-      UPDATE oidc_settings
-      SET sso_button_text = COALESCE(sso_button_text, 'Sign In with SSO'),
-          sso_button_help_text = COALESCE(sso_button_help_text, ''),
-          sso_button_variant = COALESCE(sso_button_variant, 'outline')
-      WHERE id = 1
-    `);
   }
 
   // Migration: Add new branding columns
@@ -1691,33 +1686,33 @@ const initDb = async () => {
     // Don't fail initialization
   }
 
-  // Insert default branding settings if not exists
-  const checkBranding = await dbGet('SELECT id FROM branding_settings WHERE id = 1');
-  if (!checkBranding) {
+  // Insert default branding settings if not exists (uses ON CONFLICT to avoid race conditions)
+  {
     const now = new Date().toISOString();
     await dbRun(`
       INSERT INTO branding_settings (id, site_name, sub_title, primary_color, include_logo_in_emails, footer_label, updated_at)
       VALUES (1, 'ACS', 'Asset Compliance System', '#3B82F6', 0, 'SOC2 Compliance - Asset Compliance System', ?)
+      ON CONFLICT (id) DO NOTHING
     `, [now]);
   }
 
-  // Insert default HubSpot settings if not exists
-  const checkHubSpot = await dbGet('SELECT id FROM hubspot_settings WHERE id = 1');
-  if (!checkHubSpot) {
+  // Insert default HubSpot settings if not exists (uses ON CONFLICT to avoid race conditions)
+  {
     const now = new Date().toISOString();
     await dbRun(`
       INSERT INTO hubspot_settings (id, enabled, auto_sync_enabled, sync_interval, created_at, updated_at)
       VALUES (1, 0, 0, 'daily', ?, ?)
+      ON CONFLICT (id) DO NOTHING
     `, [now, now]);
   }
 
-  // Insert default SMTP settings if not exists
-  const checkSmtp = await dbGet('SELECT id FROM smtp_settings WHERE id = 1');
-  if (!checkSmtp) {
+  // Insert default SMTP settings if not exists (uses ON CONFLICT to avoid race conditions)
+  {
     const now = new Date().toISOString();
     await dbRun(`
       INSERT INTO smtp_settings (id, enabled, created_at, updated_at)
       VALUES (1, 0, ?, ?)
+      ON CONFLICT (id) DO NOTHING
     `, [now, now]);
   }
 
