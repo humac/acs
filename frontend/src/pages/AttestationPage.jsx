@@ -1,6 +1,5 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,29 +13,12 @@ import {
   Download,
   Eye,
   Calendar,
-  Users,
-  CheckCircle2,
   Clock,
   AlertCircle,
   Edit,
   Trash2,
-  Search,
-  Bell,
-  RefreshCw,
-  AlertTriangle,
-  Mail,
-  ChevronDown,
-  MoreHorizontal,
+  Bell
 } from 'lucide-react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -45,13 +27,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { DashboardContent } from '@/components/DashboardContent';
 import {
   AlertDialog,
@@ -66,25 +41,26 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { DatePicker } from '@/components/ui/date-picker';
+import { NumberInput } from '@/components/ui/number-input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
-import CampaignTableRow from '@/components/CampaignTableRow';
+import CompanyMultiSelect from '@/components/CompanyMultiSelect';
 
 export default function AttestationPage() {
   const { getAuthHeaders, user } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState(null);
-  
+
   // Dashboard modal state
   const [showDashboardModal, setShowDashboardModal] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState(null);
-  
+
   const [campaignStats, setCampaignStats] = useState({});
   const [formData, setFormData] = useState({
     name: '',
@@ -98,16 +74,16 @@ export default function AttestationPage() {
     target_user_ids: [],
     target_company_ids: []
   });
-  
+
   const [wizardStep, setWizardStep] = useState(1);
   const [availableUsers, setAvailableUsers] = useState([]);
-  const [availableCompanies, setAvailableCompanies] = useState([]);
   const [userSearchQuery, setUserSearchQuery] = useState('');
-  const [companySearchQuery, setCompanySearchQuery] = useState('');
-  
+
   // Alert dialog states
   const [showStartDialog, setShowStartDialog] = useState(false);
   const [campaignToStart, setCampaignToStart] = useState(null);
+  const [scopePreview, setScopePreview] = useState(null);
+  const [scopeLoading, setScopeLoading] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [campaignToCancel, setCampaignToCancel] = useState(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -138,13 +114,13 @@ export default function AttestationPage() {
   // Helper function to get user count message for campaign start
   const getStartCampaignMessage = (campaign) => {
     if (!campaign) return '';
-    
+
     if (campaign.target_type === 'companies' && campaign.target_company_ids) {
       const companyIds = parseTargetCompanyIds(campaign.target_company_ids);
       const count = companyIds.length;
       return `Emails will be sent to employees with assets in ${count} selected compan${count !== 1 ? 'ies' : 'y'}.`;
     }
-    
+
     if (campaign.target_type === 'selected' && campaign.target_user_ids) {
       const targetIds = parseTargetUserIds(campaign.target_user_ids);
       const count = targetIds.length;
@@ -153,6 +129,23 @@ export default function AttestationPage() {
     return 'Emails will be sent to all employees.';
   };
 
+  // Helper function to format progress display with pending invites
+  const getProgressDisplay = (campaign, stats) => {
+    if (!stats) return '-';
+
+    const { completed, total } = stats;
+    const pending_invites_count = campaign.pending_invites_count || 0;
+
+    if (total === 0 && pending_invites_count > 0) {
+      return `0/0 (${pending_invites_count} pending invite${pending_invites_count !== 1 ? 's' : ''})`;
+    }
+
+    if (pending_invites_count > 0) {
+      return `${completed}/${total} (${pending_invites_count} pending invite${pending_invites_count !== 1 ? 's' : ''})`;
+    }
+
+    return `${completed}/${total} - ${total > 0 ? Math.round((completed / total) * 100) : 0}% Complete`;
+  };
 
   const loadCampaigns = async () => {
     setLoading(true);
@@ -164,7 +157,7 @@ export default function AttestationPage() {
       const data = await res.json();
       const campaignsData = data.campaigns || [];
       setCampaigns(campaignsData);
-      
+
       // Load stats for active campaigns in parallel
       const activeCampaigns = campaignsData.filter(c => c.status === 'active');
       const statsPromises = activeCampaigns.map(async (campaign) => {
@@ -176,23 +169,16 @@ export default function AttestationPage() {
             const statsData = await statsRes.json();
             const records = statsData.records || [];
             const completed = records.filter(r => r.status === 'completed').length;
-            const pending = records.filter(r => r.status === 'pending').length;
-            const unregistered = records.filter(r => r.status === 'unregistered').length;
             const total = records.length;
             const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-            const daysElapsed = Math.floor((new Date() - new Date(campaign.start_date)) / (1000 * 60 * 60 * 24));
-            const overdue = records.filter(r => {
-              if (r.status === 'completed') return false;
-              return daysElapsed > (campaign.escalation_days || 0);
-            }).length;
-            return { id: campaign.id, stats: { completed, pending, unregistered, overdue, total, percentage } };
+            return { id: campaign.id, stats: { completed, total, percentage } };
           }
         } catch (err) {
           console.error(`Error loading stats for campaign ${campaign.id}:`, err);
         }
         return null;
       });
-      
+
       const statsResults = await Promise.all(statsPromises);
       const stats = {};
       statsResults.forEach(result => {
@@ -239,31 +225,7 @@ export default function AttestationPage() {
     }
   };
 
-  const loadCompanies = async () => {
-    try {
-      const res = await fetch('/api/companies/names', {
-        headers: { ...getAuthHeaders() }
-      });
-      if (!res.ok) throw new Error('Failed to load companies');
-      const data = await res.json();
-      setAvailableCompanies(data || []);
-    } catch (err) {
-      console.error(err);
-      toast({
-        title: 'Error',
-        description: 'Failed to load companies',
-        variant: 'destructive'
-      });
-    }
-  };
-
-  // Helper function to filter companies by search query
-  const filterCompaniesBySearch = (companies, searchQuery) => {
-    return companies.filter(c => 
-      searchQuery === '' ||
-      c.name?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  };
+  // loadCompanies removed - using CompanyMultiSelect which handles its own data loading
 
   const handleCreateCampaign = async () => {
     try {
@@ -296,7 +258,7 @@ export default function AttestationPage() {
         target_company_ids: []
       });
       setUserSearchQuery('');
-      setCompanySearchQuery('');
+
       loadCampaigns();
     } catch (err) {
       console.error(err);
@@ -308,9 +270,25 @@ export default function AttestationPage() {
     }
   };
 
-  const handleStartCampaignClick = (campaign) => {
+  const handleStartCampaignClick = async (campaign) => {
     setCampaignToStart(campaign);
     setShowStartDialog(true);
+    setScopePreview(null);
+    setScopeLoading(true);
+
+    try {
+      const res = await fetch(`/api/attestation/campaigns/${campaign.id}/scope-preview`, {
+        headers: { ...getAuthHeaders() }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setScopePreview(data.scope);
+      }
+    } catch (err) {
+      console.error('Failed to load scope preview:', err);
+    } finally {
+      setScopeLoading(false);
+    }
   };
 
   const handleStartCampaign = async () => {
@@ -325,9 +303,10 @@ export default function AttestationPage() {
       if (!res.ok) throw new Error('Failed to start campaign');
 
       const data = await res.json();
+      const totalEmails = (data.emailsSent || 0) + (data.inviteEmailsSent || 0);
       toast({
         title: 'Campaign Started',
-        description: `Created ${data.recordsCreated} attestation records and sent ${data.emailsSent} emails`
+        description: `Created ${data.recordsCreated} attestation record${data.recordsCreated !== 1 ? 's' : ''}${data.pendingInvitesCreated ? ` and ${data.pendingInvitesCreated} pending invite${data.pendingInvitesCreated !== 1 ? 's' : ''}` : ''}. Sent ${totalEmails} email${totalEmails !== 1 ? 's' : ''}.`
       });
 
       loadCampaigns();
@@ -436,16 +415,13 @@ export default function AttestationPage() {
     });
     setWizardStep(1);
     setShowEditModal(true);
-    
+
     // Load users if target type is selected
     if (campaign.target_type === 'selected' && availableUsers.length === 0) {
       loadUsers();
     }
-    
-    // Load companies if target type is companies
-    if (campaign.target_type === 'companies' && availableCompanies.length === 0) {
-      loadCompanies();
-    }
+
+    // CompanyMultiSelect handles its own data loading
   };
 
   const handleUpdateCampaign = async () => {
@@ -480,7 +456,7 @@ export default function AttestationPage() {
         target_company_ids: []
       });
       setUserSearchQuery('');
-      setCompanySearchQuery('');
+
       loadCampaigns();
     } catch (err) {
       console.error(err);
@@ -530,7 +506,6 @@ export default function AttestationPage() {
       });
     }
   };
-
 
   if (loading) {
     return (
@@ -584,7 +559,7 @@ export default function AttestationPage() {
           )}
         </CardHeader>
 
-      {/* Campaign Cards */}
+        {/* Campaign Cards */}
         <CardContent>
           {campaigns.length === 0 ? (
             <div className="glass-panel rounded-2xl text-center py-16 animate-fade-in">
@@ -593,7 +568,7 @@ export default function AttestationPage() {
               </div>
               <h3 className="text-2xl font-bold mb-2">No campaigns yet</h3>
               <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                {canManageCampaigns 
+                {canManageCampaigns
                   ? 'Create your first attestation campaign to get started'
                   : 'No attestation campaigns have been created yet'}
               </p>
@@ -606,144 +581,191 @@ export default function AttestationPage() {
             </div>
           ) : (
             <>
-              {/* Mobile: Campaign Cards */}
-              <div className="md:hidden space-y-4">
+              {/* Bento Grid View */}
+              <div className="bento-grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                 {campaigns.map((campaign, index) => {
                   const stats = campaignStats[campaign.id];
-                  const statusCfg = {
+
+                  // Determine badge styling based on status
+                  const statusConfig = {
                     draft: { class: 'glow-muted', label: 'Draft' },
                     active: { class: 'glow-success', label: 'Active' },
                     completed: { class: 'glow-info', label: 'Completed' },
-                    cancelled: { class: 'glow-destructive', label: 'Cancelled' },
+                    cancelled: { class: 'glow-destructive', label: 'Cancelled' }
                   };
-                  const statusInfo = statusCfg[campaign.status] || statusCfg.draft;
+                  const statusInfo = statusConfig[campaign.status] || statusConfig.draft;
 
                   return (
                     <div
                       key={campaign.id}
-                      className="glass-panel rounded-xl p-4 animate-slide-up"
-                      style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'forwards' }}
+                      className="bento-card p-5 animate-fade-in"
+                      style={{ animationDelay: `${index * 50}ms` }}
                     >
-                      <div className="flex items-start justify-between gap-3 mb-3">
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <div className="icon-box icon-box-sm bg-primary/10 border-primary/20 flex-shrink-0">
-                            <ClipboardCheck className="h-4 w-4 text-primary" />
-                          </div>
-                          <div className="min-w-0">
-                            <h3 className="font-bold truncate">{campaign.name}</h3>
-                            {campaign.description && (
-                              <p className="text-xs text-muted-foreground line-clamp-1">{campaign.description}</p>
-                            )}
-                          </div>
-                        </div>
-                        <Badge className={cn('shrink-0', statusInfo.class)}>{statusInfo.label}</Badge>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-                        <div>
-                          <p className="caption-label">Start</p>
-                          <p className="font-medium">{new Date(campaign.start_date).toLocaleDateString()}</p>
-                        </div>
-                        <div>
-                          <p className="caption-label">End</p>
-                          <p className="font-medium">
-                            {campaign.end_date ? new Date(campaign.end_date).toLocaleDateString() : 'Not set'}
-                          </p>
-                        </div>
-                      </div>
-
-                      {campaign.status === 'active' && stats && stats.total > 0 && (
-                        <div className="mb-3">
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 bg-muted/50 rounded-full h-1.5 overflow-hidden">
-                              <div
-                                className="h-full rounded-full bg-gradient-to-r from-primary to-info"
-                                style={{ width: `${stats.percentage}%` }}
-                              />
+                      {/* Campaign Header */}
+                      <div className="flex items-start justify-between gap-3 mb-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="icon-box icon-box-sm bg-primary/10 border-primary/20">
+                              <ClipboardCheck className="h-4 w-4 text-primary" />
                             </div>
-                            <span className="text-xs font-bold text-primary">{stats.percentage}%</span>
+                            <h3 className="font-bold text-lg truncate">{campaign.name}</h3>
                           </div>
+                          {campaign.description && (
+                            <p className="text-sm text-muted-foreground line-clamp-2">
+                              {campaign.description}
+                            </p>
+                          )}
+                        </div>
+                        <Badge className={cn("shrink-0", statusInfo.class)}>
+                          {statusInfo.label}
+                        </Badge>
+                      </div>
+
+                      {/* Progress Bar (for active campaigns) */}
+                      {campaign.status === 'active' && stats && stats.total > 0 && (
+                        <div className="space-y-2 mb-4 p-3 rounded-xl bg-muted/30">
+                          <div className="flex items-center justify-between">
+                            <span className="caption-label">Progress</span>
+                            <span className="text-sm font-bold text-primary">{stats.percentage}%</span>
+                          </div>
+                          <div className="w-full bg-muted/50 rounded-full h-2.5 overflow-hidden border border-white/5">
+                            <div
+                              className="h-full transition-all duration-500 rounded-full bg-gradient-to-r from-primary to-info"
+                              style={{ width: `${stats.percentage}%` }}
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {getProgressDisplay(campaign, stats)}
+                          </p>
                         </div>
                       )}
 
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="outline" size="sm" className="w-full btn-interactive">
-                            Actions
-                            <ChevronDown className="h-4 w-4 ml-2" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          {campaign.status === 'active' && (
-                            <DropdownMenuItem onClick={() => handleViewDashboard(campaign)}>
-                              <Eye className="h-4 w-4 mr-2" />Dashboard
-                            </DropdownMenuItem>
-                          )}
-                          {campaign.status !== 'draft' && (
-                            <DropdownMenuItem onClick={() => handleExportCampaign(campaign.id, campaign.name)}>
-                              <Download className="h-4 w-4 mr-2" />Export
-                            </DropdownMenuItem>
-                          )}
-                          {campaign.status === 'draft' && canManageCampaigns && (
-                            <DropdownMenuItem onClick={() => handleEditCampaignClick(campaign)}>
-                              <Edit className="h-4 w-4 mr-2" />Edit
-                            </DropdownMenuItem>
-                          )}
-                          {canManageCampaigns && <DropdownMenuSeparator />}
-                          {campaign.status === 'draft' && canManageCampaigns && (
-                            <DropdownMenuItem onClick={() => handleStartCampaignClick(campaign)}>
-                              <PlayCircle className="h-4 w-4 mr-2" />Start
-                            </DropdownMenuItem>
-                          )}
-                          {campaign.status === 'active' && canManageCampaigns && (
-                            <DropdownMenuItem onClick={() => handleCancelCampaignClick(campaign)} className="text-destructive">
-                              <XCircle className="h-4 w-4 mr-2" />Cancel
-                            </DropdownMenuItem>
-                          )}
-                          {campaign.status !== 'active' && canManageCampaigns && (
-                            <DropdownMenuItem onClick={() => handleDeleteCampaignClick(campaign)} className="text-destructive">
-                              <Trash2 className="h-4 w-4 mr-2" />Delete
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      {/* Date Info */}
+                      <div className="grid grid-cols-2 gap-3 mb-4 p-3 rounded-xl bg-surface/50">
+                        <div>
+                          <p className="caption-label mb-1">Start Date</p>
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-3 w-3 text-muted-foreground" />
+                            <p className="text-sm font-medium">
+                              {new Date(campaign.start_date).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="caption-label mb-1">End Date</p>
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-3 w-3 text-muted-foreground" />
+                            <p className="text-sm font-medium">
+                              {campaign.end_date
+                                ? new Date(campaign.end_date).toLocaleDateString()
+                                : 'Not set'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Reminder & Escalation Info */}
+                      <div className="flex items-center gap-4 mb-4 text-xs text-muted-foreground pb-3 border-b border-white/5">
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          <span>Reminder: {campaign.reminder_days}d</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Bell className="h-3 w-3" />
+                          <span>Escalation: {campaign.escalation_days}d</span>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex flex-wrap gap-2">
+                        {campaign.status === 'draft' && canManageCampaigns && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleEditCampaignClick(campaign)}
+                              className="flex-1 btn-interactive"
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={() => handleStartCampaignClick(campaign)}
+                              className="flex-1 btn-interactive"
+                            >
+                              <PlayCircle className="h-4 w-4 mr-2" />
+                              Start
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDeleteCampaignClick(campaign)}
+                              className="btn-interactive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </>
+                        )}
+                        {campaign.status === 'active' && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleViewDashboard(campaign)}
+                              className="flex-1 btn-interactive"
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              Dashboard
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleExportCampaign(campaign.id, campaign.name)}
+                              className="flex-1 btn-interactive"
+                            >
+                              <Download className="h-4 w-4 mr-2" />
+                              Export
+                            </Button>
+                            {canManageCampaigns && (
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleCancelCampaignClick(campaign)}
+                                className="btn-interactive"
+                              >
+                                <XCircle className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </>
+                        )}
+                        {(campaign.status === 'completed' || campaign.status === 'cancelled') && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleExportCampaign(campaign.id, campaign.name)}
+                              className="flex-1 btn-interactive"
+                            >
+                              <Download className="h-4 w-4 mr-2" />
+                              Export
+                            </Button>
+                            {canManageCampaigns && (
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleDeleteCampaignClick(campaign)}
+                                className="btn-interactive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
-              </div>
-
-              {/* Desktop: Campaign Table */}
-              <div className="glass-panel overflow-hidden rounded-2xl hidden md:block">
-                <Table>
-                  <TableHeader className="bg-muted/20 dark:bg-white/[0.02] border-b border-white/10">
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="w-10"></TableHead>
-                      <TableHead className="caption-label">Campaign</TableHead>
-                      <TableHead className="caption-label">Start Date</TableHead>
-                      <TableHead className="caption-label">End Date</TableHead>
-                      <TableHead className="caption-label">Progress</TableHead>
-                      <TableHead className="caption-label">Status</TableHead>
-                      <TableHead className="text-right pr-4 caption-label">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {campaigns.map((campaign, index) => (
-                      <CampaignTableRow
-                        key={campaign.id}
-                        campaign={campaign}
-                        stats={campaignStats[campaign.id]}
-                        canManageCampaigns={canManageCampaigns}
-                        onViewDashboard={handleViewDashboard}
-                        onExport={handleExportCampaign}
-                        onEdit={handleEditCampaignClick}
-                        onStart={handleStartCampaignClick}
-                        onCancel={handleCancelCampaignClick}
-                        onDelete={handleDeleteCampaignClick}
-                        index={index}
-                      />
-                    ))}
-                  </TableBody>
-                </Table>
               </div>
             </>
           )}
@@ -765,7 +787,7 @@ export default function AttestationPage() {
               {wizardStep === 1 ? 'Configure campaign details' : 'Select target employees'}
             </DialogDescription>
           </DialogHeader>
-          
+
           {/* Step 1: Campaign Details */}
           {wizardStep === 1 && (
             <div className="space-y-4">
@@ -791,32 +813,32 @@ export default function AttestationPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="start_date">Start Date *</Label>
-                  <Input
+                  <DatePicker
                     id="start_date"
-                    type="date"
                     value={formData.start_date}
-                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                    onChange={(val) => setFormData({ ...formData, start_date: val })}
+                    placeholder="yyyy-mm-dd"
+                    clearable={false}
                   />
                 </div>
                 <div>
                   <Label htmlFor="end_date">End Date (Optional)</Label>
-                  <Input
+                  <DatePicker
                     id="end_date"
-                    type="date"
                     value={formData.end_date}
-                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                    onChange={(val) => setFormData({ ...formData, end_date: val })}
+                    placeholder="yyyy-mm-dd"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="reminder_days">Reminder (days)</Label>
-                  <Input
+                  <NumberInput
                     id="reminder_days"
-                    type="number"
-                    min="1"
+                    min={1}
                     value={formData.reminder_days}
-                    onChange={(e) => setFormData({ ...formData, reminder_days: parseInt(e.target.value) || 7 })}
+                    onChange={(val) => setFormData({ ...formData, reminder_days: parseInt(val) || 7 })}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     Send reminder to registered users after X days
@@ -824,12 +846,11 @@ export default function AttestationPage() {
                 </div>
                 <div>
                   <Label htmlFor="escalation_days">Escalation (days)</Label>
-                  <Input
+                  <NumberInput
                     id="escalation_days"
-                    type="number"
-                    min="1"
+                    min={1}
                     value={formData.escalation_days}
-                    onChange={(e) => setFormData({ ...formData, escalation_days: parseInt(e.target.value) || 10 })}
+                    onChange={(val) => setFormData({ ...formData, escalation_days: parseInt(val) || 10 })}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     Notify manager after X days
@@ -837,12 +858,11 @@ export default function AttestationPage() {
                 </div>
                 <div className="col-span-2">
                   <Label htmlFor="unregistered_reminder_days">Unregistered Owner Reminder (days)</Label>
-                  <Input
+                  <NumberInput
                     id="unregistered_reminder_days"
-                    type="number"
-                    min="1"
+                    min={1}
                     value={formData.unregistered_reminder_days}
-                    onChange={(e) => setFormData({ ...formData, unregistered_reminder_days: parseInt(e.target.value) || 7 })}
+                    onChange={(val) => setFormData({ ...formData, unregistered_reminder_days: parseInt(val) || 7 })}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     Send reminder to unregistered asset owners after X days
@@ -851,7 +871,7 @@ export default function AttestationPage() {
               </div>
             </div>
           )}
-          
+
           {/* Step 2: Target Selection */}
           {wizardStep === 2 && (
             <div className="space-y-4">
@@ -862,9 +882,7 @@ export default function AttestationPage() {
                   if (value === 'selected' && availableUsers.length === 0) {
                     loadUsers();
                   }
-                  if (value === 'companies' && availableCompanies.length === 0) {
-                    loadCompanies();
-                  }
+                  // CompanyMultiSelect handles its own data loading
                 }}
               >
                 <div className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-muted/50">
@@ -895,7 +913,7 @@ export default function AttestationPage() {
                   </Label>
                 </div>
               </RadioGroup>
-              
+
               {formData.target_type === 'selected' && (
                 <div className="space-y-3 mt-4">
                   <div>
@@ -908,7 +926,7 @@ export default function AttestationPage() {
                       onChange={(e) => setUserSearchQuery(e.target.value)}
                     />
                   </div>
-                  
+
                   {availableUsers.length === 0 ? (
                     <div className="flex items-center justify-center py-8 text-muted-foreground">
                       <Loader2 className="h-6 w-6 animate-spin mr-2" />
@@ -918,7 +936,7 @@ export default function AttestationPage() {
                     <div className="border rounded-lg max-h-64 overflow-y-auto">
                       <div className="p-2 space-y-1">
                         {availableUsers
-                          .filter(u => 
+                          .filter(u =>
                             userSearchQuery === '' ||
                             u.name?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
                             u.email?.toLowerCase().includes(userSearchQuery.toLowerCase())
@@ -950,7 +968,7 @@ export default function AttestationPage() {
                       </div>
                     </div>
                   )}
-                  
+
                   {formData.target_user_ids.length > 0 && (
                     <div className="text-sm text-muted-foreground">
                       Selected: {formData.target_user_ids.length} employee{formData.target_user_ids.length !== 1 ? 's' : ''}
@@ -958,66 +976,20 @@ export default function AttestationPage() {
                   )}
                 </div>
               )}
-              
+
               {formData.target_type === 'companies' && (
-                <div className="space-y-3 mt-4">
-                  <div>
-                    <Label htmlFor="company-search">Search Companies</Label>
-                    <Input
-                      id="company-search"
-                      type="text"
-                      placeholder="Search by company name..."
-                      value={companySearchQuery}
-                      onChange={(e) => setCompanySearchQuery(e.target.value)}
-                    />
-                  </div>
-                  
-                  {availableCompanies.length === 0 ? (
-                    <div className="flex items-center justify-center py-8 text-muted-foreground">
-                      <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                      Loading companies...
-                    </div>
-                  ) : (
-                    <div className="border rounded-lg max-h-64 overflow-y-auto">
-                      <div className="p-2 space-y-1">
-                        {filterCompaniesBySearch(availableCompanies, companySearchQuery)
-                          .map((c) => (
-                            <div
-                              key={c.id}
-                              className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded cursor-pointer"
-                              onClick={() => {
-                                const isSelected = formData.target_company_ids.includes(c.id);
-                                setFormData({
-                                  ...formData,
-                                  target_company_ids: isSelected
-                                    ? formData.target_company_ids.filter(id => id !== c.id)
-                                    : [...formData.target_company_ids, c.id]
-                                });
-                              }}
-                            >
-                              <Checkbox
-                                checked={formData.target_company_ids.includes(c.id)}
-                                readOnly
-                              />
-                              <div className="flex-1">
-                                <div className="font-medium text-sm">{c.name}</div>
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {formData.target_company_ids.length > 0 && (
-                    <div className="text-sm text-muted-foreground">
-                      Selected: {formData.target_company_ids.length} compan{formData.target_company_ids.length !== 1 ? 'ies' : 'y'}
-                    </div>
-                  )}
+                <div className="mt-4">
+                  <Label>Select Companies</Label>
+                  <CompanyMultiSelect
+                    value={formData.target_company_ids}
+                    onChange={(ids) => setFormData({ ...formData, target_company_ids: ids })}
+                    placeholder="Search companies..."
+                  />
                 </div>
               )}
             </div>
           )}
-          
+
           <DialogFooter>
             {wizardStep === 1 ? (
               <>
@@ -1027,8 +999,8 @@ export default function AttestationPage() {
                 }} className="btn-interactive">
                   Cancel
                 </Button>
-                <Button 
-                  onClick={() => setWizardStep(2)} 
+                <Button
+                  onClick={() => setWizardStep(2)}
                   disabled={!formData.name || !formData.start_date}
                   className="btn-interactive"
                 >
@@ -1040,7 +1012,7 @@ export default function AttestationPage() {
                 <Button variant="outline" onClick={() => setWizardStep(1)} className="btn-interactive">
                   Back
                 </Button>
-                <Button 
+                <Button
                   onClick={handleCreateCampaign}
                   disabled={
                     (formData.target_type === 'selected' && formData.target_user_ids.length === 0) ||
@@ -1077,8 +1049,8 @@ export default function AttestationPage() {
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-4 sm:pb-6">
-            <DashboardContent 
-              campaign={selectedCampaign} 
+            <DashboardContent
+              campaign={selectedCampaign}
               compact={false}
               onClose={() => setShowDashboardModal(false)}
             />
@@ -1092,7 +1064,7 @@ export default function AttestationPage() {
         if (!open) {
           setWizardStep(1);
           setUserSearchQuery('');
-          setCompanySearchQuery('');
+
           setEditingCampaign(null);
         }
       }}>
@@ -1103,7 +1075,7 @@ export default function AttestationPage() {
               {wizardStep === 1 ? 'Update campaign details' : 'Update target employees'}
             </DialogDescription>
           </DialogHeader>
-          
+
           {/* Step 1: Campaign Details */}
           {wizardStep === 1 && (
             <div className="space-y-4">
@@ -1129,32 +1101,32 @@ export default function AttestationPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="edit-start_date">Start Date *</Label>
-                  <Input
+                  <DatePicker
                     id="edit-start_date"
-                    type="date"
                     value={formData.start_date}
-                    onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                    onChange={(val) => setFormData({ ...formData, start_date: val })}
+                    placeholder="yyyy-mm-dd"
+                    clearable={false}
                   />
                 </div>
                 <div>
                   <Label htmlFor="edit-end_date">End Date (Optional)</Label>
-                  <Input
+                  <DatePicker
                     id="edit-end_date"
-                    type="date"
                     value={formData.end_date}
-                    onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                    onChange={(val) => setFormData({ ...formData, end_date: val })}
+                    placeholder="yyyy-mm-dd"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="edit-reminder_days">Reminder (days)</Label>
-                  <Input
+                  <NumberInput
                     id="edit-reminder_days"
-                    type="number"
-                    min="1"
+                    min={1}
                     value={formData.reminder_days}
-                    onChange={(e) => setFormData({ ...formData, reminder_days: parseInt(e.target.value) || 7 })}
+                    onChange={(val) => setFormData({ ...formData, reminder_days: parseInt(val) || 7 })}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     Send reminder to registered users after X days
@@ -1162,12 +1134,11 @@ export default function AttestationPage() {
                 </div>
                 <div>
                   <Label htmlFor="edit-escalation_days">Escalation (days)</Label>
-                  <Input
+                  <NumberInput
                     id="edit-escalation_days"
-                    type="number"
-                    min="1"
+                    min={1}
                     value={formData.escalation_days}
-                    onChange={(e) => setFormData({ ...formData, escalation_days: parseInt(e.target.value) || 10 })}
+                    onChange={(val) => setFormData({ ...formData, escalation_days: parseInt(val) || 10 })}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     Notify manager after X days
@@ -1175,12 +1146,11 @@ export default function AttestationPage() {
                 </div>
                 <div className="col-span-2">
                   <Label htmlFor="edit-unregistered_reminder_days">Unregistered Owner Reminder (days)</Label>
-                  <Input
+                  <NumberInput
                     id="edit-unregistered_reminder_days"
-                    type="number"
-                    min="1"
+                    min={1}
                     value={formData.unregistered_reminder_days}
-                    onChange={(e) => setFormData({ ...formData, unregistered_reminder_days: parseInt(e.target.value) || 7 })}
+                    onChange={(val) => setFormData({ ...formData, unregistered_reminder_days: parseInt(val) || 7 })}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     Send reminder to unregistered asset owners after X days
@@ -1189,7 +1159,7 @@ export default function AttestationPage() {
               </div>
             </div>
           )}
-          
+
           {/* Step 2: Target Selection */}
           {wizardStep === 2 && (
             <div className="space-y-4">
@@ -1200,9 +1170,7 @@ export default function AttestationPage() {
                   if (value === 'selected' && availableUsers.length === 0) {
                     loadUsers();
                   }
-                  if (value === 'companies' && availableCompanies.length === 0) {
-                    loadCompanies();
-                  }
+                  // CompanyMultiSelect handles its own data loading
                 }}
               >
                 <div className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-muted/50">
@@ -1233,7 +1201,7 @@ export default function AttestationPage() {
                   </Label>
                 </div>
               </RadioGroup>
-              
+
               {formData.target_type === 'selected' && (
                 <div className="space-y-3 mt-4">
                   <div>
@@ -1246,7 +1214,7 @@ export default function AttestationPage() {
                       onChange={(e) => setUserSearchQuery(e.target.value)}
                     />
                   </div>
-                  
+
                   {availableUsers.length === 0 ? (
                     <div className="flex items-center justify-center py-8 text-muted-foreground">
                       <Loader2 className="h-6 w-6 animate-spin mr-2" />
@@ -1256,7 +1224,7 @@ export default function AttestationPage() {
                     <div className="border rounded-lg max-h-64 overflow-y-auto">
                       <div className="p-2 space-y-1">
                         {availableUsers
-                          .filter(u => 
+                          .filter(u =>
                             userSearchQuery === '' ||
                             u.name?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
                             u.email?.toLowerCase().includes(userSearchQuery.toLowerCase())
@@ -1288,7 +1256,7 @@ export default function AttestationPage() {
                       </div>
                     </div>
                   )}
-                  
+
                   {formData.target_user_ids.length > 0 && (
                     <div className="text-sm text-muted-foreground">
                       Selected: {formData.target_user_ids.length} employee{formData.target_user_ids.length !== 1 ? 's' : ''}
@@ -1296,66 +1264,20 @@ export default function AttestationPage() {
                   )}
                 </div>
               )}
-              
+
               {formData.target_type === 'companies' && (
-                <div className="space-y-3 mt-4">
-                  <div>
-                    <Label htmlFor="edit-company-search">Search Companies</Label>
-                    <Input
-                      id="edit-company-search"
-                      type="text"
-                      placeholder="Search by company name..."
-                      value={companySearchQuery}
-                      onChange={(e) => setCompanySearchQuery(e.target.value)}
-                    />
-                  </div>
-                  
-                  {availableCompanies.length === 0 ? (
-                    <div className="flex items-center justify-center py-8 text-muted-foreground">
-                      <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                      Loading companies...
-                    </div>
-                  ) : (
-                    <div className="border rounded-lg max-h-64 overflow-y-auto">
-                      <div className="p-2 space-y-1">
-                        {filterCompaniesBySearch(availableCompanies, companySearchQuery)
-                          .map((c) => (
-                            <div
-                              key={c.id}
-                              className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded cursor-pointer"
-                              onClick={() => {
-                                const isSelected = formData.target_company_ids.includes(c.id);
-                                setFormData({
-                                  ...formData,
-                                  target_company_ids: isSelected
-                                    ? formData.target_company_ids.filter(id => id !== c.id)
-                                    : [...formData.target_company_ids, c.id]
-                                });
-                              }}
-                            >
-                              <Checkbox
-                                checked={formData.target_company_ids.includes(c.id)}
-                                readOnly
-                              />
-                              <div className="flex-1">
-                                <div className="font-medium text-sm">{c.name}</div>
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {formData.target_company_ids.length > 0 && (
-                    <div className="text-sm text-muted-foreground">
-                      Selected: {formData.target_company_ids.length} compan{formData.target_company_ids.length !== 1 ? 'ies' : 'y'}
-                    </div>
-                  )}
+                <div className="mt-4">
+                  <Label>Select Companies</Label>
+                  <CompanyMultiSelect
+                    value={formData.target_company_ids}
+                    onChange={(ids) => setFormData({ ...formData, target_company_ids: ids })}
+                    placeholder="Search companies..."
+                  />
                 </div>
               )}
             </div>
           )}
-          
+
           <DialogFooter>
             {wizardStep === 1 ? (
               <>
@@ -1366,8 +1288,8 @@ export default function AttestationPage() {
                 }} className="btn-interactive">
                   Cancel
                 </Button>
-                <Button 
-                  onClick={() => setWizardStep(2)} 
+                <Button
+                  onClick={() => setWizardStep(2)}
                   disabled={!formData.name || !formData.start_date}
                   className="btn-interactive"
                 >
@@ -1379,7 +1301,7 @@ export default function AttestationPage() {
                 <Button variant="outline" onClick={() => setWizardStep(1)} className="btn-interactive">
                   Back
                 </Button>
-                <Button 
+                <Button
                   onClick={handleUpdateCampaign}
                   disabled={
                     (formData.target_type === 'selected' && formData.target_user_ids.length === 0) ||
@@ -1396,22 +1318,67 @@ export default function AttestationPage() {
       </Dialog>
 
       {/* Start Campaign Confirmation Dialog */}
-      <AlertDialog open={showStartDialog} onOpenChange={setShowStartDialog}>
+      <AlertDialog open={showStartDialog} onOpenChange={(open) => {
+        setShowStartDialog(open);
+        if (!open) {
+          setCampaignToStart(null);
+          setScopePreview(null);
+        }
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Start Campaign</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to start the campaign "{campaignToStart?.name}"?
-              {campaignToStart && (
-                <div className="mt-2 text-sm font-medium">
-                  {getStartCampaignMessage(campaignToStart)}
-                </div>
-              )}
+            <AlertDialogDescription asChild>
+              <div>
+                <p>Are you sure you want to start the campaign &ldquo;{campaignToStart?.name}&rdquo;?</p>
+
+                {scopeLoading && (
+                  <div className="flex items-center gap-2 mt-3 text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm">Computing campaign scope...</span>
+                  </div>
+                )}
+
+                {scopePreview && !scopeLoading && (
+                  <div className="mt-3 p-4 rounded-xl bg-muted/30 border border-white/10 space-y-3">
+                    <p className="caption-label">Campaign Scope</p>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Registered Users</span>
+                        <p className="font-bold text-foreground">{scopePreview.registeredUsers}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Invites (Unregistered)</span>
+                        <p className="font-bold text-foreground">{scopePreview.unregisteredOwners}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Total Assets</span>
+                        <p className="font-bold text-foreground">{scopePreview.totalAssets}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Companies</span>
+                        <p className="font-bold text-foreground">{scopePreview.companiesInScope}</p>
+                      </div>
+                    </div>
+                    {scopePreview.unregisteredOwners > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {scopePreview.unregisteredOwners} unregistered owner{scopePreview.unregisteredOwners !== 1 ? 's' : ''} will receive registration invites.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {!scopeLoading && !scopePreview && campaignToStart && (
+                  <div className="mt-2 text-sm font-medium">
+                    {getStartCampaignMessage(campaignToStart)}
+                  </div>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleStartCampaign}>
+            <AlertDialogAction onClick={handleStartCampaign} disabled={scopeLoading}>
               Start Campaign
             </AlertDialogAction>
           </AlertDialogFooter>
