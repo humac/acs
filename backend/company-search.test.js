@@ -47,15 +47,18 @@ describe('Company Search API', () => {
         app = createTestApp();
 
         // Create test companies
+        // Create test companies with unique prefix to avoid interference
+        const prefix = `UnitSearchTest-${Date.now()}`;
         const testCompanies = [
-            { name: `Test Alpha Corp ${Date.now()}`, description: 'Test company A' },
-            { name: `Test Beta Inc ${Date.now()}`, description: 'Test company B' },
-            { name: `Test Gamma LLC ${Date.now()}`, description: 'Test company C' },
+            { name: `${prefix} Alpha Corp`, description: 'Test company A' },
+            { name: `${prefix} Beta Inc`, description: 'Test company B' },
+            { name: `${prefix} Gamma LLC`, description: 'Test company C' },
             { name: `Acme Industries ${Date.now()}`, description: 'Different name' },
         ];
 
         for (const company of testCompanies) {
             const result = await companyDb.create(company);
+            company.id = result.id; // Store ID for potential verification
             testCompanyIds.push(result.id);
         }
     });
@@ -75,12 +78,12 @@ describe('Company Search API', () => {
         test('should return companies matching query', async () => {
             const response = await request(app)
                 .get('/api/companies/search')
-                .query({ q: 'Test' });
+                .query({ q: 'UnitSearchTest' });
 
             expect(response.status).toBe(200);
             expect(Array.isArray(response.body)).toBe(true);
             expect(response.body.length).toBeGreaterThan(0);
-            expect(response.body.every(c => c.name.toLowerCase().includes('test'))).toBe(true);
+            expect(response.body.every(c => c.name.toLowerCase().includes('unitsearchtest'))).toBe(true);
         });
 
         test('should return all companies when query is empty', async () => {
@@ -115,13 +118,13 @@ describe('Company Search API', () => {
         test('should handle case-insensitive search', async () => {
             const response = await request(app)
                 .get('/api/companies/search')
-                .query({ q: 'test' });
+                .query({ q: 'UnitSearchTest' });
 
             expect(response.status).toBe(200);
 
             const upperResponse = await request(app)
                 .get('/api/companies/search')
-                .query({ q: 'TEST' });
+                .query({ q: 'UNITSEARCHTEST' });
 
             expect(upperResponse.status).toBe(200);
             expect(upperResponse.body.length).toBe(response.body.length);
@@ -140,7 +143,7 @@ describe('Company Search API', () => {
         test('should return companies with id and name fields', async () => {
             const response = await request(app)
                 .get('/api/companies/search')
-                .query({ q: 'Test', limit: '1' });
+                .query({ q: 'UnitSearchTest', limit: '1' });
 
             expect(response.status).toBe(200);
             if (response.body.length > 0) {
