@@ -8,16 +8,7 @@ import {
   ClipboardCheck,
   Plus,
   Loader2,
-  PlayCircle,
-  XCircle,
-  Download,
-  Eye,
-  Calendar,
-  Clock,
-  AlertCircle,
-  Edit,
-  Trash2,
-  Bell
+  AlertCircle
 } from 'lucide-react';
 import {
   Dialog,
@@ -47,6 +38,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import CompanyMultiSelect from '@/components/CompanyMultiSelect';
+import AttestationCampaignTable from '@/components/AttestationCampaignTable';
 
 export default function AttestationPage() {
   const { getAuthHeaders, user } = useAuth();
@@ -395,6 +387,34 @@ export default function AttestationPage() {
     }
   };
 
+  const handleBulkDelete = async (ids) => {
+    try {
+      const promises = Array.from(ids).map(id =>
+        fetch(`/api/attestation/campaigns/${id}`, {
+          method: 'DELETE',
+          headers: { ...getAuthHeaders() }
+        })
+      );
+
+      await Promise.all(promises);
+
+      toast({
+        title: "Success",
+        description: `Deleted ${ids.size} campaign${ids.size === 1 ? '' : 's'}`,
+        variant: "success"
+      });
+
+      loadCampaigns();
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Error",
+        description: "Failed to delete some campaigns",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleEditCampaignClick = (campaign) => {
     // Parse target_user_ids and target_company_ids using helper functions
     const targetUserIds = parseTargetUserIds(campaign.target_user_ids);
@@ -561,214 +581,19 @@ export default function AttestationPage() {
 
         {/* Campaign Cards */}
         <CardContent>
-          {campaigns.length === 0 ? (
-            <div className="glass-panel rounded-2xl text-center py-16 animate-fade-in">
-              <div className="icon-box icon-box-lg bg-primary/10 border-primary/20 mx-auto mb-6">
-                <ClipboardCheck className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-2xl font-bold mb-2">No campaigns yet</h3>
-              <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                {canManageCampaigns
-                  ? 'Create your first attestation campaign to get started'
-                  : 'No attestation campaigns have been created yet'}
-              </p>
-              {canManageCampaigns && (
-                <Button onClick={() => setShowCreateModal(true)} className="btn-interactive">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Campaign
-                </Button>
-              )}
-            </div>
-          ) : (
-            <>
-              {/* Bento Grid View */}
-              <div className="bento-grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                {campaigns.map((campaign, index) => {
-                  const stats = campaignStats[campaign.id];
-
-                  // Determine badge styling based on status
-                  const statusConfig = {
-                    draft: { class: 'glow-muted', label: 'Draft' },
-                    active: { class: 'glow-success', label: 'Active' },
-                    completed: { class: 'glow-info', label: 'Completed' },
-                    cancelled: { class: 'glow-destructive', label: 'Cancelled' }
-                  };
-                  const statusInfo = statusConfig[campaign.status] || statusConfig.draft;
-
-                  return (
-                    <div
-                      key={campaign.id}
-                      className="bento-card p-5 animate-fade-in"
-                      style={{ animationDelay: `${index * 50}ms` }}
-                    >
-                      {/* Campaign Header */}
-                      <div className="flex items-start justify-between gap-3 mb-4">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className="icon-box icon-box-sm bg-primary/10 border-primary/20">
-                              <ClipboardCheck className="h-4 w-4 text-primary" />
-                            </div>
-                            <h3 className="font-bold text-lg truncate">{campaign.name}</h3>
-                          </div>
-                          {campaign.description && (
-                            <p className="text-sm text-muted-foreground line-clamp-2">
-                              {campaign.description}
-                            </p>
-                          )}
-                        </div>
-                        <Badge className={cn("shrink-0", statusInfo.class)}>
-                          {statusInfo.label}
-                        </Badge>
-                      </div>
-
-                      {/* Progress Bar (for active campaigns) */}
-                      {campaign.status === 'active' && stats && stats.total > 0 && (
-                        <div className="space-y-2 mb-4 p-3 rounded-xl bg-muted/30">
-                          <div className="flex items-center justify-between">
-                            <span className="caption-label">Progress</span>
-                            <span className="text-sm font-bold text-primary">{stats.percentage}%</span>
-                          </div>
-                          <div className="w-full bg-muted/50 rounded-full h-2.5 overflow-hidden border border-white/5">
-                            <div
-                              className="h-full transition-all duration-500 rounded-full bg-gradient-to-r from-primary to-info"
-                              style={{ width: `${stats.percentage}%` }}
-                            />
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {getProgressDisplay(campaign, stats)}
-                          </p>
-                        </div>
-                      )}
-
-                      {/* Date Info */}
-                      <div className="grid grid-cols-2 gap-3 mb-4 p-3 rounded-xl bg-surface/50">
-                        <div>
-                          <p className="caption-label mb-1">Start Date</p>
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-3 w-3 text-muted-foreground" />
-                            <p className="text-sm font-medium">
-                              {new Date(campaign.start_date).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                        <div>
-                          <p className="caption-label mb-1">End Date</p>
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-3 w-3 text-muted-foreground" />
-                            <p className="text-sm font-medium">
-                              {campaign.end_date
-                                ? new Date(campaign.end_date).toLocaleDateString()
-                                : 'Not set'}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Reminder & Escalation Info */}
-                      <div className="flex items-center gap-4 mb-4 text-xs text-muted-foreground pb-3 border-b border-white/5">
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          <span>Reminder: {campaign.reminder_days}d</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Bell className="h-3 w-3" />
-                          <span>Escalation: {campaign.escalation_days}d</span>
-                        </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex flex-wrap gap-2">
-                        {campaign.status === 'draft' && canManageCampaigns && (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEditCampaignClick(campaign)}
-                              className="flex-1 btn-interactive"
-                            >
-                              <Edit className="h-4 w-4 mr-2" />
-                              Edit
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={() => handleStartCampaignClick(campaign)}
-                              className="flex-1 btn-interactive"
-                            >
-                              <PlayCircle className="h-4 w-4 mr-2" />
-                              Start
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleDeleteCampaignClick(campaign)}
-                              className="btn-interactive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
-                        {campaign.status === 'active' && (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleViewDashboard(campaign)}
-                              className="flex-1 btn-interactive"
-                            >
-                              <Eye className="h-4 w-4 mr-2" />
-                              Dashboard
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleExportCampaign(campaign.id, campaign.name)}
-                              className="flex-1 btn-interactive"
-                            >
-                              <Download className="h-4 w-4 mr-2" />
-                              Export
-                            </Button>
-                            {canManageCampaigns && (
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleCancelCampaignClick(campaign)}
-                                className="btn-interactive"
-                              >
-                                <XCircle className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </>
-                        )}
-                        {(campaign.status === 'completed' || campaign.status === 'cancelled') && (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleExportCampaign(campaign.id, campaign.name)}
-                              className="flex-1 btn-interactive"
-                            >
-                              <Download className="h-4 w-4 mr-2" />
-                              Export
-                            </Button>
-                            {canManageCampaigns && (
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => handleDeleteCampaignClick(campaign)}
-                                className="btn-interactive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
+          <AttestationCampaignTable
+            campaigns={campaigns}
+            campaignStats={campaignStats}
+            onStart={handleStartCampaignClick}
+            onEdit={handleEditCampaignClick}
+            onDelete={handleDeleteCampaignClick}
+            onCancel={handleCancelCampaignClick}
+            onViewDashboard={handleViewDashboard}
+            onExport={handleExportCampaign}
+            currentUser={user}
+            onRefresh={loadCampaigns}
+            onBulkDelete={handleBulkDelete}
+          />
         </CardContent>
       </Card>
 
