@@ -9,13 +9,8 @@ import {
   ClipboardCheck,
   Loader2,
   CheckCircle2,
-  AlertCircle,
   Package,
-  Plus,
-  PlayCircle,
-  RefreshCw,
-  Calendar,
-  Clock
+  Plus
 } from 'lucide-react';
 import {
   Table,
@@ -46,6 +41,7 @@ import {
 import { cn } from '@/lib/utils';
 import { DatePicker } from '@/components/ui/date-picker';
 import CompanyCombobox from '@/components/CompanyCombobox';
+import UserAttestationTable from '@/components/UserAttestationTable';
 
 export default function MyAttestationsPage() {
   const { getAuthHeaders, user } = useAuth();
@@ -128,8 +124,6 @@ export default function MyAttestationsPage() {
       setLoadingAssetTypes(false);
     }
   };
-
-  // fetchCompanies removed - using CompanyCombobox which handles its own data loading
 
   const handleOpenAddAssetModal = async () => {
     const campaign = attestationDetails?.campaign;
@@ -426,96 +420,10 @@ export default function MyAttestationsPage() {
               </p>
             </div>
           ) : (
-            <div className="bento-grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-              {attestations.map((attestation, index) => {
-                const statusConfig = {
-                  pending: { class: 'glow-warning', label: 'Pending', icon: AlertCircle },
-                  in_progress: { class: 'glow-primary', label: 'In Progress', icon: RefreshCw },
-                  completed: { class: 'glow-success', label: 'Completed', icon: CheckCircle2 }
-                };
-                const statusInfo = statusConfig[attestation.status] || statusConfig.pending;
-                const StatusIcon = statusInfo.icon;
-
-                return (
-                  <div
-                    key={attestation.id}
-                    className="bento-card p-5 animate-fade-in"
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
-                    {/* Campaign Header */}
-                    <div className="flex items-start justify-between gap-3 mb-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="icon-box icon-box-sm bg-primary/10 border-primary/20">
-                            <StatusIcon className="h-4 w-4 text-primary" />
-                          </div>
-                          <h3 className="font-bold text-lg truncate">{attestation.campaign?.name}</h3>
-                        </div>
-                        {attestation.campaign?.description && (
-                          <p className="text-sm text-muted-foreground line-clamp-2">
-                            {attestation.campaign?.description}
-                          </p>
-                        )}
-                      </div>
-                      <Badge className={cn("shrink-0", statusInfo.class)}>
-                        {statusInfo.label}
-                      </Badge>
-                    </div>
-
-                    {/* Date Info */}
-                    <div className="grid grid-cols-2 gap-3 mb-4 p-3 rounded-xl bg-surface/50">
-                      <div>
-                        <p className="caption-label mb-1">Started</p>
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-3 w-3 text-muted-foreground" />
-                          <p className="text-sm font-medium">
-                            {new Date(attestation.campaign?.start_date).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                      <div>
-                        <p className="caption-label mb-1">Completed</p>
-                        <div className="flex items-center gap-2">
-                          {attestation.completed_at ? (
-                            <>
-                              <CheckCircle2 className="h-3 w-3 text-success" />
-                              <p className="text-sm font-medium text-success">
-                                {new Date(attestation.completed_at).toLocaleDateString()}
-                              </p>
-                            </>
-                          ) : (
-                            <>
-                              <Clock className="h-3 w-3 text-muted-foreground" />
-                              <p className="text-sm font-medium text-muted-foreground">Not yet</p>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Action Button */}
-                    {attestation.status !== 'completed' && (
-                      <Button
-                        onClick={() => handleStartAttestation(attestation)}
-                        className="w-full btn-interactive"
-                      >
-                        {attestation.status === 'pending' ? (
-                          <>
-                            <PlayCircle className="h-4 w-4 mr-2" />
-                            Start Attestation
-                          </>
-                        ) : (
-                          <>
-                            <RefreshCw className="h-4 w-4 mr-2" />
-                            Continue Attestation
-                          </>
-                        )}
-                      </Button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            <UserAttestationTable
+              attestations={attestations}
+              onStartAttestation={handleStartAttestation}
+            />
           )}
         </CardContent>
       </Card>
