@@ -1,6 +1,4 @@
 import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -10,13 +8,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Download, Loader2, ChevronDown, Sparkles } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 
 export default function BulkCampaignActions({
     selectedIds,

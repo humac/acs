@@ -12,14 +12,11 @@ import {
     Eye,
     Download,
     XCircle,
-    Calendar,
-    AlertCircle,
     CheckCircle2,
     Clock,
     UserX
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/contexts/AuthContext';
 
 const statusVariants = {
     draft: 'bg-muted/20 text-muted-foreground border-transparent',

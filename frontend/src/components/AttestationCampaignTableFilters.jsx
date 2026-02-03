@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Filter, ChevronDown, ChevronUp, X, Users } from 'lucide-react';
+import { Search, Filter, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';

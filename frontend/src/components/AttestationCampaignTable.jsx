@@ -24,7 +24,6 @@ export default function AttestationCampaignTable({
     onViewDashboard,
     onExport,
     currentUser,
-    onRefresh,
     onBulkDelete,
 }) {
     const { user } = useAuth();
