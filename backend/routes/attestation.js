@@ -164,6 +164,18 @@ export default function createAttestationRouter(deps) {
         const pendingInvites = await attestationPendingInviteDb.getByCampaignId(campaign.id);
         const unresolvedInvites = pendingInvites.filter(inv => !inv.registered_at);
         campaign.pending_invites_count = unresolvedInvites.length;
+
+        // Add creator name
+        if (campaign.created_by) {
+          try {
+            const creator = await userDb.getById(campaign.created_by);
+            campaign.creator_name = creator ? getUserDisplayName(creator) : 'Unknown';
+          } catch (e) {
+            campaign.creator_name = 'Unknown';
+          }
+        } else {
+          campaign.creator_name = 'System';
+        }
       }
 
       res.json({ success: true, campaigns });
@@ -982,15 +994,33 @@ export default function createAttestationRouter(deps) {
         req.user.email
       );
 
-      // Send notification to admins
+      // Send notification to campaign creator (fallback to admins)
       try {
-        const admins = await userDb.getByRole('admin');
-        const adminEmails = admins.map(a => a.email).filter(Boolean);
+        let recipientEmails = [];
 
-        if (adminEmails.length > 0) {
+        // Try to get creator
+        if (campaign.created_by) {
+          const creator = await userDb.getById(campaign.created_by);
+          if (creator && creator.email) {
+            recipientEmails.push(creator.email);
+          }
+        }
+
+        // Fallback to all admins if no creator found or creator has no email
+        if (recipientEmails.length === 0) {
+          const admins = await userDb.getByRole('admin');
+          recipientEmails = admins.map(a => a.email).filter(Boolean);
+          logger.info({ campaignId: campaign.id }, 'Campaign creator not found, falling back to all admins for completion notification');
+        }
+
+        if (recipientEmails.length > 0) {
           const { sendAttestationCompleteAdminNotification } = await import('../services/smtpMailer.js');
           const employeeName = `${req.user.first_name || ''} ${req.user.last_name || ''}`.trim() || req.user.name;
-          await sendAttestationCompleteAdminNotification(adminEmails, employeeName, req.user.email, campaign);
+
+          // Send to each recipient (usually just one, but could be multiple admins in fallback)
+          // We limit to unique emails just in case
+          const uniqueEmails = [...new Set(recipientEmails)];
+          await sendAttestationCompleteAdminNotification(uniqueEmails, employeeName, req.user.email, campaign);
         }
       } catch (emailError) {
         logger.error({ err: emailError, userId: req.user?.id }, 'Failed to send admin notification');

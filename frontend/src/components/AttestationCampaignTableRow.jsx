@@ -183,52 +183,65 @@ const AttestationCampaignTableRow = memo(function AttestationCampaignTableRow({
             {isExpanded && (
                 <TableRow className="bg-surface/40 border-none animate-in fade-in slide-in-from-top-2 duration-300">
                     <TableCell colSpan={7} className="p-0">
-                        <div className="px-12 py-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                            {/* Dashboard Metrics in Expanded View */}
-                            <div className="glass-panel p-4 rounded-xl flex items-center gap-3 border-l-4 border-l-success">
-                                <div className="h-8 w-8 rounded-full bg-success/10 flex items-center justify-center">
-                                    <CheckCircle2 className="h-4 w-4 text-success" />
+                        <div className="px-12 py-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                                {/* Dashboard Metrics in Expanded View */}
+                                <div className="glass-panel p-4 rounded-xl flex items-center gap-3 border-l-4 border-l-success">
+                                    <div className="h-8 w-8 rounded-full bg-success/10 flex items-center justify-center">
+                                        <CheckCircle2 className="h-4 w-4 text-success" />
+                                    </div>
+                                    <div>
+                                        <div className="text-xl font-bold">{stats?.completed || 0}</div>
+                                        <div className="text-xs text-muted-foreground uppercase tracking-wider">Completed</div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <div className="text-xl font-bold">{stats?.completed || 0}</div>
-                                    <div className="text-xs text-muted-foreground uppercase tracking-wider">Completed</div>
+
+                                <div className="glass-panel p-4 rounded-xl flex items-center gap-3 border-l-4 border-l-warning">
+                                    <div className="h-8 w-8 rounded-full bg-warning/10 flex items-center justify-center">
+                                        <Clock className="h-4 w-4 text-warning" />
+                                    </div>
+                                    <div>
+                                        <div className="text-xl font-bold">{(stats?.total || 0) - (stats?.completed || 0)}</div>
+                                        <div className="text-xs text-muted-foreground uppercase tracking-wider">Pending</div>
+                                    </div>
+                                </div>
+
+                                <div className="glass-panel p-4 rounded-xl flex items-center gap-3 border-l-4 border-l-muted">
+                                    <div className="h-8 w-8 rounded-full bg-muted/10 flex items-center justify-center">
+                                        <UserX className="h-4 w-4 text-muted-foreground" />
+                                    </div>
+                                    <div>
+                                        <div className="text-xl font-bold">{campaign.pending_invites_count || 0}</div>
+                                        <div className="text-xs text-muted-foreground uppercase tracking-wider">Unregistered</div>
+                                    </div>
+                                </div>
+
+                                {/* Overdue Placehoder - assuming we might calculate this later or get from stats */}
+                                <div className="glass-panel p-4 rounded-xl flex items-center gap-3 border-l-4 border-l-destructive">
+                                    <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center">
+                                        <AlertCircle className="h-4 w-4 text-destructive" />
+                                    </div>
+                                    <div>
+                                        <div className="text-xl font-bold">0</div>
+                                        <div className="text-xs text-muted-foreground uppercase tracking-wider">Overdue</div>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="glass-panel p-4 rounded-xl flex items-center gap-3 border-l-4 border-l-warning">
-                                <div className="h-8 w-8 rounded-full bg-warning/10 flex items-center justify-center">
-                                    <Clock className="h-4 w-4 text-warning" />
-                                </div>
+                            <div className="mt-4 pt-4 border-t border-white/10 flex justify-between items-center text-sm text-muted-foreground">
                                 <div>
-                                    <div className="text-xl font-bold">{(stats?.total || 0) - (stats?.completed || 0)}</div>
-                                    <div className="text-xs text-muted-foreground uppercase tracking-wider">Pending</div>
-                                </div>
-                            </div>
-
-                            <div className="glass-panel p-4 rounded-xl flex items-center gap-3 border-l-4 border-l-muted">
-                                <div className="h-8 w-8 rounded-full bg-muted/10 flex items-center justify-center">
-                                    <UserX className="h-4 w-4 text-muted-foreground" />
-                                </div>
-                                <div>
-                                    <div className="text-xl font-bold">{campaign.pending_invites_count || 0}</div>
-                                    <div className="text-xs text-muted-foreground uppercase tracking-wider">Unregistered</div>
-                                </div>
-                            </div>
-
-                            {/* Overdue Placehoder - assuming we might calculate this later or get from stats */}
-                            <div className="glass-panel p-4 rounded-xl flex items-center gap-3 border-l-4 border-l-destructive">
-                                <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center">
-                                    <AlertCircle className="h-4 w-4 text-destructive" />
-                                </div>
-                                <div>
-                                    <div className="text-xl font-bold">0</div>
-                                    <div className="text-xs text-muted-foreground uppercase tracking-wider">Overdue</div>
+                                    <span className="mr-2">Created by:</span>
+                                    <span className="text-foreground font-medium bg-surface/50 px-2 py-1 rounded inline-flex items-center gap-1">
+                                        <span className="w-2 h-2 rounded-full bg-primary/50"></span>
+                                        {campaign.creator_name || 'System'}
+                                    </span>
                                 </div>
                             </div>
                         </div>
                     </TableCell>
                 </TableRow>
             )}
+
         </>
     );
 });
