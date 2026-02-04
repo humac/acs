@@ -51,10 +51,42 @@ export default function createAttestationRouter(deps) {
 
   // ===== Campaign Management =====
 
+  // Get all potential employees (registered users + unregistered asset owners)
+  router.get('/employees', authenticate, authorize('admin', 'coordinator', 'manager'), async (req, res) => {
+    try {
+      const users = await userDb.getAll();
+      const unregisteredOwners = await assetDb.getUnregisteredOwners();
+
+      const employees = [
+        ...users.map(u => ({
+          id: u.id,
+          name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.name,
+          email: u.email,
+          type: 'registered',
+          asset_count: '?' // We could fetch this if needed, but might be expensive
+        })),
+        ...unregisteredOwners.map(o => ({
+          id: null,
+          name: `${o.employee_first_name || ''} ${o.employee_last_name || ''}`.trim() || o.employee_email,
+          email: o.employee_email,
+          firstName: o.employee_first_name,
+          lastName: o.employee_last_name,
+          type: 'unregistered',
+          asset_count: o.asset_count
+        }))
+      ];
+
+      res.json({ success: true, employees });
+    } catch (error) {
+      logger.error({ err: error, userId: req.user?.id }, 'Error fetching employees');
+      res.status(500).json({ error: 'Failed to fetch employees' });
+    }
+  });
+
   // Create new attestation campaign
   router.post('/campaigns', authenticate, authorize('admin', 'coordinator'), async (req, res) => {
     try {
-      const { name, description, start_date, end_date, reminder_days, escalation_days, target_type, target_user_ids, target_company_ids } = req.body;
+      const { name, description, start_date, end_date, reminder_days, escalation_days, target_type, target_user_ids, target_emails, target_company_ids } = req.body;
 
       if (!name || !start_date) {
         return res.status(400).json({ error: 'Campaign name and start date are required' });
@@ -65,9 +97,14 @@ export default function createAttestationRouter(deps) {
         return res.status(400).json({ error: 'Invalid target_type. Must be "all", "selected", or "companies"' });
       }
 
-      // Validate target_user_ids if target_type is 'selected'
-      if (target_type === 'selected' && (!target_user_ids || !Array.isArray(target_user_ids) || target_user_ids.length === 0)) {
-        return res.status(400).json({ error: 'target_user_ids is required when target_type is "selected"' });
+      // Validate selections if target_type is 'selected'
+      if (target_type === 'selected') {
+        const hasUsers = target_user_ids && Array.isArray(target_user_ids) && target_user_ids.length > 0;
+        const hasEmails = target_emails && Array.isArray(target_emails) && target_emails.length > 0;
+
+        if (!hasUsers && !hasEmails) {
+          return res.status(400).json({ error: 'At least one user or employee email is required when target_type is "selected"' });
+        }
       }
 
       // Validate target_company_ids if target_type is 'companies'
@@ -84,7 +121,8 @@ export default function createAttestationRouter(deps) {
         reminder_days: reminder_days || 7,
         escalation_days: escalation_days || 10,
         target_type: target_type || 'all',
-        target_user_ids: target_type === 'selected' ? JSON.stringify(target_user_ids) : null,
+        target_user_ids: (target_type === 'selected' && target_user_ids) ? JSON.stringify(target_user_ids) : null,
+        target_emails: (target_type === 'selected' && target_emails) ? JSON.stringify(target_emails) : null,
         target_company_ids: target_type === 'companies' ? JSON.stringify(target_company_ids) : null,
         created_by: req.user.id
       };
@@ -93,7 +131,9 @@ export default function createAttestationRouter(deps) {
 
       let targetingInfo = campaign.target_type;
       if (target_type === 'selected') {
-        targetingInfo += `, ${target_user_ids.length} users`;
+        const userCount = target_user_ids?.length || 0;
+        const emailCount = target_emails?.length || 0;
+        targetingInfo += `, ${userCount} users, ${emailCount} emails`;
       } else if (target_type === 'companies') {
         targetingInfo += `, ${target_company_ids.length} companies`;
       }
@@ -193,15 +233,36 @@ export default function createAttestationRouter(deps) {
           totalAssets += count;
           scopeCompanyIds.add(cId);
         }
-      } else if (campaign.target_type === 'selected' && campaign.target_user_ids) {
-        const targetIds = JSON.parse(campaign.target_user_ids);
-        const allUsers = await userDb.getAll();
-        registeredUsers = allUsers.filter(u => targetIds.includes(u.id));
+      } else if (campaign.target_type === 'selected') {
+        // Handle selected users
+        if (campaign.target_user_ids) {
+          const targetIds = JSON.parse(campaign.target_user_ids);
+          const allUsers = await userDb.getAll();
+          registeredUsers = allUsers.filter(u => targetIds.includes(u.id));
 
-        for (const user of registeredUsers) {
-          const assets = await assetDb.getByEmployeeEmail(user.email);
-          totalAssets += assets.length;
-          assets.forEach(a => { if (a.company_id) scopeCompanyIds.add(a.company_id); });
+          for (const user of registeredUsers) {
+            const assets = await assetDb.getByEmployeeEmail(user.email);
+            totalAssets += assets.length;
+            assets.forEach(a => { if (a.company_id) scopeCompanyIds.add(a.company_id); });
+          }
+        }
+
+        // Handle selected emails (unregistered or explicit invites)
+        if (campaign.target_emails) {
+          const targetEmails = JSON.parse(campaign.target_emails);
+          // These are treated as unregistered invites. 
+          // We can check if they have assets to provide better stats
+          for (const target of targetEmails) {
+            const assets = await assetDb.getByEmployeeEmail(target.email);
+            if (assets.length > 0) {
+              unregisteredOwners.push({ ...target, asset_count: assets.length });
+              totalAssets += assets.length;
+              assets.forEach(a => { if (a.company_id) scopeCompanyIds.add(a.company_id); });
+            } else {
+              // Invited person with 0 assets
+              unregisteredOwners.push({ ...target, asset_count: 0 });
+            }
+          }
         }
       } else {
         // 'all' mode
@@ -232,7 +293,7 @@ export default function createAttestationRouter(deps) {
   // Update campaign
   router.put('/campaigns/:id', authenticate, authorize('admin', 'coordinator'), async (req, res) => {
     try {
-      const { name, description, start_date, end_date, reminder_days, escalation_days, status, target_type, target_user_ids, target_company_ids } = req.body;
+      const { name, description, start_date, end_date, reminder_days, escalation_days, status, target_type, target_user_ids, target_emails, target_company_ids } = req.body;
 
       const updates = {};
       if (name !== undefined) updates.name = name;
@@ -243,8 +304,12 @@ export default function createAttestationRouter(deps) {
       if (escalation_days !== undefined) updates.escalation_days = escalation_days;
       if (status !== undefined) updates.status = status;
       if (target_type !== undefined) updates.target_type = target_type;
+
       if (target_user_ids !== undefined) {
         updates.target_user_ids = target_user_ids && Array.isArray(target_user_ids) ? JSON.stringify(target_user_ids) : null;
+      }
+      if (target_emails !== undefined) {
+        updates.target_emails = target_emails && Array.isArray(target_emails) ? JSON.stringify(target_emails) : null;
       }
       if (target_company_ids !== undefined) {
         updates.target_company_ids = target_company_ids && Array.isArray(target_company_ids) ? JSON.stringify(target_company_ids) : null;
@@ -285,6 +350,8 @@ export default function createAttestationRouter(deps) {
       // Get users based on targeting
       let users = [];
       let unregisteredOwners = [];
+      // Set to track emails we've already handled (to avoid duplicates between lists)
+      const handledEmails = new Set();
 
       if (campaign.target_type === 'companies' && campaign.target_company_ids) {
         try {
@@ -311,15 +378,64 @@ export default function createAttestationRouter(deps) {
           logger.error({ err: parseError, userId: req.user?.id }, 'Error parsing target_company_ids');
           return res.status(500).json({ error: 'Invalid target company IDs format' });
         }
-      } else if (campaign.target_type === 'selected' && campaign.target_user_ids) {
-        try {
-          const targetIds = JSON.parse(campaign.target_user_ids);
-          const allUsers = await userDb.getAll();
-          users = allUsers.filter(u => targetIds.includes(u.id));
-        } catch (parseError) {
-          logger.error({ err: parseError, userId: req.user?.id }, 'Error parsing target_user_ids');
-          return res.status(500).json({ error: 'Invalid target user IDs format' });
+      } else if (campaign.target_type === 'selected') {
+        // Handle registered users
+        if (campaign.target_user_ids) {
+          try {
+            const targetIds = JSON.parse(campaign.target_user_ids);
+            const allUsers = await userDb.getAll();
+            users = allUsers.filter(u => targetIds.includes(u.id));
+          } catch (parseError) {
+            logger.error({ err: parseError, userId: req.user?.id }, 'Error parsing target_user_ids');
+            // Continue, maybe emails are valid
+          }
         }
+
+        // Handle unregistered or invited emails
+        if (campaign.target_emails) {
+          try {
+            const targetEmails = JSON.parse(campaign.target_emails);
+            // targetEmails is array of { email, firstName, lastName }
+
+            // For each target email, check if it's already in the users list
+            // If so, skip (already handled). If not, add to unregisteredOwners
+            // Also need to check if the email actually belongs to a registered user we missed
+
+            for (const target of targetEmails) {
+              const normalizedEmail = target.email.toLowerCase();
+
+              // Check if already in our selected users list
+              if (users.some(u => u.email.toLowerCase() === normalizedEmail)) {
+                continue;
+              }
+
+              // Check if this email belongs to a registered user in system (but maybe not in target_user_ids)
+              // (This shouldn't happen if UI is correct, but good safety)
+              const existingUser = await userDb.getByEmail(normalizedEmail);
+              if (existingUser) {
+                users.push(existingUser);
+                continue;
+              }
+
+              // Otherwise add to unregistered list
+              // Check if they have assets to set asset_count
+              const assets = await assetDb.getByEmployeeEmail(normalizedEmail);
+              unregisteredOwners.push({
+                employee_email: target.email, // Keep original casing
+                employee_first_name: target.firstName,
+                employee_last_name: target.lastName,
+                asset_count: assets.length
+              });
+            }
+          } catch (parseError) {
+            logger.error({ err: parseError, userId: req.user?.id }, 'Error parsing target_emails');
+          }
+        }
+
+        if (users.length === 0 && unregisteredOwners.length === 0) {
+          return res.status(400).json({ error: 'No targets selected' });
+        }
+
       } else {
         users = await userDb.getAll();
         unregisteredOwners = await assetDb.getUnregisteredOwners();
@@ -330,12 +446,15 @@ export default function createAttestationRouter(deps) {
       let emailsSent = 0;
 
       for (const user of users) {
+        if (handledEmails.has(user.email.toLowerCase())) continue;
+
         await attestationRecordDb.create({
           campaign_id: campaign.id,
           user_id: user.id,
           status: 'pending'
         });
         recordsCreated++;
+        handledEmails.add(user.email.toLowerCase());
 
         // Send email notification
         if (user.email) {
@@ -360,6 +479,8 @@ export default function createAttestationRouter(deps) {
       const ssoButtonText = oidcSettings?.button_text || 'Sign In with SSO';
 
       for (const owner of unregisteredOwners) {
+        if (handledEmails.has(owner.employee_email.toLowerCase())) continue;
+
         const crypto = await import('crypto');
         const inviteToken = crypto.randomBytes(32).toString('hex');
 
@@ -372,6 +493,7 @@ export default function createAttestationRouter(deps) {
           invite_sent_at: new Date().toISOString()
         });
         pendingInvitesCreated++;
+        handledEmails.add(owner.employee_email.toLowerCase());
 
         try {
           const { sendAttestationRegistrationInvite } = await import('../services/smtpMailer.js');
@@ -381,7 +503,7 @@ export default function createAttestationRouter(deps) {
             owner.employee_last_name,
             campaign,
             inviteToken,
-            owner.asset_count,
+            owner.asset_count || 0,
             ssoEnabled,
             ssoButtonText
           );
@@ -724,9 +846,9 @@ export default function createAttestationRouter(deps) {
       }
 
       const { asset_type, make, model, serial_number, asset_tag, company_id, notes,
-              employee_first_name, employee_last_name, employee_email,
-              manager_first_name, manager_last_name, manager_email,
-              status, issued_date, returned_date } = req.body;
+        employee_first_name, employee_last_name, employee_email,
+        manager_first_name, manager_last_name, manager_email,
+        status, issued_date, returned_date } = req.body;
 
       if (!asset_type || !serial_number) {
         return res.status(400).json({ error: 'Asset type and serial number are required' });

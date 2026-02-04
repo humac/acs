@@ -27,12 +27,7 @@ export default function BulkCampaignActions({
     const totalCount = allCampaigns?.length || 0;
     const filteredCount = filteredCampaigns?.length || 0;
 
-    // Ideally export should be handled via backend, but providing a placeholder or basic client-side export
-    const handleExportSelected = () => {
-        // Placeholder for export functionality
-        // This would match the logic in AssetBulkActions if we were exporting data
-        console.log('Exporting select', selectedIds);
-    };
+
 
     const handleDeleteConfirm = async () => {
         setIsDeleting(true);

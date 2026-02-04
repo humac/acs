@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import AttestationPage from './AttestationPage';
 
@@ -22,6 +22,8 @@ vi.mock('@/hooks/use-toast', () => ({
     toast: mockToast,
   }),
 }));
+
+
 
 // Helper to set up default fetch mock
 const setupFetchMock = (campaigns = []) => {
@@ -50,6 +52,13 @@ const setupFetchMock = (campaigns = []) => {
 describe('AttestationPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // ResizeObserver mock
+    global.ResizeObserver = class ResizeObserver {
+      observe() { }
+      unobserve() { }
+      disconnect() { }
+    };
   });
 
   describe('Initial Load', () => {
@@ -178,4 +187,5 @@ describe('AttestationPage', () => {
       }, { timeout: 3000 });
     });
   });
+
 });

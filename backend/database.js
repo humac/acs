@@ -1080,6 +1080,7 @@ const initDb = async () => {
       escalation_days INTEGER DEFAULT 10,
       target_type TEXT NOT NULL DEFAULT 'all',
       target_user_ids TEXT,
+      target_emails TEXT,
       target_company_ids TEXT,
       created_by INTEGER NOT NULL REFERENCES users(id),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -1097,6 +1098,7 @@ const initDb = async () => {
       escalation_days INTEGER DEFAULT 10,
       target_type TEXT NOT NULL DEFAULT 'all',
       target_user_ids TEXT,
+      target_emails TEXT,
       target_company_ids TEXT,
       created_by INTEGER NOT NULL,
       created_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -2063,6 +2065,28 @@ const initDb = async () => {
   } catch (err) {
     console.error('Date format migration error:', err.message);
     // Don't fail initialization
+  }
+
+  // Migration: Add target_emails column to attestation_campaigns
+  console.log('Checking if target_emails column needs to be added to attestation_campaigns...');
+  try {
+    const campaignCols = isPostgres
+      ? await dbAll(`
+          SELECT column_name as name
+          FROM information_schema.columns
+          WHERE table_name = 'attestation_campaigns'
+        `)
+      : await dbAll("PRAGMA table_info(attestation_campaigns)");
+
+    const hasTargetEmails = campaignCols.some(col => col.name === 'target_emails');
+
+    if (!hasTargetEmails) {
+      console.log('Migrating attestation_campaigns table: adding target_emails column...');
+      await dbRun('ALTER TABLE attestation_campaigns ADD COLUMN target_emails TEXT');
+      console.log('Migration complete: Added target_emails column to attestation_campaigns');
+    }
+  } catch (err) {
+    console.error('target_emails migration error:', err.message);
   }
 
   // Migration: Make asset_tag nullable (remove NOT NULL constraint)
@@ -4197,18 +4221,18 @@ export const attestationCampaignDb = {
 
     if (isPostgres) {
       const result = await dbRun(
-        `INSERT INTO attestation_campaigns (name, description, start_date, end_date, status, reminder_days, escalation_days, target_type, target_user_ids, target_company_ids, unregistered_reminder_days, created_by, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING id`,
+        `INSERT INTO attestation_campaigns (name, description, start_date, end_date, status, reminder_days, escalation_days, target_type, target_user_ids, target_emails, target_company_ids, unregistered_reminder_days, created_by, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING id`,
         [campaign.name, campaign.description, campaign.start_date, endDate, campaign.status || 'draft',
-        campaign.reminder_days || 7, campaign.escalation_days || 10, campaign.target_type || 'all', campaign.target_user_ids || null, campaign.target_company_ids || null, campaign.unregistered_reminder_days || 7, campaign.created_by, now, now]
+        campaign.reminder_days || 7, campaign.escalation_days || 10, campaign.target_type || 'all', campaign.target_user_ids || null, campaign.target_emails || null, campaign.target_company_ids || null, campaign.unregistered_reminder_days || 7, campaign.created_by, now, now]
       );
       return { id: result.rows[0].id };
     } else {
       const result = await dbRun(
-        `INSERT INTO attestation_campaigns (name, description, start_date, end_date, status, reminder_days, escalation_days, target_type, target_user_ids, target_company_ids, unregistered_reminder_days, created_by, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO attestation_campaigns (name, description, start_date, end_date, status, reminder_days, escalation_days, target_type, target_user_ids, target_emails, target_company_ids, unregistered_reminder_days, created_by, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [campaign.name, campaign.description, campaign.start_date, endDate, campaign.status || 'draft',
-        campaign.reminder_days || 7, campaign.escalation_days || 10, campaign.target_type || 'all', campaign.target_user_ids || null, campaign.target_company_ids || null, campaign.unregistered_reminder_days || 7, campaign.created_by, now, now]
+        campaign.reminder_days || 7, campaign.escalation_days || 10, campaign.target_type || 'all', campaign.target_user_ids || null, campaign.target_emails || null, campaign.target_company_ids || null, campaign.unregistered_reminder_days || 7, campaign.created_by, now, now]
       );
       return { id: result.lastInsertRowid };
     }
@@ -4279,6 +4303,10 @@ export const attestationCampaignDb = {
     if (updates.target_user_ids !== undefined) {
       fields.push(isPostgres ? `target_user_ids = $${fields.length + 1}` : 'target_user_ids = ?');
       params.push(updates.target_user_ids);
+    }
+    if (updates.target_emails !== undefined) {
+      fields.push(isPostgres ? `target_emails = $${fields.length + 1}` : 'target_emails = ?');
+      params.push(updates.target_emails);
     }
     if (updates.target_company_ids !== undefined) {
       fields.push(isPostgres ? `target_company_ids = $${fields.length + 1}` : 'target_company_ids = ?');
