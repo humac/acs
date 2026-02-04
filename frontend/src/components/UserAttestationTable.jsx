@@ -56,7 +56,7 @@ export default function UserAttestationTable({ attestations = [], onStartAttesta
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {filteredAttestations.map((attestation, index) => (
+                                {filteredAttestations.map((attestation) => (
                                     <UserAttestationTableRow
                                         key={attestation.id}
                                         attestation={attestation}

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import {
   ClipboardCheck,
@@ -36,7 +35,6 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { NumberInput } from '@/components/ui/number-input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
-import { cn } from '@/lib/utils';
 import CompanyMultiSelect from '@/components/CompanyMultiSelect';
 import AttestationCampaignTable from '@/components/AttestationCampaignTable';
 
@@ -64,12 +62,16 @@ export default function AttestationPage() {
     unregistered_reminder_days: 7,
     target_type: 'all',
     target_user_ids: [],
+    target_emails: [],
     target_company_ids: []
   });
 
   const [wizardStep, setWizardStep] = useState(1);
-  const [availableUsers, setAvailableUsers] = useState([]);
   const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [availableEmployees, setAvailableEmployees] = useState([]);
+  const [loadingEmployees, setLoadingEmployees] = useState(false);
+  const [showInviteForm, setShowInviteForm] = useState(false);
+  const [inviteForm, setInviteForm] = useState({ firstName: '', lastName: '', email: '' });
 
   // Alert dialog states
   const [showStartDialog, setShowStartDialog] = useState(false);
@@ -88,6 +90,17 @@ export default function AttestationPage() {
       return typeof targetUserIds === 'string' ? JSON.parse(targetUserIds) : targetUserIds;
     } catch (error) {
       console.error('Error parsing target_user_ids:', error);
+      return [];
+    }
+  };
+
+  // Helper function to parse target_emails
+  const parseTargetEmails = (targetEmails) => {
+    if (!targetEmails) return [];
+    try {
+      return typeof targetEmails === 'string' ? JSON.parse(targetEmails) : targetEmails;
+    } catch (error) {
+      console.error('Error parsing target_emails:', error);
       return [];
     }
   };
@@ -113,30 +126,13 @@ export default function AttestationPage() {
       return `Emails will be sent to employees with assets in ${count} selected compan${count !== 1 ? 'ies' : 'y'}.`;
     }
 
-    if (campaign.target_type === 'selected' && campaign.target_user_ids) {
-      const targetIds = parseTargetUserIds(campaign.target_user_ids);
-      const count = targetIds.length;
-      return `Emails will be sent to ${count} selected employee${count !== 1 ? 's' : ''}.`;
+    if (campaign.target_type === 'selected') {
+      const userCount = campaign.target_user_ids ? parseTargetUserIds(campaign.target_user_ids).length : 0;
+      const emailCount = campaign.target_emails ? parseTargetEmails(campaign.target_emails).length : 0;
+      const total = userCount + emailCount;
+      return `Emails will be sent to ${total} selected person${total !== 1 ? 's' : ''}.`;
     }
     return 'Emails will be sent to all employees.';
-  };
-
-  // Helper function to format progress display with pending invites
-  const getProgressDisplay = (campaign, stats) => {
-    if (!stats) return '-';
-
-    const { completed, total } = stats;
-    const pending_invites_count = campaign.pending_invites_count || 0;
-
-    if (total === 0 && pending_invites_count > 0) {
-      return `0/0 (${pending_invites_count} pending invite${pending_invites_count !== 1 ? 's' : ''})`;
-    }
-
-    if (pending_invites_count > 0) {
-      return `${completed}/${total} (${pending_invites_count} pending invite${pending_invites_count !== 1 ? 's' : ''})`;
-    }
-
-    return `${completed}/${total} - ${total > 0 ? Math.round((completed / total) * 100) : 0}% Complete`;
   };
 
   const loadCampaigns = async () => {
@@ -199,22 +195,63 @@ export default function AttestationPage() {
     }
   }, [user]);
 
-  const loadUsers = async () => {
+
+
+  const loadEmployees = async () => {
+    setLoadingEmployees(true);
     try {
-      const res = await fetch('/api/auth/users', {
-        headers: { ...getAuthHeaders() }
+      const res = await fetch('/api/attestation/employees', {
+        headers: getAuthHeaders()
       });
-      if (!res.ok) throw new Error('Failed to load users');
-      const data = await res.json();
-      setAvailableUsers(data || []);
+      if (res.ok) {
+        const data = await res.json();
+        setAvailableEmployees(data.employees);
+      }
     } catch (err) {
-      console.error(err);
-      toast({
-        title: 'Error',
-        description: 'Failed to load users',
-        variant: 'destructive'
-      });
+      console.error('Failed to load employees:', err);
+    } finally {
+      setLoadingEmployees(false);
     }
+  };
+
+  const handleInviteSubmit = () => {
+    // Add new person to available employees list temporarily so they appear in search results/list
+    // and automatically select them
+    const newPerson = {
+      id: null,
+      name: `${inviteForm.firstName} ${inviteForm.lastName}`,
+      email: inviteForm.email,
+      firstName: inviteForm.firstName,
+      lastName: inviteForm.lastName,
+      type: 'invite'
+    };
+
+    // Check for duplicates
+    if (availableEmployees.some(e => e.email.toLowerCase() === newPerson.email.toLowerCase())) {
+      toast({
+        title: "Duplicate",
+        description: "This email is already in the list",
+        variant: "warning"
+      });
+      return;
+    }
+
+    setAvailableEmployees([newPerson, ...availableEmployees]);
+
+    // Auto select
+    setFormData(prev => ({
+      ...prev,
+      target_emails: [...(prev.target_emails || []), {
+        email: newPerson.email,
+        firstName: newPerson.firstName,
+        lastName: newPerson.lastName
+      }]
+    }));
+
+    // Reset form
+    setInviteForm({ firstName: '', lastName: '', email: '' });
+    setShowInviteForm(false);
+    toast({ title: "Added", description: "Person added to list and selected" });
   };
 
   // loadCompanies removed - using CompanyMultiSelect which handles its own data loading
@@ -247,9 +284,12 @@ export default function AttestationPage() {
         unregistered_reminder_days: 7,
         target_type: 'all',
         target_user_ids: [],
+        target_emails: [],
         target_company_ids: []
       });
       setUserSearchQuery('');
+      setAvailableEmployees([]);
+      setLoadingEmployees(false);
 
       loadCampaigns();
     } catch (err) {
@@ -416,8 +456,9 @@ export default function AttestationPage() {
   };
 
   const handleEditCampaignClick = (campaign) => {
-    // Parse target_user_ids and target_company_ids using helper functions
+    // Parse target_user_ids, target_emails, and target_company_ids using helper functions
     const targetUserIds = parseTargetUserIds(campaign.target_user_ids);
+    const targetEmails = parseTargetEmails(campaign.target_emails);
     const targetCompanyIds = parseTargetCompanyIds(campaign.target_company_ids);
 
     setEditingCampaign(campaign);
@@ -431,14 +472,15 @@ export default function AttestationPage() {
       unregistered_reminder_days: campaign.unregistered_reminder_days || 7,
       target_type: campaign.target_type || 'all',
       target_user_ids: targetUserIds,
+      target_emails: targetEmails,
       target_company_ids: targetCompanyIds
     });
     setWizardStep(1);
     setShowEditModal(true);
 
-    // Load users if target type is selected
-    if (campaign.target_type === 'selected' && availableUsers.length === 0) {
-      loadUsers();
+    // Load employees if target type is selected
+    if (campaign.target_type === 'selected' && availableEmployees.length === 0) {
+      loadEmployees();
     }
 
     // CompanyMultiSelect handles its own data loading
@@ -607,9 +649,9 @@ export default function AttestationPage() {
       }}>
         <DialogContent className="glass-overlay max-w-[95vw] sm:max-w-lg md:max-w-2xl animate-scale-in">
           <DialogHeader>
-            <DialogTitle>Create Attestation Campaign - Step {wizardStep} of 2</DialogTitle>
+            <DialogTitle>Create Attestation Campaign - Step {wizardStep} of 3</DialogTitle>
             <DialogDescription>
-              {wizardStep === 1 ? 'Configure campaign details' : 'Select target employees'}
+              {wizardStep === 1 ? 'Configure campaign details' : wizardStep === 2 ? 'Select target employees' : 'Invite new persons'}
             </DialogDescription>
           </DialogHeader>
 
@@ -703,9 +745,9 @@ export default function AttestationPage() {
               <RadioGroup
                 value={formData.target_type}
                 onValueChange={(value) => {
-                  setFormData({ ...formData, target_type: value, target_user_ids: [], target_company_ids: [] });
-                  if (value === 'selected' && availableUsers.length === 0) {
-                    loadUsers();
+                  setFormData({ ...formData, target_type: value, target_user_ids: [], target_emails: [], target_company_ids: [] });
+                  if (value === 'selected' && availableEmployees.length === 0) {
+                    loadEmployees();
                   }
                   // CompanyMultiSelect handles its own data loading
                 }}
@@ -722,9 +764,9 @@ export default function AttestationPage() {
                 <div className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-muted/50">
                   <RadioGroupItem value="selected" id="target-selected" />
                   <Label htmlFor="target-selected" className="flex-1 cursor-pointer">
-                    <div className="font-medium">Select Specific Employees</div>
+                    <div className="font-medium">Select Asset Owner/Employee</div>
                     <div className="text-sm text-muted-foreground">
-                      Choose individual employees to receive the attestation request
+                      Choose individual asset owners or employees to receive the attestation request
                     </div>
                   </Label>
                 </div>
@@ -750,53 +792,80 @@ export default function AttestationPage() {
                       value={userSearchQuery}
                       onChange={(e) => setUserSearchQuery(e.target.value)}
                     />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Select existing employees from the list below. Proceed to the next step to invite new external users.
+                    </p>
                   </div>
 
-                  {availableUsers.length === 0 ? (
+                  {loadingEmployees ? (
                     <div className="flex items-center justify-center py-8 text-muted-foreground">
                       <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                      Loading users...
+                      Loading employees...
                     </div>
                   ) : (
                     <div className="border rounded-lg max-h-64 overflow-y-auto">
                       <div className="p-2 space-y-1">
-                        {availableUsers
+                        {availableEmployees
                           .filter(u =>
                             userSearchQuery === '' ||
                             u.name?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
                             u.email?.toLowerCase().includes(userSearchQuery.toLowerCase())
                           )
-                          .map((u) => (
-                            <div
-                              key={u.id}
-                              className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded cursor-pointer"
-                              onClick={() => {
-                                const isSelected = formData.target_user_ids.includes(u.id);
-                                setFormData({
-                                  ...formData,
-                                  target_user_ids: isSelected
-                                    ? formData.target_user_ids.filter(id => id !== u.id)
-                                    : [...formData.target_user_ids, u.id]
-                                });
-                              }}
-                            >
-                              <Checkbox
-                                checked={formData.target_user_ids.includes(u.id)}
-                                readOnly
-                              />
-                              <div className="flex-1">
-                                <div className="font-medium text-sm">{u.name}</div>
-                                <div className="text-xs text-muted-foreground">{u.email}</div>
+                          .map((u) => {
+                            const isUserSelected = u.id ? formData.target_user_ids.includes(u.id) : false;
+                            const isEmailSelected = !u.id ? formData.target_emails.some(t => t.email.toLowerCase() === u.email.toLowerCase()) : false;
+                            const isSelected = isUserSelected || isEmailSelected;
+
+                            return (
+                              <div
+                                key={u.id || u.email}
+                                className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded cursor-pointer"
+                                onClick={() => {
+                                  if (u.id) {
+                                    // Handle User ID selection
+                                    const newIds = isUserSelected
+                                      ? formData.target_user_ids.filter(id => id !== u.id)
+                                      : [...formData.target_user_ids, u.id];
+                                    setFormData({ ...formData, target_user_ids: newIds });
+                                  } else {
+                                    // Handle Email selection
+                                    const newEmails = isEmailSelected
+                                      ? formData.target_emails.filter(t => t.email.toLowerCase() !== u.email.toLowerCase())
+                                      : [...formData.target_emails, { email: u.email, firstName: u.firstName, lastName: u.lastName }];
+                                    setFormData({ ...formData, target_emails: newEmails });
+                                  }
+                                }}
+                              >
+                                <Checkbox
+                                  checked={isSelected}
+                                  readOnly
+                                />
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-sm">{u.name}</span>
+                                    {u.type === 'unregistered' && (
+                                      <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded-full dark:bg-yellow-900 dark:text-yellow-100">
+                                        Unregistered
+                                      </span>
+                                    )}
+                                    {u.type === 'invite' && (
+                                      <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-full dark:bg-blue-900 dark:text-blue-100">
+                                        New Invite
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">{u.email}</div>
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                       </div>
                     </div>
                   )}
 
-                  {formData.target_user_ids.length > 0 && (
+                  {(formData.target_user_ids.length > 0 || formData.target_emails.length > 0) && (
                     <div className="text-sm text-muted-foreground">
-                      Selected: {formData.target_user_ids.length} employee{formData.target_user_ids.length !== 1 ? 's' : ''}
+                      Selected: {formData.target_user_ids.length + formData.target_emails.length} person(s)
                     </div>
                   )}
                 </div>
@@ -812,6 +881,88 @@ export default function AttestationPage() {
                   />
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Step 3: Invite New Persons (For all types) */}
+          {wizardStep === 3 && (
+            <div className="space-y-4">
+              <div className="p-4 border rounded-lg bg-muted/20 space-y-3">
+                <h4 className="font-medium text-sm">Invite New Person</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="invite-fname" className="text-xs">First Name</Label>
+                    <Input
+                      id="invite-fname"
+                      value={inviteForm.firstName}
+                      onChange={(e) => setInviteForm({ ...inviteForm, firstName: e.target.value })}
+                      placeholder="John"
+                      className="h-8"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="invite-lname" className="text-xs">Last Name</Label>
+                    <Input
+                      id="invite-lname"
+                      value={inviteForm.lastName}
+                      onChange={(e) => setInviteForm({ ...inviteForm, lastName: e.target.value })}
+                      placeholder="Doe"
+                      className="h-8"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <Label htmlFor="invite-email" className="text-xs">Email</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="invite-email"
+                        value={inviteForm.email}
+                        onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
+                        placeholder="john.doe@example.com"
+                        className="h-8"
+                      />
+                      <Button
+                        size="sm"
+                        onClick={handleInviteSubmit}
+                        disabled={!inviteForm.email || !inviteForm.firstName || !inviteForm.lastName}
+                        className="btn-interactive"
+                      >
+                        Add to List
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Currently Invited Persons</Label>
+                {formData.target_emails.filter(t => t.type === 'invite' || !availableEmployees.some(e => e.email === t.email && e.type !== 'invite')).length === 0 ? (
+                  <div className="text-sm text-muted-foreground italic">No new invites added yet.</div>
+                ) : (
+                  <div className="border rounded-lg max-h-48 overflow-y-auto p-2 space-y-1">
+                    {formData.target_emails.map((t, idx) => (
+                      <div key={idx} className="flex justify-between items-center text-sm p-2 bg-muted/30 rounded">
+                        <div>
+                          <div className="font-medium">{t.firstName} {t.lastName}</div>
+                          <div className="text-xs text-muted-foreground">{t.email}</div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive"
+                          onClick={() => {
+                            const newEmails = formData.target_emails.filter(email => email.email !== t.email);
+                            setFormData({ ...formData, target_emails: newEmails });
+                            // Also remove from availableEmployees if temporary
+                            setAvailableEmployees(prev => prev.filter(e => e.email !== t.email || e.type !== 'invite'));
+                          }}
+                        >
+                          &times;
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -832,15 +983,27 @@ export default function AttestationPage() {
                   Next
                 </Button>
               </>
-            ) : (
+            ) : wizardStep === 2 ? (
               <>
                 <Button variant="outline" onClick={() => setWizardStep(1)} className="btn-interactive">
                   Back
                 </Button>
                 <Button
+                  onClick={() => setWizardStep(3)}
+                  className="btn-interactive"
+                >
+                  Next (Invite Others)
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" onClick={() => setWizardStep(2)} className="btn-interactive">
+                  Back
+                </Button>
+                <Button
                   onClick={handleCreateCampaign}
                   disabled={
-                    (formData.target_type === 'selected' && formData.target_user_ids.length === 0) ||
+                    (formData.target_type === 'selected' && formData.target_user_ids.length === 0 && formData.target_emails.length === 0) ||
                     (formData.target_type === 'companies' && formData.target_company_ids.length === 0)
                   }
                   className="btn-interactive"
@@ -895,9 +1058,9 @@ export default function AttestationPage() {
       }}>
         <DialogContent className="glass-overlay max-w-[95vw] sm:max-w-lg md:max-w-2xl animate-scale-in">
           <DialogHeader>
-            <DialogTitle>Edit Campaign - Step {wizardStep} of 2</DialogTitle>
+            <DialogTitle>Edit Campaign - Step {wizardStep} of 3</DialogTitle>
             <DialogDescription>
-              {wizardStep === 1 ? 'Update campaign details' : 'Update target employees'}
+              {wizardStep === 1 ? 'Update campaign details' : wizardStep === 2 ? 'Update target employees' : 'Invite new persons'}
             </DialogDescription>
           </DialogHeader>
 
@@ -991,9 +1154,9 @@ export default function AttestationPage() {
               <RadioGroup
                 value={formData.target_type}
                 onValueChange={(value) => {
-                  setFormData({ ...formData, target_type: value, target_user_ids: [], target_company_ids: [] });
-                  if (value === 'selected' && availableUsers.length === 0) {
-                    loadUsers();
+                  setFormData({ ...formData, target_type: value, target_user_ids: [], target_emails: [], target_company_ids: [] });
+                  if (value === 'selected' && availableEmployees.length === 0) {
+                    loadEmployees();
                   }
                   // CompanyMultiSelect handles its own data loading
                 }}
@@ -1010,9 +1173,9 @@ export default function AttestationPage() {
                 <div className="flex items-center space-x-2 p-3 border rounded-lg cursor-pointer hover:bg-muted/50">
                   <RadioGroupItem value="selected" id="edit-target-selected" />
                   <Label htmlFor="edit-target-selected" className="flex-1 cursor-pointer">
-                    <div className="font-medium">Select Specific Employees</div>
+                    <div className="font-medium">Select Asset Owner/Employee</div>
                     <div className="text-sm text-muted-foreground">
-                      Choose individual employees to receive the attestation request
+                      Choose individual asset owners or employees to receive the attestation request
                     </div>
                   </Label>
                 </div>
@@ -1029,62 +1192,143 @@ export default function AttestationPage() {
 
               {formData.target_type === 'selected' && (
                 <div className="space-y-3 mt-4">
-                  <div>
-                    <Label htmlFor="edit-user-search">Search Employees</Label>
-                    <Input
-                      id="edit-user-search"
-                      type="text"
-                      placeholder="Search by name or email..."
-                      value={userSearchQuery}
-                      onChange={(e) => setUserSearchQuery(e.target.value)}
-                    />
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1">
+                      <Label htmlFor="edit-user-search">Search Employees</Label>
+                      <Input
+                        id="edit-user-search"
+                        type="text"
+                        placeholder="Search by name or email..."
+                        value={userSearchQuery}
+                        onChange={(e) => setUserSearchQuery(e.target.value)}
+                      />
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowInviteForm(!showInviteForm)}
+                      className="btn-interactive"
+                    >
+                      {showInviteForm ? 'Cancel Invite' : 'Invite Person'}
+                    </Button>
                   </div>
 
-                  {availableUsers.length === 0 ? (
+                  {showInviteForm && (
+                    <div className="p-4 border rounded-lg bg-muted/20 space-y-3">
+                      <h4 className="font-medium text-sm">Invite New Person</h4>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label htmlFor="edit-invite-fname" className="text-xs">First Name</Label>
+                          <Input
+                            id="edit-invite-fname"
+                            value={inviteForm.firstName}
+                            onChange={(e) => setInviteForm({ ...inviteForm, firstName: e.target.value })}
+                            placeholder="John"
+                            className="h-8"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="edit-invite-lname" className="text-xs">Last Name</Label>
+                          <Input
+                            id="edit-invite-lname"
+                            value={inviteForm.lastName}
+                            onChange={(e) => setInviteForm({ ...inviteForm, lastName: e.target.value })}
+                            placeholder="Doe"
+                            className="h-8"
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <Label htmlFor="edit-invite-email" className="text-xs">Email</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              id="edit-invite-email"
+                              value={inviteForm.email}
+                              onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
+                              placeholder="john.doe@example.com"
+                              className="h-8"
+                            />
+                            <Button
+                              size="sm"
+                              onClick={handleInviteSubmit}
+                              disabled={!inviteForm.email || !inviteForm.firstName || !inviteForm.lastName}
+                              className="btn-interactive"
+                            >
+                              Add
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {loadingEmployees ? (
                     <div className="flex items-center justify-center py-8 text-muted-foreground">
                       <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                      Loading users...
+                      Loading employees...
                     </div>
                   ) : (
                     <div className="border rounded-lg max-h-64 overflow-y-auto">
                       <div className="p-2 space-y-1">
-                        {availableUsers
+                        {availableEmployees
                           .filter(u =>
                             userSearchQuery === '' ||
                             u.name?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
                             u.email?.toLowerCase().includes(userSearchQuery.toLowerCase())
                           )
-                          .map((u) => (
-                            <div
-                              key={u.id}
-                              className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded cursor-pointer"
-                              onClick={() => {
-                                const isSelected = formData.target_user_ids.includes(u.id);
-                                setFormData({
-                                  ...formData,
-                                  target_user_ids: isSelected
-                                    ? formData.target_user_ids.filter(id => id !== u.id)
-                                    : [...formData.target_user_ids, u.id]
-                                });
-                              }}
-                            >
-                              <Checkbox
-                                checked={formData.target_user_ids.includes(u.id)}
-                                readOnly
-                              />
-                              <div className="flex-1">
-                                <div className="font-medium text-sm">{u.name}</div>
-                                <div className="text-xs text-muted-foreground">{u.email}</div>
+                          .map((u) => {
+                            const isUserSelected = u.id ? formData.target_user_ids.includes(u.id) : false;
+                            const isEmailSelected = !u.id ? formData.target_emails.some(t => t.email.toLowerCase() === u.email.toLowerCase()) : false;
+                            const isSelected = isUserSelected || isEmailSelected;
+
+                            return (
+                              <div
+                                key={u.id || u.email}
+                                className="flex items-center space-x-2 p-2 hover:bg-muted/50 rounded cursor-pointer"
+                                onClick={() => {
+                                  if (u.id) {
+                                    // Handle User ID selection
+                                    const newIds = isUserSelected
+                                      ? formData.target_user_ids.filter(id => id !== u.id)
+                                      : [...formData.target_user_ids, u.id];
+                                    setFormData({ ...formData, target_user_ids: newIds });
+                                  } else {
+                                    // Handle Email selection
+                                    const newEmails = isEmailSelected
+                                      ? formData.target_emails.filter(t => t.email.toLowerCase() !== u.email.toLowerCase())
+                                      : [...formData.target_emails, { email: u.email, firstName: u.firstName, lastName: u.lastName }];
+                                    setFormData({ ...formData, target_emails: newEmails });
+                                  }
+                                }}
+                              >
+                                <Checkbox
+                                  checked={isSelected}
+                                  readOnly
+                                />
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-sm">{u.name}</span>
+                                    {u.type === 'unregistered' && (
+                                      <span className="text-[10px] bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded-full dark:bg-yellow-900 dark:text-yellow-100">
+                                        Unregistered
+                                      </span>
+                                    )}
+                                    {u.type === 'invite' && (
+                                      <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-full dark:bg-blue-900 dark:text-blue-100">
+                                        New Invite
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">{u.email}</div>
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                       </div>
                     </div>
                   )}
 
-                  {formData.target_user_ids.length > 0 && (
+                  {(formData.target_user_ids.length > 0 || formData.target_emails.length > 0) && (
                     <div className="text-sm text-muted-foreground">
-                      Selected: {formData.target_user_ids.length} employee{formData.target_user_ids.length !== 1 ? 's' : ''}
+                      Selected: {formData.target_user_ids.length + formData.target_emails.length} person(s)
                     </div>
                   )}
                 </div>

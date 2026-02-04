@@ -5,9 +5,6 @@ import request from 'supertest';
 import express from 'express';
 import { authenticate, authorize } from './auth.js';
 
-// Import the actual server app to test the real endpoint
-import './server.js'; // This will load the server routes
-
 // Create express app for testing (replicating the actual endpoint logic)
 const app = express();
 app.use(express.json());
@@ -16,15 +13,15 @@ app.use(express.json());
 app.get('/api/attestation/campaigns/:id/dashboard', authenticate, authorize('admin', 'manager'), async (req, res) => {
   try {
     const campaign = await attestationCampaignDb.getById(req.params.id);
-    
+
     if (!campaign) {
       return res.status(404).json({ error: 'Campaign not found' });
     }
-    
+
     // Get all records with user details
     const records = await attestationRecordDb.getByCampaignId(campaign.id);
     const detailedRecords = [];
-    
+
     for (const record of records) {
       const user = await userDb.getById(record.user_id);
       if (user) {
@@ -37,7 +34,7 @@ app.get('/api/attestation/campaigns/:id/dashboard', authenticate, authorize('adm
         });
       }
     }
-    
+
     res.json({ success: true, campaign, records: detailedRecords });
   } catch (error) {
     console.error('Error fetching campaign dashboard:', error);
