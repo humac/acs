@@ -11,6 +11,10 @@ RUN npm install --production
 # Copy application code
 COPY . .
 
+# Fix line endings for Windows hosts
+RUN sed -i 's/\r$//' /app/docker-entrypoint.sh
+
+
 # Expose port
 EXPOSE 3001
 
