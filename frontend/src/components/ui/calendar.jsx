@@ -15,8 +15,8 @@ function Calendar({
     <DayPicker
       showOutsideDays={showOutsideDays}
       captionLayout="dropdown"
-      startMonth={new Date(1990, 0)}
-      endMonth={new Date(2050, 11)}
+      startMonth={new Date(1900, 0)}
+      endMonth={new Date(2100, 11)}
       className={cn("p-3", className)}
       classNames={{
         months: "flex flex-col sm:flex-row gap-2",
