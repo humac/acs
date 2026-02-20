@@ -14,12 +14,19 @@ function Calendar({
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
+      captionLayout="dropdown"
+      startMonth={new Date(1990, 0)}
+      endMonth={new Date(2050, 11)}
       className={cn("p-3", className)}
       classNames={{
         months: "flex flex-col sm:flex-row gap-2",
         month: "flex flex-col gap-4",
         month_caption: "flex justify-center pt-1 relative items-center w-full",
-        caption_label: "text-sm font-medium",
+        caption_label: "hidden", // Hide the original label when utilizing dropdowns
+        dropdowns: "flex gap-2 w-full justify-center caption-label font-medium",
+        dropdown_month: "flex rounded-md p-1 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+        dropdown_year: "flex rounded-md p-1 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+        dropdown_icon: "hidden", // Hide dropdown icon if desired, or let it show
         nav: "flex items-center gap-1",
         button_previous: cn(
           buttonVariants({ variant: "outline" }),

@@ -138,7 +138,13 @@ export default function BulkAssetActions({
           const value = asset[h] || '';
           // Format date fields to YYYY-MM-DD
           const formattedValue = dateFields.includes(h) ? formatDateForCSV(value) : value.toString();
-          return `"${formattedValue.replace(/"/g, '""')}"`;
+          
+          // Only wrap in quotes if the string contains a comma, new line, or double quote
+          const needsQuotes = /[",\n]/.test(formattedValue);
+          if (needsQuotes) {
+            return `"${formattedValue.replace(/"/g, '""')}"`;
+          }
+          return formattedValue;
         }).join(',')
       ),
     ].join('\n');
