@@ -4,6 +4,13 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 function Calendar({
   className,
@@ -68,6 +75,41 @@ function Calendar({
         Chevron: ({ orientation }) => {
           const Icon = orientation === "left" ? ChevronLeft : ChevronRight
           return <Icon className="h-4 w-4" />
+        },
+        Dropdown: ({ value, onChange, options, children, ...props }) => {
+          const handleChange = (v) => {
+            onChange?.({ target: { value: v } })
+          }
+          let selectOptions = [];
+          if (options && options.length > 0) {
+            selectOptions = options;
+          } else if (children) {
+            selectOptions = React.Children.toArray(children).map(child => ({
+              value: child.props.value,
+              label: child.props.children,
+              disabled: child.props.disabled,
+            }));
+          }
+          const selected = selectOptions.find((child) => child.value === value) || selectOptions[0];
+          return (
+            <Select
+              value={value?.toString()}
+              onValueChange={(value) => {
+                handleChange(value)
+              }}
+            >
+              <SelectTrigger className="flex h-7 w-fit items-center justify-between gap-1 rounded-md border border-input bg-transparent px-2 py-0 text-sm shadow-sm hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50">
+                <SelectValue>{selected?.label}</SelectValue>
+              </SelectTrigger>
+              <SelectContent position="popper" className="max-h-[200px]">
+                {selectOptions.map((option, id) => (
+                  <SelectItem key={`${option.value}-${id}`} value={option.value?.toString() ?? ""} disabled={option.disabled}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )
         },
       }}
       {...props}
