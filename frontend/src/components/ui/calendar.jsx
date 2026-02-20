@@ -23,9 +23,9 @@ function Calendar({
         month: "flex flex-col gap-4",
         month_caption: "flex justify-center pt-1 relative items-center w-full",
         caption_label: "hidden", // Hide the original label when utilizing dropdowns
-        dropdowns: "flex gap-2 w-full justify-center caption-label font-medium",
-        dropdown_month: "flex rounded-md p-1 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-        dropdown_year: "flex rounded-md p-1 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+        dropdowns: "flex gap-2 w-full justify-center font-medium self-center",
+        dropdown_month: "bg-background/80 text-foreground border border-white/10 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring hover:bg-accent cursor-pointer",
+        dropdown_year: "bg-background/80 text-foreground border border-white/10 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-ring hover:bg-accent cursor-pointer",
         dropdown_icon: "hidden", // Hide dropdown icon if desired, or let it show
         nav: "flex items-center gap-1",
         button_previous: cn(
