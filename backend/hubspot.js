@@ -11,9 +11,6 @@
  * - Reference: https://developers.hubspot.com/docs/api/crm/companies
  */
 
-import { createChildLogger } from './utils/logger.js';
-
-const logger = createChildLogger({ module: 'hubspot-sync' });
 
 /**
  * Test HubSpot API connection with the provided access token
@@ -138,7 +135,8 @@ export const syncCompaniesToACS = async (accessToken, companyDb, auditDb, userEm
     companiesFound: 0,
     companiesCreated: 0,
     companiesUpdated: 0,
-    errors: []
+    errors: [],
+    _debug: [] // Temporary: capture first 5 update mismatches for diagnosis
   };
 
   try {
@@ -172,17 +170,17 @@ export const syncCompaniesToACS = async (accessToken, companyDb, auditDb, userEm
           const nameChanged = existingName !== newName;
           const descChanged = existingDesc !== newDesc;
           if (nameChanged || descChanged) {
-            // Log first 5 mismatches to help diagnose persistent update issues
-            if (result.companiesUpdated < 5) {
-              logger.warn({
+            // Capture first 5 mismatches for diagnosis
+            if (result._debug.length < 5) {
+              result._debug.push({
                 hubspotId,
                 nameChanged,
                 descChanged,
-                existingName: { value: existingName, length: existingName.length, codePoints: [...existingName].slice(0, 50).map(c => c.codePointAt(0)) },
-                newName: { value: newName, length: newName.length, codePoints: [...newName].slice(0, 50).map(c => c.codePointAt(0)) },
-                existingDesc: { value: existingDesc.slice(0, 100), length: existingDesc.length, type: typeof existingCompany.description, raw: existingCompany.description === null ? 'null' : existingCompany.description === undefined ? 'undefined' : `"${String(existingCompany.description).slice(0, 100)}"` },
-                newDesc: { value: newDesc.slice(0, 100), length: newDesc.length, type: typeof description, raw: description === null ? 'null' : description === undefined ? 'undefined' : `"${String(description).slice(0, 100)}"` }
-              }, 'HubSpot sync: company update detected');
+                existingName: { value: existingName, length: existingName.length },
+                newName: { value: newName, length: newName.length },
+                existingDesc: { value: existingDesc.slice(0, 200), length: existingDesc.length, type: typeof existingCompany.description, rawIsNull: existingCompany.description === null },
+                newDesc: { value: newDesc.slice(0, 200), length: newDesc.length, type: typeof description, rawIsNull: description === null }
+              });
             }
             await companyDb.updateByHubSpotId(hubspotId, { name: name?.trim(), description: description?.trim() });
             result.companiesUpdated++;
