@@ -11,6 +11,10 @@
  * - Reference: https://developers.hubspot.com/docs/api/crm/companies
  */
 
+import { createChildLogger } from './utils/logger.js';
+
+const logger = createChildLogger({ module: 'hubspot-sync' });
+
 /**
  * Test HubSpot API connection with the provided access token
  * @param {string} accessToken - HubSpot Private App Access Token
@@ -170,7 +174,7 @@ export const syncCompaniesToACS = async (accessToken, companyDb, auditDb, userEm
           if (nameChanged || descChanged) {
             // Log first 5 mismatches to help diagnose persistent update issues
             if (result.companiesUpdated < 5) {
-              console.log('[HubSpot Sync Debug] Company update detected:', JSON.stringify({
+              logger.warn({
                 hubspotId,
                 nameChanged,
                 descChanged,
@@ -178,7 +182,7 @@ export const syncCompaniesToACS = async (accessToken, companyDb, auditDb, userEm
                 newName: { value: newName, length: newName.length, codePoints: [...newName].slice(0, 50).map(c => c.codePointAt(0)) },
                 existingDesc: { value: existingDesc.slice(0, 100), length: existingDesc.length, type: typeof existingCompany.description, raw: existingCompany.description === null ? 'null' : existingCompany.description === undefined ? 'undefined' : `"${String(existingCompany.description).slice(0, 100)}"` },
                 newDesc: { value: newDesc.slice(0, 100), length: newDesc.length, type: typeof description, raw: description === null ? 'null' : description === undefined ? 'undefined' : `"${String(description).slice(0, 100)}"` }
-              }));
+              }, 'HubSpot sync: company update detected');
             }
             await companyDb.updateByHubSpotId(hubspotId, { name: name?.trim(), description: description?.trim() });
             result.companiesUpdated++;
