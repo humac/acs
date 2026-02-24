@@ -183,8 +183,9 @@ export const syncCompaniesToACS = async (accessToken, companyDb, auditDb, userEm
               // Company already linked to a different HubSpot record (duplicate name in HubSpot) - skip
               result.companiesSkipped++;
             } else {
-              // Company exists with same name but no HubSpot ID - link it
+              // Company exists with same name but no HubSpot ID - link it and sync description
               await companyDb.setHubSpotId(companyByName.id, hubspotId);
+              await companyDb.update(companyByName.id, { name: name?.trim(), description: description?.trim() });
               result.companiesUpdated++;
               linked.push(name);
             }
