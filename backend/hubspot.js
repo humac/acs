@@ -135,8 +135,8 @@ export const syncCompaniesToACS = async (accessToken, companyDb, auditDb, userEm
     companiesFound: 0,
     companiesCreated: 0,
     companiesUpdated: 0,
-    errors: [],
-    _debug: [] // Temporary: capture first 5 update mismatches for diagnosis
+    companiesSkipped: 0,
+    errors: []
   };
 
   try {
@@ -170,18 +170,6 @@ export const syncCompaniesToACS = async (accessToken, companyDb, auditDb, userEm
           const nameChanged = existingName !== newName;
           const descChanged = existingDesc !== newDesc;
           if (nameChanged || descChanged) {
-            // Capture first 5 mismatches for diagnosis
-            if (result._debug.length < 5) {
-              result._debug.push({
-                hubspotId,
-                nameChanged,
-                descChanged,
-                existingName: { value: existingName, length: existingName.length },
-                newName: { value: newName, length: newName.length },
-                existingDesc: { value: existingDesc.slice(0, 200), length: existingDesc.length, type: typeof existingCompany.description, rawIsNull: existingCompany.description === null },
-                newDesc: { value: newDesc.slice(0, 200), length: newDesc.length, type: typeof description, rawIsNull: description === null }
-              });
-            }
             await companyDb.updateByHubSpotId(hubspotId, { name: name?.trim(), description: description?.trim() });
             result.companiesUpdated++;
             updated.push(name);
@@ -191,21 +179,15 @@ export const syncCompaniesToACS = async (accessToken, companyDb, auditDb, userEm
           const companyByName = await companyDb.getByName(name);
 
           if (companyByName) {
-            // Company exists with same name but no HubSpot ID - link it
-            if (result._debug.length < 5) {
-              result._debug.push({
-                path: 'link-by-name',
-                hubspotId,
-                companyName: name,
-                companyByNameId: companyByName.id,
-                companyByNameHubspotId: companyByName.hubspot_id,
-                companyByNameHubspotIdType: typeof companyByName.hubspot_id,
-                companyByNameHubspotIdRaw: JSON.stringify(companyByName.hubspot_id)
-              });
+            if (companyByName.hubspot_id) {
+              // Company already linked to a different HubSpot record (duplicate name in HubSpot) - skip
+              result.companiesSkipped++;
+            } else {
+              // Company exists with same name but no HubSpot ID - link it
+              await companyDb.setHubSpotId(companyByName.id, hubspotId);
+              result.companiesUpdated++;
+              linked.push(name);
             }
-            await companyDb.setHubSpotId(companyByName.id, hubspotId);
-            result.companiesUpdated++;
-            linked.push(name);
           } else {
             // Create new company with HubSpot ID
             await companyDb.createWithHubSpotId({
@@ -233,6 +215,7 @@ export const syncCompaniesToACS = async (accessToken, companyDb, auditDb, userEm
         created: { count: result.companiesCreated, companies: created },
         updated: { count: result.companiesUpdated, companies: [...updated, ...linked] },
         linked: { count: linked.length, companies: linked },
+        skippedDuplicates: result.companiesSkipped,
         errors: result.errors.length
       });
 
