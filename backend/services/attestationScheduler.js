@@ -178,9 +178,9 @@ export const processUnregisteredReminders = async () => {
         
         for (const invite of invitesNeedingReminder) {
           // Get asset count for this employee
-          const assets = await assetDb.getByEmployee(invite.employee_email);
+          const assets = await assetDb.getByEmployeeEmail(invite.employee_email);
           const assetCount = assets.length;
-          
+
           const result = await sendAttestationUnregisteredReminder(
             invite.employee_email,
             invite.employee_first_name,
@@ -237,7 +237,7 @@ export const processUnregisteredEscalations = async () => {
         
         for (const invite of invitesNeedingEscalation) {
           // Get assets to find manager info
-          const assets = await assetDb.getByEmployee(invite.employee_email);
+          const assets = await assetDb.getByEmployeeEmail(invite.employee_email);
           if (assets.length === 0) continue;
           
           const assetCount = assets.length;
