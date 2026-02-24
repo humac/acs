@@ -199,6 +199,7 @@ describe('HubSpot Integration', () => {
       mockCompanyDb = {
         getByHubSpotId: jest.fn(),
         getByName: jest.fn(),
+        update: jest.fn(),
         updateByHubSpotId: jest.fn(),
         setHubSpotId: jest.fn(),
         createWithHubSpotId: jest.fn()
@@ -282,6 +283,7 @@ describe('HubSpot Integration', () => {
       expect(result.companiesCreated).toBe(0);
       expect(result.companiesUpdated).toBe(1);
       expect(mockCompanyDb.setHubSpotId).toHaveBeenCalledWith(1, 'hs-1');
+      expect(mockCompanyDb.update).toHaveBeenCalledWith(1, { name: 'Existing Company', description: 'Desc' });
     });
 
     test('should skip duplicate HubSpot companies with same name but different IDs', async () => {
