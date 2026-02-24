@@ -6,6 +6,16 @@ import { createChildLogger } from '../utils/logger.js';
 
 const logger = createChildLogger({ module: 'scheduler' });
 
+// Prevent unhandled errors from crashing the process.
+// The entrypoint monitor will restart us if we exit, but staying alive
+// avoids unnecessary restart cycles.
+process.on('uncaughtException', (err) => {
+  logger.error({ err }, 'Uncaught exception in attestation scheduler (keeping process alive)');
+});
+process.on('unhandledRejection', (reason) => {
+  logger.error({ err: reason }, 'Unhandled rejection in attestation scheduler (keeping process alive)');
+});
+
 /**
  * Attestation Scheduler Service
  * Processes automated reminders and escalations for attestation campaigns

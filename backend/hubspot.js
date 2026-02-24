@@ -159,11 +159,14 @@ export const syncCompaniesToACS = async (accessToken, companyDb, auditDb, userEm
 
         if (existingCompany) {
           // Update existing company if data has changed
-          // Normalize descriptions to handle null/undefined vs empty string
-          const existingDesc = existingCompany.description || '';
-          const newDesc = description || '';
-          if (existingCompany.name !== name || existingDesc !== newDesc) {
-            await companyDb.updateByHubSpotId(hubspotId, { name, description });
+          // Normalize both sides: trim whitespace, coerce null/undefined to ''
+          const normalize = (val) => (val == null ? '' : String(val)).trim();
+          const existingName = normalize(existingCompany.name);
+          const newName = normalize(name);
+          const existingDesc = normalize(existingCompany.description);
+          const newDesc = normalize(description);
+          if (existingName !== newName || existingDesc !== newDesc) {
+            await companyDb.updateByHubSpotId(hubspotId, { name: name?.trim(), description: description?.trim() });
             result.companiesUpdated++;
             updated.push(name);
           }
