@@ -11,9 +11,6 @@
  * - Reference: https://developers.hubspot.com/docs/api/crm/companies
  */
 
-import { createChildLogger } from './utils/logger.js';
-
-const logger = createChildLogger({ module: 'hubspot-sync' });
 
 /**
  * Test HubSpot API connection with the provided access token
