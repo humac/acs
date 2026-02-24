@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { FileText, BarChart3, Filter, Download, Loader2, X, TrendingUp, Shield, Activity, Laptop, Users, FileDown } from 'lucide-react';
+import { FileText, BarChart3, Filter, Download, Loader2, X, TrendingUp, Shield, Activity, Laptop, Users, FileDown, ChevronRight, ChevronDown, Clock, User, Tag } from 'lucide-react';
 import { DatePicker } from '@/components/ui/date-picker';
 import { cn } from '@/lib/utils';
 import TablePaginationControls from '@/components/TablePaginationControls';
@@ -33,8 +33,9 @@ const AuditReportingNew = () => {
   const [statsPeriod, setStatsPeriod] = useState(30);
   const [trendsPeriod, setTrendsPeriod] = useState(30);
   const [filters, setFilters] = useState({
-    action: '', entityType: '', startDate: '', endDate: '', userEmail: '', limit: '100'
+    action: '', entityType: '', startDate: '', endDate: '', userEmail: '', limit: 'all'
   });
+  const [expandedRows, setExpandedRows] = useState(new Set());
 
   // Check if user can access advanced reports (admin, manager, and coordinator)
   const canAccessReports = user && (user.role === 'admin' || user.role === 'manager' || user.role === 'coordinator');
@@ -167,16 +168,34 @@ const AuditReportingNew = () => {
     }
   };
 
-  const clearFilters = () => setFilters({ action: '', entityType: '', startDate: '', endDate: '', userEmail: '', limit: '100' });
+  const clearFilters = () => setFilters({ action: '', entityType: '', startDate: '', endDate: '', userEmail: '', limit: 'all' });
   const formatDate = (d) => new Date(d).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
-  // Semantic badge classes for action types
-  const getActionBadgeClass = (action) => ({
-    CREATE: 'glow-success',
-    STATUS_CHANGE: 'glow-warning',
-    UPDATE: 'glow-info',
-    DELETE: 'glow-destructive'
-  }[action] || 'glow-muted');
+  // Semantic badge variants for action types (normalized to handle mixed casing from backend)
+  // Returns a Badge variant name — must be passed as variant prop, not className
+  const getActionBadgeVariant = (action) => {
+    const key = (action || '').toUpperCase();
+    const successActions = ['CREATE', 'REGISTER', 'COMPLETE', 'COMPLETE_PROFILE'];
+    const warningActions = ['UPDATE', 'UPDATE_PROFILE', 'ADMIN_UPDATE_USER', 'UPDATE_ROLE', 'CHANGE_PASSWORD', 'REORDER'];
+    const purpleActions = ['STATUS_CHANGE', 'SYNC', 'SYNC_ASSETS', 'START', 'TEST', 'RESEND_INVITES', 'RESEND_INVITE', 'REMINDER_SENT', 'BULK_REMINDER_SENT', 'ESCALATION_SENT'];
+    const destructiveActions = ['DELETE', 'CANCEL'];
+    const infoActions = ['LOGIN', 'EMAIL_VERIFIED', 'EMAIL_CHANGED', 'EMAIL_CHANGE_REQUESTED', 'ENABLE_MFA', 'DISABLE_MFA'];
+    if (successActions.includes(key)) return 'glow-success';
+    if (warningActions.includes(key)) return 'glow-warning';
+    if (purpleActions.includes(key)) return 'glow-purple';
+    if (destructiveActions.includes(key)) return 'glow-destructive';
+    if (infoActions.includes(key)) return 'glow-info';
+    return 'glow-muted';
+  };
+
+  const toggleRowExpanded = (logId) => {
+    setExpandedRows(prev => {
+      const next = new Set(prev);
+      if (next.has(logId)) next.delete(logId);
+      else next.add(logId);
+      return next;
+    });
+  };
 
   useEffect(() => {
     setLogsPage(1);
@@ -296,7 +315,7 @@ const AuditReportingNew = () => {
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <Badge className={cn('rounded-full px-2.5 py-0.5 text-xs font-semibold', getActionBadgeClass(log.action))}>{log.action}</Badge>
+                              <Badge variant={getActionBadgeVariant(log.action)} className="rounded-full px-2.5 py-0.5 text-xs font-semibold">{log.action}</Badge>
                               <span className="text-xs text-muted-foreground capitalize">{log.entity_type}</span>
                             </div>
                             <h4 className="font-medium truncate">{log.entity_name || 'N/A'}</h4>
@@ -325,26 +344,86 @@ const AuditReportingNew = () => {
                   <div className="hidden md:block">
                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          <TableHead>Timestamp</TableHead>
-                          <TableHead>Action</TableHead>
-                          <TableHead className="hidden lg:table-cell">Entity Type</TableHead>
-                          <TableHead>Entity Name</TableHead>
-                          <TableHead className="hidden xl:table-cell">Details</TableHead>
-                          <TableHead className="hidden lg:table-cell">User</TableHead>
+                        <TableRow className="bg-muted/10 border-b border-white/5">
+                          <TableHead className="w-10"></TableHead>
+                          <TableHead className="caption-label">Timestamp</TableHead>
+                          <TableHead className="caption-label">Action</TableHead>
+                          <TableHead className="caption-label">Entity Name</TableHead>
+                          <TableHead className="caption-label hidden lg:table-cell">User</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {paginatedLogs.map((log) => (
-                          <TableRow key={log.id}>
-                            <TableCell className="text-sm">{formatDate(log.timestamp)}</TableCell>
-                            <TableCell><Badge className={cn('rounded-full px-2.5 py-0.5 text-xs font-semibold', getActionBadgeClass(log.action))}>{log.action}</Badge></TableCell>
-                            <TableCell className="hidden lg:table-cell capitalize">{log.entity_type}</TableCell>
-                            <TableCell>{log.entity_name || '-'}</TableCell>
-                            <TableCell className="hidden xl:table-cell max-w-xs truncate text-sm text-muted-foreground">{log.details}</TableCell>
-                            <TableCell className="hidden lg:table-cell">{log.user_email || '-'}</TableCell>
-                          </TableRow>
-                        ))}
+                        {paginatedLogs.map((log, index) => {
+                          const isExpanded = expandedRows.has(log.id);
+                          return (
+                            <React.Fragment key={log.id}>
+                              <TableRow
+                                className={cn(
+                                  'group transition-all duration-200 cursor-pointer hover:bg-surface/30',
+                                  isExpanded && 'bg-surface/30'
+                                )}
+                                onClick={() => toggleRowExpanded(log.id)}
+                              >
+                                <TableCell className="w-10 px-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 hover:bg-primary/10 transition-colors"
+                                    onClick={(e) => { e.stopPropagation(); toggleRowExpanded(log.id); }}
+                                    aria-label={isExpanded ? 'Collapse details' : 'Expand details'}
+                                  >
+                                    {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                                  </Button>
+                                </TableCell>
+                                <TableCell className="text-sm">{formatDate(log.timestamp)}</TableCell>
+                                <TableCell>
+                                  <Badge variant={getActionBadgeVariant(log.action)} className="rounded-full px-2.5 py-0.5 text-xs font-semibold">
+                                    {log.action}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>{log.entity_name || '-'}</TableCell>
+                                <TableCell className="hidden lg:table-cell text-muted-foreground">{log.user_email || '-'}</TableCell>
+                              </TableRow>
+
+                              {isExpanded && (
+                                <TableRow className="bg-surface/40 border-none animate-in fade-in slide-in-from-top-2 duration-300">
+                                  <TableCell colSpan={5} className="p-0">
+                                    <div className="px-14 py-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                      <div className="space-y-2">
+                                        <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+                                          <Tag size={12} /> Entity
+                                        </h4>
+                                        <div className="glass-panel p-4 rounded-xl space-y-1">
+                                          <div className="text-sm font-bold capitalize">{log.entity_type || 'N/A'}</div>
+                                          <div className="text-xs text-muted-foreground">{log.entity_name || 'N/A'}</div>
+                                        </div>
+                                      </div>
+
+                                      <div className="space-y-2">
+                                        <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+                                          <User size={12} /> Performed By
+                                        </h4>
+                                        <div className="glass-panel p-4 rounded-xl space-y-1">
+                                          <div className="text-sm font-bold">{log.user_email || 'System'}</div>
+                                          <div className="text-xs text-muted-foreground">{formatDate(log.timestamp)}</div>
+                                        </div>
+                                      </div>
+
+                                      <div className="lg:col-span-2 space-y-2">
+                                        <h4 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+                                          <FileText size={12} /> Details
+                                        </h4>
+                                        <div className="glass-panel p-4 rounded-xl min-h-[60px] text-sm leading-relaxed break-words overflow-hidden">
+                                          {log.details || 'No additional details recorded.'}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </div>
@@ -497,7 +576,7 @@ const AuditReportingNew = () => {
                               {statsEnhanced.actionBreakdown.map((item, i) => (
                                 <TableRow key={i}>
                                   <TableCell>
-                                    <Badge className={cn('rounded-full px-2.5 py-0.5 text-xs font-semibold', getActionBadgeClass(item.action))}>{item.action}</Badge>
+                                    <Badge variant={getActionBadgeVariant(item.action)} className="rounded-full px-2.5 py-0.5 text-xs font-semibold">{item.action}</Badge>
                                   </TableCell>
                                   <TableCell className="text-right font-semibold">{item.count}</TableCell>
                                 </TableRow>

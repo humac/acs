@@ -235,15 +235,10 @@ const initializeOIDCFromSettings = async () => {
 
 // Store for pending MFA logins (in production, use Redis)
 
-// Cleanup expired MFA sessions every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [sessionId, data] of pendingMFALogins.entries()) {
-    if (now - data.timestamp > 5 * 60 * 1000) { // 5 minutes
-      pendingMFALogins.delete(sessionId);
-    }
-  }
-}, 5 * 60 * 1000);
+let cleanupInterval = null;
+
+// NOTE: The cleanup interval is created when the server starts so tests
+// that import this module but don't start the server won't leave an open timer.
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -403,7 +398,7 @@ mountRoutes(app, {
 });
 
 // Start server after database initialization
-const startServer = async () => {
+export const startServer = async () => {
   try {
     await assetDb.init();
 
@@ -418,14 +413,46 @@ const startServer = async () => {
 
     await initializeOIDCFromSettings();
     logger.info({ engine: databaseEngine.toUpperCase() }, 'Database backend initialized');
+    // Start periodic cleanup when server actually starts
+    cleanupInterval = setInterval(() => {
+      const now = Date.now();
+      for (const [sessionId, data] of pendingMFALogins.entries()) {
+        if (now - data.timestamp > 5 * 60 * 1000) { // 5 minutes
+          pendingMFALogins.delete(sessionId);
+        }
+      }
+    }, 5 * 60 * 1000);
 
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       logger.info({ port: PORT, healthCheck: '/api/health' }, 'ACS API server started');
     });
+
+    return server;
   } catch (error) {
     logger.error({ err: error }, 'Failed to start server');
     process.exit(1);
   }
 };
 
-startServer();
+export const stopServer = async (server) => {
+  try {
+    if (cleanupInterval) {
+      clearInterval(cleanupInterval);
+      cleanupInterval = null;
+    }
+
+    if (server && typeof server.close === 'function') {
+      await new Promise((resolve, reject) => {
+        server.close((err) => (err ? reject(err) : resolve()));
+      });
+    }
+  } catch (err) {
+    logger.error({ err }, 'Error while stopping server');
+  }
+};
+
+// Only auto-start the server when not running under tests. Tests should
+// explicitly call `startServer()` and `stopServer(server)` as needed.
+if (process.env.NODE_ENV !== 'test') {
+  startServer();
+}

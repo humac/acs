@@ -556,12 +556,12 @@ ACS implements a comprehensive role-based access control system with four distin
 - Auto-restart policies
 
 **CI/CD Integration**
-- GitHub Actions workflow
-- Automated builds on push
-- Container registry integration
-- Portainer webhook deployment
-- Manual workflow dispatch
-- Build caching for speed
+- Azure DevOps Pipelines (two-pipeline architecture)
+- App pipeline: test → build → deploy dev → approve → deploy prod
+- Infrastructure pipeline: Terraform plan/apply (separate from app deploys)
+- Azure Container Registry (ACR) for Docker images
+- ADO environment approval gates for prod deployments
+- Manual teardown pipeline for cost management
 
 **Cloudflare Integration**
 - Tunnel configuration
@@ -615,7 +615,7 @@ ACS implements a comprehensive role-based access control system with four distin
 - **Backend**: Node.js 22 LTS, Express.js, SQLite/PostgreSQL
 - **Design System**: 2026 design patterns with glass morphism, spatial depth, bento layouts
 - **Testing**: Vitest (frontend), Jest (backend)
-- **CI/CD**: GitHub Actions, Docker multi-platform builds
+- **CI/CD**: Azure DevOps Pipelines, Docker multi-platform builds, Azure Container Apps
 - **Authentication**: JWT, WebAuthn/Passkeys, TOTP MFA, OIDC/SSO
 
 **API Design**

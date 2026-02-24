@@ -797,7 +797,7 @@ Complete design system documentation and implementation guides.
 - **Utility Classes**: Glass morphism (`glass-panel`, `glass-overlay`), glowing badges (`glow-*`), micro-interactions (`btn-interactive`)
 
 ### For Developers
-See [CLAUDE.md](CLAUDE.md) and [.github/copilot-instructions.md](.github/copilot-instructions.md) for detailed component implementation patterns and CSS utility class usage.
+See [CLAUDE.md](CLAUDE.md) and [AGENTS.md](AGENTS.md) for detailed component implementation patterns and CSS utility class usage.
 
 ---
 

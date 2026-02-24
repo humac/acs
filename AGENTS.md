@@ -13,7 +13,7 @@ This document provides AI agents with guidance for working with the ACS (Asset C
 | **Backend** | Node.js 22 LTS, Express.js, SQLite/PostgreSQL, JWT, WebAuthn, TOTP, OIDC |
 | **Frontend** | React 18, Vite, Tailwind CSS, shadcn/ui (Radix), React Router v7 |
 | **Testing** | Jest (backend), Vitest (frontend) |
-| **DevOps** | Docker multi-platform, GitHub Actions, Portainer |
+| **DevOps** | Docker multi-platform, Azure DevOps Pipelines (two-pipeline architecture), Azure Container Apps |
 
 ### Architecture
 
@@ -48,7 +48,10 @@ This document provides AI agents with guidance for working with the ACS (Asset C
 │   │   └── utils/             # Utilities (webauthn.js)
 │   └── vite.config.js         # Vite config with API proxy
 │
-├── .github/workflows/         # CI/CD pipelines
+├── .pipelines/                # Azure DevOps CI/CD pipelines
+│   ├── azure-pipelines.yml    # App deploy (test/build/deploy)
+│   ├── azure-infra.yml        # Infrastructure (Terraform)
+│   └── azure-pipelines-destroy.yml  # Manual teardown
 ├── docker-compose*.yml        # Docker configurations
 ├── CLAUDE.md                  # Comprehensive AI guide
 └── README.md                  # User documentation
