@@ -284,6 +284,34 @@ describe('HubSpot Integration', () => {
       expect(mockCompanyDb.setHubSpotId).toHaveBeenCalledWith(1, 'hs-1');
     });
 
+    test('should skip duplicate HubSpot companies with same name but different IDs', async () => {
+      const mockHubSpotCompanies = [
+        { id: 'hs-1', properties: { name: 'Nutrien', description: 'Desc' } },
+        { id: 'hs-2', properties: { name: 'Nutrien', description: 'Desc' } }
+      ];
+
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ results: mockHubSpotCompanies })
+      });
+
+      // First call: no existing company by HubSpot ID, no existing by name → create
+      mockCompanyDb.getByHubSpotId
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null);
+      mockCompanyDb.getByName
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 1, name: 'Nutrien', hubspot_id: 'hs-1' });
+      mockCompanyDb.createWithHubSpotId.mockResolvedValue({ id: 1 });
+
+      const result = await syncCompaniesToACS('test-token', mockCompanyDb, mockAuditDb, 'admin@test.com');
+
+      expect(result.companiesCreated).toBe(1);
+      expect(result.companiesSkipped).toBe(1);
+      expect(result.companiesUpdated).toBe(0);
+      expect(mockCompanyDb.setHubSpotId).not.toHaveBeenCalled();
+    });
+
     test('should handle errors for individual companies without failing entire sync', async () => {
       const mockHubSpotCompanies = [
         { id: 'hs-1', properties: { name: 'Good Company' } },
