@@ -6,6 +6,16 @@ import { createChildLogger } from '../utils/logger.js';
 
 const logger = createChildLogger({ module: 'hubspot-scheduler' });
 
+// Prevent unhandled errors from crashing the process.
+// The entrypoint monitor will restart us if we exit, but each restart
+// used to trigger an immediate sync — so staying alive is important.
+process.on('uncaughtException', (err) => {
+  logger.error({ err }, 'Uncaught exception in HubSpot scheduler (keeping process alive)');
+});
+process.on('unhandledRejection', (reason) => {
+  logger.error({ err: reason }, 'Unhandled rejection in HubSpot scheduler (keeping process alive)');
+});
+
 /**
  * HubSpot Sync Scheduler Service
  * Automatically syncs companies from HubSpot based on the configured sync_interval
@@ -109,6 +119,28 @@ export const runHubSpotSync = async () => {
 };
 
 /**
+ * Check whether a sync should run now based on the last sync time and configured interval.
+ * Returns { shouldSync, delayMs } where delayMs is the remaining wait time if shouldSync is false.
+ */
+export const shouldSyncNow = async () => {
+  const settings = await hubspotSettingsDb.get();
+  const intervalMs = getIntervalMs(settings.sync_interval);
+
+  if (!settings.last_sync) {
+    return { shouldSync: true, delayMs: 0 };
+  }
+
+  const lastSyncTime = new Date(settings.last_sync).getTime();
+  const elapsed = Date.now() - lastSyncTime;
+
+  if (elapsed >= intervalMs) {
+    return { shouldSync: true, delayMs: 0 };
+  }
+
+  return { shouldSync: false, delayMs: intervalMs - elapsed };
+};
+
+/**
  * Schedule the next sync using setTimeout
  * Re-reads settings each cycle so interval changes take effect
  */
@@ -150,12 +182,27 @@ const isDirectRun = (() => {
   }
 })();
 
-// If running as a standalone process, run sync immediately then schedule
+// If running as a standalone process, check if sync is due then schedule
 if (process.env.RUN_HUBSPOT_SCHEDULER === 'true' || isDirectRun) {
-  // Run immediately on start
-  runHubSpotSync().then(() => {
-    // Then schedule subsequent runs based on interval
-    scheduleNext();
+  shouldSyncNow().then(async ({ shouldSync, delayMs }) => {
+    if (shouldSync) {
+      logger.info('Sync interval elapsed or no previous sync, running immediately');
+      await runHubSpotSync();
+      scheduleNext();
+    } else {
+      logger.info({ delayMs }, 'Sync interval not yet elapsed, scheduling next run after remaining time');
+      setTimeout(async () => {
+        try {
+          await runHubSpotSync();
+        } catch (err) {
+          logger.error({ err }, 'Unhandled error during HubSpot sync cycle');
+        }
+        scheduleNext();
+      }, delayMs);
+    }
+  }).catch((err) => {
+    logger.error({ err }, 'Failed to check sync status, falling back to immediate sync');
+    runHubSpotSync().then(() => scheduleNext());
   });
 
   logger.info('HubSpot scheduler started');

@@ -37,7 +37,7 @@ jest.unstable_mockModule('./hubspot.js', () => ({
 }));
 
 // Import module under test
-const { runHubSpotSync, getIntervalMs } = await import('./services/hubspotScheduler.js');
+const { runHubSpotSync, getIntervalMs, shouldSyncNow } = await import('./services/hubspotScheduler.js');
 
 describe('HubSpot Scheduler - getIntervalMs()', () => {
   it('should return 1 hour for hourly', () => {
@@ -214,5 +214,82 @@ describe('HubSpot Scheduler - runHubSpotSync()', () => {
     expect(result.success).toBe(false);
     expect(result.error).toBe('Database connection failed');
     expect(mockSyncCompaniesToACS).not.toHaveBeenCalled();
+  });
+});
+
+describe('HubSpot Scheduler - shouldSyncNow()', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should sync immediately when no previous sync exists', async () => {
+    mockHubspotSettingsDb.get.mockResolvedValue({
+      sync_interval: 'weekly',
+      last_sync: null
+    });
+
+    const result = await shouldSyncNow();
+
+    expect(result.shouldSync).toBe(true);
+    expect(result.delayMs).toBe(0);
+  });
+
+  it('should sync immediately when interval has fully elapsed', async () => {
+    const eightDaysAgo = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString();
+    mockHubspotSettingsDb.get.mockResolvedValue({
+      sync_interval: 'weekly',
+      last_sync: eightDaysAgo
+    });
+
+    const result = await shouldSyncNow();
+
+    expect(result.shouldSync).toBe(true);
+    expect(result.delayMs).toBe(0);
+  });
+
+  it('should not sync when interval has not elapsed and return remaining delay', async () => {
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    mockHubspotSettingsDb.get.mockResolvedValue({
+      sync_interval: 'weekly',
+      last_sync: twoHoursAgo
+    });
+
+    const result = await shouldSyncNow();
+
+    expect(result.shouldSync).toBe(false);
+    // Weekly = 7 days, 2 hours elapsed, so ~6 days 22 hours remaining
+    const expectedDelay = 7 * 24 * 60 * 60 * 1000 - 2 * 60 * 60 * 1000;
+    // Allow 5 seconds of tolerance for test execution time
+    expect(result.delayMs).toBeGreaterThan(expectedDelay - 5000);
+    expect(result.delayMs).toBeLessThanOrEqual(expectedDelay);
+  });
+
+  it('should respect hourly interval', async () => {
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    mockHubspotSettingsDb.get.mockResolvedValue({
+      sync_interval: 'hourly',
+      last_sync: thirtyMinutesAgo
+    });
+
+    const result = await shouldSyncNow();
+
+    expect(result.shouldSync).toBe(false);
+    // Hourly = 60 min, 30 min elapsed, ~30 min remaining
+    const expectedDelay = 60 * 60 * 1000 - 30 * 60 * 1000;
+    expect(result.delayMs).toBeGreaterThan(expectedDelay - 5000);
+    expect(result.delayMs).toBeLessThanOrEqual(expectedDelay);
+  });
+
+  it('should sync when exactly at interval boundary', async () => {
+    const exactlyOneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    mockHubspotSettingsDb.get.mockResolvedValue({
+      sync_interval: 'daily',
+      last_sync: exactlyOneDayAgo
+    });
+
+    const result = await shouldSyncNow();
+
+    expect(result.shouldSync).toBe(true);
+    expect(result.delayMs).toBe(0);
   });
 });
