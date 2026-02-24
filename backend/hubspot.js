@@ -165,7 +165,21 @@ export const syncCompaniesToACS = async (accessToken, companyDb, auditDb, userEm
           const newName = normalize(name);
           const existingDesc = normalize(existingCompany.description);
           const newDesc = normalize(description);
-          if (existingName !== newName || existingDesc !== newDesc) {
+          const nameChanged = existingName !== newName;
+          const descChanged = existingDesc !== newDesc;
+          if (nameChanged || descChanged) {
+            // Log first 5 mismatches to help diagnose persistent update issues
+            if (result.companiesUpdated < 5) {
+              console.log('[HubSpot Sync Debug] Company update detected:', JSON.stringify({
+                hubspotId,
+                nameChanged,
+                descChanged,
+                existingName: { value: existingName, length: existingName.length, codePoints: [...existingName].slice(0, 50).map(c => c.codePointAt(0)) },
+                newName: { value: newName, length: newName.length, codePoints: [...newName].slice(0, 50).map(c => c.codePointAt(0)) },
+                existingDesc: { value: existingDesc.slice(0, 100), length: existingDesc.length, type: typeof existingCompany.description, raw: existingCompany.description === null ? 'null' : existingCompany.description === undefined ? 'undefined' : `"${String(existingCompany.description).slice(0, 100)}"` },
+                newDesc: { value: newDesc.slice(0, 100), length: newDesc.length, type: typeof description, raw: description === null ? 'null' : description === undefined ? 'undefined' : `"${String(description).slice(0, 100)}"` }
+              }));
+            }
             await companyDb.updateByHubSpotId(hubspotId, { name: name?.trim(), description: description?.trim() });
             result.companiesUpdated++;
             updated.push(name);
