@@ -32,7 +32,7 @@ const mockOidcSettingsDb = {
 };
 
 const mockAssetDb = {
-  getByEmployee: jest.fn()
+  getByEmployeeEmail: jest.fn()
 };
 
 // Mock email service functions
@@ -480,7 +480,7 @@ describe('Attestation Scheduler - processUnregisteredReminders()', () => {
     mockAttestationCampaignDb.getAll.mockResolvedValue([mockCampaign]);
     mockAttestationPendingInviteDb.getByCampaignId.mockResolvedValue([mockInvite]);
     mockOidcSettingsDb.get.mockResolvedValue(mockOidcSettings);
-    mockAssetDb.getByEmployee.mockResolvedValue(mockAssets);
+    mockAssetDb.getByEmployeeEmail.mockResolvedValue(mockAssets);
     mockSendAttestationUnregisteredReminder.mockResolvedValue({ success: true });
 
     const result = await processUnregisteredReminders();
@@ -538,7 +538,7 @@ describe('Attestation Scheduler - processUnregisteredReminders()', () => {
     mockAttestationCampaignDb.getAll.mockResolvedValue([mockCampaign]);
     mockAttestationPendingInviteDb.getByCampaignId.mockResolvedValue([mockInvite]);
     mockOidcSettingsDb.get.mockResolvedValue({ enabled: false });
-    mockAssetDb.getByEmployee.mockResolvedValue(mockAssets);
+    mockAssetDb.getByEmployeeEmail.mockResolvedValue(mockAssets);
     mockSendAttestationUnregisteredReminder.mockResolvedValue({ success: true });
 
     const result = await processUnregisteredReminders();
@@ -664,7 +664,7 @@ describe('Attestation Scheduler - processUnregisteredEscalations()', () => {
 
     mockAttestationCampaignDb.getAll.mockResolvedValue([mockCampaign]);
     mockAttestationPendingInviteDb.getByCampaignId.mockResolvedValue([mockInvite]);
-    mockAssetDb.getByEmployee.mockResolvedValue(mockAssets);
+    mockAssetDb.getByEmployeeEmail.mockResolvedValue(mockAssets);
     mockSendAttestationUnregisteredEscalation.mockResolvedValue({ success: true });
 
     const result = await processUnregisteredEscalations();
@@ -721,7 +721,7 @@ describe('Attestation Scheduler - processUnregisteredEscalations()', () => {
 
     mockAttestationCampaignDb.getAll.mockResolvedValue([mockCampaign]);
     mockAttestationPendingInviteDb.getByCampaignId.mockResolvedValue([mockInvite]);
-    mockAssetDb.getByEmployee.mockResolvedValue(mockAssets);
+    mockAssetDb.getByEmployeeEmail.mockResolvedValue(mockAssets);
     mockSendAttestationUnregisteredEscalation.mockResolvedValue({ success: true });
 
     const result = await processUnregisteredEscalations();
@@ -804,7 +804,7 @@ describe('Attestation Scheduler - processUnregisteredEscalations()', () => {
 
     mockAttestationCampaignDb.getAll.mockResolvedValue([mockCampaign]);
     mockAttestationPendingInviteDb.getByCampaignId.mockResolvedValue([mockInvite]);
-    mockAssetDb.getByEmployee.mockResolvedValue(mockAssets);
+    mockAssetDb.getByEmployeeEmail.mockResolvedValue(mockAssets);
 
     const result = await processUnregisteredEscalations();
 
