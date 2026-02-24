@@ -192,6 +192,17 @@ export const syncCompaniesToACS = async (accessToken, companyDb, auditDb, userEm
 
           if (companyByName) {
             // Company exists with same name but no HubSpot ID - link it
+            if (result._debug.length < 5) {
+              result._debug.push({
+                path: 'link-by-name',
+                hubspotId,
+                companyName: name,
+                companyByNameId: companyByName.id,
+                companyByNameHubspotId: companyByName.hubspot_id,
+                companyByNameHubspotIdType: typeof companyByName.hubspot_id,
+                companyByNameHubspotIdRaw: JSON.stringify(companyByName.hubspot_id)
+              });
+            }
             await companyDb.setHubSpotId(companyByName.id, hubspotId);
             result.companiesUpdated++;
             linked.push(name);
