@@ -228,6 +228,128 @@ describe('AuditReporting', () => {
     });
   });
 
+  describe('Audit Log Table Improvements', () => {
+    const mockLogs = [
+      { id: 1, action: 'CREATE', entity_type: 'asset', entity_name: 'Laptop-001', details: 'Created laptop asset for John Doe with serial ABC123', user_email: 'admin@test.com', timestamp: '2025-06-15T10:30:00Z' },
+      { id: 2, action: 'DELETE', entity_type: 'company', entity_name: 'Acme Corp', details: 'Deleted company Acme Corp', user_email: 'admin@test.com', timestamp: '2025-06-14T09:00:00Z' },
+      { id: 3, action: 'LOGIN', entity_type: 'user', entity_name: 'user@test.com', details: null, user_email: 'user@test.com', timestamp: '2025-06-13T08:00:00Z' },
+    ];
+
+    const setupLogsTab = async () => {
+      // Initial: compliance + summary
+      mockComplianceAndSummary({ total: 10 });
+      const user = userEvent.setup();
+      render(<AuditReportingNew />);
+
+      // Mock logs fetch when switching to Audit Logs tab
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockLogs,
+      });
+
+      const logsTab = screen.getByRole('tab', { name: /audit logs/i });
+      await user.click(logsTab);
+
+      // Both mobile card and desktop table render in JSDOM, so use getAllByText
+      await waitFor(() => {
+        expect(screen.getAllByText('Laptop-001').length).toBeGreaterThan(0);
+      });
+
+      return user;
+    };
+
+    it('should default to fetching all records (no limit param)', async () => {
+      mockComplianceAndSummary({ total: 10 });
+      const user = userEvent.setup();
+      render(<AuditReportingNew />);
+
+      global.fetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockLogs,
+      });
+
+      const logsTab = screen.getByRole('tab', { name: /audit logs/i });
+      await user.click(logsTab);
+
+      await waitFor(() => {
+        // When limit is 'all', it should NOT be included in the URL params
+        const logsFetchCall = global.fetch.mock.calls.find(call => call[0].includes('/api/audit/logs'));
+        expect(logsFetchCall).toBeDefined();
+        expect(logsFetchCall[0]).not.toContain('limit=');
+      });
+    });
+
+    it('should show expand/collapse chevron buttons for each row', async () => {
+      await setupLogsTab();
+
+      const expandButtons = screen.getAllByRole('button', { name: /expand details/i });
+      expect(expandButtons.length).toBe(mockLogs.length);
+    });
+
+    it('should expand row to show details panel when chevron is clicked', async () => {
+      const user = await setupLogsTab();
+
+      // "Performed By" heading only appears in expanded row, not in mobile cards
+      expect(screen.queryByText('Performed By')).not.toBeInTheDocument();
+
+      // Click the first expand button
+      const expandButtons = screen.getAllByRole('button', { name: /expand details/i });
+      await user.click(expandButtons[0]);
+
+      // Expanded section should show the "Performed By" and "Entity" panels
+      await waitFor(() => {
+        expect(screen.getByText('Performed By')).toBeInTheDocument();
+        expect(screen.getByText('Entity')).toBeInTheDocument();
+      });
+    });
+
+    it('should collapse expanded row when chevron is clicked again', async () => {
+      const user = await setupLogsTab();
+
+      // Expand first row
+      const expandButtons = screen.getAllByRole('button', { name: /expand details/i });
+      await user.click(expandButtons[0]);
+
+      await waitFor(() => {
+        expect(screen.getByText('Performed By')).toBeInTheDocument();
+      });
+
+      // Collapse it
+      const collapseButton = screen.getByRole('button', { name: /collapse details/i });
+      await user.click(collapseButton);
+
+      await waitFor(() => {
+        expect(screen.queryByText('Performed By')).not.toBeInTheDocument();
+      });
+    });
+
+    it('should apply correct glow classes for different action types', async () => {
+      await setupLogsTab();
+
+      // Both mobile and desktop views render badges — get all and check at least one has the right class
+      const createBadges = screen.getAllByText('CREATE');
+      expect(createBadges.some(el => el.closest('.rounded-full')?.className.includes('glow-success'))).toBe(true);
+
+      const deleteBadges = screen.getAllByText('DELETE');
+      expect(deleteBadges.some(el => el.closest('.rounded-full')?.className.includes('glow-destructive'))).toBe(true);
+
+      const loginBadges = screen.getAllByText('LOGIN');
+      expect(loginBadges.some(el => el.closest('.rounded-full')?.className.includes('glow-info'))).toBe(true);
+    });
+
+    it('should show fallback text when details are null in expanded row', async () => {
+      const user = await setupLogsTab();
+
+      // Expand the LOGIN row (id=3) which has null details
+      const expandButtons = screen.getAllByRole('button', { name: /expand details/i });
+      await user.click(expandButtons[2]);
+
+      await waitFor(() => {
+        expect(screen.getByText('No additional details recorded.')).toBeInTheDocument();
+      });
+    });
+  });
+
   describe('Role-Based Tab Visibility', () => {
     beforeEach(() => {
       // Reset mock user to admin before each test

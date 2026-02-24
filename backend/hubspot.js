@@ -142,6 +142,11 @@ export const syncCompaniesToACS = async (accessToken, companyDb, auditDb, userEm
     const hubspotCompanies = await fetchHubSpotCompanies(accessToken);
     result.companiesFound = hubspotCompanies.length;
 
+    // Track individual changes for the summary audit log
+    const created = [];
+    const updated = [];
+    const linked = [];
+
     // Sync each company
     for (const hsCompany of hubspotCompanies) {
       try {
@@ -160,15 +165,7 @@ export const syncCompaniesToACS = async (accessToken, companyDb, auditDb, userEm
           if (existingCompany.name !== name || existingDesc !== newDesc) {
             await companyDb.updateByHubSpotId(hubspotId, { name, description });
             result.companiesUpdated++;
-
-            await auditDb.log(
-              'update',
-              'company',
-              existingCompany.id,
-              name,
-              `Updated from HubSpot sync (HubSpot ID: ${hubspotId})`,
-              userEmail
-            );
+            updated.push(name);
           }
         } else {
           // Check if a company with the same name already exists (but different HubSpot ID)
@@ -178,32 +175,16 @@ export const syncCompaniesToACS = async (accessToken, companyDb, auditDb, userEm
             // Company exists with same name but no HubSpot ID - link it
             await companyDb.setHubSpotId(companyByName.id, hubspotId);
             result.companiesUpdated++;
-
-            await auditDb.log(
-              'update',
-              'company',
-              companyByName.id,
-              name,
-              `Linked to HubSpot (HubSpot ID: ${hubspotId})`,
-              userEmail
-            );
+            linked.push(name);
           } else {
             // Create new company with HubSpot ID
-            const newCompany = await companyDb.createWithHubSpotId({
+            await companyDb.createWithHubSpotId({
               name,
               description,
               hubspot_id: hubspotId
             });
             result.companiesCreated++;
-
-            await auditDb.log(
-              'create',
-              'company',
-              newCompany.id,
-              name,
-              `Created from HubSpot sync (HubSpot ID: ${hubspotId})`,
-              userEmail
-            );
+            created.push(name);
           }
         }
       } catch (error) {
@@ -213,6 +194,26 @@ export const syncCompaniesToACS = async (accessToken, companyDb, auditDb, userEm
           error: error.message
         });
       }
+    }
+
+    // Write a single summary audit log instead of one per company
+    if (result.companiesCreated > 0 || result.companiesUpdated > 0 || result.errors.length > 0) {
+      const details = JSON.stringify({
+        found: result.companiesFound,
+        created: { count: result.companiesCreated, companies: created },
+        updated: { count: result.companiesUpdated, companies: [...updated, ...linked] },
+        linked: { count: linked.length, companies: linked },
+        errors: result.errors.length
+      });
+
+      await auditDb.log(
+        'sync',
+        'company',
+        null,
+        'HubSpot Company Sync',
+        details,
+        userEmail
+      );
     }
   } catch (error) {
     throw new Error(`HubSpot sync failed: ${error.message}`);

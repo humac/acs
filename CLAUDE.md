@@ -47,7 +47,7 @@ Web application that supports organizational SOC2 compliance by tracking client 
 
 **DevOps:**
 - Docker multi-platform builds (AMD64, ARM64)
-- GitHub Actions CI/CD
+- Azure DevOps Pipelines CI/CD (two-pipeline architecture)
 - Portainer deployment
 - Cloudflare Tunnel for SSL
 
@@ -86,14 +86,16 @@ Web application that supports organizational SOC2 compliance by tracking client 
 │   │   └── test/              # Test setup and utilities
 │   ├── vite.config.js         # Vite configuration
 │   └── package.json           # Frontend dependencies
-├── .github/workflows/         # CI/CD pipelines
-│   ├── ci-tests.yml           # Automated testing
-│   ├── deploy-portainer.yml   # Deployment automation
-│   ├── verify-files.yml       # File verification
-│   └── wiki-sync.yml          # Documentation sync
+├── .pipelines/                 # Azure DevOps CI/CD pipelines
+│   ├── azure-pipelines.yml    # App deploy (test/build/deploy) - triggers on backend/frontend changes
+│   ├── azure-infra.yml        # Infrastructure (Terraform) - triggers on infra/ changes
+│   ├── azure-pipelines-destroy.yml  # Manual infrastructure teardown
+│   ├── app-deploy.yaml        # Railway deployment pipeline
+│   ├── git-sync.yaml          # GitHub→AzDO sync
+│   └── AZURE-DEPLOYMENT.md    # Azure deployment guide
+├── infra/                      # Terraform infrastructure (Azure Container Apps + PostgreSQL)
 ├── docker-compose*.yml        # Docker configurations
 ├── README.md                  # User-facing documentation
-├── DEPLOYMENT.md              # Deployment guide
 └── *.md                       # Additional documentation
 ```
 
@@ -1300,28 +1302,34 @@ describe('AssetTable', () => {
 
 ## Deployment & CI/CD
 
-### GitHub Actions Workflows
+### Azure DevOps Pipelines
 
-**Location**: `.github/workflows/`
+**Location**: `.pipelines/`
 
-**1. CI Tests (`ci-tests.yml`)**
-- Triggers: PRs, pushes to main/develop (with path filtering)
-- Runs: Frontend and backend tests in parallel
-- Matrix strategy: Separate jobs for each project
+Infrastructure and application deployments use **two separate pipelines** to prevent prod from resetting on every code push.
 
-**2. Deployment (`deploy-portainer.yml`)**
-- Triggers: Push to develop (auto), manual dispatch
-- Steps:
-  1. Build multi-platform Docker images (AMD64, ARM64)
-  2. Push to GitHub Container Registry
-  3. Trigger Portainer webhook (auto-pull enabled)
-  4. Verify deployment
+**1. App Deploy (`azure-pipelines.yml`)**
+- Triggers: Pushes to `main` affecting `backend/`, `frontend/`, `.pipelines/`
+- Stages: Testing (parallel matrix) → Build → Deploy Dev → Deploy Prod (approval gate)
+- Builds Docker images and pushes to Azure Container Registry (`kdlabscr`)
+- Deploys to Azure Container Apps via `AzureContainerApps@1` task
 
-**3. File Verification (`verify-files.yml`)**
-- Ensures critical files exist
+**2. Infrastructure (`azure-infra.yml`)**
+- Triggers: Pushes to `main` affecting `infra/` only
+- Stages: Dev Infra (auto) → Prod Infra (ADO `prod` environment approval gate)
+- Runs Terraform init/plan/apply for both environments
+- Container image changes are ignored by Terraform (`lifecycle { ignore_changes }`)
 
-**4. Wiki Sync (`wiki-sync.yml`)**
-- Syncs documentation to wiki
+**3. Destroy (`azure-pipelines-destroy.yml`)**
+- Manual trigger only — select `dev` or `prod` environment
+- Requires manual validation before applying the destroy plan
+- Note: Database has `prevent_destroy = true`; must remove that flag first
+
+**4. App Deploy (Railway) (`app-deploy.yaml`)**
+- Alternative deployment to Railway platform (separate hosting target)
+
+**5. Git Sync (`git-sync.yaml`)**
+- Syncs from GitHub upstream to Azure DevOps `github-sync` branch
 
 ### Docker Architecture
 
@@ -1368,18 +1376,16 @@ services:
 
 ### Deployment Process
 
-**Automatic (Staging):**
-1. Push to `develop` branch
-2. GitHub Actions builds images
-3. Pushes to ghcr.io
-4. Triggers Portainer webhook
-5. Portainer pulls and redeploys
+**App Deploy (on every push to main affecting backend/frontend):**
+1. Tests run in parallel (frontend + backend)
+2. Docker images built and pushed to ACR with build ID tag
+3. Dev deploys automatically via `AzureContainerApps@1`
+4. Prod waits for ADO `prod` environment approval, then deploys
 
-**Manual Production:**
-1. Merge to `main` (or manual workflow dispatch)
-2. Review deployment plan
-3. Approve staging environment
-4. Production deployment (TBD - may use Azure AKS)
+**Infrastructure Deploy (only when infra/ changes):**
+1. Terraform applies to dev automatically
+2. Prod infra waits for ADO `prod` environment approval, then applies
+3. Container images are never reset by Terraform (protected by `ignore_changes`)
 
 ### Environment Management
 
@@ -1842,7 +1848,7 @@ git push origin feature/my-feature      # Push branch
 | Tests (backend) | `backend/*.test.js` |
 | Tests (frontend) | `frontend/src/**/*.test.jsx` |
 | Environment config | `.env.example` |
-| CI/CD workflows | `.github/workflows/*.yml` |
+| CI/CD workflows | `.pipelines/*.yml` |
 | Docker configs | `docker-compose*.yml` |
 
 ### Key Environment Variables
