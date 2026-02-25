@@ -37,6 +37,11 @@ app.post('/api/auth/complete-profile', authenticate, async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
+    // Prevent self-assignment as own manager (privilege escalation)
+    if (manager_email.toLowerCase() === user.email.toLowerCase()) {
+      return res.status(400).json({ error: 'You cannot assign yourself as your own manager' });
+    }
+
     // Update user with manager information and mark profile as complete
     await userDb.completeProfile(req.user.id, {
       manager_first_name,
@@ -321,6 +326,73 @@ describe('Profile Completion Flow', () => {
     expect(profileCompleteLog).toBeDefined();
     expect(profileCompleteLog.entity_type).toBe('user');
     expect(profileCompleteLog.user_email).toBe('audit.test@example.com');
+
+    // Cleanup
+    await userDb.delete(result.id);
+  });
+
+  test('should reject profile completion when user sets themselves as their own manager', async () => {
+    // Create OIDC user with incomplete profile
+    const result = await userDb.createFromOIDC({
+      email: 'selfmanager@example.com',
+      name: 'Self Manager User',
+      first_name: 'Self',
+      last_name: 'Manager',
+      role: 'employee',
+      oidcSub: 'oidc_sub_selfmanager'
+    });
+
+    const user = await userDb.getById(result.id);
+    const token = generateToken(user);
+
+    // Attempt to set self as own manager
+    const response = await request(app)
+      .post('/api/auth/complete-profile')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        manager_first_name: 'Self',
+        manager_last_name: 'Manager',
+        manager_email: 'selfmanager@example.com'
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('You cannot assign yourself as your own manager');
+
+    // Verify user role was NOT escalated
+    const unchangedUser = await userDb.getById(result.id);
+    expect(unchangedUser.role).toBe('employee');
+    expect(unchangedUser.profile_complete).toBe(0);
+
+    // Cleanup
+    await userDb.delete(result.id);
+  });
+
+  test('should reject self-assignment as manager with different casing', async () => {
+    // Create OIDC user with incomplete profile
+    const result = await userDb.createFromOIDC({
+      email: 'casetest@example.com',
+      name: 'Case Test User',
+      first_name: 'Case',
+      last_name: 'Test',
+      role: 'employee',
+      oidcSub: 'oidc_sub_casetest'
+    });
+
+    const user = await userDb.getById(result.id);
+    const token = generateToken(user);
+
+    // Attempt to set self as own manager with different casing
+    const response = await request(app)
+      .post('/api/auth/complete-profile')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        manager_first_name: 'Case',
+        manager_last_name: 'Test',
+        manager_email: 'CaseTest@Example.COM'
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe('You cannot assign yourself as your own manager');
 
     // Cleanup
     await userDb.delete(result.id);

@@ -594,6 +594,11 @@ export default function createAuthRouter(deps) {
         return res.status(404).json({ error: 'User not found' });
       }
 
+      // Prevent self-assignment as own manager (privilege escalation)
+      if (manager_email && manager_email.toLowerCase() === user.email.toLowerCase()) {
+        return res.status(400).json({ error: 'You cannot assign yourself as your own manager' });
+      }
+
       // Handle profile_image - validate if provided
       let normalizedProfileImage = user.profile_image;
       if (Object.prototype.hasOwnProperty.call(req.body, 'profile_image')) {
@@ -692,6 +697,11 @@ export default function createAuthRouter(deps) {
       const user = await userDb.getById(req.user.id);
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Prevent self-assignment as own manager (privilege escalation)
+      if (manager_email.toLowerCase() === user.email.toLowerCase()) {
+        return res.status(400).json({ error: 'You cannot assign yourself as your own manager' });
       }
 
       // Update user with manager information and mark profile as complete
