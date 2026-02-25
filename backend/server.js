@@ -273,6 +273,12 @@ const autoAssignManagerRole = async (email, triggeredBy) => {
       return false;
     }
 
+    // Prevent self-triggered privilege escalation
+    if (triggeredBy && email.toLowerCase() === triggeredBy.toLowerCase()) {
+      logger.warn({ email, triggeredBy }, 'Blocked self-triggered manager role escalation');
+      return false;
+    }
+
     // Check if this user is listed as manager on any assets
     const assetsAsManager = await assetDb.getByManagerEmail(email);
     if (!assetsAsManager || assetsAsManager.length === 0) {
