@@ -112,12 +112,14 @@ function App() {
         <Route path="/my-attestations" element={<MyAttestationsPage />} />
         <Route path="/profile" element={<Profile />} />
 
+        {/* Audit is accessible to all authenticated roles (backend filters by role) */}
+        <Route path="/audit" element={<AuditReporting />} />
+
         {/* Role-Protected Management Routes */}
         {(user?.role === 'admin' || user?.role === 'manager' || user?.role === 'coordinator') && (
           <>
             <Route path="/companies" element={<CompanyManagement />} />
             <Route path="/users" element={<UserManagement />} />
-            <Route path="/audit" element={<AuditReporting />} />
             <Route path="/attestation" element={<AttestationPage />} />
           </>
         )}
