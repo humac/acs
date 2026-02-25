@@ -387,7 +387,7 @@ export default function createAssetsRouter(deps) {
   });
 
   // Update asset status
-  router.patch('/:id/status', authenticate, fetchAsset, requireFields('status'), validateStatus(), async (req, res) => {
+  router.patch('/:id/status', authenticate, fetchAsset, requireEditPermission, requireFields('status'), validateStatus(), async (req, res) => {
     try {
       const { status, notes } = req.body;
       const asset = req.asset;

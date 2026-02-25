@@ -293,7 +293,6 @@ export default function AssetRegisterModal({ onClose, onRegistered }) {
                     setForm(prev => ({ ...prev, company_name: company?.name || '' }));
                   }}
                   placeholder="Search for a company..."
-                  disabled={isEmployee}
                 />
               </div>
             </div>

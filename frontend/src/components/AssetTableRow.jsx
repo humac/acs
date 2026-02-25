@@ -69,13 +69,12 @@ const AssetTableRow = memo(function AssetTableRow({
     setSaving(true);
     try {
       const payload = {
-        ...asset,
         status: pendingStatus,
         returned_date: pendingStatus === 'returned' ? returnedDate : null,
       };
 
-      const res = await fetch(`/api/assets/${asset.id}`, {
-        method: 'PUT',
+      const res = await fetch(`/api/assets/${asset.id}/status`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
         body: JSON.stringify(payload),
       });

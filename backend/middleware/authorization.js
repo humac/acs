@@ -38,8 +38,7 @@ export const requireAsset = (assetDb) => async (req, res, next) => {
  *
  * Permission logic:
  * - Admins can always modify any asset
- * - For 'edit' action: Managers can edit their team's assets, employees cannot edit their own
- * - For 'delete' action: Owners (including employees) can delete their own assets
+ * - Owners can edit and delete their own assets (all roles including employees)
  *
  * @param {Object} assetDb - Asset database object
  * @param {Object} userDb - User database object
@@ -48,10 +47,10 @@ export const requireAsset = (assetDb) => async (req, res, next) => {
  * @returns {Function} Express middleware function
  *
  * @example
- * // For edit operations (employees cannot edit their own)
+ * // For edit operations (owners can edit their own)
  * router.put('/:id', authenticate, requireAssetPermission(assetDb, userDb), handler);
  *
- * // For delete operations (employees can delete their own)
+ * // For delete operations (owners can delete their own)
  * router.delete('/:id', authenticate, requireAssetPermission(assetDb, userDb, { action: 'delete' }), handler);
  */
 export const requireAssetPermission = (assetDb, userDb, options = {}) => async (req, res, next) => {
@@ -76,13 +75,7 @@ export const requireAssetPermission = (assetDb, userDb, options = {}) => async (
 
     // Check ownership-based permissions
     if (isOwner) {
-      if (action === 'edit' && user.role === 'employee') {
-        // Employees cannot edit their own assets
-        return res.status(403).json({
-          error: 'Employees cannot edit their own assets. Please contact your manager.'
-        });
-      }
-      // Owner (non-employee for edit, any role for delete) has permission
+      // Owners can edit and delete their own assets (all roles)
       return next();
     }
 
