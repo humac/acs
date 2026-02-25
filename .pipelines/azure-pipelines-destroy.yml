@@ -1,0 +1,71 @@
+trigger: none # Manual trigger only
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+parameters:
+- name: environment
+  displayName: Environment to Destroy
+  type: string
+  default: dev
+  values:
+  - dev
+  - prod
+
+variables:
+  - ${{ if eq(parameters.environment, 'dev') }}:
+    - group: acs-secrets-dev
+  - ${{ if eq(parameters.environment, 'prod') }}:
+    - group: acs-secrets-prod
+  - name: azureResourceManagerConnection
+    value: 'ARM-Connection'
+
+stages:
+  - stage: Destroy_Infrastructure
+    displayName: 'Destroy Infrastructure'
+    jobs:
+      - job: Terraform_Destroy
+        displayName: 'Terraform Destroy'
+        steps:
+          - task: TerraformInstaller@1
+            inputs:
+              terraformVersion: 'latest'
+
+          - task: TerraformTaskV4@4
+            displayName: 'Terraform Init'
+            inputs:
+              provider: 'azurerm'
+              command: 'init'
+              backendServiceArm: '$(azureResourceManagerConnection)'
+              backendAzureRmResourceGroupName: 'tfstate-rg'
+              backendAzureRmStorageAccountName: 'tfstatetfstaterg9288'
+              backendAzureRmContainerName: 'tfstate'
+              backendAzureRmKey: '${{ parameters.environment }}.terraform.tfstate'
+              workingDirectory: '$(System.DefaultWorkingDirectory)/infra'
+
+          - task: TerraformTaskV4@4
+            displayName: 'Terraform Destroy Plan'
+            inputs:
+              provider: 'azurerm'
+              command: 'plan'
+              environmentServiceNameAzureRM: '$(azureResourceManagerConnection)'
+              workingDirectory: '$(System.DefaultWorkingDirectory)/infra'
+              commandOptions: '-destroy -var="environment=${{ parameters.environment }}" -var="postgres_password=$(postgres_password)" -var="jwt_secret=$(jwt_secret)" -var="acs_master_key=$(acs_master_key)" -out=destroy.plan'
+            env:
+              TF_VAR_additional_allowed_origins: $(additional_allowed_origins)
+
+          - task: ManualValidation@0
+            timeoutInMinutes: 1440
+            inputs:
+              notifyUsers: '' # Add emails if needed
+              instructions: 'Please validate the destroy plan in the logs before proceeding.'
+              onTimeout: 'reject'
+
+          - task: TerraformTaskV4@4
+            displayName: 'Terraform Destroy Apply'
+            inputs:
+              provider: 'azurerm'
+              command: 'apply'
+              environmentServiceNameAzureRM: '$(azureResourceManagerConnection)'
+              workingDirectory: '$(System.DefaultWorkingDirectory)/infra'
+              commandOptions: 'destroy.plan'

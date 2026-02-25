@@ -1,0 +1,115 @@
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - infra
+    exclude:
+      - '**/*.md'
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - name: azureResourceManagerConnection
+    value: 'ARM-Connection'
+
+stages:
+  # Stage 1: Deploy Dev Infrastructure
+  - stage: Deploy_Dev_Infra
+    displayName: 'Dev Infrastructure'
+    jobs:
+      - job: Terraform_Dev
+        displayName: 'Terraform Apply (Dev)'
+        variables:
+          - group: acs-secrets-dev
+        steps:
+          - task: TerraformInstaller@1
+            inputs:
+              terraformVersion: 'latest'
+
+          - task: TerraformTaskV4@4
+            displayName: 'Terraform Init'
+            inputs:
+              provider: 'azurerm'
+              command: 'init'
+              backendServiceArm: '$(azureResourceManagerConnection)'
+              backendAzureRmResourceGroupName: 'tfstate-rg'
+              backendAzureRmStorageAccountName: 'tfstatetfstaterg9288'
+              backendAzureRmContainerName: 'tfstate'
+              backendAzureRmKey: 'dev.terraform.tfstate'
+              workingDirectory: '$(System.DefaultWorkingDirectory)/infra'
+
+          - task: TerraformTaskV4@4
+            displayName: 'Terraform Plan'
+            inputs:
+              provider: 'azurerm'
+              command: 'plan'
+              environmentServiceNameAzureRM: '$(azureResourceManagerConnection)'
+              workingDirectory: '$(System.DefaultWorkingDirectory)/infra'
+              commandOptions: '-var="environment=dev" -var="postgres_password=$(postgres_password)" -var="jwt_secret=$(jwt_secret)" -var="acs_master_key=$(acs_master_key)" -out=dev.plan'
+            env:
+              TF_VAR_additional_allowed_origins: $(additional_allowed_origins)
+
+          - task: TerraformTaskV4@4
+            displayName: 'Terraform Apply'
+            inputs:
+              provider: 'azurerm'
+              command: 'apply'
+              environmentServiceNameAzureRM: '$(azureResourceManagerConnection)'
+              workingDirectory: '$(System.DefaultWorkingDirectory)/infra'
+              commandOptions: 'dev.plan'
+
+  # Stage 2: Deploy Prod Infrastructure (gated by ADO environment approval)
+  - stage: Deploy_Prod_Infra
+    displayName: 'Prod Infrastructure'
+    dependsOn: Deploy_Dev_Infra
+    condition: succeeded()
+    jobs:
+      - deployment: Terraform_Prod
+        displayName: 'Terraform Apply (Prod)'
+        environment: 'prod' # Approvals configured in ADO
+        variables:
+          - group: acs-secrets-prod
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: TerraformInstaller@1
+                  inputs:
+                    terraformVersion: 'latest'
+
+                - task: TerraformTaskV4@4
+                  displayName: 'Terraform Init'
+                  inputs:
+                    provider: 'azurerm'
+                    command: 'init'
+                    backendServiceArm: '$(azureResourceManagerConnection)'
+                    backendAzureRmResourceGroupName: 'tfstate-rg'
+                    backendAzureRmStorageAccountName: 'tfstatetfstaterg9288'
+                    backendAzureRmContainerName: 'tfstate'
+                    backendAzureRmKey: 'prod.terraform.tfstate'
+                    workingDirectory: '$(System.DefaultWorkingDirectory)/infra'
+
+                - task: TerraformTaskV4@4
+                  displayName: 'Terraform Plan'
+                  inputs:
+                    provider: 'azurerm'
+                    command: 'plan'
+                    environmentServiceNameAzureRM: '$(azureResourceManagerConnection)'
+                    workingDirectory: '$(System.DefaultWorkingDirectory)/infra'
+                    commandOptions: '-var="environment=prod" -var="postgres_password=$(postgres_password)" -var="jwt_secret=$(jwt_secret)" -var="acs_master_key=$(acs_master_key)" -out=prod.plan'
+                  env:
+                    TF_VAR_additional_allowed_origins: $(additional_allowed_origins)
+
+                - task: TerraformTaskV4@4
+                  displayName: 'Terraform Apply'
+                  inputs:
+                    provider: 'azurerm'
+                    command: 'apply'
+                    environmentServiceNameAzureRM: '$(azureResourceManagerConnection)'
+                    workingDirectory: '$(System.DefaultWorkingDirectory)/infra'
+                    commandOptions: 'prod.plan'
