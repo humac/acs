@@ -98,10 +98,91 @@ jobs:
           name: ${{ matrix.project }}-coverage
           path: ${{ matrix.project }}/coverage/
 
+  e2e:
+    name: E2E Tests (Playwright)
+    runs-on: ubuntu-latest
+    needs: [test]
+    permissions:
+      contents: read
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: acs_test
+          POSTGRES_PASSWORD: acs_test_pw
+          POSTGRES_DB: acs_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: ./frontend
+        run: npx playwright install chromium --with-deps
+
+      - name: Start backend server
+        working-directory: ./backend
+        env:
+          NODE_ENV: test
+          PORT: 3001
+          JWT_SECRET: e2e-jwt-secret-for-ci-only
+          DB_CLIENT: postgres
+          POSTGRES_URL: postgresql://acs_test:acs_test_pw@localhost:5432/acs_e2e
+        run: |
+          node server.js &
+          echo "Backend PID: $!"
+
+      - name: Run Playwright E2E tests
+        working-directory: ./frontend
+        env:
+          NODE_ENV: test
+          CI: true
+          PLAYWRIGHT_JUNIT_OUTPUT_NAME: e2e-results.xml
+        run: npm run test:e2e:ci
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+
+      - name: Upload E2E JUnit results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-junit-results
+          path: frontend/e2e-results.xml
+
   test-summary:
     name: Test Summary
     runs-on: ubuntu-latest
-    needs: [test]
+    needs: [test, e2e]
     if: always()
     permissions:
       contents: read
@@ -110,8 +191,11 @@ jobs:
       - name: Check test results
         run: |
           if [ "${{ needs.test.result }}" != "success" ]; then
-            echo "❌ Some tests failed"
+            echo "::error::Unit tests failed"
             exit 1
-          else
-            echo "✅ All tests passed"
           fi
+          if [ "${{ needs.e2e.result }}" != "success" ]; then
+            echo "::error::E2E tests failed"
+            exit 1
+          fi
+          echo "All tests passed"
