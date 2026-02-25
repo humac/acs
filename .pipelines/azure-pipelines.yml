@@ -125,17 +125,16 @@ stages:
             displayName: 'Install Playwright Browsers'
 
           - script: |
-              pushd backend
-              nohup node server.js > $(Build.SourcesDirectory)/backend.log 2>&1 &
+              node backend/server.js > backend.log 2>&1 &
               BACKEND_PID=$!
-              popd
               echo "Backend PID: $BACKEND_PID"
+              sleep 2
 
               echo "Waiting for backend..."
               for i in $(seq 1 120); do
                 if ! kill -0 $BACKEND_PID 2>/dev/null; then
                   echo "Backend process died. Logs:"
-                  cat $(Build.SourcesDirectory)/backend.log || true
+                  cat backend.log
                   exit 1
                 fi
                 if curl -sf http://localhost:3001/api/health > /dev/null 2>&1; then
@@ -144,7 +143,7 @@ stages:
                 fi
                 if [ "$i" = "120" ]; then
                   echo "Backend failed to respond within 120s. Logs:"
-                  cat $(Build.SourcesDirectory)/backend.log || true
+                  cat backend.log
                   exit 1
                 fi
                 sleep 1
