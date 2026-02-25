@@ -145,39 +145,46 @@ jobs:
         working-directory: ./frontend
         run: npx playwright install chromium --with-deps
 
-      - name: Start backend server
+      - name: Start backend, wait, and run E2E tests
+        working-directory: ./frontend
         env:
           NODE_ENV: test
           PORT: 3001
           JWT_SECRET: e2e-jwt-secret-for-ci-only
           DB_CLIENT: postgres
           POSTGRES_URL: postgresql://acs_test:acs_test_pw@localhost:5432/acs_e2e
-        working-directory: ./backend
+          CI: true
+          PLAYWRIGHT_JUNIT_OUTPUT_NAME: e2e-results.xml
         run: |
-          node server.js > ../backend.log 2>&1 &
-          echo "Backend PID: $!"
+          # Start backend in background from this same shell
+          pushd ../backend
+          nohup node server.js > ../backend.log 2>&1 &
+          BACKEND_PID=$!
+          popd
+          echo "Backend PID: $BACKEND_PID"
 
-      - name: Wait for backend health
-        run: |
+          # Wait for backend health endpoint (up to 120s)
           echo "Waiting for backend..."
           for i in $(seq 1 120); do
+            if ! kill -0 $BACKEND_PID 2>/dev/null; then
+              echo "Backend process died. Logs:"
+              cat ../backend.log || true
+              exit 1
+            fi
             if curl -sf http://localhost:3001/api/health > /dev/null 2>&1; then
               echo "Backend ready after ${i}s"
-              exit 0
+              break
+            fi
+            if [ "$i" = "120" ]; then
+              echo "Backend failed to respond within 120s. Logs:"
+              cat ../backend.log || true
+              exit 1
             fi
             sleep 1
           done
-          echo "Backend failed to start. Logs:"
-          cat backend.log || true
-          exit 1
 
-      - name: Run Playwright E2E tests
-        working-directory: ./frontend
-        env:
-          NODE_ENV: test
-          CI: true
-          PLAYWRIGHT_JUNIT_OUTPUT_NAME: e2e-results.xml
-        run: npx playwright test --forbid-only --reporter=list --reporter=junit
+          # Run Playwright tests
+          npx playwright test --forbid-only --reporter=list --reporter=junit
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
