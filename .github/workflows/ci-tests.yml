@@ -145,34 +145,39 @@ jobs:
         working-directory: ./frontend
         run: npx playwright install chromium --with-deps
 
-      - name: Start backend and run E2E tests
+      - name: Start backend server
         env:
           NODE_ENV: test
           PORT: 3001
           JWT_SECRET: e2e-jwt-secret-for-ci-only
           DB_CLIENT: postgres
           POSTGRES_URL: postgresql://acs_test:acs_test_pw@localhost:5432/acs_e2e
-          CI: true
-          PLAYWRIGHT_JUNIT_OUTPUT_NAME: e2e-results.xml
+        working-directory: ./backend
         run: |
-          cd backend && node server.js &
+          node server.js > ../backend.log 2>&1 &
           echo "Backend PID: $!"
 
-          # Wait for backend health endpoint (up to 60s)
+      - name: Wait for backend health
+        run: |
           echo "Waiting for backend..."
-          for i in $(seq 1 60); do
+          for i in $(seq 1 120); do
             if curl -sf http://localhost:3001/api/health > /dev/null 2>&1; then
               echo "Backend ready after ${i}s"
-              break
-            fi
-            if [ "$i" = "60" ]; then
-              echo "Backend failed to start within 60s"
-              exit 1
+              exit 0
             fi
             sleep 1
           done
+          echo "Backend failed to start. Logs:"
+          cat backend.log || true
+          exit 1
 
-          cd frontend && npx playwright test --forbid-only --reporter=list --reporter=junit
+      - name: Run Playwright E2E tests
+        working-directory: ./frontend
+        env:
+          NODE_ENV: test
+          CI: true
+          PLAYWRIGHT_JUNIT_OUTPUT_NAME: e2e-results.xml
+        run: npx playwright test --forbid-only --reporter=list --reporter=junit
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
