@@ -4,7 +4,7 @@
 
 ACS (Asset Compliance System) is a SOC2-compliant asset tracking web app with multi-factor authentication, role-based access control (RBAC), and comprehensive audit logging.
 
-**Stack:** Node.js 22 LTS + Express + SQLite/PostgreSQL | React 18 + Vite + Tailwind + shadcn/ui | Jest/Vitest | Docker (ARM64/AMD64)
+**Stack:** Node.js 22 LTS + Express + SQLite/PostgreSQL | React 18 + Vite + Tailwind + shadcn/ui | Jest/Vitest/Playwright | Docker (ARM64/AMD64)
 
 **Auth Methods:** JWT, WebAuthn/Passkeys, TOTP MFA, OIDC/SSO
 
@@ -293,12 +293,44 @@ import {
 
 **deploy-portainer.yml** - Builds multi-platform Docker images → GHCR → Portainer webhook
 
+### E2E Testing (Playwright)
+
+**Location**: `frontend/e2e/**/*.spec.js`
+
+```bash
+cd frontend
+npm run test:e2e           # Full suite (starts backend + frontend)
+npm run test:e2e:ui        # Interactive UI mode
+npm run test:e2e:ci        # CI-optimized (wait-on, forbid-only, JUnit)
+```
+
+**Architecture:**
+- `e2e/fixtures/seed.js` — Global setup: 6 users, 3 companies, 6 assets via API
+- `e2e/fixtures/cleanup.js` — Global teardown: reverse-order deletion
+- `e2e/fixtures/auth.fixture.js` — Pre-authenticated page fixtures per role
+
+**⚠️ Auth uses JWT injection via `localStorage`, NOT UI login.** Do NOT revert to slow UI-based login flows unless testing the login page itself.
+
+```javascript
+import { test, expect } from '../fixtures/auth.fixture.js';
+test('admin sees all', async ({ adminPage, adminApi }) => { ... });
+```
+
+### Known Security Gaps (Priority Fixes)
+
+`e2e/security/known-gaps.spec.js` tracks 4 confirmed auth gaps (F-1 through F-4). These assert current broken behavior so CI stays green. When fixing: apply backend fix → flip assertion → remove `// TODO`.
+
+### Safety Guardrail
+
+**⚠️ NEVER run E2E seed/cleanup against production.** Scripts abort if `NODE_ENV=production`.
+
 ### Before Committing
 
 1. Run `npm test` in changed module(s)
 2. Backend: verify server starts
 3. Frontend: run `npm run build`
-4. Full stack: test integration manually
+4. **Run `npm run test:e2e`** in frontend/ — full Playwright E2E suite
+5. Verify no `test.only()` left in any spec file
 
 ## Common Tasks
 
@@ -436,3 +468,6 @@ app.get('/api/users',
 10. **Document API changes** - Update CLAUDE.md "API Response Contracts" table when adding/modifying endpoints
 11. **Verify database methods** - Check the Database Method Index before calling db methods to avoid "is not a function" errors
 12. **Update method indexes** - When adding/removing database methods, update both CLAUDE.md and copilot-instructions.md
+13. **Run E2E tests** - After authorization or role changes, run `npm run test:e2e` in frontend/
+14. **Update seed data** - When adding new entities or roles, update `e2e/support/constants.js` and `e2e/fixtures/seed.js`
+15. **Close security gaps** - Check `e2e/security/known-gaps.spec.js` for priority fixes on every PR

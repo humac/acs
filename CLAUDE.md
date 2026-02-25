@@ -1298,6 +1298,91 @@ describe('AssetTable', () => {
 - Business logic: >80%
 - UI components: >70%
 
+### E2E Testing (Playwright)
+
+**Location**: `frontend/e2e/**/*.spec.js`
+
+**Run Tests:**
+```bash
+cd frontend
+npm run test:e2e           # Full suite (starts backend + frontend via webServer)
+npm run test:e2e:ui        # Interactive UI mode for debugging
+npm run test:e2e:ci        # CI-optimized (wait-on, forbid-only, JUnit report)
+npx playwright test e2e/security/  # Run a specific folder
+```
+
+**Architecture:**
+- `e2e/fixtures/seed.js` — Global setup: creates 6 users, 3 companies, 6 assets via API
+- `e2e/fixtures/cleanup.js` — Global teardown: removes all seed data in reverse order
+- `e2e/fixtures/auth.fixture.js` — Custom fixtures providing pre-authenticated pages per role
+- `e2e/support/constants.js` — All seed data constants (emails, passwords, serials)
+- `e2e/support/api-client.js` — Lightweight fetch wrapper for direct API assertions
+
+**Auth Fixture Pattern:**
+```javascript
+// Import the custom test fixture (NOT from @playwright/test directly)
+import { test, expect } from '../fixtures/auth.fixture.js';
+
+test('admin can see all assets', async ({ adminPage, adminApi }) => {
+  // adminPage = browser page with JWT pre-injected into localStorage
+  // adminApi = ApiClient instance authenticated as admin
+});
+```
+
+**⚠️ CRITICAL: Authentication in E2E tests uses JWT injection via `localStorage`, NOT UI-based login.**
+The `auth.fixture.js` calls the login API, gets a token, and injects it via `page.evaluate()`.
+Do NOT revert to slow UI-based login flows unless the test specifically validates the login page itself.
+
+**Test Categories:**
+| Category | Folder | Tests |
+|----------|--------|-------|
+| A: Auth Boundaries | `e2e/auth/` | Redirects, 401s, invalid tokens |
+| B: Employee Isolation | `e2e/assets/employee-isolation.spec.js` | EmpA cannot see/act on EmpB's assets |
+| C: Privilege Escalation | `e2e/assets/crud-permissions.spec.js`, `e2e/users/`, `e2e/companies/` | Cross-role action enforcement |
+| D: Role Visibility | `e2e/assets/role-visibility.spec.js`, `e2e/audit/` | Scoped data per role |
+| E: Data Integrity | `e2e/assets/bulk-operations.spec.js`, `e2e/companies/deletion-guards.spec.js` | Cascade protection |
+| F: Known Gaps | `e2e/security/known-gaps.spec.js` | Regression tests for auth gaps (see below) |
+
+### Mandatory Testing Protocol
+
+**Before any feature branch is considered "Done":**
+
+1. **Update seed data** if the feature introduces new entities, roles, or relationships → edit `e2e/support/constants.js` and `e2e/fixtures/seed.js`
+2. **Run the full Playwright suite** → `npm run test:e2e` from `frontend/`
+3. **Verify no regressions** → all existing specs must pass; no `test.only()` left in code
+4. **Add new E2E specs** for any new authorization rules, role-scoped endpoints, or UI permission gates
+5. **Run unit tests** → `npm test` in both `backend/` and `frontend/`
+
+**Feature is not "Done" until all five steps pass.**
+
+### Known Security Gaps (Category F) — Priority Fixes
+
+`e2e/security/known-gaps.spec.js` documents **4 confirmed authorization gaps** found during codebase exploration. These tests assert the *current broken behavior* so CI stays green:
+
+| ID | Gap | File | Current | Expected After Fix |
+|----|-----|------|---------|--------------------|
+| F-1 | `GET /api/assets/:id` — no ownership check for employees | `routes/assets.js:76` | 200 | 403 |
+| F-2 | `PATCH /api/assets/:id/status` — no ownership check | `routes/assets.js:405` | 200 | 403 |
+| F-3 | `GET /api/companies/:id` — missing `authenticate` middleware | `routes/companies.js:156` | 200 | 401 |
+| F-4 | `GET /api/stats` — leaks global counts to all roles | `routes/index.js:44` | 200 | Scope or accept |
+
+**When fixing a gap:**
+1. Apply the backend fix (add middleware/ownership check)
+2. Flip the assertion in `known-gaps.spec.js` from `expect(200)` to `expect(403)` (or `401`)
+3. Update any related specs in Categories B/C that document the same gap
+4. Remove the `// TODO` comment from the spec
+
+**These are priority fixes** — every merged PR should attempt to close at least one gap.
+
+### Safety Guardrail: Production Protection
+
+**⚠️ NEVER run E2E seed or cleanup scripts against a production database.**
+
+The seed script (`seed.js`) and cleanup script (`cleanup.js`) contain a `NODE_ENV` check:
+- If `NODE_ENV=production`, both scripts **abort immediately** with an error.
+- The `API_BASE` constant in `constants.js` points to `http://localhost:3001` — never change this to a production URL.
+- CI pipelines use isolated PostgreSQL service containers that are destroyed after the run.
+
 ---
 
 ## Deployment & CI/CD
@@ -1953,11 +2038,13 @@ This guide provides AI assistants with comprehensive context for working with AC
 7. **Functional React**: Hooks-based components, context for state
 8. **Audit Everything**: Log all mutations with user attribution
 9. **Don't Over-Engineer**: Only add what's requested
+10. **Mandatory Testing Protocol**: Run Playwright E2E suite before merging; update seed data for new features
+11. **Known Gaps**: Track and close Category F security gaps in `e2e/security/known-gaps.spec.js`
 
 When in doubt, **read existing code** for patterns and follow them consistently.
 
 ---
 
-**Last Updated**: 2025-12-25
+**Last Updated**: 2026-02-25
 **Repository**: https://github.com/humac/acs
 **Live Demo**: https://acs.jvhlabs.com

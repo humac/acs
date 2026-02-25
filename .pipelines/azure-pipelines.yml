@@ -1,0 +1,249 @@
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - backend
+      - frontend
+      - .pipelines
+    exclude:
+      - '**/*.md'
+      - infra
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - name: dockerRegistryServiceConnection
+    value: 'ACR-Docker-Connection'
+  - name: azureResourceManagerConnection
+    value: 'ARM-Connection'
+  - name: acrName
+    value: 'kdlabscr'
+  - name: DOCKER_BUILDKIT
+    value: '1'
+
+stages:
+  # Stage 1: Unit Testing (Parallel via matrix)
+  - stage: Testing
+    displayName: 'Unit Testing'
+    jobs:
+      - job: RunTests
+        strategy:
+          matrix:
+            frontend:
+              projectDir: 'frontend'
+              testScript: 'test:ci'
+            backend:
+              projectDir: 'backend'
+              testScript: 'test:ci'
+        steps:
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '22.x'
+            displayName: 'Install Node.js'
+
+          - script: npm ci
+            workingDirectory: $(projectDir)
+            displayName: 'Install Dependencies'
+
+          - script: npm run lint --if-present
+            workingDirectory: $(projectDir)
+            displayName: 'Lint'
+
+          - script: npm audit --audit-level=high || true
+            workingDirectory: $(projectDir)
+            displayName: 'Security Audit'
+
+          - script: |
+              if [ "$(projectDir)" == "backend" ]; then
+                rm -f data/*.db data/*.db-journal data/*.db-wal data/*.db-shm
+                echo "Test environment cleaned"
+              fi
+            displayName: 'Clean Backend Test Env'
+
+          - script: |
+              if [ "$(projectDir)" = "backend" ]; then
+                npm run $(testScript) -- --detectOpenHandles
+              else
+                npm run $(testScript)
+              fi
+            workingDirectory: $(projectDir)
+            env:
+              NODE_ENV: test
+              CI: true
+              JWT_SECRET: test-jwt-secret-for-ci-only
+            displayName: 'Run Unit Tests'
+
+          - script: npm run build
+            condition: and(succeeded(), eq(variables['projectDir'], 'frontend'))
+            workingDirectory: ./frontend
+            displayName: 'Frontend Build Verification'
+
+          - task: PublishTestResults@2
+            displayName: 'Publish $(projectDir) Test Results'
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: '$(projectDir)/junit.xml'
+              testRunTitle: '$(projectDir) Tests'
+
+  # Stage 1b: E2E Testing (Playwright against PostgreSQL)
+  - stage: E2E_Testing
+    displayName: 'E2E Testing'
+    dependsOn: Testing
+    condition: succeeded()
+    jobs:
+      - job: PlaywrightE2E
+        displayName: 'Playwright E2E Tests'
+        services:
+          postgres:
+            image: postgres:16
+            ports:
+              - 5432:5432
+            env:
+              POSTGRES_USER: acs_test
+              POSTGRES_PASSWORD: acs_test_pw
+              POSTGRES_DB: acs_e2e
+        steps:
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '22.x'
+            displayName: 'Install Node.js'
+
+          - script: npm ci
+            workingDirectory: backend
+            displayName: 'Install Backend Dependencies'
+
+          - script: npm ci
+            workingDirectory: frontend
+            displayName: 'Install Frontend Dependencies'
+
+          - script: npx playwright install chromium --with-deps
+            workingDirectory: frontend
+            displayName: 'Install Playwright Browsers'
+
+          - script: |
+              node server.js &
+              echo "Backend starting..."
+            workingDirectory: backend
+            env:
+              NODE_ENV: test
+              PORT: 3001
+              JWT_SECRET: e2e-jwt-secret-for-ci-only
+              DB_CLIENT: postgres
+              POSTGRES_URL: postgresql://acs_test:acs_test_pw@localhost:5432/acs_e2e
+            displayName: 'Start Backend'
+
+          - script: npm run test:e2e:ci
+            workingDirectory: frontend
+            env:
+              NODE_ENV: test
+              CI: true
+              PLAYWRIGHT_JUNIT_OUTPUT_NAME: e2e-results.xml
+            displayName: 'Run Playwright E2E Tests'
+
+          - task: PublishTestResults@2
+            displayName: 'Publish E2E Test Results'
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: 'frontend/e2e-results.xml'
+              testRunTitle: 'Playwright E2E Tests'
+
+          - publish: frontend/playwright-report
+            artifact: playwright-report
+            condition: succeededOrFailed()
+            displayName: 'Upload Playwright Report'
+
+  # Stage 2: Build & Push
+  - stage: Build
+    displayName: 'Build Docker Images'
+    dependsOn: [Testing, E2E_Testing]
+    condition: succeeded()
+    jobs:
+      - job: Build_Push
+        displayName: 'Build and Push to ACR'
+        steps:
+          - task: Docker@2
+            displayName: 'Build & Push Backend'
+            inputs:
+              containerRegistry: '$(dockerRegistryServiceConnection)'
+              repository: 'backend'
+              command: 'buildAndPush'
+              Dockerfile: 'backend/Dockerfile'
+              tags: |
+                $(Build.BuildId)
+                latest
+
+          - task: Docker@2
+            displayName: 'Build & Push Frontend'
+            inputs:
+              containerRegistry: '$(dockerRegistryServiceConnection)'
+              repository: 'frontend'
+              command: 'buildAndPush'
+              Dockerfile: 'frontend/Dockerfile'
+              tags: |
+                $(Build.BuildId)
+                latest
+
+  # Stage 3: Deploy Dev
+  - stage: Deploy_Dev
+    displayName: 'Deploy to Dev'
+    dependsOn: Build
+    jobs:
+      - deployment: Deploy_Dev
+        displayName: 'Deploy Dev'
+        environment: 'dev'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureContainerApps@1
+                  displayName: 'Deploy Backend App'
+                  inputs:
+                    azureSubscription: '$(azureResourceManagerConnection)'
+                    resourceGroup: 'acs-dev-rg'
+                    containerAppEnvironment: 'acs-dev-env'
+                    containerAppName: 'acs-dev-env-backend'
+                    imageToDeploy: '$(acrName).azurecr.io/backend:$(Build.BuildId)'
+
+                - task: AzureContainerApps@1
+                  displayName: 'Deploy Frontend App'
+                  inputs:
+                    azureSubscription: '$(azureResourceManagerConnection)'
+                    resourceGroup: 'acs-dev-rg'
+                    containerAppEnvironment: 'acs-dev-env'
+                    containerAppName: 'acs-dev-env-frontend'
+                    imageToDeploy: '$(acrName).azurecr.io/frontend:$(Build.BuildId)'
+
+  # Stage 4: Deploy Prod
+  - stage: Deploy_Prod
+    displayName: 'Deploy to Prod'
+    dependsOn: Deploy_Dev
+    jobs:
+      - deployment: Deploy_Prod
+        displayName: 'Deploy Prod'
+        environment: 'prod' # Approvals configured in ADO
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureContainerApps@1
+                  displayName: 'Deploy Backend App'
+                  inputs:
+                    azureSubscription: '$(azureResourceManagerConnection)'
+                    resourceGroup: 'acs-prod-rg'
+                    containerAppEnvironment: 'acs-prod-env'
+                    containerAppName: 'acs-prod-env-backend'
+                    imageToDeploy: '$(acrName).azurecr.io/backend:$(Build.BuildId)'
+
+                - task: AzureContainerApps@1
+                  displayName: 'Deploy Frontend App'
+                  inputs:
+                    azureSubscription: '$(azureResourceManagerConnection)'
+                    resourceGroup: 'acs-prod-rg'
+                    containerAppEnvironment: 'acs-prod-env'
+                    containerAppName: 'acs-prod-env-frontend'
+                    imageToDeploy: '$(acrName).azurecr.io/frontend:$(Build.BuildId)'
