@@ -11,7 +11,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { FileText, BarChart3, Filter, Download, Loader2, X, TrendingUp, Shield, Activity, Laptop, Users, FileDown, ChevronRight, ChevronDown, Clock, User, Tag } from 'lucide-react';
+import { FileText, BarChart3, Filter, Download, Loader2, X, TrendingUp, Shield, Activity, Laptop, Users, FileDown, ChevronRight, ChevronDown, User, Tag } from 'lucide-react';
 import { DatePicker } from '@/components/ui/date-picker';
 import { cn } from '@/lib/utils';
 import TablePaginationControls from '@/components/TablePaginationControls';
@@ -353,7 +353,7 @@ const AuditReportingNew = () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {paginatedLogs.map((log, index) => {
+                        {paginatedLogs.map((log) => {
                           const isExpanded = expandedRows.has(log.id);
                           return (
                             <React.Fragment key={log.id}>

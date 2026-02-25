@@ -244,7 +244,6 @@ describe('AssetTable Component', () => {
   it('shows confirmation dialog before deleting', async () => {
     const user = userEvent.setup();
     const currentUser = { role: 'admin', email: 'admin@test.com' };
-    global.fetch.mockResolvedValueOnce({ ok: true });
 
     renderWithRouter(
       <AssetTable
@@ -273,7 +272,6 @@ describe('AssetTable Component', () => {
   it('calls delete API and onDelete callback when confirmed', async () => {
     const user = userEvent.setup();
     const currentUser = { role: 'admin', email: 'admin@test.com' };
-    global.fetch.mockResolvedValueOnce({ ok: true });
 
     renderWithRouter(
       <AssetTable

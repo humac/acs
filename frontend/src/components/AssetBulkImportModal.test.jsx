@@ -301,6 +301,7 @@ describe('AssetBulkImportModal', () => {
     });
 
     it('shows toast error on API failure', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       global.fetch.mockResolvedValueOnce({
         ok: false,
         json: () => Promise.resolve({ error: 'Server error' }),
@@ -320,6 +321,7 @@ describe('AssetBulkImportModal', () => {
           variant: 'destructive',
         });
       });
+      consoleSpy.mockRestore();
     });
 
     it('shows toast when no assets imported', async () => {
