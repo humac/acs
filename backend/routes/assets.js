@@ -442,8 +442,6 @@ export default function createAssetsRouter(deps) {
     try {
       const asset = req.asset;
       const {
-        employee_first_name,
-        employee_last_name,
         asset_type,
         serial_number
       } = req.body;
