@@ -146,7 +146,7 @@ export default function AssetTable({ assets = [], onEdit, onDelete, currentUser,
   }
 
   const canEdit = (_asset) => currentUser?.role === 'admin' || (currentUser?.email?.toLowerCase() === _asset.employee_email?.toLowerCase());
-  const canDelete = (_asset) => currentUser?.role === 'admin';
+  const canDelete = (_asset) => currentUser?.role === 'admin' || (currentUser?.email?.toLowerCase() === _asset.employee_email?.toLowerCase());
 
   const assetsWithManagerData = useMemo(() => assets.map(asset => ({
     ...asset,

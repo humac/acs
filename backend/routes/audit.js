@@ -23,7 +23,7 @@ export default function createAuditRouter(deps) {
   } = deps;
 
   // Get all audit logs (with role-based filtering)
-  router.get('/logs', authenticate, authorize('admin', 'manager', 'coordinator'), async (req, res) => {
+  router.get('/logs', authenticate, async (req, res) => {
     try {
       const user = await userDb.getById(req.user.id);
 
@@ -52,7 +52,7 @@ export default function createAuditRouter(deps) {
   });
 
   // Get audit logs for specific entity
-  router.get('/entity/:type/:id', async (req, res) => {
+  router.get('/entity/:type/:id', authenticate, authorize('admin', 'manager', 'coordinator'), async (req, res) => {
     try {
       const logs = await auditDb.getByEntity(req.params.type, req.params.id);
       res.json(logs);
@@ -63,7 +63,7 @@ export default function createAuditRouter(deps) {
   });
 
   // Get recent audit logs
-  router.get('/recent', async (req, res) => {
+  router.get('/recent', authenticate, authorize('admin', 'manager', 'coordinator'), async (req, res) => {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit) : 100;
       const logs = await auditDb.getRecent(limit);
@@ -75,7 +75,7 @@ export default function createAuditRouter(deps) {
   });
 
   // Get audit statistics
-  router.get('/stats', async (req, res) => {
+  router.get('/stats', authenticate, authorize('admin', 'manager', 'coordinator'), async (req, res) => {
     try {
       const stats = await auditDb.getStats(req.query.startDate, req.query.endDate);
       res.json(stats);
@@ -86,7 +86,7 @@ export default function createAuditRouter(deps) {
   });
 
   // Export audit logs as CSV
-  router.get('/export', authenticate, authorize('admin', 'manager', 'coordinator'), async (req, res) => {
+  router.get('/export', authenticate, async (req, res) => {
     try {
       const user = await userDb.getById(req.user.id);
 
