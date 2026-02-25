@@ -165,6 +165,7 @@ describe('AttestationPage', () => {
 
   describe('Error Handling', () => {
     it('shows error toast when campaigns fail to load', async () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       global.fetch.mockImplementation(() => Promise.resolve({
         ok: false,
         status: 500
@@ -185,6 +186,7 @@ describe('AttestationPage', () => {
           })
         );
       }, { timeout: 3000 });
+      consoleSpy.mockRestore();
     });
   });
 
