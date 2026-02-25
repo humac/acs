@@ -49,7 +49,7 @@ const Layout = ({ theme, setTheme }) => {
         { name: 'Campaigns', path: '/attestation', icon: ClipboardCheck, roles: ['admin', 'manager', 'coordinator'] },
         { name: 'Companies', path: '/companies', icon: Building2, roles: ['admin', 'manager', 'coordinator'] },
         { name: 'Users', path: '/users', icon: Users, roles: ['admin', 'manager', 'coordinator'] },
-        { name: 'Audit', path: '/audit', icon: FileBarChart, roles: ['admin', 'manager', 'coordinator'] },
+        { name: 'Audit', path: '/audit', icon: FileBarChart, roles: ['admin', 'manager', 'coordinator', 'employee'] },
         { name: 'Admin Settings', path: '/admin', icon: Settings, roles: ['admin'] },
       ]
     },

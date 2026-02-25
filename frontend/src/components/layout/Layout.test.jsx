@@ -55,7 +55,10 @@ describe('Layout navigation', () => {
     expect(screen.getByText('Personal')).toBeInTheDocument();
     expect(screen.getByText('My Attestations')).toBeInTheDocument();
     expect(screen.queryByText('Campaigns')).not.toBeInTheDocument();
-    expect(screen.queryByText('Management')).not.toBeInTheDocument();
+    // Employees see Management section (for Audit access) but not admin-only items
+    expect(screen.getByText('Management')).toBeInTheDocument();
+    expect(screen.getByText('Audit')).toBeInTheDocument();
+    expect(screen.queryByText('Admin Settings')).not.toBeInTheDocument();
   });
 
   it('shows Campaigns and Management section for privileged roles', () => {

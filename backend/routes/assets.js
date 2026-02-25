@@ -57,7 +57,14 @@ export default function createAssetsRouter(deps) {
         status: req.query.status
       };
 
-      const assets = await assetDb.search(filters);
+      let assets = await assetDb.search(filters);
+
+      // Employees can only see their own assets
+      const user = await userDb.getById(req.user.id);
+      if (user.role === 'employee') {
+        assets = assets.filter(a => a.employee_email?.toLowerCase() === user.email.toLowerCase());
+      }
+
       res.json(assets);
     } catch (error) {
       logger.error({ err: error, userId: req.user?.id }, 'Error searching assets');
@@ -184,6 +191,14 @@ export default function createAssetsRouter(deps) {
         serial_number,
         asset_tag
       } = req.body;
+
+      // Employees can only create assets for themselves
+      const user = await userDb.getById(req.user.id);
+      if (user.role === 'employee' && employee_email.toLowerCase() !== user.email.toLowerCase()) {
+        return res.status(403).json({
+          error: 'Employees can only register assets for themselves'
+        });
+      }
 
       const validAssetTypes = (await assetTypeDb.getActive()).map(t => t.name.toLowerCase());
       if (!validAssetTypes.includes(asset_type.toLowerCase())) {
@@ -427,8 +442,6 @@ export default function createAssetsRouter(deps) {
     try {
       const asset = req.asset;
       const {
-        employee_first_name,
-        employee_last_name,
         asset_type,
         serial_number
       } = req.body;
@@ -440,16 +453,25 @@ export default function createAssetsRouter(deps) {
         });
       }
 
-      await assetDb.update(req.params.id, req.body);
+      // Non-admins cannot reassign asset ownership
+      const user = await userDb.getById(req.user.id);
+      const updateData = { ...req.body };
+      if (user.role !== 'admin') {
+        delete updateData.employee_email;
+        delete updateData.employee_first_name;
+        delete updateData.employee_last_name;
+      }
+
+      await assetDb.update(req.params.id, updateData);
       const updatedAsset = await assetDb.getById(req.params.id);
 
       await auditDb.log(
         'UPDATE',
         'asset',
         asset.id,
-        `${serial_number} - ${employee_first_name} ${employee_last_name}`,
+        `${serial_number} - ${updatedAsset.employee_first_name} ${updatedAsset.employee_last_name}`,
         {
-          changes: req.body,
+          changes: updateData,
           asset_type: updatedAsset.asset_type,
           employee_email: updatedAsset.employee_email
         },
