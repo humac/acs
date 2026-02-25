@@ -1,0 +1,43 @@
+trigger: none
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  # Specific to your KeyData environment
+  azureRepoUrl: 'dev.azure.com/keydata-devops/KDLabs/_git/acs'
+  # Update this with your actual GitHub HTTPS URL
+  githubRepoUrl: 'https://github.com/humac/acs.git'
+
+steps:
+- checkout: self
+  persistCredentials: true
+  clean: true
+
+- script: |
+    # 1. Configure Git Identity
+    git config --global user.email "devops-sync@keydata.ca"
+    git config --global user.name "KeyData Sync Bot"
+
+    # 2. Add your public GitHub as the 'upstream' source
+    echo "Adding upstream remote: $(githubRepoUrl)"
+    git remote add upstream $(githubRepoUrl)
+    git fetch upstream main
+
+    # 3. Prepare the 'github-sync' branch
+    # This takes the content of GitHub main and puts it into a local branch
+    git checkout -B github-sync upstream/main
+
+    # 4. Remove folders not needed in Azure DevOps
+    if [ -d ".github" ]; then
+      echo "Removing .github folder..."
+      git rm -rf .github
+      git commit -m "Remove .github folder from sync"
+    fi
+
+    # 5. Push to the KeyData Azure Repo
+    # This updates ONLY the github-sync branch. 
+    # It will not touch your 'main' branch in AzDO.
+    echo "Pushing to Azure DevOps..."
+    git push https://$(System.AccessToken)@$(azureRepoUrl) github-sync --force
+  displayName: 'Sync GitHub Upstream to AzDO github-sync branch'

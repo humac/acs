@@ -41,5 +41,9 @@ Thumbs.db
 # Claude Code
 .claude/settings.local.json
 
+# Playwright
+frontend/playwright-report/
+frontend/test-results/
+
 # Vite
 .vite/
