@@ -12,7 +12,7 @@ This document provides AI agents with guidance for working with the ACS (Asset C
 |-------|-------------|
 | **Backend** | Node.js 22 LTS, Express.js, SQLite/PostgreSQL, JWT, WebAuthn, TOTP, OIDC |
 | **Frontend** | React 18, Vite, Tailwind CSS, shadcn/ui (Radix), React Router v7 |
-| **Testing** | Jest (backend), Vitest (frontend) |
+| **Testing** | Jest (backend), Vitest (frontend), Playwright (E2E) |
 | **DevOps** | Docker multi-platform, Azure DevOps Pipelines (two-pipeline architecture), Azure Container Apps |
 
 ### Architecture
@@ -407,12 +407,65 @@ describe('MyComponent', () => {
 });
 ```
 
+### E2E Testing (Playwright)
+
+**Location**: `frontend/e2e/**/*.spec.js`
+
+```bash
+cd frontend
+npm run test:e2e           # Full suite (starts backend + frontend)
+npm run test:e2e:ui        # Interactive UI mode
+npm run test:e2e:ci        # CI-optimized (wait-on, forbid-only, JUnit)
+```
+
+**Architecture:**
+- `e2e/fixtures/seed.js` — Global setup: creates 6 users, 3 companies, 6 assets via API
+- `e2e/fixtures/cleanup.js` — Global teardown: removes seed data in reverse order
+- `e2e/fixtures/auth.fixture.js` — Custom fixtures: `adminPage`, `employeeAApi`, etc.
+- `e2e/support/constants.js` — All seed data constants
+- `e2e/support/api-client.js` — Fetch wrapper for direct API assertions
+
+**⚠️ CRITICAL: Auth uses JWT injection via `localStorage`, NOT UI login.**
+```javascript
+import { test, expect } from '../fixtures/auth.fixture.js';
+// adminPage = browser with JWT pre-injected; adminApi = authenticated API client
+test('admin sees all', async ({ adminPage, adminApi }) => { ... });
+```
+Do NOT revert to slow UI-based login flows unless testing the login page itself.
+
+### Mandatory Testing Protocol
+
+**Before any feature is "Done":**
+1. Update seed data if new entities/roles/relationships are added
+2. Run `npm run test:e2e` — full Playwright suite
+3. Verify no regressions — all specs pass, no `test.only()` left
+4. Add new E2E specs for new authorization rules or UI permission gates
+5. Run unit tests in both `backend/` and `frontend/`
+
+### Known Security Gaps (Priority Fixes)
+
+`e2e/security/known-gaps.spec.js` documents 4 confirmed auth gaps that assert *current broken behavior*:
+
+| ID | Gap | Expected After Fix |
+|----|-----|--------------------|
+| F-1 | `GET /api/assets/:id` — no ownership check | 403 for non-owner employees |
+| F-2 | `PATCH /api/assets/:id/status` — no ownership check | 403 for non-owner employees |
+| F-3 | `GET /api/companies/:id` — missing `authenticate` | 401 unauthenticated |
+| F-4 | `GET /api/stats` — leaks global counts | Scope by role or accept |
+
+When fixing: apply backend fix → flip assertion in spec → remove `// TODO` comment.
+
+### Safety Guardrail
+
+**⚠️ NEVER run E2E seed/cleanup against production.** Both scripts abort if `NODE_ENV=production`. `API_BASE` points to `localhost:3001` — never change to a production URL.
+
 ### When to Add Tests
 
 1. New API endpoints → Integration tests
 2. New components → Component tests
 3. Business logic changes → Update relevant tests
 4. Bug fixes → Regression tests
+5. New authorization rules → E2E specs in `frontend/e2e/`
 
 ## Critical Rules
 
@@ -450,6 +503,8 @@ cd frontend
 npm ci && npm test          # Install & test
 npm run dev                 # Dev server (port 3000)
 npm run build               # Production build
+npm run test:e2e            # E2E tests (requires backend + frontend running)
+npm run test:e2e:ui         # E2E tests with interactive UI
 
 # Full stack
 cd backend && npm run dev   # Terminal 1
