@@ -1467,8 +1467,12 @@ const initDb = async () => {
     if (!hasEmailVerified) {
       console.log('Migrating users table: adding email_verified column...');
 
-      // Add email_verified column - existing users are considered verified
-      await dbRun('ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 1');
+      if (isPostgres) {
+        // PostgreSQL supports IF NOT EXISTS for ADD COLUMN
+        await dbRun('ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified INTEGER DEFAULT 1');
+      } else {
+        await dbRun('ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 1');
+      }
 
       // Set all existing users as verified (since they were registered before this feature)
       await dbRun('UPDATE users SET email_verified = 1 WHERE email_verified IS NULL');
@@ -1476,19 +1480,30 @@ const initDb = async () => {
       console.log('Migration complete: Added email_verified column to users table');
     }
   } catch (err) {
-    console.error('Migration error (email_verified column):', err.message);
+    // Ignore "duplicate column" errors — column may already exist from a prior run
+    if (!err.message?.includes('duplicate column') && !err.message?.includes('already exists')) {
+      console.error('Migration error (email_verified column):', err.message);
+    }
     // Don't fail initialization
   }
 
-  // Insert default OIDC settings if not exists
-  const checkSettings = await dbGet('SELECT id FROM oidc_settings WHERE id = 1');
-  if (!checkSettings) {
-    const now = new Date().toISOString();
+  // Insert default OIDC settings if not exists (use ON CONFLICT to handle race conditions)
+  const now = new Date().toISOString();
+  if (isPostgres) {
     await dbRun(`
       INSERT INTO oidc_settings (id, enabled, sso_button_text, sso_button_help_text, sso_button_variant, updated_at)
-      VALUES (1, 0, 'Sign In with SSO', '', 'outline', ?)
+      VALUES (1, 0, 'Sign In with SSO', '', 'outline', $1)
+      ON CONFLICT (id) DO UPDATE SET
+        sso_button_text = COALESCE(oidc_settings.sso_button_text, 'Sign In with SSO'),
+        sso_button_help_text = COALESCE(oidc_settings.sso_button_help_text, ''),
+        sso_button_variant = COALESCE(oidc_settings.sso_button_variant, 'outline')
     `, [now]);
   } else {
+    await dbRun(`
+      INSERT OR IGNORE INTO oidc_settings (id, enabled, sso_button_text, sso_button_help_text, sso_button_variant, updated_at)
+      VALUES (1, 0, 'Sign In with SSO', '', 'outline', ?)
+    `, [now]);
+    // Update defaults for any missing columns on existing row
     await dbRun(`
       UPDATE oidc_settings
       SET sso_button_text = COALESCE(sso_button_text, 'Sign In with SSO'),
@@ -1694,33 +1709,39 @@ const initDb = async () => {
   }
 
   // Insert default branding settings if not exists
-  const checkBranding = await dbGet('SELECT id FROM branding_settings WHERE id = 1');
-  if (!checkBranding) {
+  {
     const now = new Date().toISOString();
-    await dbRun(`
-      INSERT INTO branding_settings (id, site_name, sub_title, primary_color, include_logo_in_emails, footer_label, updated_at)
-      VALUES (1, 'ACS', 'Asset Compliance System', '#3B82F6', 0, 'SOC2 Compliance - Asset Compliance System', ?)
-    `, [now]);
+    await dbRun(isPostgres
+      ? `INSERT INTO branding_settings (id, site_name, sub_title, primary_color, include_logo_in_emails, footer_label, updated_at)
+         VALUES (1, 'ACS', 'Asset Compliance System', '#3B82F6', 0, 'SOC2 Compliance - Asset Compliance System', $1)
+         ON CONFLICT (id) DO NOTHING`
+      : `INSERT OR IGNORE INTO branding_settings (id, site_name, sub_title, primary_color, include_logo_in_emails, footer_label, updated_at)
+         VALUES (1, 'ACS', 'Asset Compliance System', '#3B82F6', 0, 'SOC2 Compliance - Asset Compliance System', ?)`,
+      [now]);
   }
 
   // Insert default HubSpot settings if not exists
-  const checkHubSpot = await dbGet('SELECT id FROM hubspot_settings WHERE id = 1');
-  if (!checkHubSpot) {
+  {
     const now = new Date().toISOString();
-    await dbRun(`
-      INSERT INTO hubspot_settings (id, enabled, auto_sync_enabled, sync_interval, created_at, updated_at)
-      VALUES (1, 0, 0, 'daily', ?, ?)
-    `, [now, now]);
+    await dbRun(isPostgres
+      ? `INSERT INTO hubspot_settings (id, enabled, auto_sync_enabled, sync_interval, created_at, updated_at)
+         VALUES (1, 0, 0, 'daily', $1, $2)
+         ON CONFLICT (id) DO NOTHING`
+      : `INSERT OR IGNORE INTO hubspot_settings (id, enabled, auto_sync_enabled, sync_interval, created_at, updated_at)
+         VALUES (1, 0, 0, 'daily', ?, ?)`,
+      [now, now]);
   }
 
   // Insert default SMTP settings if not exists
-  const checkSmtp = await dbGet('SELECT id FROM smtp_settings WHERE id = 1');
-  if (!checkSmtp) {
+  {
     const now = new Date().toISOString();
-    await dbRun(`
-      INSERT INTO smtp_settings (id, enabled, created_at, updated_at)
-      VALUES (1, 0, ?, ?)
-    `, [now, now]);
+    await dbRun(isPostgres
+      ? `INSERT INTO smtp_settings (id, enabled, created_at, updated_at)
+         VALUES (1, 0, $1, $2)
+         ON CONFLICT (id) DO NOTHING`
+      : `INSERT OR IGNORE INTO smtp_settings (id, enabled, created_at, updated_at)
+         VALUES (1, 0, ?, ?)`,
+      [now, now]);
   }
 
   // Migration: Add email_provider column to smtp_settings if it doesn't exist
