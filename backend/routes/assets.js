@@ -28,6 +28,7 @@ export default function createAssetsRouter(deps) {
     authorize,
     upload,
     parseCSVFile,
+    autoAssignManagerRole,
   } = deps;
 
   // Create authorization middleware instances
@@ -168,6 +169,18 @@ export default function createAssetsRouter(deps) {
         }
       }
 
+      // Auto-assign manager role for any unique manager emails in the import
+      if (autoAssignManagerRole) {
+        const managerEmails = new Set(
+          records
+            .map(r => (r.manager_email || '').trim().toLowerCase())
+            .filter(e => e)
+        );
+        for (const mgrEmail of managerEmails) {
+          await autoAssignManagerRole(mgrEmail, req.user.email);
+        }
+      }
+
       res.json({
         message: `Imported ${imported} assets${errors.length ? ` with ${errors.length} issues` : ''}`,
         imported,
@@ -240,6 +253,11 @@ export default function createAssetsRouter(deps) {
         },
         req.user.email
       );
+
+      // Auto-assign manager role if the manager_email belongs to a registered user
+      if (manager_email && autoAssignManagerRole) {
+        await autoAssignManagerRole(manager_email, req.user.email);
+      }
 
       res.status(201).json({
         message: 'Asset registered successfully',
