@@ -403,7 +403,7 @@ export default function createAuthRouter(deps) {
           manager_first_name: user.manager_first_name,
           manager_last_name: user.manager_last_name,
           manager_email: user.manager_email,
-          profile_complete: Boolean(user.first_name && user.last_name && user.manager_email),
+          profile_complete: Boolean(user.profile_complete),
           profile_image: user.profile_image,
           email_verified: Boolean(user.email_verified)
         }
@@ -575,7 +575,7 @@ export default function createAuthRouter(deps) {
         manager_last_name: user.manager_last_name,
         manager_email: user.manager_email,
         mfa_enabled: user.mfa_enabled,
-        profile_complete: Boolean(user.first_name && user.last_name && user.manager_email),
+        profile_complete: Boolean(user.profile_complete),
         profile_image: user.profile_image,
         email_verified: Boolean(user.email_verified)
       });

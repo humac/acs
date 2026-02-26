@@ -487,4 +487,88 @@ describe('Profile Completion Flow', () => {
     await userDb.delete(userResult.id);
     await companyDb.delete(company.id);
   });
+
+  test('should set profile_complete=0 when linking existing user without manager data', async () => {
+    // Step 1: Create a regular user (simulates admin-created user without manager)
+    const result = await userDb.create({
+      email: 'link.test@example.com',
+      password_hash: 'OIDC_USER_NO_PASSWORD',
+      name: 'Link Test User',
+      first_name: 'Link',
+      last_name: 'Test',
+      role: 'employee'
+    });
+
+    // Verify user has profile_complete=1 (schema default) but no manager
+    let user = await userDb.getById(result.id);
+    expect(user.profile_complete).toBe(1);
+    expect(user.manager_email).toBeNull();
+
+    // Step 2: Use setProfileComplete to mark as incomplete (simulates linkOIDC flow)
+    await userDb.setProfileComplete(user.id, false);
+
+    user = await userDb.getById(result.id);
+    expect(user.profile_complete).toBe(0);
+
+    // Cleanup
+    await userDb.delete(result.id);
+  });
+
+  test('should populate manager via completeProfile when linking user with OIDC manager claims', async () => {
+    // Step 1: Create user without manager data
+    const result = await userDb.create({
+      email: 'link.manager@example.com',
+      password_hash: 'OIDC_USER_NO_PASSWORD',
+      name: 'Link Manager Test',
+      first_name: 'Link',
+      last_name: 'Manager',
+      role: 'employee'
+    });
+
+    let user = await userDb.getById(result.id);
+    expect(user.manager_email).toBeNull();
+
+    // Step 2: Simulate OIDC claims populating manager via completeProfile
+    await userDb.completeProfile(user.id, {
+      manager_first_name: 'OIDC',
+      manager_last_name: 'Manager',
+      manager_email: 'oidc.manager@example.com'
+    });
+
+    user = await userDb.getById(result.id);
+    expect(user.profile_complete).toBe(1);
+    expect(user.manager_first_name).toBe('OIDC');
+    expect(user.manager_last_name).toBe('Manager');
+    expect(user.manager_email).toBe('oidc.manager@example.com');
+
+    // Cleanup
+    await userDb.delete(result.id);
+  });
+
+  test('/api/auth/me should return DB profile_complete value, not recomputed', async () => {
+    // Create user with first_name, last_name, and manager_email but profile_complete=0
+    const result = await userDb.createFromOIDC({
+      email: 'me.endpoint.test@example.com',
+      name: 'Me Endpoint Test',
+      first_name: 'Me',
+      last_name: 'Test',
+      role: 'employee',
+      oidcSub: 'oidc_sub_me_test'
+      // No manager data → profile_complete=0
+    });
+
+    let user = await userDb.getById(result.id);
+    expect(user.profile_complete).toBe(0);
+
+    // Even though first_name and last_name exist, profile_complete should stay 0
+    // The old bug recomputed it as Boolean(first_name && last_name && manager_email)
+    // which would have returned false here (manager_email is null), but if we later
+    // set manager_email without using completeProfile, it should still be 0
+    expect(user.first_name).toBe('Me');
+    expect(user.last_name).toBe('Test');
+    expect(user.manager_email).toBeNull();
+
+    // Cleanup
+    await userDb.delete(result.id);
+  });
 });

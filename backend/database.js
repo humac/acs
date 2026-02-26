@@ -3217,6 +3217,10 @@ export const userDb = {
     SET manager_first_name = ?, manager_last_name = ?, manager_email = ?, profile_complete = 1
     WHERE id = ?
   `, [managerData.manager_first_name, managerData.manager_last_name, managerData.manager_email, userId]),
+  setProfileComplete: async (userId, complete) => dbRun(
+    'UPDATE users SET profile_complete = ? WHERE id = ?',
+    [complete ? 1 : 0, userId]
+  ),
   useBackupCode: async (userId, code) => {
     const user = await userDb.getMFAStatus(userId);
 
