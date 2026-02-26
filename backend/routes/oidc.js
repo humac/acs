@@ -34,6 +34,8 @@ export default function createOIDCRouter(deps) {
     extractUserData,
     // Helpers
     stateStore,
+    syncAssetOwnership,
+    autoAssignManagerRole,
   } = deps;
 
   // ===== Get OIDC Configuration (for frontend) =====
@@ -163,6 +165,20 @@ export default function createOIDCRouter(deps) {
           });
 
           user = await userDb.getById(result.id);
+
+          // Sync asset ownership for pre-loaded assets (same as password registration)
+          if (syncAssetOwnership) {
+            await syncAssetOwnership(user.email);
+          }
+
+          // Auto-assign manager role if user is listed as manager on existing assets
+          if (autoAssignManagerRole) {
+            const wasPromoted = await autoAssignManagerRole(user.email);
+            if (wasPromoted) {
+              user = await userDb.getById(user.id);
+              logger.info({ email: user.email }, 'Auto-assigned manager role during OIDC provisioning');
+            }
+          }
 
           // Log user creation
           await auditDb.log(

@@ -281,6 +281,7 @@ export function mountRoutes(app, deps) {
     // Database
     userDb: deps.userDb,
     auditDb: deps.auditDb,
+    assetDb: deps.assetDb,
     oidcSettingsDb: deps.oidcSettingsDb,
     attestationCampaignDb: deps.attestationCampaignDb,
     attestationRecordDb: deps.attestationRecordDb,
@@ -295,6 +296,8 @@ export function mountRoutes(app, deps) {
     extractUserData: deps.extractUserData,
     // Helpers
     stateStore: deps.stateStore,
+    syncAssetOwnership: deps.syncAssetOwnership,
+    autoAssignManagerRole: deps.autoAssignManagerRole,
   });
   app.use('/api/auth/oidc', oidcRouter);
 
