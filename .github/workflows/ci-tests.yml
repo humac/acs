@@ -181,6 +181,26 @@ jobs:
             sleep 1
           done
 
+          # Start frontend dev server (Playwright webServer expects port 5173)
+          (cd frontend && npx vite --port 5173) > frontend.log 2>&1 &
+          FRONTEND_PID=$!
+          echo "Frontend PID: $FRONTEND_PID"
+
+          # Wait for frontend to be ready
+          echo "Waiting for frontend..."
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:5173 > /dev/null 2>&1; then
+              echo "Frontend ready after ${i}s"
+              break
+            fi
+            if [ "$i" = "60" ]; then
+              echo "Frontend failed to start within 60s. Logs:"
+              cat frontend.log
+              exit 1
+            fi
+            sleep 1
+          done
+
           # Run Playwright tests from frontend directory
           cd frontend
           npx playwright test --forbid-only --reporter=list --reporter=junit
