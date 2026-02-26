@@ -1487,8 +1487,10 @@ const initDb = async () => {
     // Don't fail initialization
   }
 
-  // Insert default OIDC settings if not exists (use ON CONFLICT to handle race conditions)
-  const now = new Date().toISOString();
+  // Insert default settings (use ON CONFLICT / INSERT OR IGNORE to handle race conditions)
+  const initNow = new Date().toISOString();
+
+  // OIDC settings
   if (isPostgres) {
     await dbRun(`
       INSERT INTO oidc_settings (id, enabled, sso_button_text, sso_button_help_text, sso_button_variant, updated_at)
@@ -1497,12 +1499,12 @@ const initDb = async () => {
         sso_button_text = COALESCE(oidc_settings.sso_button_text, 'Sign In with SSO'),
         sso_button_help_text = COALESCE(oidc_settings.sso_button_help_text, ''),
         sso_button_variant = COALESCE(oidc_settings.sso_button_variant, 'outline')
-    `, [now]);
+    `, [initNow]);
   } else {
     await dbRun(`
       INSERT OR IGNORE INTO oidc_settings (id, enabled, sso_button_text, sso_button_help_text, sso_button_variant, updated_at)
       VALUES (1, 0, 'Sign In with SSO', '', 'outline', ?)
-    `, [now]);
+    `, [initNow]);
     // Update defaults for any missing columns on existing row
     await dbRun(`
       UPDATE oidc_settings
@@ -1708,41 +1710,32 @@ const initDb = async () => {
     // Don't fail initialization
   }
 
-  // Insert default branding settings if not exists
-  {
-    const now = new Date().toISOString();
-    await dbRun(isPostgres
-      ? `INSERT INTO branding_settings (id, site_name, sub_title, primary_color, include_logo_in_emails, footer_label, updated_at)
-         VALUES (1, 'ACS', 'Asset Compliance System', '#3B82F6', 0, 'SOC2 Compliance - Asset Compliance System', $1)
-         ON CONFLICT (id) DO NOTHING`
-      : `INSERT OR IGNORE INTO branding_settings (id, site_name, sub_title, primary_color, include_logo_in_emails, footer_label, updated_at)
-         VALUES (1, 'ACS', 'Asset Compliance System', '#3B82F6', 0, 'SOC2 Compliance - Asset Compliance System', ?)`,
-      [now]);
-  }
+  // Branding settings
+  await dbRun(isPostgres
+    ? `INSERT INTO branding_settings (id, site_name, sub_title, primary_color, include_logo_in_emails, footer_label, updated_at)
+       VALUES (1, 'ACS', 'Asset Compliance System', '#3B82F6', 0, 'SOC2 Compliance - Asset Compliance System', $1)
+       ON CONFLICT (id) DO NOTHING`
+    : `INSERT OR IGNORE INTO branding_settings (id, site_name, sub_title, primary_color, include_logo_in_emails, footer_label, updated_at)
+       VALUES (1, 'ACS', 'Asset Compliance System', '#3B82F6', 0, 'SOC2 Compliance - Asset Compliance System', ?)`,
+    [initNow]);
 
-  // Insert default HubSpot settings if not exists
-  {
-    const now = new Date().toISOString();
-    await dbRun(isPostgres
-      ? `INSERT INTO hubspot_settings (id, enabled, auto_sync_enabled, sync_interval, created_at, updated_at)
-         VALUES (1, 0, 0, 'daily', $1, $2)
-         ON CONFLICT (id) DO NOTHING`
-      : `INSERT OR IGNORE INTO hubspot_settings (id, enabled, auto_sync_enabled, sync_interval, created_at, updated_at)
-         VALUES (1, 0, 0, 'daily', ?, ?)`,
-      [now, now]);
-  }
+  // HubSpot settings
+  await dbRun(isPostgres
+    ? `INSERT INTO hubspot_settings (id, enabled, auto_sync_enabled, sync_interval, created_at, updated_at)
+       VALUES (1, 0, 0, 'daily', $1, $2)
+       ON CONFLICT (id) DO NOTHING`
+    : `INSERT OR IGNORE INTO hubspot_settings (id, enabled, auto_sync_enabled, sync_interval, created_at, updated_at)
+       VALUES (1, 0, 0, 'daily', ?, ?)`,
+    [initNow, initNow]);
 
-  // Insert default SMTP settings if not exists
-  {
-    const now = new Date().toISOString();
-    await dbRun(isPostgres
-      ? `INSERT INTO smtp_settings (id, enabled, created_at, updated_at)
-         VALUES (1, 0, $1, $2)
-         ON CONFLICT (id) DO NOTHING`
-      : `INSERT OR IGNORE INTO smtp_settings (id, enabled, created_at, updated_at)
-         VALUES (1, 0, ?, ?)`,
-      [now, now]);
-  }
+  // SMTP settings
+  await dbRun(isPostgres
+    ? `INSERT INTO smtp_settings (id, enabled, created_at, updated_at)
+       VALUES (1, 0, $1, $2)
+       ON CONFLICT (id) DO NOTHING`
+    : `INSERT OR IGNORE INTO smtp_settings (id, enabled, created_at, updated_at)
+       VALUES (1, 0, ?, ?)`,
+    [initNow, initNow]);
 
   // Migration: Add email_provider column to smtp_settings if it doesn't exist
   try {
