@@ -66,8 +66,6 @@ test.describe('Bulk Asset Operations', () => {
       serial_number: 'E2E-BULK-DEL-2',
     });
 
-    // Bulk delete
-    const res = await adminApi.delete('/api/assets/bulk/delete');
     // The bulk delete endpoint uses a different contract — test the API directly
     const deleteRes = await adminApi._request('DELETE', '/api/assets/bulk/delete', {
       ids: [asset1.id, asset2.id],

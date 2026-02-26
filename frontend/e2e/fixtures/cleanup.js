@@ -12,7 +12,7 @@ import { readFileSync, unlinkSync, existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { ApiClient } from '../support/api-client.js';
-import { USERS, API_BASE } from '../support/constants.js';
+import { USERS } from '../support/constants.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const STATE_FILE = resolve(__dirname, '..', '.e2e-state.json');
@@ -77,7 +77,7 @@ export default async function globalTeardown() {
   }
 
   // Phase 2: Delete companies (reverse order, retry-safe after asset sweep)
-  for (const [key, company] of Object.entries(state.companies || {}).reverse()) {
+  for (const [, company] of Object.entries(state.companies || {}).reverse()) {
     try {
       await adminClient.deleteCompany(company.id);
       console.log(`[E2E Cleanup] Deleted company: ${company.name}`);

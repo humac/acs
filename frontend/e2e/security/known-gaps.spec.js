@@ -11,7 +11,7 @@
  * F-4: GET /api/stats leaks global counts to all roles
  */
 import { test, expect } from '../fixtures/auth.fixture.js';
-import { ApiClient } from '../support/api-client.js';
+// ApiClient used indirectly via auth fixtures
 import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';

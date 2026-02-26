@@ -18,7 +18,6 @@ test.describe('Unauthenticated API Access', () => {
   });
 
   test('A-4: malformed Bearer header returns 401', async () => {
-    const client = new ApiClient('');
     // Manually craft a bad auth header
     const res = await fetch('http://localhost:3001/api/assets', {
       headers: { 'Authorization': 'Bearer ' },

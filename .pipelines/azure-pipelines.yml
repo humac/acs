@@ -172,7 +172,7 @@ stages:
 
               # Run Playwright tests from frontend directory
               cd frontend
-              npx playwright test --forbid-only --reporter=list --reporter=junit --reporter=html
+              npx playwright test
             env:
               NODE_ENV: e2e
               PORT: 3001

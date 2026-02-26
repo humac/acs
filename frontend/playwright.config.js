@@ -7,7 +7,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI
-    ? [['html'], ['junit', { outputFile: 'e2e-results.xml' }]]
+    ? [['list'], ['html'], ['junit', { outputFile: 'e2e-results.xml' }]]
     : 'html',
 
   use: {

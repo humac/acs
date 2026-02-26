@@ -3,7 +3,6 @@
  * Tests A-1, A-5, A-6 — login flows, redirects, role-scoped visibility after login.
  */
 import { test, expect } from '../fixtures/auth.fixture.js';
-import { USERS } from '../support/constants.js';
 
 test.describe('Login & Redirects', () => {
   test('A-1: unauthenticated user sees login form when visiting /assets', async ({ page }) => {

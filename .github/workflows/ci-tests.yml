@@ -153,7 +153,6 @@ jobs:
           DB_CLIENT: postgres
           POSTGRES_URL: postgresql://acs_test:acs_test_pw@localhost:5432/acs_e2e
           CI: true
-          PLAYWRIGHT_JUNIT_OUTPUT_NAME: e2e-results.xml
         run: |
           # Start backend in a subshell so it runs from the backend directory
           # NOTE: NODE_ENV=e2e (not "test") because server.js skips listen() when NODE_ENV=test
@@ -203,7 +202,7 @@ jobs:
 
           # Run Playwright tests from frontend directory
           cd frontend
-          npx playwright test --forbid-only --reporter=list --reporter=junit --reporter=html
+          npx playwright test
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
