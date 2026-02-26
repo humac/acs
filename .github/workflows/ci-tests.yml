@@ -145,27 +145,7 @@ jobs:
         working-directory: ./frontend
         run: npx playwright install chromium --with-deps
 
-      - name: Diagnose backend startup
-        working-directory: ./backend
-        env:
-          NODE_ENV: test
-          PORT: 3001
-          JWT_SECRET: e2e-jwt-secret-for-ci-only
-          DB_CLIENT: postgres
-          POSTGRES_URL: postgresql://acs_test:acs_test_pw@localhost:5432/acs_e2e
-        run: |
-          echo "Node: $(node --version)"
-          echo "Testing module loading..."
-          node -e "
-            import('./database.js')
-              .then(() => console.log('database.js loaded OK'))
-              .catch(e => { console.error('database.js FAILED:', e); process.exit(1); });
-          "
-          echo "Trying server startup (5s timeout)..."
-          timeout 5 node server.js || echo "Server exited with code $? (timeout=124 is expected)"
-
       - name: Run E2E tests
-        working-directory: ./frontend
         env:
           NODE_ENV: test
           PORT: 3001
@@ -175,18 +155,17 @@ jobs:
           CI: true
           PLAYWRIGHT_JUNIT_OUTPUT_NAME: e2e-results.xml
         run: |
-          # Start backend in background from backend dir
-          cd ../backend
-          node server.js &
+          # Start backend in a subshell so it runs from the backend directory
+          (cd backend && exec node server.js) > backend.log 2>&1 &
           BACKEND_PID=$!
-          cd ../frontend
           echo "Backend PID: $BACKEND_PID"
 
           # Wait for backend health endpoint (up to 120s)
           echo "Waiting for backend..."
           for i in $(seq 1 120); do
             if ! kill -0 $BACKEND_PID 2>/dev/null; then
-              echo "Backend process died unexpectedly"
+              echo "Backend process died. Logs:"
+              cat backend.log
               exit 1
             fi
             if curl -sf http://localhost:3001/api/health > /dev/null 2>&1; then
@@ -194,13 +173,15 @@ jobs:
               break
             fi
             if [ "$i" = "120" ]; then
-              echo "Backend failed to respond within 120s"
+              echo "Backend failed to respond within 120s. Logs:"
+              cat backend.log
               exit 1
             fi
             sleep 1
           done
 
-          # Run Playwright tests
+          # Run Playwright tests from frontend directory
+          cd frontend
           npx playwright test --forbid-only --reporter=list --reporter=junit
 
       - name: Upload Playwright report
