@@ -66,23 +66,15 @@ test.describe('Employee Isolation', () => {
     expect(res.status).toBe(403);
   });
 
-  test('B-6: employeeA can change status of empB asset (known gap)', async ({ employeeAApi }) => {
+  test('B-6: employeeA cannot change status of empB asset (FIXED)', async ({ employeeAApi }) => {
     const state = loadState();
     const empBAsset = state.assets.find(a => a.serial_number === 'E2E-SN-B001');
 
-    // KNOWN GAP — should return 403 but currently succeeds
+    // FIXED: requireEditPermission middleware now enforces ownership check
     const res = await employeeAApi.patch(`/api/assets/${empBAsset.id}/status`, {
       status: 'lost',
     });
-    // Document current behavior
-    expect(res.status).toBe(200);
-
-    // Restore the original status so other tests aren't affected
-    const adminClient = (await import('../support/api-client.js')).ApiClient;
-    const admin = new adminClient();
-    const login = await admin.login('e2e-admin@test.com', 'Admin123!');
-    const authed = new adminClient(login.token);
-    await authed.patch(`/api/assets/${empBAsset.id}/status`, { status: 'active' });
+    expect(res.status).toBe(403);
   });
 
   test('B-7: employeeA audit logs show only own actions', async ({ employeeAApi }) => {

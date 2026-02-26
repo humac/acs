@@ -79,7 +79,8 @@ export class ApiClient {
   async getAssets() {
     const res = await this.get('/api/assets');
     if (!res.ok) throw new Error(`Get assets failed: ${JSON.stringify(res.body)}`);
-    return res.body.assets;
+    // Backend returns array directly, or { assets: [...] } depending on endpoint
+    return Array.isArray(res.body) ? res.body : res.body.assets;
   }
 
   /** Get all companies */
