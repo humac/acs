@@ -154,7 +154,7 @@ stages:
               cd frontend
               npx playwright test --forbid-only --reporter=list --reporter=junit
             env:
-              NODE_ENV: test
+              NODE_ENV: e2e
               PORT: 3001
               JWT_SECRET: e2e-jwt-secret-for-ci-only
               DB_CLIENT: postgres
