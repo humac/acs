@@ -1490,7 +1490,7 @@ const initDb = async () => {
   // Insert default settings (use ON CONFLICT / INSERT OR IGNORE to handle race conditions)
   const initNow = new Date().toISOString();
 
-  // OIDC settings
+  // Insert default OIDC settings if not exists
   if (isPostgres) {
     await dbRun(`
       INSERT INTO oidc_settings (id, enabled, sso_button_text, sso_button_help_text, sso_button_variant, updated_at)
@@ -1710,7 +1710,7 @@ const initDb = async () => {
     // Don't fail initialization
   }
 
-  // Branding settings
+  // Insert default branding settings if not exists
   await dbRun(isPostgres
     ? `INSERT INTO branding_settings (id, site_name, sub_title, primary_color, include_logo_in_emails, footer_label, updated_at)
        VALUES (1, 'ACS', 'Asset Compliance System', '#3B82F6', 0, 'SOC2 Compliance - Asset Compliance System', $1)
@@ -1719,7 +1719,7 @@ const initDb = async () => {
        VALUES (1, 'ACS', 'Asset Compliance System', '#3B82F6', 0, 'SOC2 Compliance - Asset Compliance System', ?)`,
     [initNow]);
 
-  // HubSpot settings
+  // Insert default HubSpot settings if not exists
   await dbRun(isPostgres
     ? `INSERT INTO hubspot_settings (id, enabled, auto_sync_enabled, sync_interval, created_at, updated_at)
        VALUES (1, 0, 0, 'daily', $1, $2)
