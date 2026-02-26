@@ -15,27 +15,28 @@ test.describe('Login & Redirects', () => {
   test('A-5: employee sees only own assets after login', async ({ employeeAPage }) => {
     await employeeAPage.goto('/assets');
 
-    // Wait for the assets table to load — asset tags are visible in the table columns
-    await expect(employeeAPage.getByText('E2E-TAG-A001')).toBeVisible({ timeout: 15000 });
+    // Wait for the assets table to load — use role locator to avoid strict mode violation
+    // (asset tags appear in both mobile <p> and desktop <code> elements)
+    await expect(employeeAPage.getByRole('cell', { name: 'E2E-TAG-A001' })).toBeVisible({ timeout: 15000 });
 
     // Should also see second own asset
-    await expect(employeeAPage.getByText('E2E-TAG-A002')).toBeVisible();
+    await expect(employeeAPage.getByRole('cell', { name: 'E2E-TAG-A002' })).toBeVisible();
 
     // Should NOT see employeeB's assets
-    await expect(employeeAPage.getByText('E2E-TAG-B001')).not.toBeVisible();
-    await expect(employeeAPage.getByText('E2E-TAG-B002')).not.toBeVisible();
+    await expect(employeeAPage.getByRole('cell', { name: 'E2E-TAG-B001' })).not.toBeVisible();
+    await expect(employeeAPage.getByRole('cell', { name: 'E2E-TAG-B002' })).not.toBeVisible();
   });
 
   test('A-6: admin sees all assets after login', async ({ adminPage }) => {
     await adminPage.goto('/assets');
 
-    // Wait for the assets table to load — asset tags are visible in the table columns
-    await expect(adminPage.getByText('E2E-TAG-A001')).toBeVisible({ timeout: 15000 });
+    // Wait for the assets table to load — use role locator to avoid strict mode violation
+    await expect(adminPage.getByRole('cell', { name: 'E2E-TAG-A001' })).toBeVisible({ timeout: 15000 });
 
     // Should see all seed assets
     const tags = ['E2E-TAG-A002', 'E2E-TAG-B001', 'E2E-TAG-B002', 'E2E-TAG-MGR01', 'E2E-TAG-ADM01'];
     for (const tag of tags) {
-      await expect(adminPage.getByText(tag)).toBeVisible();
+      await expect(adminPage.getByRole('cell', { name: tag })).toBeVisible();
     }
   });
 });
