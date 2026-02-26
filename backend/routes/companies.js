@@ -153,7 +153,7 @@ export default function createCompaniesRouter(deps) {
   });
 
   // Get single company by ID
-  router.get('/:id', async (req, res) => {
+  router.get('/:id', authenticate, async (req, res) => {
     try {
       const company = await companyDb.getById(req.params.id);
       if (!company) {
