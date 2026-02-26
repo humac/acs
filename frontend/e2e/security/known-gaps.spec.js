@@ -6,7 +6,7 @@
  * Once a gap is fixed, flip the assertion to the correct expected status.
  *
  * F-1: GET /api/assets/:id has no ownership check for employees
- * F-2: PATCH /api/assets/:id/status has no ownership check
+ * F-2: PATCH /api/assets/:id/status — FIXED (requireEditPermission enforces ownership)
  * F-3: GET /api/companies/:id has no authentication middleware
  * F-4: GET /api/stats leaks global counts to all roles
  */
@@ -34,7 +34,7 @@ test.describe('Known Security Gaps (Regression)', () => {
     expect(res.status).toBe(200);
   });
 
-  test('F-2: employee can change status of any asset (no ownership check)', async ({ employeeAApi, adminApi }) => {
+  test('F-2: employee cannot change status of another employee\'s asset (FIXED)', async ({ employeeAApi }) => {
     const state = loadState();
     const empBAsset = state.assets.find(a => a.serial_number === 'E2E-SN-B001');
 
@@ -42,12 +42,8 @@ test.describe('Known Security Gaps (Regression)', () => {
       status: 'damaged',
     });
 
-    // CURRENT BEHAVIOR: returns 200 (gap — should be 403 after fix)
-    // TODO: Change to expect(res.status).toBe(403) once ownership check is added
-    expect(res.status).toBe(200);
-
-    // Restore status
-    await adminApi.patch(`/api/assets/${empBAsset.id}/status`, { status: 'active' });
+    // FIXED: requireEditPermission middleware enforces ownership check
+    expect(res.status).toBe(403);
   });
 
   test('F-3: unauthenticated user can access company by ID (missing auth middleware)', async ({ anonApi }) => {

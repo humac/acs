@@ -14,10 +14,11 @@ test.describe('Login & Redirects', () => {
 
   test('A-5: employee sees only own assets after login', async ({ employeeAPage }) => {
     await employeeAPage.goto('/assets');
-    await employeeAPage.waitForLoadState('networkidle');
 
-    // Should see own serial numbers
-    await expect(employeeAPage.getByText('E2E-SN-A001')).toBeVisible();
+    // Wait for the assets table to load by checking for the first expected asset
+    await expect(employeeAPage.getByText('E2E-SN-A001')).toBeVisible({ timeout: 15000 });
+
+    // Should also see second own asset
     await expect(employeeAPage.getByText('E2E-SN-A002')).toBeVisible();
 
     // Should NOT see employeeB's assets
@@ -27,10 +28,12 @@ test.describe('Login & Redirects', () => {
 
   test('A-6: admin sees all assets after login', async ({ adminPage }) => {
     await adminPage.goto('/assets');
-    await adminPage.waitForLoadState('networkidle');
+
+    // Wait for the assets table to load by checking for the first expected asset
+    await expect(adminPage.getByText('E2E-SN-A001')).toBeVisible({ timeout: 15000 });
 
     // Should see all seed assets
-    const serials = ['E2E-SN-A001', 'E2E-SN-A002', 'E2E-SN-B001', 'E2E-SN-B002', 'E2E-SN-MGR01', 'E2E-SN-ADM01'];
+    const serials = ['E2E-SN-A002', 'E2E-SN-B001', 'E2E-SN-B002', 'E2E-SN-MGR01', 'E2E-SN-ADM01'];
     for (const sn of serials) {
       await expect(adminPage.getByText(sn)).toBeVisible();
     }

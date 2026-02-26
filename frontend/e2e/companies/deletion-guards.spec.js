@@ -32,7 +32,7 @@ test.describe('Company Deletion Guards', () => {
     const acme = state.companies.acme;
 
     const res = await adminApi.deleteCompany(acme.id);
-    // Should fail because Acme Corp has assets
-    expect(res.status).toBe(400);
+    // Should fail because Acme Corp has assets (409 Conflict)
+    expect(res.status).toBe(409);
   });
 });
