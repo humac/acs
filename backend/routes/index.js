@@ -36,6 +36,7 @@ export function mountRoutes(app, deps) {
     upload: deps.upload,
     parseCSVFile: deps.parseCSVFile,
     syncAssetOwnership: deps.syncAssetOwnership,
+    autoAssignManagerRole: deps.autoAssignManagerRole,
   };
   const assetsRouter = createAssetsRouter(assetsDeps);
   app.use('/api/assets', assetsRouter);
