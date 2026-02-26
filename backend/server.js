@@ -423,6 +423,23 @@ export const startServer = async () => {
 
     await initializeOIDCFromSettings();
     logger.info({ engine: databaseEngine.toUpperCase() }, 'Database backend initialized');
+
+    // Reconcile manager roles: promote any employees who are listed as manager_email on assets
+    // This catches users who registered before their assets were created/imported
+    try {
+      const allUsers = await userDb.getAll();
+      const employees = allUsers.filter(u => u.role === 'employee');
+      let promoted = 0;
+      for (const emp of employees) {
+        const wasPromoted = await autoAssignManagerRole(emp.email, 'system-startup');
+        if (wasPromoted) promoted++;
+      }
+      if (promoted > 0) {
+        logger.info({ promoted }, 'Reconciled manager roles at startup');
+      }
+    } catch (err) {
+      logger.error({ err }, 'Error reconciling manager roles at startup');
+    }
     // Start periodic cleanup when server actually starts
     cleanupInterval = setInterval(() => {
       const now = Date.now();
