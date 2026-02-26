@@ -40,17 +40,30 @@ export function mountRoutes(app, deps) {
   const assetsRouter = createAssetsRouter(assetsDeps);
   app.use('/api/assets', assetsRouter);
 
-  // Stats route (standalone endpoint for dashboard)
+  // Stats route (standalone endpoint for dashboard) — scoped by role
   app.get('/api/stats', deps.authenticate, async (req, res) => {
     try {
-      const assets = await deps.assetDb.getAll();
-      const users = await deps.userDb.getAll();
-      const companies = await deps.companyDb.getAll();
-      res.json({
-        assetsCount: assets.length,
-        employeesCount: users.length,
-        companiesCount: companies.length
-      });
+      const user = await deps.userDb.getById(req.user.id);
+      const assets = await deps.assetDb.getScopedForUser(user);
+
+      if (user.role === 'employee') {
+        // Employees see only their own scoped counts
+        const uniqueCompanies = new Set(assets.map(a => a.company_id));
+        res.json({
+          assetsCount: assets.length,
+          employeesCount: 1,
+          companiesCount: uniqueCompanies.size
+        });
+      } else {
+        // Admin, manager, coordinator see global counts
+        const users = await deps.userDb.getAll();
+        const companies = await deps.companyDb.getAll();
+        res.json({
+          assetsCount: assets.length,
+          employeesCount: users.length,
+          companiesCount: companies.length
+        });
+      }
     } catch (error) {
       logger.error({ err: error }, 'Error fetching stats');
       res.status(500).json({ error: 'Failed to fetch stats' });

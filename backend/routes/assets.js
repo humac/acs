@@ -73,7 +73,15 @@ export default function createAssetsRouter(deps) {
   });
 
   // Get single asset by ID
-  router.get('/:id', authenticate, fetchAsset, (req, res) => {
+  router.get('/:id', authenticate, fetchAsset, async (req, res) => {
+    // Employees can only view their own assets
+    if (req.user.role === 'employee') {
+      const user = await userDb.getById(req.user.id);
+      const isOwner = req.asset.employee_email?.toLowerCase() === user.email.toLowerCase();
+      if (!isOwner) {
+        return res.status(403).json({ error: 'You do not have permission to view this asset' });
+      }
+    }
     res.json(req.asset);
   });
 

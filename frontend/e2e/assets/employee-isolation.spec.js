@@ -38,14 +38,13 @@ test.describe('Employee Isolation', () => {
     }
   });
 
-  test('B-3: employeeA can fetch empB asset by ID (known gap)', async ({ employeeAApi }) => {
+  test('B-3: employeeA cannot fetch empB asset by ID (FIXED)', async ({ employeeAApi }) => {
     const state = loadState();
     const empBAsset = state.assets.find(a => a.serial_number === 'E2E-SN-B001');
 
-    // This is a KNOWN GAP — currently returns 200, should return 403 after fix
+    // FIXED: ownership check now returns 403 for non-owner employees
     const res = await employeeAApi.get(`/api/assets/${empBAsset.id}`);
-    // Document current behavior: succeeds when it shouldn't
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(403);
   });
 
   test('B-4: employeeA cannot edit empB asset', async ({ employeeAApi }) => {
