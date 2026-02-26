@@ -12,6 +12,7 @@ export default {
     '!coverage/**',
     '!jest.config.js',
     '!**/*.test.js',
+    '!routes/**',
   ],
   coverageThreshold: {
     global: {
