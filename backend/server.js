@@ -191,11 +191,12 @@ const rateLimiterValidation = {
 };
 
 // Rate limiting for authentication endpoints
-// Disabled in e2e/test environments to avoid blocking test runners sharing a single IP
+// Skipped in e2e/test environments to avoid blocking test runners sharing a single IP
 const isTestEnv = process.env.NODE_ENV === 'test' || process.env.NODE_ENV === 'e2e';
 const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: isTestEnv ? 0 : 10, // 0 = unlimited; 10 attempts per window in production
+  max: 10, // 10 attempts per window
+  skip: () => isTestEnv,
   message: { error: 'Too many attempts, please try again later' },
   keyGenerator: getClientIp,
   validate: rateLimiterValidation,
@@ -206,7 +207,8 @@ const authRateLimiter = rateLimit({
 // Stricter rate limiting for password reset (prevent email spam)
 const passwordResetRateLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: isTestEnv ? 0 : 5, // 0 = unlimited; 5 attempts per hour in production
+  max: 5, // 5 attempts per hour
+  skip: () => isTestEnv,
   message: { error: 'Too many password reset requests, please try again later' },
   keyGenerator: getClientIp,
   validate: rateLimiterValidation,
