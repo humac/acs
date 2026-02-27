@@ -104,4 +104,11 @@ export class ApiClient {
   async deleteCompany(companyId) {
     return this.delete(`/api/companies/${companyId}`);
   }
+
+  /** Create an OIDC user without manager data (E2E only, requires admin token) */
+  async createOIDCUser(userData) {
+    const res = await this.post('/api/auth/e2e/create-oidc-user', userData);
+    if (!res.ok) throw new Error(`OIDC user creation failed: ${JSON.stringify(res.body)}`);
+    return res.body;
+  }
 }

@@ -403,7 +403,7 @@ export default function createAuthRouter(deps) {
           manager_first_name: user.manager_first_name,
           manager_last_name: user.manager_last_name,
           manager_email: user.manager_email,
-          profile_complete: Boolean(user.first_name && user.last_name && user.manager_email),
+          profile_complete: Boolean(user.profile_complete),
           profile_image: user.profile_image,
           email_verified: Boolean(user.email_verified)
         }
@@ -575,7 +575,7 @@ export default function createAuthRouter(deps) {
         manager_last_name: user.manager_last_name,
         manager_email: user.manager_email,
         mfa_enabled: user.mfa_enabled,
-        profile_complete: Boolean(user.first_name && user.last_name && user.manager_email),
+        profile_complete: Boolean(user.profile_complete),
         profile_image: user.profile_image,
         email_verified: Boolean(user.email_verified)
       });
@@ -1133,6 +1133,45 @@ export default function createAuthRouter(deps) {
     } catch (error) {
       logger.error({ err: error }, 'Verify email token check error');
       res.status(500).json({ valid: false, error: 'Failed to verify token' });
+    }
+  });
+
+  // ===== E2E Test Helper: Create OIDC user with token (non-production only) =====
+
+  router.post('/e2e/create-oidc-user', authenticate, async (req, res) => {
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(403).json({ error: 'Not available in production' });
+    }
+
+    const caller = await userDb.getById(req.user.id);
+    if (!caller || caller.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin only' });
+    }
+
+    try {
+      const { email, first_name, last_name, role } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+      }
+
+      const oidcSub = `e2e-oidc-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const result = await userDb.createFromOIDC({
+        email,
+        name: `${first_name || ''} ${last_name || ''}`.trim() || email,
+        first_name: first_name || null,
+        last_name: last_name || null,
+        role: role || 'employee',
+        oidcSub
+        // No manager data → profile_complete=0
+      });
+
+      const user = await userDb.getById(result.id);
+      const token = generateToken(user);
+
+      res.json({ token, user });
+    } catch (error) {
+      logger.error({ err: error }, 'E2E create OIDC user error');
+      res.status(500).json({ error: 'Failed to create OIDC user' });
     }
   });
 

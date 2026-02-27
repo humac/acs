@@ -149,6 +149,24 @@ export default function createOIDCRouter(deps) {
           // Link existing user to OIDC
           logger.info({ email: userData.email, oidcSub: userData.oidcSub }, 'Linking existing user to OIDC subject');
           await userDb.linkOIDC(user.id, userData.oidcSub);
+
+          // Ensure linked user has manager data; force profile completion if missing
+          const missingManager = !user.manager_first_name || !user.manager_last_name || !user.manager_email;
+          if (missingManager) {
+            const hasOidcManager = userData.managerFirstName && userData.managerLastName && userData.managerEmail;
+            if (hasOidcManager) {
+              await userDb.completeProfile(user.id, {
+                manager_first_name: userData.managerFirstName,
+                manager_last_name: userData.managerLastName,
+                manager_email: userData.managerEmail
+              });
+              logger.info({ email: userData.email }, 'Populated manager from OIDC claims for linked user');
+            } else {
+              await userDb.setProfileComplete(user.id, false);
+              logger.info({ email: userData.email }, 'Marked linked user for profile completion (missing manager)');
+            }
+            user = await userDb.getById(user.id);
+          }
         } else {
           // Create new user (JIT provisioning)
           logger.info({ email: userData.email, role: userData.role }, 'Creating new user via OIDC');
