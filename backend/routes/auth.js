@@ -1136,5 +1136,44 @@ export default function createAuthRouter(deps) {
     }
   });
 
+  // ===== E2E Test Helper: Create OIDC user with token (non-production only) =====
+
+  router.post('/e2e/create-oidc-user', authenticate, async (req, res) => {
+    if (process.env.NODE_ENV === 'production') {
+      return res.status(403).json({ error: 'Not available in production' });
+    }
+
+    const caller = await userDb.getById(req.user.id);
+    if (!caller || caller.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin only' });
+    }
+
+    try {
+      const { email, first_name, last_name, role } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+      }
+
+      const oidcSub = `e2e-oidc-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const result = await userDb.createFromOIDC({
+        email,
+        name: `${first_name || ''} ${last_name || ''}`.trim() || email,
+        first_name: first_name || null,
+        last_name: last_name || null,
+        role: role || 'employee',
+        oidcSub
+        // No manager data → profile_complete=0
+      });
+
+      const user = await userDb.getById(result.id);
+      const token = generateToken(user);
+
+      res.json({ token, user });
+    } catch (error) {
+      logger.error({ err: error }, 'E2E create OIDC user error');
+      res.status(500).json({ error: 'Failed to create OIDC user' });
+    }
+  });
+
   return router;
 }
