@@ -483,6 +483,7 @@ export default function MyAttestationsPage() {
                         <TableHeader>
                           <TableRow>
                             <TableHead>Type</TableHead>
+                            <TableHead>Company</TableHead>
                             <TableHead>Make/Model</TableHead>
                             <TableHead>Serial Number</TableHead>
                             <TableHead>Current Status</TableHead>
@@ -498,6 +499,7 @@ export default function MyAttestationsPage() {
                             return (
                               <TableRow key={asset.id} className={isCertified ? 'bg-success/10' : ''}>
                                 <TableCell className="font-medium">{asset.asset_type}</TableCell>
+                                <TableCell className="text-muted-foreground">{asset.company_name}</TableCell>
                                 <TableCell>
                                   {asset.make} {asset.model}
                                 </TableCell>
@@ -612,8 +614,9 @@ export default function MyAttestationsPage() {
                                 )}
                               </div>
 
-                              <div className="text-xs text-muted-foreground p-2 rounded bg-muted/30">
-                                SN: {asset.serial_number}
+                              <div className="text-xs text-muted-foreground p-2 rounded bg-muted/30 space-y-0.5">
+                                <div>{asset.company_name}</div>
+                                <div>SN: {asset.serial_number}</div>
                               </div>
 
                               <div className="space-y-2">

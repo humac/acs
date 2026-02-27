@@ -339,7 +339,7 @@ export function DashboardContent({ campaign, compact = false, onClose: _onClose 
     let records = dashboardData.records;
     
     // Manager team filter (apply first, before other filters)
-    if (user?.role === 'manager' && showMyTeamOnly) {
+    if (['manager', 'admin', 'coordinator'].includes(user?.role) && showMyTeamOnly) {
       records = records.filter(r => r.manager_email === user.email);
     }
     
@@ -501,7 +501,7 @@ export function DashboardContent({ campaign, compact = false, onClose: _onClose 
       </div>
 
       {/* Manager Team Filter */}
-      {user?.role === 'manager' && (
+      {['manager', 'admin', 'coordinator'].includes(user?.role) && (
         <div className="glass-panel rounded-xl p-3 flex items-center gap-2">
           <Checkbox 
             id="myTeamOnly"
