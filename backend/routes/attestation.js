@@ -650,9 +650,15 @@ export default function createAttestationRouter(deps) {
         const companyIds = [...new Set(userAssets.map(a => a.company_id).filter(Boolean))];
 
         const companies = [];
+        let managerEmail = null;
         for (const companyId of companyIds) {
           const company = await companyDb.getById(companyId);
           if (company) companies.push(company.name);
+        }
+
+        // Extract manager_email from assets if available (they should all have the same manager)
+        if (userAssets.length > 0) {
+          managerEmail = userAssets[0].manager_email || null;
         }
 
         detailedRecords.push({
@@ -664,7 +670,7 @@ export default function createAttestationRouter(deps) {
           user_email: invite.employee_email,
           user_name: `${invite.employee_first_name || ''} ${invite.employee_last_name || ''}`.trim() || invite.employee_email,
           user_role: null,
-          manager_email: null,
+          manager_email: managerEmail,
           companies: companies,
           invite_sent_at: invite.invite_sent_at,
           created_at: invite.created_at,
