@@ -42,7 +42,6 @@ export function DashboardContent({ campaign, compact = false, onClose: _onClose 
   const [sendingReminder, setSendingReminder] = useState(new Set());
   const [sendingBulkReminder, setSendingBulkReminder] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(new Date());
-  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   const [showMyTeamOnly, setShowMyTeamOnly] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState('all');
   const [resendingInvite, setResendingInvite] = useState(new Set());
@@ -70,7 +69,7 @@ export function DashboardContent({ campaign, compact = false, onClose: _onClose 
   const getDaysLate = (record, campaignData) => {
     if (!record || !campaignData) return 0;
     if (record.status === 'completed') return 0;
-    
+
     const daysElapsed = getDaysElapsed(campaignData.start_date);
     const escalationDays = campaignData.escalation_days || 0;
     const daysLate = Math.max(0, daysElapsed - escalationDays);
@@ -87,7 +86,7 @@ export function DashboardContent({ campaign, compact = false, onClose: _onClose 
   // Load dashboard data
   const loadDashboard = async () => {
     if (!campaign) return;
-    
+
     setLoadingDashboard(true);
     try {
       const res = await fetch(`/api/attestation/campaigns/${campaign.id}/dashboard`, {
@@ -117,18 +116,6 @@ export function DashboardContent({ campaign, compact = false, onClose: _onClose 
     }
   }, [campaign]);
 
-  // Auto-refresh effect
-  useEffect(() => {
-    if (!campaign || !autoRefreshEnabled) return;
-    
-    const interval = setInterval(() => {
-      loadDashboard();
-      setLastRefresh(new Date());
-    }, 60000); // 60 seconds
-    
-    return () => clearInterval(interval);
-  }, [campaign, autoRefreshEnabled]);
-
   // Manual refresh handler
   const handleManualRefresh = () => {
     loadDashboard();
@@ -138,20 +125,20 @@ export function DashboardContent({ campaign, compact = false, onClose: _onClose 
   // Send manual reminder to single employee
   const handleSendReminder = async (recordId) => {
     setSendingReminder(prev => new Set(prev).add(recordId));
-    
+
     try {
       const res = await fetch(`/api/attestation/records/${recordId}/remind`, {
         method: 'POST',
         headers: { ...getAuthHeaders() }
       });
-      
+
       if (!res.ok) throw new Error('Failed to send reminder');
-      
+
       toast({
         title: 'Reminder Sent',
         description: 'Email reminder sent to employee'
       });
-      
+
       loadDashboard();
     } catch (err) {
       console.error(err);
@@ -197,30 +184,30 @@ export function DashboardContent({ campaign, compact = false, onClose: _onClose 
   // Send bulk reminders
   const handleBulkRemind = async () => {
     if (selectedRecordIds.size === 0) return;
-    
+
     setSendingBulkReminder(true);
-    
+
     try {
       const res = await fetch(`/api/attestation/campaigns/${campaign.id}/bulk-remind`, {
         method: 'POST',
-        headers: { 
-          ...getAuthHeaders(), 
-          'Content-Type': 'application/json' 
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
-          record_ids: Array.from(selectedRecordIds) 
+        body: JSON.stringify({
+          record_ids: Array.from(selectedRecordIds)
         })
       });
-      
+
       if (!res.ok) throw new Error('Failed to send bulk reminders');
-      
+
       const data = await res.json();
-      
+
       toast({
         title: 'Bulk Reminders Sent',
         description: `${data.sent} sent successfully${data.failed > 0 ? `, ${data.failed} failed` : ''}`
       });
-      
+
       setSelectedRecordIds(new Set());
       loadDashboard();
     } catch (err) {
@@ -317,7 +304,7 @@ export function DashboardContent({ campaign, compact = false, onClose: _onClose 
   // Calculate available companies with counts
   const availableCompanies = useMemo(() => {
     if (!dashboardData?.records) return [];
-    
+
     const companyCountMap = new Map();
     dashboardData.records.forEach(record => {
       if (record.companies?.length > 0) {
@@ -326,7 +313,7 @@ export function DashboardContent({ campaign, compact = false, onClose: _onClose 
         });
       }
     });
-    
+
     return Array.from(companyCountMap.entries())
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => a.name.localeCompare(b.name));
@@ -335,19 +322,19 @@ export function DashboardContent({ campaign, compact = false, onClose: _onClose 
   // Compute filtered records and counts
   const filteredRecords = useMemo(() => {
     if (!dashboardData?.records) return [];
-    
+
     let records = dashboardData.records;
-    
+
     // Manager team filter (apply first, before other filters)
     if (['manager', 'admin', 'coordinator'].includes(user?.role) && showMyTeamOnly) {
       records = records.filter(r => r.manager_email === user.email);
     }
-    
+
     // Company filter
     if (selectedCompany !== 'all') {
       records = records.filter(r => r.companies?.includes(selectedCompany));
     }
-    
+
     // Apply tab filter
     if (dashboardFilterTab === 'overdue') {
       records = records.filter(r => isOverdue(r, campaign));
@@ -360,16 +347,16 @@ export function DashboardContent({ campaign, compact = false, onClose: _onClose 
     } else if (dashboardFilterTab === 'unregistered') {
       records = records.filter(r => r.status === 'unregistered');
     }
-    
+
     // Apply search filter
     if (dashboardSearchQuery) {
       const query = dashboardSearchQuery.toLowerCase();
-      records = records.filter(r => 
+      records = records.filter(r =>
         r.user_name?.toLowerCase().includes(query) ||
         r.user_email?.toLowerCase().includes(query)
       );
     }
-    
+
     return records;
   }, [dashboardData, dashboardFilterTab, dashboardSearchQuery, campaign, showMyTeamOnly, selectedCompany, user]);
 
@@ -448,7 +435,7 @@ export function DashboardContent({ campaign, compact = false, onClose: _onClose 
             {dashboardData.records?.length || 0}
           </span>
         </div>
-        
+
         {/* Completed Card */}
         <div className="bento-card p-4">
           <div className="icon-box icon-box-sm bg-success/10 border-success/20 mb-3">
@@ -459,7 +446,7 @@ export function DashboardContent({ campaign, compact = false, onClose: _onClose 
             {completedCount}
           </span>
         </div>
-        
+
         {/* Pending Card */}
         <div className="bento-card p-4">
           <div className="icon-box icon-box-sm bg-warning/10 border-warning/20 mb-3">
@@ -470,7 +457,7 @@ export function DashboardContent({ campaign, compact = false, onClose: _onClose 
             {pendingCount}
           </span>
         </div>
-        
+
         {/* Unregistered Card */}
         <div className={cn(
           "bento-card p-4",
@@ -484,7 +471,7 @@ export function DashboardContent({ campaign, compact = false, onClose: _onClose 
             {unregisteredCount}
           </span>
         </div>
-        
+
         {/* Overdue Card */}
         <div className={cn(
           "bento-card p-4",
@@ -503,7 +490,7 @@ export function DashboardContent({ campaign, compact = false, onClose: _onClose 
       {/* Manager Team Filter */}
       {['manager', 'admin', 'coordinator'].includes(user?.role) && (
         <div className="glass-panel rounded-xl p-3 flex items-center gap-2">
-          <Checkbox 
+          <Checkbox
             id="myTeamOnly"
             checked={showMyTeamOnly}
             onCheckedChange={setShowMyTeamOnly}
@@ -599,32 +586,20 @@ export function DashboardContent({ campaign, compact = false, onClose: _onClose 
       {/* Auto-refresh controls */}
       <div className="glass-panel rounded-xl p-3 flex items-center justify-between">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <RefreshCw className={cn(
-            "h-3 w-3",
-            autoRefreshEnabled && "animate-spin"
-          )} />
+          <RefreshCw className="h-3 w-3" />
           <span>
             Updated {lastRefresh.toLocaleTimeString()}
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <Button 
-            size="sm" 
+          <Button
+            size="sm"
             variant="ghost"
             onClick={handleManualRefresh}
             title="Refresh now"
             className="btn-interactive"
           >
             <RefreshCw className="h-4 w-4" />
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
-            title={autoRefreshEnabled ? 'Pause auto-refresh' : 'Resume auto-refresh'}
-            className="btn-interactive"
-          >
-            {autoRefreshEnabled ? 'Pause' : 'Resume'}
           </Button>
         </div>
       </div>
@@ -700,7 +675,7 @@ export function DashboardContent({ campaign, compact = false, onClose: _onClose 
                 <TableHead className="w-12">
                   <Checkbox
                     checked={selectedRecordIds.size > 0 &&
-                             selectedRecordIds.size === filteredRecords.filter(r => r.status !== 'completed').length}
+                      selectedRecordIds.size === filteredRecords.filter(r => r.status !== 'completed').length}
                     onCheckedChange={handleSelectAll}
                   />
                 </TableHead>
