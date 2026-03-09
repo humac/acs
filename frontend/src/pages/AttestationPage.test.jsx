@@ -43,14 +43,13 @@ const setupFetchMock = (campaigns = []) => {
         json: async () => ({ records: [] })
       });
     }
-    // Reopen campaign
-    if (url.includes('/reopen') && options?.method === 'POST') {
+    // Reopen, cancel, or close campaign
+    if (url.includes('/api/attestation/campaigns/') && (url.endsWith('/cancel') || url.endsWith('/reopen') || url.endsWith('/close'))) {
       return Promise.resolve({
         ok: true,
-        json: async () => ({ success: true })
+        json: () => Promise.resolve({ success: true })
       });
-    }
-    // Default response
+    }  // Default response
     return Promise.resolve({
       ok: true,
       json: async () => ([])
@@ -254,4 +253,59 @@ describe('AttestationPage', () => {
       });
     });
   });
+
+  describe('Close Campaign Flow', () => {
+    it('opens dialog and calls API to close active campaign', async () => {
+      const mockCampaigns = [
+        {
+          id: 2,
+          name: 'Active Campaign to Close',
+          status: 'active',
+          target_type: 'all',
+          start_date: '2024-10-01',
+          end_date: '2024-12-31',
+          reminder_days: 7,
+          escalation_days: 10
+        }
+      ];
+
+      setupFetchMock(mockCampaigns);
+
+      render(
+        <BrowserRouter>
+          <AttestationPage />
+        </BrowserRouter>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText(/Attestation Campaigns \(1\)/)).toBeInTheDocument();
+      }, { timeout: 3000 });
+
+      expect(screen.getByText('Active Campaign to Close')).toBeInTheDocument();
+
+      await waitFor(() => {
+        expect(screen.getByTitle('Close Campaign')).toBeInTheDocument();
+      });
+
+      const closeButton = screen.getByTitle('Close Campaign');
+      fireEvent.click(closeButton);
+
+      expect(await screen.findByText(/Are you sure you want to manually close the campaign/)).toBeInTheDocument();
+
+      const dialogSubmitButton = screen.getByRole('button', { name: 'Close Campaign' });
+      fireEvent.click(dialogSubmitButton);
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith('/api/attestation/campaigns/2/close', expect.any(Object));
+        expect(mockToast).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: 'Success',
+            description: 'Campaign closed successfully',
+            variant: 'success'
+          })
+        );
+      });
+    });
+  });
+
 });

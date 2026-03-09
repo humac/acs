@@ -578,6 +578,37 @@ export default function createAttestationRouter(deps) {
     }
   });
 
+  // Close campaign manually
+  router.post('/campaigns/:id/close', authenticate, authorize('admin', 'coordinator'), async (req, res) => {
+    try {
+      const campaign = await attestationCampaignDb.getById(req.params.id);
+
+      if (!campaign) {
+        return res.status(404).json({ error: 'Campaign not found' });
+      }
+
+      if (campaign.status !== 'active') {
+        return res.status(400).json({ error: 'Only active campaigns can be manually closed' });
+      }
+
+      await attestationCampaignDb.update(req.params.id, { status: 'completed' });
+
+      await auditDb.log(
+        'close',
+        'attestation_campaign',
+        req.params.id,
+        campaign.name || 'Unknown',
+        'Manually closed attestation campaign',
+        req.user.email
+      );
+
+      res.json({ success: true, message: 'Campaign closed successfully' });
+    } catch (error) {
+      logger.error({ err: error, userId: req.user?.id }, 'Error closing campaign manually');
+      res.status(500).json({ error: 'Failed to close campaign' });
+    }
+  });
+
   // Reopen campaign
   router.post('/campaigns/:id/reopen', authenticate, authorize('admin', 'coordinator'), async (req, res) => {
     try {
