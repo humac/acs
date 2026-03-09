@@ -578,6 +578,37 @@ export default function createAttestationRouter(deps) {
     }
   });
 
+  // Reopen campaign
+  router.post('/campaigns/:id/reopen', authenticate, authorize('admin', 'coordinator'), async (req, res) => {
+    try {
+      const campaign = await attestationCampaignDb.getById(req.params.id);
+
+      if (!campaign) {
+        return res.status(404).json({ error: 'Campaign not found' });
+      }
+
+      if (campaign.status !== 'completed' && campaign.status !== 'cancelled') {
+        return res.status(400).json({ error: 'Only completed or cancelled campaigns can be reopened' });
+      }
+
+      await attestationCampaignDb.update(req.params.id, { status: 'active' });
+
+      await auditDb.log(
+        'reopen',
+        'attestation_campaign',
+        req.params.id,
+        campaign.name || 'Unknown',
+        'Reopened attestation campaign',
+        req.user.email
+      );
+
+      res.json({ success: true, message: 'Campaign reopened successfully' });
+    } catch (error) {
+      logger.error({ err: error, userId: req.user?.id }, 'Error reopening campaign');
+      res.status(500).json({ error: 'Failed to reopen campaign' });
+    }
+  });
+
   // Delete campaign
   router.delete('/campaigns/:id', authenticate, authorize('admin', 'coordinator'), async (req, res) => {
     try {

@@ -30,7 +30,7 @@ describe('Attestation DB Tables', () => {
   it('should create attestation tables and basic CRUD operations', async () => {
     // Use unique timestamps for email addresses
     const timestamp = Date.now();
-    
+
     // Create admin user
     const admin = await userDb.create({
       email: `admin-${timestamp}@test.com`,
@@ -100,11 +100,22 @@ describe('Attestation DB Tables', () => {
     // Get all campaigns
     const allCampaigns = await attestationCampaignDb.getAll();
     expect(allCampaigns.length).toBeGreaterThan(0);
+
+    // Test reopening campaign
+    // 1. Mark campaign as completed
+    await attestationCampaignDb.update(campaign.id, { status: 'completed' });
+    let currentCampaign = await attestationCampaignDb.getById(campaign.id);
+    expect(currentCampaign.status).toBe('completed');
+
+    // 2. Reopen campaign
+    await attestationCampaignDb.update(campaign.id, { status: 'active' });
+    currentCampaign = await attestationCampaignDb.getById(campaign.id);
+    expect(currentCampaign.status).toBe('active');
   });
 
   it('should handle empty string end_date by converting to null', async () => {
     const timestamp = Date.now();
-    
+
     // Create admin user
     const admin = await userDb.create({
       email: `admin-empty-date-${timestamp}@test.com`,
@@ -112,7 +123,7 @@ describe('Attestation DB Tables', () => {
       name: 'Test Admin',
       role: 'admin'
     });
-    
+
     // Create campaign with empty string end_date (mimics frontend behavior)
     const campaign = await attestationCampaignDb.create({
       name: 'Campaign with Empty End Date',
@@ -124,23 +135,23 @@ describe('Attestation DB Tables', () => {
       created_by: admin.id
     });
     expect(campaign.id).toBeDefined();
-    
+
     // Retrieve campaign and verify end_date is null, not empty string
     const retrievedCampaign = await attestationCampaignDb.getById(campaign.id);
     expect(retrievedCampaign).toBeDefined();
     expect(retrievedCampaign.end_date).toBeNull();
-    
+
     // Test update with empty string end_date
     await attestationCampaignDb.update(campaign.id, { end_date: '' });
     const updatedCampaign = await attestationCampaignDb.getById(campaign.id);
     expect(updatedCampaign.end_date).toBeNull();
-    
+
     // Test update with a valid end_date
     const validEndDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
     await attestationCampaignDb.update(campaign.id, { end_date: validEndDate });
     const campaignWithDate = await attestationCampaignDb.getById(campaign.id);
     expect(campaignWithDate.end_date).toBeTruthy();
-    
+
     // Test update back to empty string
     await attestationCampaignDb.update(campaign.id, { end_date: '' });
     const campaignBackToNull = await attestationCampaignDb.getById(campaign.id);
@@ -149,7 +160,7 @@ describe('Attestation DB Tables', () => {
 
   it('should create and manage company-scoped campaigns', async () => {
     const timestamp = Date.now();
-    
+
     // Create admin user
     const admin = await userDb.create({
       email: `admin-companies-${timestamp}@test.com`,
@@ -169,7 +180,7 @@ describe('Attestation DB Tables', () => {
       first_name: 'Employee',
       last_name: 'One'
     });
-    
+
     const employee2Email = `employee2-${timestamp}@test.com`;
     const employee2 = await userDb.create({
       email: employee2Email,
@@ -213,7 +224,7 @@ describe('Attestation DB Tables', () => {
       asset_tag: `TAG-${timestamp}-2`,
       status: 'active'
     });
-    
+
     expect(asset1.id).toBeDefined();
     expect(asset2.id).toBeDefined();
 
@@ -268,7 +279,7 @@ describe('Attestation DB Tables', () => {
 
   it('should create assets in main table when new assets are added during attestation', async () => {
     const timestamp = Date.now();
-    
+
     // Create admin user
     const admin = await userDb.create({
       email: `admin-newasset-${timestamp}@test.com`,
@@ -276,7 +287,7 @@ describe('Attestation DB Tables', () => {
       name: 'Test Admin',
       role: 'admin'
     });
-    
+
     // Create employee user
     const employee = await userDb.create({
       email: `employee-newasset-${timestamp}@test.com`,
@@ -286,10 +297,10 @@ describe('Attestation DB Tables', () => {
       first_name: 'Test',
       last_name: 'Employee'
     });
-    
+
     // Create company
     const company = await companyDb.create({ name: `Test Company ${timestamp}` });
-    
+
     // Create campaign
     const campaign = await attestationCampaignDb.create({
       name: 'Test Campaign for New Assets',
@@ -300,14 +311,14 @@ describe('Attestation DB Tables', () => {
       escalation_days: 10,
       created_by: admin.id
     });
-    
+
     // Create attestation record
     const record = await attestationRecordDb.create({
       campaign_id: campaign.id,
       user_id: employee.id,
       status: 'in_progress'
     });
-    
+
     // Add new asset during attestation (simulating employee adding missing asset)
     const newAsset = await attestationNewAssetDb.create({
       attestation_record_id: record.id,
@@ -320,27 +331,27 @@ describe('Attestation DB Tables', () => {
       notes: 'Added during attestation'
     });
     expect(newAsset.id).toBeDefined();
-    
+
     // Verify the new asset is in attestation_new_assets table
     const newAssets = await attestationNewAssetDb.getByRecordId(record.id);
     expect(newAssets.length).toBe(1);
     expect(newAssets[0].serial_number).toBe(`SN-NEWASSET-${timestamp}`);
-    
+
     // Get assets count before completion
     const assetsBefore = await assetDb.getAll();
     const assetsBeforeCount = assetsBefore.filter(a => a.serial_number === `SN-NEWASSET-${timestamp}`).length;
     expect(assetsBeforeCount).toBe(0); // Asset should not exist in main table yet
-    
+
     // Complete attestation (this should transfer new assets to main assets table)
     await attestationRecordDb.update(record.id, {
       status: 'completed',
       completed_at: new Date().toISOString()
     });
-    
+
     // Note: The actual transfer happens in the API endpoint, not in the DB method
     // This test validates the DB structure is ready for the transfer
     // The API endpoint test would need to be added separately with supertest
-    
+
     // Verify attestation record is completed
     const completedRecord = await attestationRecordDb.getById(record.id);
     expect(completedRecord.status).toBe('completed');
@@ -352,7 +363,7 @@ describe('Attestation Pending Invites', () => {
   it('should create pending invites and convert them on registration', async () => {
     const { attestationPendingInviteDb } = await import('./database.js');
     const timestamp = Date.now();
-    
+
     // Create admin user
     const admin = await userDb.create({
       email: `admin-pi-${timestamp}@test.com`,
@@ -360,13 +371,13 @@ describe('Attestation Pending Invites', () => {
       name: 'Test Admin',
       role: 'admin'
     });
-    
+
     // Create company
     const company = await companyDb.create({
       name: `Test Company PI ${timestamp}`,
       description: 'Test Company for Pending Invites'
     });
-    
+
     // Create campaign
     const campaign = await attestationCampaignDb.create({
       name: `Test Campaign PI ${timestamp}`,
@@ -380,7 +391,7 @@ describe('Attestation Pending Invites', () => {
       created_by: admin.id
     });
     expect(campaign.id).toBeDefined();
-    
+
     // Create an asset with unregistered owner
     const unregisteredEmail = `unregistered-${timestamp}@test.com`;
     const asset = await assetDb.create({
@@ -399,13 +410,13 @@ describe('Attestation Pending Invites', () => {
       status: 'active'
     });
     expect(asset.id).toBeDefined();
-    
+
     // Verify asset shows up as unregistered owner
     const unregisteredOwners = await assetDb.getUnregisteredOwners();
     const found = unregisteredOwners.find(o => o.employee_email === unregisteredEmail);
     expect(found).toBeDefined();
     expect(found.asset_count).toBe(1);
-    
+
     // Create pending invite
     const inviteToken = 'test-token-' + timestamp;
     const invite = await attestationPendingInviteDb.create({
@@ -417,18 +428,18 @@ describe('Attestation Pending Invites', () => {
       invite_sent_at: new Date().toISOString()
     });
     expect(invite.id).toBeDefined();
-    
+
     // Retrieve invite by token
     const retrievedInvite = await attestationPendingInviteDb.getByToken(inviteToken);
     expect(retrievedInvite).toBeDefined();
     expect(retrievedInvite.employee_email).toBe(unregisteredEmail);
     expect(retrievedInvite.registered_at).toBeNull();
-    
+
     // Get active invites for this email
     const activeInvites = await attestationPendingInviteDb.getActiveByEmail(unregisteredEmail);
     expect(activeInvites.length).toBe(1);
     expect(activeInvites[0].campaign_id).toBe(campaign.id);
-    
+
     // Simulate user registration
     const newUser = await userDb.create({
       email: unregisteredEmail,
@@ -442,7 +453,7 @@ describe('Attestation Pending Invites', () => {
       manager_email: `manager-${timestamp}@test.com`
     });
     expect(newUser.id).toBeDefined();
-    
+
     // Create attestation record (simulating conversion)
     const record = await attestationRecordDb.create({
       campaign_id: campaign.id,
@@ -450,32 +461,32 @@ describe('Attestation Pending Invites', () => {
       status: 'pending'
     });
     expect(record.id).toBeDefined();
-    
+
     // Update invite as registered
     await attestationPendingInviteDb.update(invite.id, {
       registered_at: new Date().toISOString(),
       converted_record_id: record.id
     });
-    
+
     // Verify invite was marked as registered
     const updatedInvite = await attestationPendingInviteDb.getById(invite.id);
     expect(updatedInvite.registered_at).toBeTruthy();
     expect(updatedInvite.converted_record_id).toBe(record.id);
-    
+
     // Verify no more active invites
     const activeInvitesAfter = await attestationPendingInviteDb.getActiveByEmail(unregisteredEmail);
     expect(activeInvitesAfter.length).toBe(0);
-    
+
     // Verify attestation record exists
     const records = await attestationRecordDb.getByCampaignId(campaign.id);
     expect(records.length).toBe(1);
     expect(records[0].user_id).toBe(newUser.id);
   });
-  
+
   it('should handle pending invites for company-scoped campaigns', async () => {
     const { attestationPendingInviteDb } = await import('./database.js');
     const timestamp = Date.now();
-    
+
     // Create admin
     const admin = await userDb.create({
       email: `admin-cs-${timestamp}@test.com`,
@@ -483,22 +494,22 @@ describe('Attestation Pending Invites', () => {
       name: 'Test Admin',
       role: 'admin'
     });
-    
+
     // Create two companies
     const company1 = await companyDb.create({
       name: `Company A ${timestamp}`,
       description: 'Company A'
     });
-    
+
     const company2 = await companyDb.create({
       name: `Company B ${timestamp}`,
       description: 'Company B'
     });
-    
+
     // Create assets for unregistered owners in different companies
     const unreg1 = `unreg1-${timestamp}@test.com`;
     const unreg2 = `unreg2-${timestamp}@test.com`;
-    
+
     await assetDb.create({
       employee_email: unreg1,
       employee_first_name: 'User',
@@ -510,7 +521,7 @@ describe('Attestation Pending Invites', () => {
       asset_tag: `TAG1-${timestamp}`,
       status: 'active'
     });
-    
+
     await assetDb.create({
       employee_email: unreg2,
       employee_first_name: 'User',
@@ -522,12 +533,12 @@ describe('Attestation Pending Invites', () => {
       asset_tag: `TAG2-${timestamp}`,
       status: 'active'
     });
-    
+
     // Get unregistered owners for company1 only
     const unregCompany1 = await assetDb.getUnregisteredOwnersByCompanyIds([company1.id]);
     expect(unregCompany1.length).toBe(1);
     expect(unregCompany1[0].employee_email).toBe(unreg1);
-    
+
     // Get unregistered owners for both companies
     const unregBoth = await assetDb.getUnregisteredOwnersByCompanyIds([company1.id, company2.id]);
     expect(unregBoth.length).toBe(2);

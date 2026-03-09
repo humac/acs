@@ -10,10 +10,12 @@ global.fetch = vi.fn();
 const mockGetAuthHeaders = vi.fn(() => ({ Authorization: 'Bearer test-token' }));
 const mockToast = vi.fn();
 
+const mockUser = { role: 'admin', email: 'admin@test.com' };
+
 vi.mock('../contexts/AuthContext', () => ({
   useAuth: () => ({
     getAuthHeaders: mockGetAuthHeaders,
-    user: { role: 'admin', email: 'admin@test.com' }
+    user: mockUser
   }),
 }));
 
@@ -27,7 +29,7 @@ vi.mock('@/hooks/use-toast', () => ({
 
 // Helper to set up default fetch mock
 const setupFetchMock = (campaigns = []) => {
-  global.fetch.mockImplementation((url) => {
+  global.fetch.mockImplementation((url, options) => {
     if (url === '/api/attestation/campaigns') {
       return Promise.resolve({
         ok: true,
@@ -39,6 +41,13 @@ const setupFetchMock = (campaigns = []) => {
       return Promise.resolve({
         ok: true,
         json: async () => ({ records: [] })
+      });
+    }
+    // Reopen campaign
+    if (url.includes('/reopen') && options?.method === 'POST') {
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ success: true })
       });
     }
     // Default response
@@ -165,7 +174,7 @@ describe('AttestationPage', () => {
 
   describe('Error Handling', () => {
     it('shows error toast when campaigns fail to load', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
       global.fetch.mockImplementation(() => Promise.resolve({
         ok: false,
         status: 500
@@ -190,4 +199,59 @@ describe('AttestationPage', () => {
     });
   });
 
+  describe('Reopen Campaign Flow', () => {
+    it('opens dialog and calls API to reopen campaign', async () => {
+      const mockCampaigns = [
+        {
+          id: 1,
+          name: 'Completed Campaign',
+          status: 'completed',
+          target_type: 'all',
+          start_date: '2024-10-01',
+          end_date: '2024-12-31',
+          reminder_days: 7,
+          escalation_days: 10
+        }
+      ];
+
+      setupFetchMock(mockCampaigns);
+
+      render(
+        <BrowserRouter>
+          <AttestationPage />
+        </BrowserRouter>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText(/Attestation Campaigns \(1\)/)).toBeInTheDocument();
+      }, { timeout: 3000 });
+
+      // Check for campaign data in table row
+      expect(screen.getByText('Completed Campaign')).toBeInTheDocument();
+
+      // Find reopen button mapped under title directly visible 
+      await waitFor(() => {
+        expect(screen.getByTitle('Reopen Campaign')).toBeInTheDocument();
+      });
+      const reopenButton = screen.getByTitle('Reopen Campaign');
+      fireEvent.click(reopenButton);
+
+      // Await confirmation dialog rendering
+      expect(await screen.findByText(/Are you sure you want to reopen the campaign/)).toBeInTheDocument();
+
+      const dialogSubmitButton = screen.getByRole('button', { name: 'Reopen Campaign' });
+      fireEvent.click(dialogSubmitButton);
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith('/api/attestation/campaigns/1/reopen', expect.any(Object));
+        expect(mockToast).toHaveBeenCalledWith(
+          expect.objectContaining({
+            title: 'Success',
+            description: 'Campaign reopened successfully',
+            variant: 'success'
+          })
+        );
+      });
+    });
+  });
 });
