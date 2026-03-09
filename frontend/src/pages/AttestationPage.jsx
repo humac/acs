@@ -156,10 +156,27 @@ export default function AttestationPage() {
           if (statsRes.ok) {
             const statsData = await statsRes.json();
             const records = statsData.records || [];
+
+            const now = new Date();
+            const startDate = new Date(campaign.start_date);
+            const diffTime = now - startDate;
+            const daysSinceStart = diffTime > 0 ? Math.floor(diffTime / (1000 * 60 * 60 * 24)) : 0;
+            const hasEnded = campaign.end_date ? (now > new Date(campaign.end_date)) : false;
+            const escalationDays = campaign.escalation_days || 0;
+
+            const isOverdue = (record) => {
+              if (record.status === 'completed') return false;
+              return hasEnded || daysSinceStart >= escalationDays;
+            };
+
             const completed = records.filter(r => r.status === 'completed').length;
             const total = records.length;
+            const pending = records.filter(r => r.status === 'pending' || r.status === 'in_progress').length;
+            const unregistered = records.filter(r => r.status === 'unregistered').length;
+            const overdue = records.filter(isOverdue).length;
+
             const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-            return { id: campaign.id, stats: { completed, total, percentage } };
+            return { id: campaign.id, stats: { completed, total, percentage, pending, unregistered, overdue } };
           }
         } catch (err) {
           console.error(`Error loading stats for campaign ${campaign.id}:`, err);
