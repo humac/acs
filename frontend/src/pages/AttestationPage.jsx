@@ -82,6 +82,8 @@ export default function AttestationPage() {
   const [campaignToCancel, setCampaignToCancel] = useState(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [campaignToDelete, setCampaignToDelete] = useState(null);
+  const [showReopenDialog, setShowReopenDialog] = useState(false);
+  const [campaignToReopen, setCampaignToReopen] = useState(null);
 
   // Helper function to parse target_user_ids
   const parseTargetUserIds = (targetUserIds) => {
@@ -444,6 +446,45 @@ export default function AttestationPage() {
     }
   };
 
+  const handleReopenCampaignClick = (campaign) => {
+    setCampaignToReopen(campaign);
+    setShowReopenDialog(true);
+  };
+
+  const handleReopenCampaign = async () => {
+    if (!campaignToReopen) return;
+
+    try {
+      const res = await fetch(`/api/attestation/campaigns/${campaignToReopen.id}/reopen`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders() }
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to reopen campaign');
+      }
+
+      toast({
+        title: 'Success',
+        description: 'Campaign reopened successfully',
+        variant: 'success'
+      });
+
+      loadCampaigns();
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: 'Error',
+        description: err.message || 'Failed to reopen campaign',
+        variant: 'destructive'
+      });
+    } finally {
+      setShowReopenDialog(false);
+      setCampaignToReopen(null);
+    }
+  };
+
   const handleBulkDelete = async (ids) => {
     try {
       const promises = Array.from(ids).map(id =>
@@ -647,6 +688,7 @@ export default function AttestationPage() {
             onEdit={handleEditCampaignClick}
             onDelete={handleDeleteCampaignClick}
             onCancel={handleCancelCampaignClick}
+            onReopen={handleReopenCampaignClick}
             onViewDashboard={handleViewDashboard}
             onExport={handleExportCampaign}
             currentUser={user}
@@ -1487,6 +1529,29 @@ export default function AttestationPage() {
             <AlertDialogCancel>Keep Campaign</AlertDialogCancel>
             <AlertDialogAction onClick={handleCancelCampaign} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Cancel Campaign
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reopen Campaign Confirmation Dialog */}
+      <AlertDialog open={showReopenDialog} onOpenChange={setShowReopenDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reopen Campaign</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                Are you sure you want to reopen the campaign &ldquo;{campaignToReopen?.name}&rdquo;?
+                <div className="mt-2 text-sm text-muted-foreground">
+                  This will change the status back to active, allowing users to complete outstanding attestations.
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleReopenCampaign} className="bg-primary text-primary-foreground hover:bg-primary/90">
+              Reopen Campaign
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

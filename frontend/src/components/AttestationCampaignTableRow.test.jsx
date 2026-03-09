@@ -31,6 +31,7 @@ describe('AttestationCampaignTableRow', () => {
         onCancel: vi.fn(),
         onViewDashboard: vi.fn(),
         onExport: vi.fn(),
+        onReopen: vi.fn(),
     };
 
     it('should render campaign name', () => {
@@ -76,5 +77,61 @@ describe('AttestationCampaignTableRow', () => {
         fireEvent.click(expandButton);
 
         expect(screen.getByText('System')).toBeInTheDocument();
+    });
+
+    it('should render Reopen button for completed campaign when user can manage', () => {
+        const completedCampaign = { ...mockCampaign, status: 'completed' };
+        render(
+            <table>
+                <tbody>
+                    <AttestationCampaignTableRow {...defaultProps} campaign={completedCampaign} canManage={true} />
+                </tbody>
+            </table>
+        );
+
+        const reopenButton = screen.getByTitle('Reopen Campaign');
+        expect(reopenButton).toBeInTheDocument();
+
+        fireEvent.click(reopenButton);
+        expect(defaultProps.onReopen).toHaveBeenCalled();
+    });
+
+    it('should render Reopen button for cancelled campaign when user can manage', () => {
+        const cancelledCampaign = { ...mockCampaign, status: 'cancelled' };
+        render(
+            <table>
+                <tbody>
+                    <AttestationCampaignTableRow {...defaultProps} campaign={cancelledCampaign} canManage={true} />
+                </tbody>
+            </table>
+        );
+
+        const reopenButton = screen.getByTitle('Reopen Campaign');
+        expect(reopenButton).toBeInTheDocument();
+    });
+
+    it('should NOT render Reopen button if user cannot manage', () => {
+        const completedCampaign = { ...mockCampaign, status: 'completed' };
+        render(
+            <table>
+                <tbody>
+                    <AttestationCampaignTableRow {...defaultProps} campaign={completedCampaign} canManage={false} />
+                </tbody>
+            </table>
+        );
+
+        expect(screen.queryByTitle('Reopen Campaign')).not.toBeInTheDocument();
+    });
+
+    it('should NOT render Reopen button if campaign is active', () => {
+        render(
+            <table>
+                <tbody>
+                    <AttestationCampaignTableRow {...defaultProps} campaign={mockCampaign} canManage={true} />
+                </tbody>
+            </table>
+        );
+
+        expect(screen.queryByTitle('Reopen Campaign')).not.toBeInTheDocument();
     });
 });

@@ -15,7 +15,8 @@ import {
     CheckCircle2,
     Clock,
     UserX,
-    AlertCircle
+    AlertCircle,
+    RefreshCw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -47,6 +48,7 @@ const AttestationCampaignTableRow = memo(function AttestationCampaignTableRow({
     onCancel,
     onViewDashboard,
     onExport,
+    onReopen,
     index = 0,
 }) {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -169,9 +171,14 @@ const AttestationCampaignTableRow = memo(function AttestationCampaignTableRow({
                                     <Download className="h-4 w-4" />
                                 </Button>
                                 {canManage && (
-                                    <Button variant="ghost" size="icon" onClick={onDelete} className="h-8 w-8 text-destructive/70 hover:text-destructive hover:bg-destructive/10" title="Delete Campaign">
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
+                                    <>
+                                        <Button variant="ghost" size="icon" onClick={onReopen} className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10" title="Reopen Campaign">
+                                            <RefreshCw className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={onDelete} className="h-8 w-8 text-destructive/70 hover:text-destructive hover:bg-destructive/10" title="Delete Campaign">
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </>
                                 )}
                             </>
                         )}
