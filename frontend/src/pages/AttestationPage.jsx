@@ -84,6 +84,8 @@ export default function AttestationPage() {
   const [campaignToDelete, setCampaignToDelete] = useState(null);
   const [showReopenDialog, setShowReopenDialog] = useState(false);
   const [campaignToReopen, setCampaignToReopen] = useState(null);
+  const [showCloseDialog, setShowCloseDialog] = useState(false);
+  const [campaignToClose, setCampaignToClose] = useState(null);
 
   // Helper function to parse target_user_ids
   const parseTargetUserIds = (targetUserIds) => {
@@ -446,6 +448,42 @@ export default function AttestationPage() {
     }
   };
 
+  const handleCloseCampaignClick = (campaign) => {
+    setCampaignToClose(campaign);
+    setShowCloseDialog(true);
+  };
+
+  const handleCloseCampaign = async () => {
+    if (!campaignToClose) return;
+
+    try {
+      const res = await fetch(`/api/attestation/campaigns/${campaignToClose.id}/close`, {
+        method: 'POST',
+        headers: { ...getAuthHeaders() }
+      });
+
+      if (!res.ok) throw new Error('Failed to close campaign');
+
+      toast({
+        title: 'Success',
+        description: 'Campaign closed successfully',
+        variant: 'success'
+      });
+
+      loadCampaigns();
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: 'Error',
+        description: 'Failed to close campaign',
+        variant: 'destructive'
+      });
+    } finally {
+      setShowCloseDialog(false);
+      setCampaignToClose(null);
+    }
+  };
+
   const handleReopenCampaignClick = (campaign) => {
     setCampaignToReopen(campaign);
     setShowReopenDialog(true);
@@ -689,6 +727,7 @@ export default function AttestationPage() {
             onDelete={handleDeleteCampaignClick}
             onCancel={handleCancelCampaignClick}
             onReopen={handleReopenCampaignClick}
+            onClose={handleCloseCampaignClick}
             onViewDashboard={handleViewDashboard}
             onExport={handleExportCampaign}
             currentUser={user}
@@ -1529,6 +1568,29 @@ export default function AttestationPage() {
             <AlertDialogCancel>Keep Campaign</AlertDialogCancel>
             <AlertDialogAction onClick={handleCancelCampaign} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Cancel Campaign
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Close Campaign Confirmation Dialog */}
+      <AlertDialog open={showCloseDialog} onOpenChange={setShowCloseDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Close Campaign</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                Are you sure you want to manually close the campaign &ldquo;{campaignToClose?.name}&rdquo;?
+                <div className="mt-2 text-sm text-muted-foreground">
+                  This will mark the campaign as completed and record the current compliance levels. Users will no longer be able to complete attestations.
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCloseCampaign} className="bg-primary text-primary-foreground hover:bg-primary/90">
+              Close Campaign
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

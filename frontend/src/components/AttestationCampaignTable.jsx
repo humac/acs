@@ -22,6 +22,7 @@ export default function AttestationCampaignTable({
     onDelete,
     onCancel,
     onReopen,
+    onClose,
     onViewDashboard,
     onExport,
     currentUser,
@@ -147,6 +148,7 @@ export default function AttestationCampaignTable({
                                 onDelete={() => onDelete(campaign)}
                                 onCancel={() => onCancel(campaign)}
                                 onReopen={() => onReopen(campaign)}
+                                onClose={() => onClose(campaign)}
                                 onViewDashboard={() => onViewDashboard(campaign)}
                                 onExport={() => onExport(campaign.id, campaign.name)}
                             />

@@ -12,6 +12,7 @@ import {
     Eye,
     Download,
     XCircle,
+    CheckCircle,
     CheckCircle2,
     Clock,
     UserX,
@@ -49,6 +50,7 @@ const AttestationCampaignTableRow = memo(function AttestationCampaignTableRow({
     onViewDashboard,
     onExport,
     onReopen,
+    onClose,
     index = 0,
 }) {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -159,9 +161,14 @@ const AttestationCampaignTableRow = memo(function AttestationCampaignTableRow({
                                     <Download className="h-4 w-4" />
                                 </Button>
                                 {canManage && (
-                                    <Button variant="ghost" size="icon" onClick={onCancel} className="h-8 w-8 text-destructive/70 hover:text-destructive hover:bg-destructive/10" title="Cancel Campaign">
-                                        <XCircle className="h-4 w-4" />
-                                    </Button>
+                                    <>
+                                        <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 text-success hover:text-success/90 hover:bg-success/10" title="Close Campaign">
+                                            <CheckCircle className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={onCancel} className="h-8 w-8 text-destructive/70 hover:text-destructive hover:bg-destructive/10" title="Cancel Campaign">
+                                            <XCircle className="h-4 w-4" />
+                                        </Button>
+                                    </>
                                 )}
                             </>
                         )}
