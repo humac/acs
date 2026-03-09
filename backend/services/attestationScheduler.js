@@ -83,9 +83,10 @@ export const processEscalations = async () => {
       const startDate = new Date(campaign.start_date);
       const now = new Date();
       const daysSinceStart = Math.floor((now - startDate) / (1000 * 60 * 60 * 24));
+      const hasEnded = campaign.end_date ? (now > new Date(campaign.end_date)) : false;
 
       // Check if it's time to send escalations
-      if (daysSinceStart >= campaign.escalation_days) {
+      if (daysSinceStart >= campaign.escalation_days || hasEnded) {
         const records = await attestationRecordDb.getByCampaignId(campaign.id);
 
         // Find pending records that haven't received an escalation yet
@@ -125,30 +126,38 @@ export const processEscalations = async () => {
 };
 
 /**
- * Auto-close expired campaigns
- * Checks if end_date has passed and updates status to 'completed'
+ * Auto-close completed campaigns
+ * Checks if all records and pending invites are completed, and updates status to 'completed'
  */
-export const autoCloseExpiredCampaigns = async () => {
+export const autoCloseCompletedCampaigns = async () => {
   try {
+    const { attestationPendingInviteDb } = await import('../database.js');
     const campaigns = await attestationCampaignDb.getAll();
-    const activeCampaigns = campaigns.filter(c => c.status === 'active' && c.end_date);
-
-    const now = new Date();
+    const activeCampaigns = campaigns.filter(c => c.status === 'active');
 
     for (const campaign of activeCampaigns) {
-      const endDate = new Date(campaign.end_date);
+      const records = await attestationRecordDb.getByCampaignId(campaign.id);
+      
+      const allRecordsCompleted = records.length > 0 && records.every(r => r.status === 'completed');
+      
+      const pendingInvites = await attestationPendingInviteDb.getByCampaignId(campaign.id);
+      const allInvitesResolved = pendingInvites.every(invite => invite.registered_at);
 
-      if (now > endDate) {
+      if (
+        (records.length > 0 || pendingInvites.length > 0) &&
+        (records.length === 0 || allRecordsCompleted) &&
+        allInvitesResolved
+      ) {
         await attestationCampaignDb.update(campaign.id, {
           status: 'completed'
         });
-        logger.info({ campaign: campaign.name }, 'Campaign auto-closed (expired)');
+        logger.info({ campaign: campaign.name }, 'Campaign auto-closed (all attestations completed)');
       }
     }
 
     return { success: true };
   } catch (error) {
-    logger.error({ err: error }, 'Error auto-closing expired campaigns');
+    logger.error({ err: error }, 'Error auto-closing completed campaigns');
     return { success: false, error: error.message };
   }
 };
@@ -235,9 +244,10 @@ export const processUnregisteredEscalations = async () => {
       const startDate = new Date(campaign.start_date);
       const now = new Date();
       const daysSinceStart = Math.floor((now - startDate) / (1000 * 60 * 60 * 24));
+      const hasEnded = campaign.end_date ? (now > new Date(campaign.end_date)) : false;
 
-      // Use escalation_days for unregistered escalation too
-      if (daysSinceStart >= campaign.escalation_days) {
+      // Use escalation_days for unregistered escalation too, or trigger if end date is passed
+      if (daysSinceStart >= campaign.escalation_days || hasEnded) {
         const pendingInvites = await attestationPendingInviteDb.getByCampaignId(campaign.id);
 
         // Find invites that haven't been escalated yet and are still unregistered
@@ -296,7 +306,7 @@ export const runScheduledTasks = async () => {
   await processEscalations();
   await processUnregisteredReminders();
   await processUnregisteredEscalations();
-  await autoCloseExpiredCampaigns();
+  await autoCloseCompletedCampaigns();
 
   logger.info('Attestation scheduled tasks completed');
 };

@@ -201,7 +201,7 @@ const AttestationCampaignTableRow = memo(function AttestationCampaignTableRow({
                                         <Clock className="h-4 w-4 text-warning" />
                                     </div>
                                     <div>
-                                        <div className="text-xl font-bold">{(stats?.total || 0) - (stats?.completed || 0)}</div>
+                                        <div className="text-xl font-bold">{stats?.pending || 0}</div>
                                         <div className="text-xs text-muted-foreground uppercase tracking-wider">Pending</div>
                                     </div>
                                 </div>
@@ -211,18 +211,17 @@ const AttestationCampaignTableRow = memo(function AttestationCampaignTableRow({
                                         <UserX className="h-4 w-4 text-muted-foreground" />
                                     </div>
                                     <div>
-                                        <div className="text-xl font-bold">{campaign.pending_invites_count || 0}</div>
+                                        <div className="text-xl font-bold">{stats?.unregistered || campaign.pending_invites_count || 0}</div>
                                         <div className="text-xs text-muted-foreground uppercase tracking-wider">Unregistered</div>
                                     </div>
                                 </div>
 
-                                {/* Overdue Placehoder - assuming we might calculate this later or get from stats */}
                                 <div className="glass-panel p-4 rounded-xl flex items-center gap-3 border-l-4 border-l-destructive">
                                     <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center">
                                         <AlertCircle className="h-4 w-4 text-destructive" />
                                     </div>
                                     <div>
-                                        <div className="text-xl font-bold">0</div>
+                                        <div className="text-xl font-bold">{stats?.overdue || 0}</div>
                                         <div className="text-xs text-muted-foreground uppercase tracking-wider">Overdue</div>
                                     </div>
                                 </div>

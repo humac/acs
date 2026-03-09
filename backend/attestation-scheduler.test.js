@@ -59,12 +59,12 @@ jest.unstable_mockModule('./services/smtpMailer.js', () => ({
 }));
 
 // Import module under test
-const { 
-  processReminders, 
-  processEscalations, 
+const {
+  processReminders,
+  processEscalations,
   processUnregisteredReminders,
   processUnregisteredEscalations,
-  autoCloseExpiredCampaigns 
+  autoCloseCompletedCampaigns
 } = await import('./services/attestationScheduler.js');
 
 describe('Attestation Scheduler - processReminders()', () => {
@@ -82,7 +82,7 @@ describe('Attestation Scheduler - processReminders()', () => {
     // Create a campaign that started 8 days ago (reminder_days = 7)
     const pastDate = new Date();
     pastDate.setDate(pastDate.getDate() - 8);
-    
+
     const mockCampaign = {
       id: 1,
       name: 'Test Campaign',
@@ -130,7 +130,7 @@ describe('Attestation Scheduler - processReminders()', () => {
     // Create a campaign that started 5 days ago (reminder_days = 7)
     const recentDate = new Date();
     recentDate.setDate(recentDate.getDate() - 5);
-    
+
     const mockCampaign = {
       id: 1,
       name: 'Test Campaign',
@@ -161,7 +161,7 @@ describe('Attestation Scheduler - processReminders()', () => {
     // Create a campaign that started 8 days ago
     const pastDate = new Date();
     pastDate.setDate(pastDate.getDate() - 8);
-    
+
     const mockCampaign = {
       id: 1,
       name: 'Test Campaign',
@@ -192,7 +192,7 @@ describe('Attestation Scheduler - processReminders()', () => {
     // Create a campaign that started 8 days ago
     const pastDate = new Date();
     pastDate.setDate(pastDate.getDate() - 8);
-    
+
     const mockCampaign = {
       id: 1,
       name: 'Test Campaign',
@@ -232,7 +232,7 @@ describe('Attestation Scheduler - processReminders()', () => {
     // Create a campaign that started 8 days ago
     const pastDate = new Date();
     pastDate.setDate(pastDate.getDate() - 8);
-    
+
     const mockCampaign = {
       id: 1,
       name: 'Test Campaign',
@@ -281,7 +281,7 @@ describe('Attestation Scheduler - processEscalations()', () => {
     // Create a campaign that started 11 days ago (escalation_days = 10)
     const pastDate = new Date();
     pastDate.setDate(pastDate.getDate() - 11);
-    
+
     const mockCampaign = {
       id: 1,
       name: 'Test Campaign',
@@ -333,7 +333,7 @@ describe('Attestation Scheduler - processEscalations()', () => {
     // Create a campaign that started 11 days ago
     const pastDate = new Date();
     pastDate.setDate(pastDate.getDate() - 11);
-    
+
     const mockCampaign = {
       id: 1,
       name: 'Test Campaign',
@@ -375,7 +375,7 @@ describe('Attestation Scheduler - processEscalations()', () => {
     // Create a campaign that started 11 days ago
     const pastDate = new Date();
     pastDate.setDate(pastDate.getDate() - 11);
-    
+
     const mockCampaign = {
       id: 1,
       name: 'Test Campaign',
@@ -406,7 +406,7 @@ describe('Attestation Scheduler - processEscalations()', () => {
     // Create a campaign that started 11 days ago
     const pastDate = new Date();
     pastDate.setDate(pastDate.getDate() - 11);
-    
+
     const mockCampaign = {
       id: 1,
       name: 'Test Campaign',
@@ -447,7 +447,7 @@ describe('Attestation Scheduler - processUnregisteredReminders()', () => {
     // Create a campaign that started 8 days ago
     const pastDate = new Date();
     pastDate.setDate(pastDate.getDate() - 8);
-    
+
     const mockCampaign = {
       id: 1,
       name: 'Test Campaign',
@@ -508,7 +508,7 @@ describe('Attestation Scheduler - processUnregisteredReminders()', () => {
     // Create a campaign that started 8 days ago
     const pastDate = new Date();
     pastDate.setDate(pastDate.getDate() - 8);
-    
+
     const mockCampaign = {
       id: 1,
       name: 'Test Campaign',
@@ -560,7 +560,7 @@ describe('Attestation Scheduler - processUnregisteredReminders()', () => {
     // Create a campaign that started 5 days ago, but unregistered_reminder_days is 7
     const pastDate = new Date();
     pastDate.setDate(pastDate.getDate() - 5);
-    
+
     const mockCampaign = {
       id: 1,
       name: 'Test Campaign',
@@ -582,7 +582,7 @@ describe('Attestation Scheduler - processUnregisteredReminders()', () => {
     // Create a campaign that started 8 days ago
     const pastDate = new Date();
     pastDate.setDate(pastDate.getDate() - 8);
-    
+
     const mockCampaign = {
       id: 1,
       name: 'Test Campaign',
@@ -626,7 +626,7 @@ describe('Attestation Scheduler - processUnregisteredEscalations()', () => {
     // Create a campaign that started 11 days ago
     const pastDate = new Date();
     pastDate.setDate(pastDate.getDate() - 11);
-    
+
     const mockCampaign = {
       id: 1,
       name: 'Test Campaign',
@@ -690,7 +690,7 @@ describe('Attestation Scheduler - processUnregisteredEscalations()', () => {
     // Create a campaign that started 11 days ago
     const pastDate = new Date();
     pastDate.setDate(pastDate.getDate() - 11);
-    
+
     const mockCampaign = {
       id: 1,
       name: 'Test Campaign',
@@ -741,7 +741,7 @@ describe('Attestation Scheduler - processUnregisteredEscalations()', () => {
     // Create a campaign that started 11 days ago
     const pastDate = new Date();
     pastDate.setDate(pastDate.getDate() - 11);
-    
+
     const mockCampaign = {
       id: 1,
       name: 'Test Campaign',
@@ -774,7 +774,7 @@ describe('Attestation Scheduler - processUnregisteredEscalations()', () => {
     // Create a campaign that started 11 days ago
     const pastDate = new Date();
     pastDate.setDate(pastDate.getDate() - 11);
-    
+
     const mockCampaign = {
       id: 1,
       name: 'Test Campaign',
@@ -814,7 +814,7 @@ describe('Attestation Scheduler - processUnregisteredEscalations()', () => {
   });
 });
 
-describe('Attestation Scheduler - autoCloseExpiredCampaigns()', () => {
+describe('Attestation Scheduler - autoCloseCompletedCampaigns()', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -823,23 +823,28 @@ describe('Attestation Scheduler - autoCloseExpiredCampaigns()', () => {
     jest.clearAllMocks();
   });
 
-  it('should close campaigns past their end_date', async () => {
-    // Create a campaign that ended 2 days ago
-    const pastDate = new Date();
-    pastDate.setDate(pastDate.getDate() - 2);
-    
+  it('should close active campaigns when all records and invites are completed/registered', async () => {
     const mockCampaign = {
       id: 1,
-      name: 'Expired Campaign',
-      status: 'active',
-      start_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-      end_date: pastDate.toISOString()
+      name: 'Completed Campaign',
+      status: 'active'
     };
 
+    const mockRecords = [
+      { id: 1, status: 'completed' },
+      { id: 2, status: 'completed' }
+    ];
+
+    const mockInvites = [
+      { id: 1, registered_at: new Date().toISOString() }
+    ];
+
     mockAttestationCampaignDb.getAll.mockResolvedValue([mockCampaign]);
+    mockAttestationRecordDb.getByCampaignId.mockResolvedValue(mockRecords);
+    mockAttestationPendingInviteDb.getByCampaignId.mockResolvedValue(mockInvites);
     mockAttestationCampaignDb.update.mockResolvedValue({ success: true });
 
-    const result = await autoCloseExpiredCampaigns();
+    const result = await autoCloseCompletedCampaigns();
 
     expect(result.success).toBe(true);
     expect(mockAttestationCampaignDb.update).toHaveBeenCalledWith(
@@ -848,50 +853,65 @@ describe('Attestation Scheduler - autoCloseExpiredCampaigns()', () => {
     );
   });
 
-  it('should NOT close campaigns without an end_date', async () => {
+  it('should NOT close campaigns if some records are pending', async () => {
     const mockCampaign = {
       id: 1,
-      name: 'Open-ended Campaign',
-      status: 'active',
-      start_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-      end_date: null
+      name: 'Pending Campaign',
+      status: 'active'
     };
 
-    mockAttestationCampaignDb.getAll.mockResolvedValue([mockCampaign]);
+    const mockRecords = [
+      { id: 1, status: 'completed' },
+      { id: 2, status: 'pending' }
+    ];
 
-    const result = await autoCloseExpiredCampaigns();
+    mockAttestationCampaignDb.getAll.mockResolvedValue([mockCampaign]);
+    mockAttestationRecordDb.getByCampaignId.mockResolvedValue(mockRecords);
+    mockAttestationPendingInviteDb.getByCampaignId.mockResolvedValue([]);
+
+    const result = await autoCloseCompletedCampaigns();
+
+    expect(result.success).toBe(true);
+    expect(mockAttestationCampaignDb.update).not.toHaveBeenCalled();
+  });
+
+  it('should NOT close campaigns if there are unregistered invites', async () => {
+    const mockCampaign = {
+      id: 1,
+      name: 'Unregistered Campaign',
+      status: 'active'
+    };
+
+    const mockRecords = [
+      { id: 1, status: 'completed' }
+    ];
+
+    const mockInvites = [
+      { id: 1, registered_at: null }
+    ];
+
+    mockAttestationCampaignDb.getAll.mockResolvedValue([mockCampaign]);
+    mockAttestationRecordDb.getByCampaignId.mockResolvedValue(mockRecords);
+    mockAttestationPendingInviteDb.getByCampaignId.mockResolvedValue(mockInvites);
+
+    const result = await autoCloseCompletedCampaigns();
 
     expect(result.success).toBe(true);
     expect(mockAttestationCampaignDb.update).not.toHaveBeenCalled();
   });
 
   it('should only affect active campaigns', async () => {
-    // Create an expired campaign that is already completed
-    const pastDate = new Date();
-    pastDate.setDate(pastDate.getDate() - 2);
-    
     const mockCampaigns = [
-      {
-        id: 1,
-        name: 'Already Completed Campaign',
-        status: 'completed',
-        start_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-        end_date: pastDate.toISOString()
-      },
-      {
-        id: 2,
-        name: 'Cancelled Campaign',
-        status: 'cancelled',
-        start_date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-        end_date: pastDate.toISOString()
-      }
+      { id: 1, status: 'completed' },
+      { id: 2, status: 'cancelled' }
     ];
 
     mockAttestationCampaignDb.getAll.mockResolvedValue(mockCampaigns);
 
-    const result = await autoCloseExpiredCampaigns();
+    const result = await autoCloseCompletedCampaigns();
 
     expect(result.success).toBe(true);
     expect(mockAttestationCampaignDb.update).not.toHaveBeenCalled();
   });
 });
+

@@ -72,7 +72,16 @@ export function DashboardContent({ campaign, compact = false, onClose: _onClose 
 
     const daysElapsed = getDaysElapsed(campaignData.start_date);
     const escalationDays = campaignData.escalation_days || 0;
-    const daysLate = Math.max(0, daysElapsed - escalationDays);
+    let daysLate = Math.max(0, daysElapsed - escalationDays);
+
+    if (campaignData.end_date) {
+      const endDate = new Date(campaignData.end_date);
+      const now = new Date();
+      if (now > endDate) {
+        const daysPastEnd = Math.floor((now - endDate) / (1000 * 60 * 60 * 24));
+        daysLate = Math.max(daysLate, daysPastEnd > 0 ? daysPastEnd : 1);
+      }
+    }
     return daysLate;
   };
 
@@ -80,7 +89,12 @@ export function DashboardContent({ campaign, compact = false, onClose: _onClose 
   const isOverdue = (record, campaignData) => {
     if (!record || !campaignData) return false;
     if (record.status === 'completed') return false;
-    return getDaysLate(record, campaignData) > 0;
+
+    const hasEnded = campaignData.end_date ? (new Date() > new Date(campaignData.end_date)) : false;
+    const daysElapsed = getDaysElapsed(campaignData.start_date);
+    const escalationDays = campaignData.escalation_days || 0;
+
+    return hasEnded || daysElapsed >= escalationDays;
   };
 
   // Load dashboard data
