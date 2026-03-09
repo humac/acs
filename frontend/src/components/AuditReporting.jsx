@@ -177,10 +177,10 @@ const AuditReportingNew = () => {
     const key = (action || '').toUpperCase();
     const successActions = ['CREATE', 'REGISTER', 'COMPLETE', 'COMPLETE_PROFILE'];
     const warningActions = ['UPDATE', 'UPDATE_PROFILE', 'ADMIN_UPDATE_USER', 'UPDATE_ROLE', 'CHANGE_PASSWORD', 'REORDER'];
-    const purpleActions = ['STATUS_CHANGE', 'SYNC', 'SYNC_ASSETS', 'START', 'TEST', 'RESEND_INVITES', 'RESEND_INVITE', 'REMINDER_SENT', 'BULK_REMINDER_SENT', 'ESCALATION_SENT'];
+    const purpleActions = ['STATUS_CHANGE', 'SYNC', 'SYNC_ASSETS', 'START', 'TEST', 'RESEND_INVITES', 'RESEND_INVITE', 'REMINDER_SENT', 'BULK_REMINDER_SENT', 'ESCALATION_SENT', 'REOPEN'];
     const destructiveActions = ['DELETE', 'CANCEL'];
     const infoActions = ['LOGIN', 'EMAIL_VERIFIED', 'EMAIL_CHANGED', 'EMAIL_CHANGE_REQUESTED', 'ENABLE_MFA', 'DISABLE_MFA'];
-    if (successActions.includes(key)) return 'glow-success';
+    if (successActions.includes(key) || key === 'CLOSE') return 'glow-success';
     if (warningActions.includes(key)) return 'glow-warning';
     if (purpleActions.includes(key)) return 'glow-purple';
     if (destructiveActions.includes(key)) return 'glow-destructive';
@@ -268,9 +268,8 @@ const AuditReportingNew = () => {
                 <Select value={filters.action} onValueChange={(v) => setFilters({ ...filters, action: v })}>
                   <SelectTrigger><SelectValue placeholder="Action" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Actions</SelectItem>
-                    <SelectItem value="CREATE">Create</SelectItem>
-                    <SelectItem value="STATUS_CHANGE">Status Change</SelectItem>
+                    <SelectItem value="REOPEN">Reopen</SelectItem>
+                    <SelectItem value="CLOSE">Close</SelectItem>
                     <SelectItem value="UPDATE">Update</SelectItem>
                     <SelectItem value="DELETE">Delete</SelectItem>
                   </SelectContent>

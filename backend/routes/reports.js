@@ -195,10 +195,14 @@ export default function createReportsRouter(deps) {
       filteredLogs.forEach(log => {
         const date = new Date(log.timestamp).toISOString().split('T')[0];
         if (!activityByDay[date]) {
-          activityByDay[date] = { date, CREATE: 0, UPDATE: 0, STATUS_CHANGE: 0, DELETE: 0 };
+          activityByDay[date] = { date, CREATE: 0, UPDATE: 0, STATUS_CHANGE: 0, DELETE: 0, CLOSE: 0, REOPEN: 0 };
         }
         const action = log.action || 'UPDATE';
         if (Object.prototype.hasOwnProperty.call(activityByDay[date], action)) {
+          activityByDay[date][action]++;
+        } else if (action === 'CLOSE' || action === 'REOPEN') {
+          // Fallback for explicitly tracked but potentially missing from init object if I didn't add it above
+          // but I did add it above in the literal.
           activityByDay[date][action]++;
         }
       });
@@ -453,7 +457,7 @@ export default function createReportsRouter(deps) {
 
         // Count assets up to this date using sorted array
         while (assetIndex < sortedAssets.length &&
-               new Date(sortedAssets[assetIndex].registration_date) <= date) {
+          new Date(sortedAssets[assetIndex].registration_date) <= date) {
           assetIndex++;
         }
 
