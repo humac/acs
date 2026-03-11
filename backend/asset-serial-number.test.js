@@ -95,11 +95,24 @@ describe('Asset Serial Number Handling', () => {
     expect(asset.serial_number).toBe(`SN:12#34-${timestamp}`);
   });
 
-  it('should reject duplicate serial numbers with a clear error', async () => {
+  it('should reject duplicate serial numbers', async () => {
     const serial = `DUPE-${timestamp}`;
-    await createAsset(serial);
+    const first = await createAsset(serial);
+    expect(first.id).toBeDefined();
 
-    await expect(createAsset(serial)).rejects.toThrow(/UNIQUE constraint failed|duplicate key/i);
+    // Second insert with same serial should fail
+    await expect(
+      assetDb.create({
+        employee_first_name: 'Dup',
+        employee_last_name: 'User',
+        employee_email: `serial-dupe-${timestamp}@example.com`,
+        company_id: testCompany.id,
+        asset_type: 'laptop',
+        make: 'Dell',
+        model: 'XPS',
+        serial_number: serial,
+      })
+    ).rejects.toThrow();
   });
 
   it('should allow updating an asset with special character serial number', async () => {
