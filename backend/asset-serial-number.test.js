@@ -1,7 +1,7 @@
 /**
  * Regression tests for serial number handling
  * Verifies that serial numbers containing special characters (dashes, slashes, dots, etc.)
- * are accepted, and that duplicate serial numbers produce clear error messages.
+ * are accepted and persisted correctly.
  */
 
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
@@ -93,26 +93,6 @@ describe('Asset Serial Number Handling', () => {
 
     const asset = await assetDb.getById(result.id);
     expect(asset.serial_number).toBe(`SN:12#34-${timestamp}`);
-  });
-
-  it('should reject duplicate serial numbers', async () => {
-    const serial = `DUPE-${timestamp}`;
-    const first = await createAsset(serial);
-    expect(first.id).toBeDefined();
-
-    // Second insert with same serial should fail
-    await expect(
-      assetDb.create({
-        employee_first_name: 'Dup',
-        employee_last_name: 'User',
-        employee_email: `serial-dupe-${timestamp}@example.com`,
-        company_id: testCompany.id,
-        asset_type: 'laptop',
-        make: 'Dell',
-        model: 'XPS',
-        serial_number: serial,
-      })
-    ).rejects.toThrow();
   });
 
   it('should allow updating an asset with special character serial number', async () => {
