@@ -265,6 +265,19 @@ export default function createAssetsRouter(deps) {
       });
     } catch (error) {
       logger.error({ err: error, userId: req.user?.id }, 'Error creating asset');
+
+      // Handle duplicate serial number (UNIQUE constraint violation)
+      const errMsg = error.message || '';
+      if (errMsg.includes('UNIQUE constraint failed') || errMsg.includes('unique') || errMsg.includes('duplicate key')) {
+        if (errMsg.includes('serial_number')) {
+          return res.status(409).json({ error: `An asset with serial number '${serial_number}' already exists` });
+        }
+        if (errMsg.includes('asset_tag')) {
+          return res.status(409).json({ error: `An asset with asset tag '${asset_tag}' already exists` });
+        }
+        return res.status(409).json({ error: 'An asset with this serial number or asset tag already exists' });
+      }
+
       res.status(500).json({ error: 'Failed to register asset' });
     }
   });
@@ -510,6 +523,18 @@ export default function createAssetsRouter(deps) {
       });
     } catch (error) {
       logger.error({ err: error, assetId: req.params.id, userId: req.user?.id }, 'Error updating asset');
+
+      const errMsg = error.message || '';
+      if (errMsg.includes('UNIQUE constraint failed') || errMsg.includes('unique') || errMsg.includes('duplicate key')) {
+        if (errMsg.includes('serial_number')) {
+          return res.status(409).json({ error: `An asset with serial number '${serial_number}' already exists` });
+        }
+        if (errMsg.includes('asset_tag')) {
+          return res.status(409).json({ error: `An asset with this asset tag already exists` });
+        }
+        return res.status(409).json({ error: 'An asset with this serial number or asset tag already exists' });
+      }
+
       res.status(500).json({ error: 'Failed to update asset' });
     }
   });

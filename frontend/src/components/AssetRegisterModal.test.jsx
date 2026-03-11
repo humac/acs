@@ -224,6 +224,36 @@ describe('AssetRegisterModal', () => {
     });
   });
 
+  describe('Serial Number Special Characters', () => {
+    it('accepts serial numbers with dashes', () => {
+      renderModal();
+      const input = screen.getByLabelText(/Serial Number/);
+      fireEvent.change(input, { target: { value: 'AB-1234', name: 'serial_number' } });
+      expect(input).toHaveValue('AB-1234');
+    });
+
+    it('accepts serial numbers with forward slashes', () => {
+      renderModal();
+      const input = screen.getByLabelText(/Serial Number/);
+      fireEvent.change(input, { target: { value: 'AB/1234/XY', name: 'serial_number' } });
+      expect(input).toHaveValue('AB/1234/XY');
+    });
+
+    it('accepts serial numbers with dots', () => {
+      renderModal();
+      const input = screen.getByLabelText(/Serial Number/);
+      fireEvent.change(input, { target: { value: 'SN.123.456', name: 'serial_number' } });
+      expect(input).toHaveValue('SN.123.456');
+    });
+
+    it('accepts serial numbers with mixed special characters', () => {
+      renderModal();
+      const input = screen.getByLabelText(/Serial Number/);
+      fireEvent.change(input, { target: { value: 'SN-12/34.56_78', name: 'serial_number' } });
+      expect(input).toHaveValue('SN-12/34.56_78');
+    });
+  });
+
   describe('Returned Date Field', () => {
     it('does not show returned date field when status is not returned (default active status)', () => {
       renderModal();
