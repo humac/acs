@@ -324,13 +324,28 @@ test('admin sees all', async ({ adminPage, adminApi }) => { ... });
 
 **⚠️ NEVER run E2E seed/cleanup against production.** Scripts abort if `NODE_ENV=production`.
 
+### Mandatory: Tests Must Ship with Code
+
+**Every feature or bug fix MUST include corresponding tests before the work is considered complete.** Never defer test writing to a follow-up task.
+
+**For features:**
+- Backend unit/integration tests for new or modified endpoints (`backend/*.test.js`)
+- Frontend component tests for new or modified components (`frontend/src/**/*.test.jsx`)
+- E2E tests for new user-facing workflows, authorization rules, or role-scoped behavior (`frontend/e2e/**/*.spec.js`)
+- Update E2E seed data (`e2e/support/constants.js`, `e2e/fixtures/seed.js`) if new entities/roles are introduced
+
+**For bug fixes:**
+- Add a regression test that reproduces the bug and verifies the fix
+- If the fix involves authorization or role logic, add or update E2E specs
+
 ### Before Committing
 
 1. Run `npm test` in changed module(s)
 2. Backend: verify server starts
 3. Frontend: run `npm run build`
 4. **Run `npm run test:e2e`** in frontend/ — full Playwright E2E suite
-5. Verify no `test.only()` left in any spec file
+5. Verify no `test.only()` or `describe.only()` left in any spec file
+6. Verify new tests exist for any new or modified feature/fix
 
 ## Common Tasks
 
@@ -471,3 +486,4 @@ app.get('/api/users',
 13. **Run E2E tests** - After authorization or role changes, run `npm run test:e2e` in frontend/
 14. **Update seed data** - When adding new entities or roles, update `e2e/support/constants.js` and `e2e/fixtures/seed.js`
 15. **Close security gaps** - Check `e2e/security/known-gaps.spec.js` for priority fixes on every PR
+16. **Ship tests with code** - Every feature and bug fix MUST include unit, integration, and/or E2E tests. Code without tests is not complete.

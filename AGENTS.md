@@ -467,6 +467,27 @@ When fixing: apply backend fix → flip assertion in spec → remove `// TODO` c
 4. Bug fixes → Regression tests
 5. New authorization rules → E2E specs in `frontend/e2e/`
 
+### Mandatory: Tests Must Ship with Code
+
+**Every feature or bug fix MUST include corresponding tests before the work is considered complete.** Do not defer test writing to a follow-up task.
+
+**For features:**
+- Backend unit/integration tests for new or modified API endpoints (`backend/*.test.js`)
+- Frontend component tests for new or modified UI components (`frontend/src/**/*.test.jsx`)
+- E2E tests for any new user-facing workflows, authorization rules, or role-scoped behavior (`frontend/e2e/**/*.spec.js`)
+- Update E2E seed data (`e2e/support/constants.js`, `e2e/fixtures/seed.js`) if new entities, roles, or relationships are introduced
+
+**For bug fixes:**
+- Add a regression test that reproduces the bug and verifies the fix
+- If the fix involves authorization or role logic, add or update E2E specs
+
+**Completion checklist (all must pass before a branch is done):**
+1. `cd backend && npm test` — all backend unit tests pass
+2. `cd frontend && npm test` — all frontend component tests pass
+3. `cd frontend && npm run test:e2e` — full Playwright E2E suite passes
+4. No `test.only()` or `describe.only()` left in any test file
+5. New tests cover the specific feature or fix being shipped
+
 ## Critical Rules
 
 ### Never Do This

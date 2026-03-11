@@ -1293,6 +1293,17 @@ describe('AssetTable', () => {
 3. Business logic changes → Update relevant tests
 4. Bug fixes → Add regression tests
 
+**Mandatory: Tests Must Ship with Code:**
+
+Every feature or bug fix MUST include corresponding tests before the work is considered complete. Never defer test writing to a follow-up task.
+
+- **Features**: Include backend unit/integration tests for new/modified endpoints, frontend component tests for new/modified UI, and E2E tests for new user-facing workflows or authorization rules
+- **Bug fixes**: Include a regression test that reproduces the bug and verifies the fix
+- **Authorization/role changes**: Always add or update E2E specs in `frontend/e2e/`
+- **New entities/roles**: Update E2E seed data (`e2e/support/constants.js`, `e2e/fixtures/seed.js`)
+
+Code without tests is not complete. A branch is not "Done" until all tests pass and new tests cover the shipped changes.
+
 **Coverage Goals:**
 - Critical paths: 100% (authentication, authorization, audit logging)
 - Business logic: >80%
