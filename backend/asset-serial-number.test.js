@@ -99,7 +99,7 @@ describe('Asset Serial Number Handling', () => {
     const serial = `DUPE-${timestamp}`;
     await createAsset(serial);
 
-    await expect(createAsset(serial)).rejects.toThrow(/UNIQUE constraint failed/i);
+    await expect(createAsset(serial)).rejects.toThrow(/UNIQUE constraint failed|duplicate key/i);
   });
 
   it('should allow updating an asset with special character serial number', async () => {
