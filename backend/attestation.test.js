@@ -111,6 +111,11 @@ describe('Attestation DB Tables', () => {
     await attestationCampaignDb.update(campaign.id, { status: 'active' });
     currentCampaign = await attestationCampaignDb.getById(campaign.id);
     expect(currentCampaign.status).toBe('active');
+
+    // 3. Manual close campaign
+    await attestationCampaignDb.update(campaign.id, { status: 'completed' });
+    currentCampaign = await attestationCampaignDb.getById(campaign.id);
+    expect(currentCampaign.status).toBe('completed');
   });
 
   it('should handle empty string end_date by converting to null', async () => {

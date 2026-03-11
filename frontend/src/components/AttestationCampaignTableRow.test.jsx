@@ -32,6 +32,7 @@ describe('AttestationCampaignTableRow', () => {
         onViewDashboard: vi.fn(),
         onExport: vi.fn(),
         onReopen: vi.fn(),
+        onClose: vi.fn(),
     };
 
     it('should render campaign name', () => {
@@ -133,5 +134,34 @@ describe('AttestationCampaignTableRow', () => {
         );
 
         expect(screen.queryByTitle('Reopen Campaign')).not.toBeInTheDocument();
+    });
+
+    it('should render Close button for active campaign when user can manage', () => {
+        render(
+            <table>
+                <tbody>
+                    <AttestationCampaignTableRow {...defaultProps} campaign={mockCampaign} canManage={true} />
+                </tbody>
+            </table>
+        );
+
+        const closeButton = screen.getByTitle('Close Campaign');
+        expect(closeButton).toBeInTheDocument();
+
+        fireEvent.click(closeButton);
+        expect(defaultProps.onClose).toHaveBeenCalled();
+    });
+
+    it('should NOT render Close button if campaign is NOT active', () => {
+        const completedCampaign = { ...mockCampaign, status: 'completed' };
+        render(
+            <table>
+                <tbody>
+                    <AttestationCampaignTableRow {...defaultProps} campaign={completedCampaign} canManage={true} />
+                </tbody>
+            </table>
+        );
+
+        expect(screen.queryByTitle('Close Campaign')).not.toBeInTheDocument();
     });
 });
