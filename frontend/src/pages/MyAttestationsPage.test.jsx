@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import MyAttestationsPage from './MyAttestationsPage';
 
@@ -189,6 +190,107 @@ describe('MyAttestationsPage', () => {
         );
         expect(screen.getByText('TAG-123')).toBeInTheDocument();
         expect(screen.getByText('Dell XPS')).toBeInTheDocument();
+      });
+    });
+
+    it('prepopulates returned date from the last certification result when starting a new attestation', async () => {
+      const user = userEvent.setup();
+
+      global.fetch.mockImplementation((url) => {
+        if (url === '/api/attestation/my-attestations') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              attestations: [
+                {
+                  id: 77,
+                  status: 'pending',
+                  campaign: {
+                    name: 'Monthly Certification',
+                    description: 'March asset review',
+                    start_date: '2026-03-01',
+                    end_date: '2026-03-31'
+                  }
+                }
+              ]
+            })
+          });
+        }
+
+        if (url === '/api/asset-types') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ([{ id: 1, name: 'laptop', display_name: 'Laptop' }])
+          });
+        }
+
+        if (url === '/api/attestation/records/77') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              success: true,
+              campaign: {
+                id: 900,
+                name: 'Monthly Certification'
+              },
+              assets: [
+                {
+                  id: 501,
+                  asset_type: 'Laptop',
+                  company_name: 'Acme Corp',
+                  make: 'Dell',
+                  model: 'Latitude',
+                  serial_number: 'SN-501',
+                  status: 'active',
+                  returned_date: null,
+                  last_certification_result: {
+                    attested_status: 'returned',
+                    returned_date: '2026-02-15'
+                  }
+                }
+              ],
+              attestedAssets: [],
+              newAssets: []
+            })
+          });
+        }
+
+        if (url === '/api/attestation/records/77/assets/501') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ success: true })
+          });
+        }
+
+        return Promise.resolve({ ok: true, json: async () => [] });
+      });
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Monthly Certification')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: /start/i }));
+
+      await waitFor(() => {
+        expect(screen.getAllByRole('button', { name: /certify asset/i }).length).toBeGreaterThan(0);
+      });
+
+      await user.click(screen.getAllByRole('button', { name: /certify asset/i })[0]);
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          '/api/attestation/records/77/assets/501',
+          expect.objectContaining({
+            method: 'PUT',
+            body: JSON.stringify({
+              attested_status: 'returned',
+              returned_date: '2026-02-15',
+              notes: ''
+            })
+          })
+        );
       });
     });
   });

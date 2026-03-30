@@ -837,12 +837,24 @@ export default function createAttestationRouter(deps) {
 
       const attestedAssets = await attestationAssetDb.getByRecordId(record.id);
       const newAssets = await attestationNewAssetDb.getByRecordId(record.id);
+      const latestCertificationResults = await Promise.all(
+        userAssets.map(async (asset) => {
+          const lastCertification = await attestationAssetDb.getLatestByAssetId(asset.id, record.id);
+          return [asset.id, lastCertification];
+        })
+      );
+      const latestCertificationByAssetId = new Map(latestCertificationResults);
+
+      const assetsWithCertificationHistory = userAssets.map(asset => ({
+        ...asset,
+        last_certification_result: latestCertificationByAssetId.get(asset.id) || null
+      }));
 
       res.json({
         success: true,
         record,
         campaign,
-        assets: userAssets,
+        assets: assetsWithCertificationHistory,
         attestedAssets,
         newAssets
       });
@@ -867,6 +879,7 @@ export default function createAttestationRouter(deps) {
 
       const { attested_status, notes, returned_date } = req.body;
       const asset = await assetDb.getById(req.params.assetId);
+      const normalizedReturnedDate = attested_status === 'returned' ? sanitizeDateValue(returned_date) : null;
 
       if (!asset) {
         return res.status(404).json({ error: 'Asset not found' });
@@ -877,6 +890,7 @@ export default function createAttestationRouter(deps) {
         asset_id: asset.id,
         attested_status,
         previous_status: asset.status,
+        returned_date: normalizedReturnedDate,
         notes,
         attested_at: new Date().toISOString()
       });
@@ -889,11 +903,11 @@ export default function createAttestationRouter(deps) {
         });
       }
 
-      // If attested_status changed, update the asset
-      if (attested_status && attested_status !== asset.status) {
-        // Pass returned_date if status is 'returned'
-        const returnedDateValue = attested_status === 'returned' ? returned_date : null;
-        await assetDb.updateStatus(asset.id, attested_status, notes, returnedDateValue);
+      const shouldUpdateReturnedDate = attested_status === 'returned' && asset.returned_date !== normalizedReturnedDate;
+
+      // Keep the live asset row aligned with the latest attestation details.
+      if ((attested_status && attested_status !== asset.status) || shouldUpdateReturnedDate) {
+        await assetDb.updateStatus(asset.id, attested_status, notes, normalizedReturnedDate);
 
         await auditDb.log(
           'update',

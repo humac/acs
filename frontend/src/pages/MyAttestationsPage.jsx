@@ -44,6 +44,33 @@ import { DatePicker } from '@/components/ui/date-picker';
 import CompanyCombobox from '@/components/CompanyCombobox';
 import UserAttestationTable from '@/components/UserAttestationTable';
 
+const getLatestAttestedAssetsById = (attestedAssets = []) => {
+  return attestedAssets.reduce((acc, attestedAsset) => {
+    if (!acc[attestedAsset.asset_id]) {
+      acc[attestedAsset.asset_id] = attestedAsset;
+    }
+    return acc;
+  }, {});
+};
+
+const getInitialStatusForAsset = (asset, currentAttestation) => {
+  return currentAttestation?.attested_status
+    || asset.last_certification_result?.attested_status
+    || asset.status;
+};
+
+const getInitialReturnedDateForAsset = (asset, currentAttestation, status) => {
+  if (currentAttestation?.returned_date) {
+    return currentAttestation.returned_date;
+  }
+
+  if (status !== 'returned') {
+    return '';
+  }
+
+  return asset.last_certification_result?.returned_date || asset.returned_date || '';
+};
+
 export default function MyAttestationsPage() {
   const { getAuthHeaders, user } = useAuth();
   const { toast } = useToast();
@@ -193,12 +220,21 @@ export default function MyAttestationsPage() {
       // to avoid requiring users to re-certify assets they've already confirmed
       setCertifiedAssetIds(attestedIds);
 
-      // Initialize selected statuses with current asset statuses
+      const currentAttestationsByAssetId = getLatestAttestedAssetsById(data.attestedAssets);
       const statuses = {};
+      const dates = {};
       data.assets?.forEach(asset => {
-        statuses[asset.id] = asset.status;
+        const currentAttestation = currentAttestationsByAssetId[asset.id];
+        const initialStatus = getInitialStatusForAsset(asset, currentAttestation);
+        const initialReturnedDate = getInitialReturnedDateForAsset(asset, currentAttestation, initialStatus);
+
+        statuses[asset.id] = initialStatus;
+        if (initialReturnedDate) {
+          dates[asset.id] = initialReturnedDate;
+        }
       });
       setSelectedStatuses(statuses);
+      setReturnedDates(dates);
     } catch (err) {
       console.error(err);
       toast({
@@ -355,6 +391,7 @@ export default function MyAttestationsPage() {
       setShowAttestationModal(false);
       setCertifiedAssetIds(new Set());
       setSelectedStatuses({});
+      setReturnedDates({});
       loadAttestations();
     } catch (err) {
       console.error(err);
@@ -379,6 +416,8 @@ export default function MyAttestationsPage() {
       </div>
     );
   }
+
+  const currentAttestationsByAssetId = getLatestAttestedAssetsById(attestationDetails?.attestedAssets);
 
   return (
     <div className="space-y-6 p-1 md:p-2 animate-fade-in min-h-screen">
@@ -494,7 +533,11 @@ export default function MyAttestationsPage() {
                         <TableBody>
                           {attestationDetails.assets?.map((asset) => {
                             const isCertified = certifiedAssetIds.has(asset.id);
-                            const selectedStatus = selectedStatuses[asset.id] || asset.status;
+                            const currentAttestation = currentAttestationsByAssetId[asset.id];
+                            const selectedStatus = selectedStatuses[asset.id] || getInitialStatusForAsset(asset, currentAttestation);
+                            const returnedDateDisplay = currentAttestation?.returned_date
+                              || asset.last_certification_result?.returned_date
+                              || asset.returned_date;
                             const showReturnedDate = selectedStatus === 'returned' && !isCertified;
                             return (
                               <TableRow key={asset.id} className={isCertified ? 'bg-success/10' : ''}>
@@ -511,9 +554,9 @@ export default function MyAttestationsPage() {
                                   {isCertified ? (
                                     <div className="space-y-1">
                                       <Badge variant="outline">{selectedStatus}</Badge>
-                                      {asset.returned_date && (
+                                      {returnedDateDisplay && (
                                         <div className="text-xs text-muted-foreground">
-                                          Returned: {new Date(asset.returned_date).toLocaleDateString()}
+                                          Returned: {new Date(returnedDateDisplay).toLocaleDateString()}
                                         </div>
                                       )}
                                     </div>
@@ -582,7 +625,11 @@ export default function MyAttestationsPage() {
                     <div className="md:hidden space-y-4">
                       {attestationDetails.assets?.map((asset, index) => {
                         const isCertified = certifiedAssetIds.has(asset.id);
-                        const selectedStatus = selectedStatuses[asset.id] || asset.status;
+                        const currentAttestation = currentAttestationsByAssetId[asset.id];
+                        const selectedStatus = selectedStatuses[asset.id] || getInitialStatusForAsset(asset, currentAttestation);
+                        const returnedDateDisplay = currentAttestation?.returned_date
+                          || asset.last_certification_result?.returned_date
+                          || asset.returned_date;
                         const showReturnedDate = selectedStatus === 'returned' && !isCertified;
                         return (
                           <div
@@ -632,9 +679,9 @@ export default function MyAttestationsPage() {
                                   {isCertified ? (
                                     <div className="mt-1 space-y-1">
                                       <Badge variant="outline">{selectedStatus}</Badge>
-                                      {asset.returned_date && (
+                                      {returnedDateDisplay && (
                                         <div className="text-xs text-muted-foreground">
-                                          Returned: {new Date(asset.returned_date).toLocaleDateString()}
+                                          Returned: {new Date(returnedDateDisplay).toLocaleDateString()}
                                         </div>
                                       )}
                                     </div>

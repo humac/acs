@@ -1148,6 +1148,7 @@ const initDb = async () => {
       asset_id INTEGER NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
       attested_status TEXT,
       previous_status TEXT,
+      returned_date TIMESTAMP,
       notes TEXT,
       attested_at TIMESTAMP
     )
@@ -1158,6 +1159,7 @@ const initDb = async () => {
       asset_id INTEGER NOT NULL,
       attested_status TEXT,
       previous_status TEXT,
+      returned_date TEXT,
       notes TEXT,
       attested_at TEXT,
       FOREIGN KEY(attestation_record_id) REFERENCES attestation_records(id) ON DELETE CASCADE,
@@ -1691,6 +1693,27 @@ const initDb = async () => {
     }
   } catch (err) {
     console.error('Migration error (attestation_new_assets status column):', err.message);
+    // Don't fail initialization
+  }
+
+  // Migration: Add returned_date column to attestation_assets table
+  try {
+    const attestationAssetCols = isPostgres
+      ? await dbAll(`
+          SELECT column_name as name
+          FROM information_schema.columns
+          WHERE table_name = 'attestation_assets'
+        `)
+      : await dbAll("PRAGMA table_info(attestation_assets)");
+
+    const hasReturnedDate = attestationAssetCols.some(col => col.name === 'returned_date');
+    if (!hasReturnedDate) {
+      console.log('Migrating attestation_assets table: adding returned_date column...');
+      await dbRun("ALTER TABLE attestation_assets ADD COLUMN returned_date " + (isPostgres ? "TIMESTAMP" : "TEXT"));
+      console.log('Migration complete: Added returned_date column to attestation_assets');
+    }
+  } catch (err) {
+    console.error('Migration error (attestation_assets returned_date column):', err.message);
     // Don't fail initialization
   }
 
@@ -4476,27 +4499,62 @@ export const attestationAssetDb = {
   create: async (asset) => {
     if (isPostgres) {
       const result = await dbRun(
-        `INSERT INTO attestation_assets (attestation_record_id, asset_id, attested_status, previous_status, notes, attested_at)
-         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-        [asset.attestation_record_id, asset.asset_id, asset.attested_status, asset.previous_status, asset.notes, asset.attested_at]
+        `INSERT INTO attestation_assets (attestation_record_id, asset_id, attested_status, previous_status, returned_date, notes, attested_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+        [asset.attestation_record_id, asset.asset_id, asset.attested_status, asset.previous_status, asset.returned_date || null, asset.notes, asset.attested_at]
       );
       return { id: result.rows[0].id };
     } else {
       const result = await dbRun(
-        `INSERT INTO attestation_assets (attestation_record_id, asset_id, attested_status, previous_status, notes, attested_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [asset.attestation_record_id, asset.asset_id, asset.attested_status, asset.previous_status, asset.notes, asset.attested_at]
+        `INSERT INTO attestation_assets (attestation_record_id, asset_id, attested_status, previous_status, returned_date, notes, attested_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [asset.attestation_record_id, asset.asset_id, asset.attested_status, asset.previous_status, asset.returned_date || null, asset.notes, asset.attested_at]
       );
       return { id: result.lastInsertRowid };
     }
   },
 
   getByRecordId: async (recordId) => {
-    const assets = await dbAll('SELECT * FROM attestation_assets WHERE attestation_record_id = ?', [recordId]);
+    const assets = await dbAll(
+      'SELECT * FROM attestation_assets WHERE attestation_record_id = ? ORDER BY attested_at DESC, id DESC',
+      [recordId]
+    );
     return assets.map(a => ({
       ...a,
+      returned_date: normalizeDateOnly(a.returned_date),
       attested_at: normalizeDates(a.attested_at)
     }));
+  },
+
+  getLatestByAssetId: async (assetId, excludeRecordId = null) => {
+    const params = [assetId];
+    let query = `
+      SELECT aa.*
+      FROM attestation_assets aa
+      WHERE aa.asset_id = ?
+    `;
+
+    if (excludeRecordId !== null && excludeRecordId !== undefined) {
+      query += ` AND aa.attestation_record_id != ${isPostgres ? '$2' : '?'}`;
+      params.push(excludeRecordId);
+    }
+
+    query += `
+      ORDER BY aa.attested_at DESC, aa.id DESC
+      LIMIT 1
+    `;
+
+    const asset = await dbGet(query, params);
+
+    if (!asset) {
+      return null;
+    }
+
+    return {
+      ...asset,
+      returned_date: normalizeDateOnly(asset.returned_date),
+      attested_at: normalizeDates(asset.attested_at)
+    };
   },
 
   update: async (id, updates) => {
@@ -4506,6 +4564,10 @@ export const attestationAssetDb = {
     if (updates.attested_status !== undefined) {
       fields.push(isPostgres ? `attested_status = $${fields.length + 1}` : 'attested_status = ?');
       params.push(updates.attested_status);
+    }
+    if (updates.returned_date !== undefined) {
+      fields.push(isPostgres ? `returned_date = $${fields.length + 1}` : 'returned_date = ?');
+      params.push(updates.returned_date);
     }
     if (updates.notes !== undefined) {
       fields.push(isPostgres ? `notes = $${fields.length + 1}` : 'notes = ?');
@@ -4953,4 +5015,3 @@ export const dangerZoneDb = {
 };
 
 export default { databaseEngine };
-
