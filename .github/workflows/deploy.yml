@@ -33,7 +33,7 @@ jobs:
     
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -83,7 +83,7 @@ jobs:
     environment: 'KARS Application / sbx'
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       
       - name: Deploy Frontend (Dev)
         run: npx @railway/cli redeploy --service ${{ secrets.RAILWAY_FRONTEND_ID_DEV }} --yes

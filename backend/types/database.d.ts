@@ -304,6 +304,7 @@ export interface AttestationRecordDb {
 export interface AttestationAssetDb {
   create(asset: Record<string, unknown>): Promise<{ id: number }>;
   getByRecordId(recordId: number): Promise<Array<Record<string, unknown>>>;
+  getLatestByAssetId(assetId: number, excludeRecordId?: number | null): Promise<Record<string, unknown> | null>;
   update(id: number, updates: Record<string, unknown>): Promise<void>;
 }
 

@@ -289,6 +289,64 @@ describe('AssetEditModal Component', () => {
     });
   });
 
+  it('passes the saved asset with preserved employee names back to the parent for employee self-edits', async () => {
+    const user = userEvent.setup();
+    mockUser = { role: 'employee', email: 'john@example.com' };
+    const currentUser = { roles: ['user'] };
+
+    const mockResponse = {
+      asset: {
+        ...sampleAsset,
+        make: 'Framework',
+        model: '13',
+        employee_first_name: 'John',
+        employee_last_name: 'Doe'
+      }
+    };
+
+    global.fetch.mockImplementation((url, options) => {
+      if (url === '/api/companies/names') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => [{ id: 1, name: 'Acme Corp' }],
+        });
+      }
+      if (url === '/api/asset-types') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => [{ id: 1, name: 'laptop', display_name: 'Laptop' }],
+        });
+      }
+      if (url === '/api/assets/1' && options?.method === 'PUT') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => mockResponse,
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    render(
+      <AssetEditModal
+        asset={sampleAsset}
+        currentUser={currentUser}
+        onClose={mockOnClose}
+        onSaved={mockOnSaved}
+      />
+    );
+
+    await user.click(screen.getByText('Save Changes'));
+
+    await waitFor(() => {
+      expect(mockOnSaved).toHaveBeenCalledWith(expect.objectContaining({
+        employee_first_name: 'John',
+        employee_last_name: 'Doe',
+        make: 'Framework',
+        model: '13'
+      }));
+    });
+  });
+
   it('has status dropdown with backend-compatible values', () => {
     const currentUser = { roles: ['admin'] };
 
