@@ -23,6 +23,145 @@ const sanitizeForLog = (text, maxLength = 500) => {
   return text.replace(/[\r\n]/g, ' ').substring(0, maxLength);
 };
 
+export const getCampaignCompanyIds = (campaign) => {
+  if (campaign.target_type !== 'companies' || !campaign.target_company_ids) {
+    return null;
+  }
+
+  return JSON.parse(campaign.target_company_ids)
+    .map((id) => Number(id))
+    .filter((id) => Number.isInteger(id) && id > 0);
+};
+
+export const shouldExcludeAssetFromFutureAttestations = (asset) => (
+  asset.status === 'returned' && asset.last_certification_result?.attested_status === 'returned'
+);
+
+export const getAssetsWithCertificationHistory = async (assets, attestationAssetDb, excludeRecordId = null) => {
+  const latestCertificationResults = await Promise.all(
+    assets.map(async (asset) => {
+      const lastCertification = await attestationAssetDb.getLatestByAssetId(asset.id, excludeRecordId);
+      return [asset.id, lastCertification];
+    })
+  );
+
+  const latestCertificationByAssetId = new Map(latestCertificationResults);
+  return assets.map((asset) => ({
+    ...asset,
+    last_certification_result: latestCertificationByAssetId.get(asset.id) || null
+  }));
+};
+
+export const getEligibleAssetsForCampaignUser = async ({
+  campaign,
+  email,
+  assetDb,
+  attestationAssetDb,
+  excludeRecordId = null,
+  companyIds = undefined
+}) => {
+  const scopedCompanyIds = companyIds === undefined ? getCampaignCompanyIds(campaign) : companyIds;
+  const allAssets = await assetDb.getByEmployeeEmail(email);
+  const scopedAssets = scopedCompanyIds
+    ? allAssets.filter((asset) => scopedCompanyIds.includes(asset.company_id))
+    : allAssets;
+  const assetsWithHistory = await getAssetsWithCertificationHistory(scopedAssets, attestationAssetDb, excludeRecordId);
+  const eligibleAssets = assetsWithHistory.filter((asset) => !shouldExcludeAssetFromFutureAttestations(asset));
+
+  return {
+    assetsWithHistory,
+    eligibleAssets
+  };
+};
+
+export const normalizePendingInviteTarget = (target, assetCount) => ({
+  ...target,
+  employee_email: target.employee_email || target.email,
+  employee_first_name: target.employee_first_name ?? target.firstName ?? '',
+  employee_last_name: target.employee_last_name ?? target.lastName ?? '',
+  asset_count: assetCount
+});
+
+export const filterCampaignTargetsByEligibleAssets = async (campaign, users, unregisteredOwners, deps) => {
+  const {
+    assetDb,
+    attestationAssetDb
+  } = deps;
+
+  const companyIds = getCampaignCompanyIds(campaign);
+  const handledEmails = new Set();
+  const eligibleUsers = [];
+  const eligibleOwners = [];
+  const companiesInScope = new Set();
+  const skippedTargets = [];
+  let totalEligibleAssets = 0;
+
+  for (const user of users) {
+    const normalizedEmail = user.email?.toLowerCase();
+    if (!normalizedEmail || handledEmails.has(normalizedEmail)) {
+      continue;
+    }
+
+    const { eligibleAssets } = await getEligibleAssetsForCampaignUser({
+      campaign,
+      email: user.email,
+      assetDb,
+      attestationAssetDb,
+      companyIds
+    });
+
+    if (eligibleAssets.length === 0) {
+      skippedTargets.push(user.email);
+      handledEmails.add(normalizedEmail);
+      continue;
+    }
+
+    eligibleUsers.push(user);
+    totalEligibleAssets += eligibleAssets.length;
+    eligibleAssets.forEach((asset) => {
+      if (asset.company_id) companiesInScope.add(asset.company_id);
+    });
+    handledEmails.add(normalizedEmail);
+  }
+
+  for (const owner of unregisteredOwners) {
+    const ownerEmail = owner.employee_email || owner.email;
+    const normalizedEmail = ownerEmail?.toLowerCase();
+    if (!normalizedEmail || handledEmails.has(normalizedEmail)) {
+      continue;
+    }
+
+    const { eligibleAssets } = await getEligibleAssetsForCampaignUser({
+      campaign,
+      email: ownerEmail,
+      assetDb,
+      attestationAssetDb,
+      companyIds
+    });
+
+    if (eligibleAssets.length === 0) {
+      skippedTargets.push(ownerEmail);
+      handledEmails.add(normalizedEmail);
+      continue;
+    }
+
+    eligibleOwners.push(normalizePendingInviteTarget(owner, eligibleAssets.length));
+    totalEligibleAssets += eligibleAssets.length;
+    eligibleAssets.forEach((asset) => {
+      if (asset.company_id) companiesInScope.add(asset.company_id);
+    });
+    handledEmails.add(normalizedEmail);
+  }
+
+  return {
+    eligibleUsers,
+    eligibleOwners,
+    totalEligibleAssets,
+    companiesInScope,
+    skippedTargets
+  };
+};
+
 /**
  * Create and configure the attestation router
  * @param {Object} deps - Dependencies
@@ -229,8 +368,6 @@ export default function createAttestationRouter(deps) {
 
       let registeredUsers = [];
       let unregisteredOwners = [];
-      let totalAssets = 0;
-      const scopeCompanyIds = new Set();
 
       if (campaign.target_type === 'companies' && campaign.target_company_ids) {
         const companyIds = JSON.parse(campaign.target_company_ids);
@@ -239,37 +376,22 @@ export default function createAttestationRouter(deps) {
 
         registeredUsers = await assetDb.getRegisteredOwnersByCompanyIds(validCompanyIds);
         unregisteredOwners = await assetDb.getUnregisteredOwnersByCompanyIds(validCompanyIds);
-
-        for (const cId of validCompanyIds) {
-          const count = await companyDb.getAssetCount(cId);
-          totalAssets += count;
-          scopeCompanyIds.add(cId);
-        }
       } else if (campaign.target_type === 'selected') {
         // Handle selected users
         if (campaign.target_user_ids) {
           const targetIds = JSON.parse(campaign.target_user_ids);
           const allUsers = await userDb.getAll();
           registeredUsers = allUsers.filter(u => targetIds.includes(u.id));
-
-          for (const user of registeredUsers) {
-            const assets = await assetDb.getByEmployeeEmail(user.email);
-            totalAssets += assets.length;
-            assets.forEach(a => { if (a.company_id) scopeCompanyIds.add(a.company_id); });
-          }
         }
 
         // Handle selected emails (unregistered or explicit invites)
         if (campaign.target_emails) {
           const targetEmails = JSON.parse(campaign.target_emails);
           // These are treated as unregistered invites. 
-          // We can check if they have assets to provide better stats
           for (const target of targetEmails) {
             const assets = await assetDb.getByEmployeeEmail(target.email);
             if (assets.length > 0) {
               unregisteredOwners.push({ ...target, asset_count: assets.length });
-              totalAssets += assets.length;
-              assets.forEach(a => { if (a.company_id) scopeCompanyIds.add(a.company_id); });
             } else {
               // Invited person with 0 assets
               unregisteredOwners.push({ ...target, asset_count: 0 });
@@ -280,19 +402,26 @@ export default function createAttestationRouter(deps) {
         // 'all' mode
         registeredUsers = await userDb.getAll();
         unregisteredOwners = await assetDb.getUnregisteredOwners();
-        const allAssets = await assetDb.getAll();
-        totalAssets = allAssets.length;
-        allAssets.forEach(a => { if (a.company_id) scopeCompanyIds.add(a.company_id); });
       }
+
+      const {
+        eligibleUsers,
+        eligibleOwners,
+        totalEligibleAssets,
+        companiesInScope
+      } = await filterCampaignTargetsByEligibleAssets(campaign, registeredUsers, unregisteredOwners, {
+        assetDb,
+        attestationAssetDb
+      });
 
       res.json({
         success: true,
         scope: {
-          registeredUsers: registeredUsers.length,
-          unregisteredOwners: unregisteredOwners.length,
-          totalEmployees: registeredUsers.length + unregisteredOwners.length,
-          totalAssets,
-          companiesInScope: scopeCompanyIds.size,
+          registeredUsers: eligibleUsers.length,
+          unregisteredOwners: eligibleOwners.length,
+          totalEmployees: eligibleUsers.length + eligibleOwners.length,
+          totalAssets: totalEligibleAssets,
+          companiesInScope: companiesInScope.size,
           targetType: campaign.target_type
         }
       });
@@ -362,8 +491,6 @@ export default function createAttestationRouter(deps) {
       // Get users based on targeting
       let users = [];
       let unregisteredOwners = [];
-      // Set to track emails we've already handled (to avoid duplicates between lists)
-      const handledEmails = new Set();
 
       if (campaign.target_type === 'companies' && campaign.target_company_ids) {
         try {
@@ -382,10 +509,6 @@ export default function createAttestationRouter(deps) {
 
           // Get unregistered owners by company IDs
           unregisteredOwners = await assetDb.getUnregisteredOwnersByCompanyIds(validCompanyIds);
-
-          if (users.length === 0 && unregisteredOwners.length === 0) {
-            return res.status(400).json({ error: 'No asset owners found in the selected companies' });
-          }
         } catch (parseError) {
           logger.error({ err: parseError, userId: req.user?.id }, 'Error parsing target_company_ids');
           return res.status(500).json({ error: 'Invalid target company IDs format' });
@@ -453,20 +576,30 @@ export default function createAttestationRouter(deps) {
         unregisteredOwners = await assetDb.getUnregisteredOwners();
       }
 
+      const {
+        eligibleUsers,
+        eligibleOwners,
+        skippedTargets
+      } = await filterCampaignTargetsByEligibleAssets(campaign, users, unregisteredOwners, {
+        assetDb,
+        attestationAssetDb
+      });
+
+      if (eligibleUsers.length === 0 && eligibleOwners.length === 0) {
+        return res.status(400).json({ error: 'No eligible assets found for the selected campaign targets' });
+      }
+
       // Create attestation records for registered users
       let recordsCreated = 0;
       let emailsSent = 0;
 
-      for (const user of users) {
-        if (handledEmails.has(user.email.toLowerCase())) continue;
-
+      for (const user of eligibleUsers) {
         await attestationRecordDb.create({
           campaign_id: campaign.id,
           user_id: user.id,
           status: 'pending'
         });
         recordsCreated++;
-        handledEmails.add(user.email.toLowerCase());
 
         // Send email notification
         if (user.email) {
@@ -490,9 +623,7 @@ export default function createAttestationRouter(deps) {
       const ssoEnabled = oidcSettings?.enabled || false;
       const ssoButtonText = oidcSettings?.button_text || 'Sign In with SSO';
 
-      for (const owner of unregisteredOwners) {
-        if (handledEmails.has(owner.employee_email.toLowerCase())) continue;
-
+      for (const owner of eligibleOwners) {
         const crypto = await import('crypto');
         const inviteToken = crypto.randomBytes(32).toString('hex');
 
@@ -505,7 +636,6 @@ export default function createAttestationRouter(deps) {
           invite_sent_at: new Date().toISOString()
         });
         pendingInvitesCreated++;
-        handledEmails.add(owner.employee_email.toLowerCase());
 
         try {
           const { sendAttestationRegistrationInvite } = await import('../services/smtpMailer.js');
@@ -538,7 +668,7 @@ export default function createAttestationRouter(deps) {
         'attestation_campaign',
         campaign.id,
         campaign.name,
-        `Started attestation campaign: ${campaign.name} (targeting: ${campaign.target_type}). Created ${recordsCreated} records, sent ${emailsSent} emails. Created ${pendingInvitesCreated} pending invites, sent ${inviteEmailsSent} invite emails`,
+        `Started attestation campaign: ${campaign.name} (targeting: ${campaign.target_type}). Created ${recordsCreated} records, sent ${emailsSent} emails. Created ${pendingInvitesCreated} pending invites, sent ${inviteEmailsSent} invite emails. Skipped ${skippedTargets.length} targets with no eligible assets.`,
         req.user.email
       );
 
@@ -548,7 +678,8 @@ export default function createAttestationRouter(deps) {
         recordsCreated,
         emailsSent,
         pendingInvitesCreated,
-        inviteEmailsSent
+        inviteEmailsSent,
+        skippedTargets: skippedTargets.length
       });
     } catch (error) {
       logger.error({ err: error, userId: req.user?.id }, 'Error starting campaign');
@@ -820,41 +951,29 @@ export default function createAttestationRouter(deps) {
       }
 
       const campaign = await attestationCampaignDb.getById(record.campaign_id);
+      const recordUser = await userDb.getById(record.user_id);
 
-      // Get user's assets
-      const allAssets = await assetDb.getAll();
-      let userAssets = allAssets.filter(a => a.employee_email === req.user.email);
-
-      // Filter by company if campaign is company-scoped
-      if (campaign.target_type === 'companies' && campaign.target_company_ids) {
-        try {
-          const targetCompanyIds = JSON.parse(campaign.target_company_ids);
-          userAssets = userAssets.filter(asset => targetCompanyIds.includes(asset.company_id));
-        } catch (parseError) {
-          logger.error({ err: parseError, userId: req.user?.id }, 'Error parsing target_company_ids');
-        }
+      if (!recordUser) {
+        return res.status(404).json({ error: 'Attestation user not found' });
       }
 
-      const attestedAssets = await attestationAssetDb.getByRecordId(record.id);
+      const { eligibleAssets } = await getEligibleAssetsForCampaignUser({
+        campaign,
+        email: recordUser.email,
+        assetDb,
+        attestationAssetDb,
+        excludeRecordId: record.id
+      });
+      const eligibleAssetIds = new Set(eligibleAssets.map((asset) => asset.id));
+      const attestedAssets = (await attestationAssetDb.getByRecordId(record.id))
+        .filter((asset) => eligibleAssetIds.has(asset.asset_id));
       const newAssets = await attestationNewAssetDb.getByRecordId(record.id);
-      const latestCertificationResults = await Promise.all(
-        userAssets.map(async (asset) => {
-          const lastCertification = await attestationAssetDb.getLatestByAssetId(asset.id, record.id);
-          return [asset.id, lastCertification];
-        })
-      );
-      const latestCertificationByAssetId = new Map(latestCertificationResults);
-
-      const assetsWithCertificationHistory = userAssets.map(asset => ({
-        ...asset,
-        last_certification_result: latestCertificationByAssetId.get(asset.id) || null
-      }));
 
       res.json({
         success: true,
         record,
         campaign,
-        assets: assetsWithCertificationHistory,
+        assets: eligibleAssets,
         attestedAssets,
         newAssets
       });

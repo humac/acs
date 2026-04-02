@@ -2521,32 +2521,58 @@ export const assetDb = {
   },
   update: async (id, asset) => {
     const now = new Date().toISOString();
+    const existingAsset = await assetDb.getById(id);
+
+    if (!existingAsset) {
+      throw new Error(`Asset not found: ${id}`);
+    }
+
+    const hasOwn = (field) => Object.prototype.hasOwnProperty.call(asset, field);
+    const mergedAsset = {
+      employee_first_name: hasOwn('employee_first_name') ? asset.employee_first_name : existingAsset.employee_first_name,
+      employee_last_name: hasOwn('employee_last_name') ? asset.employee_last_name : existingAsset.employee_last_name,
+      employee_email: hasOwn('employee_email') ? asset.employee_email : existingAsset.employee_email,
+      manager_first_name: hasOwn('manager_first_name') ? asset.manager_first_name : existingAsset.manager_first_name,
+      manager_last_name: hasOwn('manager_last_name') ? asset.manager_last_name : existingAsset.manager_last_name,
+      manager_email: hasOwn('manager_email') ? asset.manager_email : existingAsset.manager_email,
+      company_name: hasOwn('company_name') ? asset.company_name : existingAsset.company_name,
+      company_id: hasOwn('company_id') ? asset.company_id : existingAsset.company_id,
+      asset_type: hasOwn('asset_type') ? asset.asset_type : existingAsset.asset_type,
+      make: hasOwn('make') ? asset.make : existingAsset.make,
+      model: hasOwn('model') ? asset.model : existingAsset.model,
+      serial_number: hasOwn('serial_number') ? asset.serial_number : existingAsset.serial_number,
+      asset_tag: hasOwn('asset_tag') ? asset.asset_tag : existingAsset.asset_tag,
+      status: hasOwn('status') ? asset.status : existingAsset.status,
+      issued_date: hasOwn('issued_date') ? asset.issued_date : existingAsset.issued_date,
+      returned_date: hasOwn('returned_date') ? asset.returned_date : existingAsset.returned_date,
+      notes: hasOwn('notes') ? asset.notes : existingAsset.notes
+    };
 
     // Look up owner_id from employee_email
     let ownerId = null;
-    if (asset.employee_email) {
-      const owner = await dbGet('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [asset.employee_email]);
+    if (mergedAsset.employee_email) {
+      const owner = await dbGet('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [mergedAsset.employee_email]);
       ownerId = owner?.id || null;
     }
 
     // Look up manager_id from manager_email
     let managerId = null;
-    if (asset.manager_email) {
-      const manager = await dbGet('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [asset.manager_email]);
+    if (mergedAsset.manager_email) {
+      const manager = await dbGet('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', [mergedAsset.manager_email]);
       managerId = manager?.id || null;
     }
 
     // Look up company_id from company_name (preferred) or use provided company_id
     // company_name takes precedence since the frontend sends the user-selected name
     let companyId = null;
-    if (asset.company_name) {
-      const company = await dbGet('SELECT id FROM companies WHERE name = ?', [asset.company_name]);
+    if (mergedAsset.company_name) {
+      const company = await dbGet('SELECT id FROM companies WHERE name = ?', [mergedAsset.company_name]);
       if (!company) {
-        throw new Error(`Company not found: ${asset.company_name}`);
+        throw new Error(`Company not found: ${mergedAsset.company_name}`);
       }
       companyId = company.id;
     } else {
-      companyId = asset.company_id || null;
+      companyId = mergedAsset.company_id || null;
     }
     if (!companyId) {
       throw new Error('Company is required');
@@ -2562,25 +2588,25 @@ export const assetDb = {
           status = ?, issued_date = ?, returned_date = ?, last_updated = ?, notes = ?
       WHERE id = ?
     `, [
-      asset.employee_first_name || '', // stored for unregistered users
-      asset.employee_last_name || '', // stored for unregistered users
-      asset.employee_email || '', // keep email for backward compat lookups
+      mergedAsset.employee_first_name || '', // stored for unregistered users
+      mergedAsset.employee_last_name || '', // stored for unregistered users
+      mergedAsset.employee_email || '', // keep email for backward compat lookups
       ownerId,
-      asset.manager_first_name || '', // stored for unregistered managers
-      asset.manager_last_name || '', // stored for unregistered managers
-      asset.manager_email || '', // keep email for backward compat lookups
+      mergedAsset.manager_first_name || '', // stored for unregistered managers
+      mergedAsset.manager_last_name || '', // stored for unregistered managers
+      mergedAsset.manager_email || '', // keep email for backward compat lookups
       managerId,
       companyId,
-      asset.asset_type,
-      asset.make || '',
-      asset.model || '',
-      asset.serial_number,
-      asset.asset_tag || null,
-      asset.status,
-      asset.issued_date || null,
-      asset.returned_date || null,
+      mergedAsset.asset_type,
+      mergedAsset.make || '',
+      mergedAsset.model || '',
+      mergedAsset.serial_number,
+      mergedAsset.asset_tag || null,
+      mergedAsset.status,
+      mergedAsset.issued_date || null,
+      mergedAsset.returned_date || null,
       now,
-      asset.notes || '',
+      mergedAsset.notes || '',
       id
     ]);
   },

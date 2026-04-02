@@ -293,5 +293,81 @@ describe('MyAttestationsPage', () => {
         );
       });
     });
+
+    it('renders only the eligible assets returned by the attestation details endpoint', async () => {
+      const user = userEvent.setup();
+
+      global.fetch.mockImplementation((url) => {
+        if (url === '/api/attestation/my-attestations') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              attestations: [
+                {
+                  id: 88,
+                  status: 'pending',
+                  campaign: {
+                    name: 'Filtered Certification',
+                    description: 'Only actionable assets remain',
+                    start_date: '2026-04-01',
+                    end_date: '2026-04-30'
+                  }
+                }
+              ]
+            })
+          });
+        }
+
+        if (url === '/api/asset-types') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ([{ id: 1, name: 'laptop', display_name: 'Laptop' }])
+          });
+        }
+
+        if (url === '/api/attestation/records/88') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              success: true,
+              campaign: {
+                id: 901,
+                name: 'Filtered Certification'
+              },
+              assets: [
+                {
+                  id: 701,
+                  asset_tag: 'ACTIVE-701',
+                  asset_type: 'Laptop',
+                  company_name: 'Acme Corp',
+                  make: 'Framework',
+                  model: '13',
+                  serial_number: 'SN-701',
+                  status: 'active'
+                }
+              ],
+              attestedAssets: [],
+              newAssets: []
+            })
+          });
+        }
+
+        return Promise.resolve({ ok: true, json: async () => [] });
+      });
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByText('Filtered Certification')).toBeInTheDocument();
+      });
+
+      await user.click(screen.getByRole('button', { name: /start/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText('SN-701')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByText('SN-702')).not.toBeInTheDocument();
+    });
   });
 });
