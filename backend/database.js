@@ -2565,12 +2565,14 @@ export const assetDb = {
     // Look up company_id from company_name (preferred) or use provided company_id
     // company_name takes precedence since the frontend sends the user-selected name
     let companyId = null;
-    if (mergedAsset.company_name) {
+    if (hasOwn('company_name') && mergedAsset.company_name) {
       const company = await dbGet('SELECT id FROM companies WHERE name = ?', [mergedAsset.company_name]);
       if (!company) {
         throw new Error(`Company not found: ${mergedAsset.company_name}`);
       }
       companyId = company.id;
+    } else if (hasOwn('company_id')) {
+      companyId = mergedAsset.company_id || null;
     } else {
       companyId = mergedAsset.company_id || null;
     }
