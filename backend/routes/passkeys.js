@@ -12,7 +12,6 @@ import {
   verifyAuthenticationResponse
 } from '@simplewebauthn/server';
 import { createChildLogger } from '../utils/logger.js';
-import { sanitizeUser } from '../utils/sanitize-user.js';
 
 const logger = createChildLogger({ module: 'passkeys' });
 
@@ -465,7 +464,7 @@ export default function createPasskeysRouter(deps) {
 
       const token = generateToken(user);
 
-      res.json({ token, user: sanitizeUser(user) });
+      res.json({ token, user });
     } catch (error) {
       logger.error({ err: error }, 'Failed to verify passkey authentication');
       res.status(500).json({ error: 'Unable to verify passkey sign in' });

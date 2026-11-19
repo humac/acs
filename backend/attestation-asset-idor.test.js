@@ -32,6 +32,7 @@ describe('Attestation asset IDOR', () => {
   let attackerRecord;
   let ownAsset;
   let victimAsset;
+  let attacker;
 
   const createUser = async (label) => {
     const email = `idor-${label}-${ts}@test.com`;
@@ -39,8 +40,8 @@ describe('Attestation asset IDOR', () => {
     return userDb.getByEmail(email);
   };
 
-  const createAsset = async (owner, serial) => {
-    const company = await companyDb.getByName(`IDOR Co ${ts}`);
+  const createAsset = async (owner, serial, companyName = `IDOR Co ${ts}`) => {
+    const company = await companyDb.getByName(companyName);
     const created = await assetDb.create({
       employee_first_name: owner.first_name,
       employee_last_name: 'User',
@@ -79,7 +80,7 @@ describe('Attestation asset IDOR', () => {
 
     await companyDb.create({ name: `IDOR Co ${ts}`, description: 'IDOR tests' });
 
-    const attacker = await createUser('attacker');
+    attacker = await createUser('attacker');
     const victim = await createUser('victim');
     attackerToken = generateToken(attacker);
 
@@ -139,6 +140,70 @@ describe('Attestation asset IDOR', () => {
     expect(res.status).toBe(200);
     const after = await assetDb.getById(ownAsset.id);
     expect(after.status).toBe('damaged');
+  });
+
+  const certify = (assetId, body, recordId = attackerRecord.id) => request(app)
+    .put(`/api/attestation/records/${recordId}/assets/${assetId}`)
+    .set('Authorization', `Bearer ${attackerToken}`)
+    .send(body);
+
+  describe('status handling', () => {
+    it('accepts an unchanged legacy mixed-case status without rewriting it', async () => {
+      const legacy = await createAsset(attacker, 'LEGACY-CASE');
+      await assetDb.updateStatus(legacy.id, 'Active', '');
+
+      const res = await certify(legacy.id, { attested_status: 'Active' });
+      expect(res.status).toBe(200);
+      expect((await assetDb.getById(legacy.id)).status).toBe('Active');
+    });
+
+    it.each([null, undefined, ''])('treats a missing status (%p) as unchanged', async (status) => {
+      const asset = await createAsset(attacker, `NO-STATUS-${String(status)}`);
+      const res = await certify(asset.id, status === undefined ? {} : { attested_status: status });
+      expect(res.status).toBe(200);
+      expect((await assetDb.getById(asset.id)).status).toBe('active');
+      const attested = await attestationAssetDb.getByRecordId(attackerRecord.id);
+      expect(attested.find((a) => a.asset_id === asset.id)?.attested_status).toBe('active');
+    });
+
+    it('accepts a status change in any case and stores it normalized', async () => {
+      const asset = await createAsset(attacker, 'CASE-CHANGE');
+      const res = await certify(asset.id, { attested_status: 'LOST' });
+      expect(res.status).toBe(200);
+      expect((await assetDb.getById(asset.id)).status).toBe('lost');
+    });
+
+    it('rejects a non-string status', async () => {
+      const res = await certify(ownAsset.id, { attested_status: { $ne: 'x' } });
+      expect(res.status).toBe(400);
+    });
+  });
+
+  it('rejects an owned asset outside the campaign company scope', async () => {
+    await companyDb.create({ name: `IDOR Other Co ${ts}`, description: 'Out of scope' });
+    const inScope = await companyDb.getByName(`IDOR Co ${ts}`);
+    const outOfScopeAsset = await createAsset(attacker, 'OUT-OF-SCOPE', `IDOR Other Co ${ts}`);
+
+    const scopedCampaign = await attestationCampaignDb.create({
+      name: `IDOR Scoped Campaign ${ts}`,
+      description: 'Company-scoped',
+      start_date: '2026-05-01T00:00:00.000Z',
+      status: 'active',
+      reminder_days: 7,
+      escalation_days: 10,
+      created_by: attacker.id,
+      target_type: 'companies',
+      target_company_ids: JSON.stringify([inScope.id])
+    });
+    const scopedRecord = await attestationRecordDb.create({
+      campaign_id: scopedCampaign.id,
+      user_id: attacker.id,
+      status: 'pending'
+    });
+
+    const res = await certify(outOfScopeAsset.id, { attested_status: 'lost' }, scopedRecord.id);
+    expect(res.status).toBe(403);
+    expect((await assetDb.getById(outOfScopeAsset.id)).status).toBe('active');
   });
 
   it('allows re-attesting the same asset within the same record', async () => {

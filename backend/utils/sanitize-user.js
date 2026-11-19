@@ -23,5 +23,3 @@ export const sanitizeUser = (user) => {
   }
   return safe;
 };
-
-export const sanitizeUsers = (users) => (Array.isArray(users) ? users.map(sanitizeUser) : users);

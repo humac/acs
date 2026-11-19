@@ -16,7 +16,7 @@ import multer from 'multer';
 import { readFile } from 'fs/promises';
 import os from 'os';
 import { mountRoutes } from './routes/index.js';
-import { createClientIpResolver } from './utils/client-ip.js';
+import { parseCidrList, rateLimitKey, resolveTrustProxySetting } from './utils/trusted-proxy.js';
 import logger from './utils/logger.js';
 
 const app = express();
@@ -173,21 +173,15 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Note: These are basic rate limiters. System-wide config is applied during server startup.
 // Using Cloudflare-friendly settings to avoid X-Forwarded-For validation errors
 
-// Active proxy configuration, populated from system settings in startServer().
-// Until then the CF-Connecting-IP header is never trusted.
-let activeProxyConfig = { enabled: false, type: null };
-
-// Get client IP for rate limiting. CF-Connecting-IP is only honoured when proxy
-// mode is "cloudflare" and the request arrived from a trusted hop; otherwise a
-// client could rotate the header to bypass every per-IP limit.
-const getClientIp = createClientIpResolver(() => activeProxyConfig);
+// Rate-limit keys come from req.ip, which Express resolves from the
+// X-Forwarded-For chain using the `trust proxy` setting applied in startServer()
+// (see utils/trusted-proxy.js). Client-supplied IP headers are never trusted
+// directly. IPv6 addresses are grouped by /56.
 
 // Common rate limiter validation config
 const rateLimiterValidation = {
-  // Disable X-Forwarded-For validation - we use CF-Connecting-IP or trust proxy
-  xForwardedForHeader: false,
-  // Disable IPv6 fallback validation since we use custom keyGenerator
-  keyGeneratorIpFallback: false
+  // Requests may carry X-Forwarded-For while trust proxy is disabled (TRUST_PROXY=false)
+  xForwardedForHeader: false
 };
 
 // Rate limiting for authentication endpoints
@@ -198,7 +192,7 @@ const authRateLimiter = rateLimit({
   max: 10, // 10 attempts per window
   skip: () => isTestEnv,
   message: { error: 'Too many attempts, please try again later' },
-  keyGenerator: getClientIp,
+  keyGenerator: rateLimitKey,
   validate: rateLimiterValidation,
   standardHeaders: true,
   legacyHeaders: false,
@@ -210,7 +204,7 @@ const passwordResetRateLimiter = rateLimit({
   max: 5, // 5 attempts per hour
   skip: () => isTestEnv,
   message: { error: 'Too many password reset requests, please try again later' },
-  keyGenerator: getClientIp,
+  keyGenerator: rateLimitKey,
   validate: rateLimiterValidation,
   standardHeaders: true,
   legacyHeaders: false,
@@ -222,7 +216,7 @@ const mfaRateLimiter = rateLimit({
   max: 10, // 10 verification attempts per window
   skip: () => isTestEnv,
   message: { error: 'Too many verification attempts, please try again later' },
-  keyGenerator: getClientIp,
+  keyGenerator: rateLimitKey,
   validate: rateLimiterValidation,
   standardHeaders: true,
   legacyHeaders: false,
@@ -429,10 +423,17 @@ export const startServer = async () => {
     const systemConfig = await getSystemConfig();
 
     // Configure trust proxy for reverse proxy/Cloudflare support
-    activeProxyConfig = { enabled: systemConfig.proxy.enabled, type: systemConfig.proxy.type };
-    if (systemConfig.proxy.enabled) {
-      app.set('trust proxy', systemConfig.proxy.trustLevel);
-      console.log(`Trust proxy enabled: level ${systemConfig.proxy.trustLevel}, type: ${systemConfig.proxy.type}`);
+    const extraTrustedProxies = parseCidrList(process.env.TRUSTED_PROXY_CIDRS, (entry) => {
+      logger.warn({ entry }, 'Ignoring invalid TRUSTED_PROXY_CIDRS entry');
+    });
+    const trustProxySetting = resolveTrustProxySetting(systemConfig.proxy, extraTrustedProxies);
+    if (trustProxySetting !== false) {
+      app.set('trust proxy', trustProxySetting);
+      logger.info({
+        type: systemConfig.proxy.type,
+        trustLevel: systemConfig.proxy.type === 'cloudflare' ? 'private + Cloudflare ranges' : trustProxySetting,
+        extraTrustedProxies
+      }, 'Trust proxy enabled');
     }
 
     await initializeOIDCFromSettings();

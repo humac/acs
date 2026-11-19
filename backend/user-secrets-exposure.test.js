@@ -12,7 +12,7 @@ import express from 'express';
 import { userDb, assetDb, auditDb } from './database.js';
 import { authenticate, authorize, generateToken } from './auth.js';
 import createUsersRouter from './routes/users.js';
-import { sanitizeUser, sanitizeUsers, SENSITIVE_USER_FIELDS } from './utils/sanitize-user.js';
+import { sanitizeUser, SENSITIVE_USER_FIELDS } from './utils/sanitize-user.js';
 
 describe('User secret exposure', () => {
   let app;
@@ -60,6 +60,35 @@ describe('User secret exposure', () => {
     }
   });
 
+  describe('userDb data layer', () => {
+    const victimEmail = () => `secrets-victim-${ts}@test.com`;
+    const expectNoSecrets = (user) => {
+      expect(user).toBeTruthy();
+      for (const field of SENSITIVE_USER_FIELDS) {
+        expect(user).not.toHaveProperty(field);
+      }
+    };
+
+    it('ordinary read methods never return credential fields', async () => {
+      const victim = await userDb.getByEmail(victimEmail());
+      expectNoSecrets(victim);
+      expectNoSecrets(await userDb.getById(victim.id));
+      (await userDb.getAll()).forEach(expectNoSecrets);
+      (await userDb.getByRole('admin')).forEach(expectNoSecrets);
+      (await userDb.getByEmails([victimEmail(), `secrets-admin-${ts}@test.com`])).forEach(expectNoSecrets);
+      expect(victim.mfa_enabled).toBeTruthy();
+    });
+
+    it('*WithCredentials methods return the hash and MFA secret for auth checks', async () => {
+      const byEmail = await userDb.getByEmailWithCredentials(victimEmail());
+      expect(byEmail.password_hash).toBe('$2a$10$victimhashvictimhash');
+      expect(byEmail.mfa_secret).toBe('JBSWY3DPEHPK3PXP');
+      const byId = await userDb.getByIdWithCredentials(byEmail.id);
+      expect(byId.password_hash).toBe('$2a$10$victimhashvictimhash');
+      expect(await userDb.getByIdWithCredentials(-1)).toBeNull();
+    });
+  });
+
   describe('sanitizeUser helper', () => {
     it('removes every sensitive field and keeps the rest', () => {
       const row = {
@@ -77,11 +106,9 @@ describe('User secret exposure', () => {
       expect(row.password_hash).toBe('h');
     });
 
-    it('passes through null/undefined and non-arrays', () => {
+    it('passes through null/undefined', () => {
       expect(sanitizeUser(null)).toBeNull();
       expect(sanitizeUser(undefined)).toBeUndefined();
-      expect(sanitizeUsers(null)).toBeNull();
-      expect(sanitizeUsers([{ id: 1, mfa_secret: 'x' }])).toEqual([{ id: 1 }]);
     });
   });
 });

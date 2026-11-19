@@ -6,7 +6,6 @@
 import { Router } from 'express';
 import { requireFields, validateEmail } from '../middleware/validation.js';
 import { createChildLogger } from '../utils/logger.js';
-import { sanitizeUser } from '../utils/sanitize-user.js';
 
 const logger = createChildLogger({ module: 'auth' });
 
@@ -345,7 +344,7 @@ export default function createAuthRouter(deps) {
 
       const { email, password } = req.body;
 
-      const user = await userDb.getByEmail(email);
+      const user = await userDb.getByEmailWithCredentials(email);
       if (!user) {
         return res.status(401).json({ error: 'Invalid credentials' });
       }
@@ -820,7 +819,7 @@ export default function createAuthRouter(deps) {
       }
 
       // Get current user
-      const user = await userDb.getById(req.user.id);
+      const user = await userDb.getByIdWithCredentials(req.user.id);
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
@@ -1024,7 +1023,7 @@ export default function createAuthRouter(deps) {
     try {
       const { newEmail, password } = req.body;
 
-      const user = await userDb.getById(req.user.id);
+      const user = await userDb.getByIdWithCredentials(req.user.id);
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
@@ -1169,7 +1168,7 @@ export default function createAuthRouter(deps) {
       const user = await userDb.getById(result.id);
       const token = generateToken(user);
 
-      res.json({ token, user: sanitizeUser(user) });
+      res.json({ token, user });
     } catch (error) {
       logger.error({ err: error }, 'E2E create OIDC user error');
       res.status(500).json({ error: 'Failed to create OIDC user' });

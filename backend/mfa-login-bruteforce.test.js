@@ -45,11 +45,14 @@ describe('MFA verify-login brute-force protections', () => {
     mfaSessions = new Map();
     app = express();
     app.use(express.json());
-    app.use('/api/auth/mfa', createMFARouter({
-      userDb, auditDb, authenticate, comparePassword, generateToken,
-      generateMFASecret, verifyTOTP, generateBackupCodes, formatBackupCode,
-      pendingMFAEnrollments: mfaSessions, mfaSessions, safeJsonParseArray
-    }));
+    app.use('/api/auth/mfa', createMFARouter({ ...baseDeps(), mfaRateLimiter: passThrough }));
+  });
+
+  const passThrough = (req, res, next) => next();
+  const baseDeps = () => ({
+    userDb, auditDb, authenticate, comparePassword, generateToken,
+    generateMFASecret, verifyTOTP, generateBackupCodes, formatBackupCode,
+    pendingMFAEnrollments: mfaSessions, mfaSessions, safeJsonParseArray
   });
 
   it('accepts a valid code and consumes the session', async () => {
@@ -102,9 +105,7 @@ describe('MFA verify-login brute-force protections', () => {
     const limitedApp = express();
     limitedApp.use(express.json());
     limitedApp.use('/api/auth/mfa', createMFARouter({
-      userDb, auditDb, authenticate, comparePassword, generateToken,
-      generateMFASecret, verifyTOTP, generateBackupCodes, formatBackupCode,
-      pendingMFAEnrollments: mfaSessions, mfaSessions, safeJsonParseArray,
+      ...baseDeps(),
       mfaRateLimiter: (req, res) => { calls += 1; res.status(429).json({ error: 'limited' }); }
     }));
     const res = await request(limitedApp)
@@ -112,6 +113,33 @@ describe('MFA verify-login brute-force protections', () => {
       .send({ mfaSessionId: newSession(), token: validCode() });
     expect(res.status).toBe(429);
     expect(calls).toBe(1);
+  });
+
+  it('refuses to build the router without a rate limiter (fails closed)', () => {
+    expect(() => createMFARouter(baseDeps())).toThrow(/mfaRateLimiter/);
+  });
+
+  it('caps concurrent guesses on one session at 5 verifications', async () => {
+    const id = newSession();
+    let verifications = 0;
+    const countingApp = express();
+    countingApp.use(express.json());
+    countingApp.use('/api/auth/mfa', createMFARouter({
+      ...baseDeps(),
+      verifyTOTP: (secretArg, tokenArg) => { verifications += 1; return verifyTOTP(secretArg, tokenArg); },
+      mfaRateLimiter: passThrough
+    }));
+
+    const responses = await Promise.all(
+      Array.from({ length: 30 }, () =>
+        request(countingApp).post('/api/auth/mfa/verify-login').send({ mfaSessionId: id, token: wrongCode() })
+      )
+    );
+
+    expect(verifications).toBeLessThanOrEqual(5);
+    expect(responses.every((r) => r.status === 401 || r.status === 400)).toBe(true);
+    expect(responses.some((r) => r.status === 200)).toBe(false);
+    expect(mfaSessions.has(id)).toBe(false);
   });
 
   it('uses a +/-1 step TOTP window', () => {

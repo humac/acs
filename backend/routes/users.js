@@ -6,7 +6,6 @@
 import { Router } from 'express';
 import { requireFields, validateRole } from '../middleware/validation.js';
 import { createChildLogger } from '../utils/logger.js';
-import { sanitizeUsers } from '../utils/sanitize-user.js';
 
 const logger = createChildLogger({ module: 'users' });
 
@@ -32,7 +31,7 @@ export default function createUsersRouter(deps) {
   router.get('/', authenticate, authorize('admin', 'coordinator', 'manager'), async (req, res) => {
     try {
       const users = await userDb.getAll();
-      res.json(sanitizeUsers(users));
+      res.json(users);
     } catch (error) {
       logger.error({ err: error, userId: req.user?.id }, 'Get users error');
       res.status(500).json({ error: 'Failed to get users' });
