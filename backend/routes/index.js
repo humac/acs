@@ -239,6 +239,8 @@ export function mountRoutes(app, deps) {
     pendingMFAEnrollments: deps.pendingMFAEnrollments,
     mfaSessions: deps.mfaSessions,
     safeJsonParseArray: deps.safeJsonParseArray,
+    // Rate limiters
+    mfaRateLimiter: deps.mfaRateLimiter,
   });
   app.use('/api/auth/mfa', mfaRouter);
 

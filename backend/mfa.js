@@ -26,7 +26,7 @@ export function verifyTOTP(secret, token) {
     secret: secret,
     encoding: 'base32',
     token: token,
-    window: 2 // Allow 2 time steps before/after for clock drift
+    window: 1 // Allow 1 time step (30s) before/after for clock drift
   });
 }
 

@@ -6,6 +6,7 @@
 import { Router } from 'express';
 import { requireFields, validateEmail } from '../middleware/validation.js';
 import { createChildLogger } from '../utils/logger.js';
+import { sanitizeUser } from '../utils/sanitize-user.js';
 
 const logger = createChildLogger({ module: 'auth' });
 
@@ -1168,7 +1169,7 @@ export default function createAuthRouter(deps) {
       const user = await userDb.getById(result.id);
       const token = generateToken(user);
 
-      res.json({ token, user });
+      res.json({ token, user: sanitizeUser(user) });
     } catch (error) {
       logger.error({ err: error }, 'E2E create OIDC user error');
       res.status(500).json({ error: 'Failed to create OIDC user' });

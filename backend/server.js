@@ -16,6 +16,7 @@ import multer from 'multer';
 import { readFile } from 'fs/promises';
 import os from 'os';
 import { mountRoutes } from './routes/index.js';
+import { createClientIpResolver } from './utils/client-ip.js';
 import logger from './utils/logger.js';
 
 const app = express();
@@ -172,15 +173,14 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Note: These are basic rate limiters. System-wide config is applied during server startup.
 // Using Cloudflare-friendly settings to avoid X-Forwarded-For validation errors
 
-// Get client IP based on proxy type
-const getClientIp = (req) => {
-  // Check for Cloudflare header first (most reliable when behind Cloudflare)
-  const cfIp = req.headers['cf-connecting-ip'];
-  if (cfIp) return cfIp;
+// Active proxy configuration, populated from system settings in startServer().
+// Until then the CF-Connecting-IP header is never trusted.
+let activeProxyConfig = { enabled: false, type: null };
 
-  // Fall back to Express req.ip (respects trust proxy setting)
-  return req.ip;
-};
+// Get client IP for rate limiting. CF-Connecting-IP is only honoured when proxy
+// mode is "cloudflare" and the request arrived from a trusted hop; otherwise a
+// client could rotate the header to bypass every per-IP limit.
+const getClientIp = createClientIpResolver(() => activeProxyConfig);
 
 // Common rate limiter validation config
 const rateLimiterValidation = {
@@ -210,6 +210,18 @@ const passwordResetRateLimiter = rateLimit({
   max: 5, // 5 attempts per hour
   skip: () => isTestEnv,
   message: { error: 'Too many password reset requests, please try again later' },
+  keyGenerator: getClientIp,
+  validate: rateLimiterValidation,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Rate limiting for MFA login verification (TOTP / backup code guesses)
+const mfaRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // 10 verification attempts per window
+  skip: () => isTestEnv,
+  message: { error: 'Too many verification attempts, please try again later' },
   keyGenerator: getClientIp,
   validate: rateLimiterValidation,
   standardHeaders: true,
@@ -356,6 +368,7 @@ mountRoutes(app, {
   // Rate limiters
   authRateLimiter,
   passwordResetRateLimiter,
+  mfaRateLimiter,
   // File upload
   upload,
   parseCSVFile,
@@ -416,6 +429,7 @@ export const startServer = async () => {
     const systemConfig = await getSystemConfig();
 
     // Configure trust proxy for reverse proxy/Cloudflare support
+    activeProxyConfig = { enabled: systemConfig.proxy.enabled, type: systemConfig.proxy.type };
     if (systemConfig.proxy.enabled) {
       app.set('trust proxy', systemConfig.proxy.trustLevel);
       console.log(`Trust proxy enabled: level ${systemConfig.proxy.trustLevel}, type: ${systemConfig.proxy.type}`);
@@ -444,7 +458,9 @@ export const startServer = async () => {
     cleanupInterval = setInterval(() => {
       const now = Date.now();
       for (const [sessionId, data] of pendingMFALogins.entries()) {
-        if (now - data.timestamp > 5 * 60 * 1000) { // 5 minutes
+        // MFA login sessions store `createdAt`; MFA enrollments store `timestamp`
+        const startedAt = data.createdAt ?? data.timestamp;
+        if (!startedAt || now - startedAt > 5 * 60 * 1000) { // 5 minutes
           pendingMFALogins.delete(sessionId);
         }
       }

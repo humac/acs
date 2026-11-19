@@ -5,6 +5,7 @@
 
 import { Router } from 'express';
 import { createChildLogger } from '../utils/logger.js';
+import { VALID_STATUSES } from '../utils/constants.js';
 
 const logger = createChildLogger({ module: 'attestation' });
 
@@ -997,11 +998,35 @@ export default function createAttestationRouter(deps) {
       }
 
       const { attested_status, notes, returned_date } = req.body;
+
+      if (!VALID_STATUSES.includes(attested_status)) {
+        return res.status(400).json({ error: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}` });
+      }
+
       const asset = await assetDb.getById(req.params.assetId);
       const normalizedReturnedDate = attested_status === 'returned' ? sanitizeDateValue(returned_date) : null;
 
       if (!asset) {
         return res.status(404).json({ error: 'Asset not found' });
+      }
+
+      // The asset must be one this record is attesting: owned by the record's user
+      // and in the campaign's company scope. Without this check any user with an
+      // attestation record could change the status of any asset by ID.
+      const campaign = await attestationCampaignDb.getById(record.campaign_id);
+      const recordUser = await userDb.getById(record.user_id);
+      if (!campaign || !recordUser) {
+        return res.status(404).json({ error: 'Attestation record not found' });
+      }
+      const { eligibleAssets } = await getEligibleAssetsForCampaignUser({
+        campaign,
+        email: recordUser.email,
+        assetDb,
+        attestationAssetDb,
+        excludeRecordId: record.id
+      });
+      if (!eligibleAssets.some((eligible) => eligible.id === asset.id)) {
+        return res.status(403).json({ error: 'Asset is not part of this attestation' });
       }
 
       await attestationAssetDb.create({
