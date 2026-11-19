@@ -261,7 +261,7 @@ import {
 | Database Object | Methods |
 |-----------------|---------|
 | `assetDb` | `init`, `create`, `getAll`, `getById`, `search`, `updateStatus`, `update`, `delete`, `getByEmployeeEmail`, `getByManagerEmail`, `getRegisteredOwnersByCompanyIds`, `linkAssetsToUser`, `updateManagerForEmployee`, `updateManagerIdForOwner`, `getByIds`, `bulkUpdateStatus`, `bulkDelete`, `bulkUpdateManager`, `getEmployeeEmailsByManager`, `getScopedForUser`, `getUnregisteredOwners`, `getUnregisteredOwnersByCompanyIds` |
-| `userDb` | `create`, `getByEmail`, `getById`, `getAll`, `getByManagerEmail`, `updateRole`, `updateLastLogin`, `delete`, `updateProfile`, `updatePassword`, `getByOIDCSub`, `createFromOIDC`, `linkOIDC`, `enableMFA`, `disableMFA`, `getMFAStatus`, `completeProfile`, `useBackupCode`, `getByEmails`, `getByRole` |
+| `userDb` | `create`, `getByEmail`, `getById`, `getByEmailWithCredentials`, `getByIdWithCredentials`, `getAll`, `getByManagerEmail`, `updateRole`, `updateLastLogin`, `delete`, `updateProfile`, `updatePassword`, `getByOIDCSub`, `createFromOIDC`, `linkOIDC`, `enableMFA`, `disableMFA`, `getMFAStatus`, `completeProfile`, `useBackupCode`, `getByEmails`, `getByRole` |
 | `companyDb` | `create`, `createWithHubSpotId`, `getAll`, `getById`, `getByName`, `getByHubSpotId`, `update`, `updateByHubSpotId`, `setHubSpotId`, `delete`, `hasAssets`, `getAssetCount` |
 | `auditDb` | `log`, `getAll`, `getByEntity`, `getRecent`, `getStats` |
 | `passkeyDb` | `listByUser`, `getByCredentialId`, `getById`, `create`, `delete`, `updateCounter` |
@@ -280,6 +280,8 @@ import {
 | `attestationAssetDb` | `create`, `getByRecordId`, `update` |
 | `attestationNewAssetDb` | `create`, `getByRecordId` |
 | `attestationPendingInviteDb` | `create`, `getById`, `getByToken`, `getByEmail`, `getByCampaignId`, `getActiveByEmail`, `update`, `delete` |
+
+**User rows:** `userDb` read methods strip `password_hash`, `mfa_secret`, `mfa_backup_codes` and `oidc_sub`. Use `getByEmailWithCredentials` / `getByIdWithCredentials` only where a password hash or MFA secret must be checked, and never return those rows to a client.
 
 **When modifying database.js:** Update this index AND CLAUDE.md's Database Method Index.
 

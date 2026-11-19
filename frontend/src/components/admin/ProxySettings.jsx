@@ -170,7 +170,7 @@ const ProxySettings = () => {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="cloudflare">Cloudflare (CF-Connecting-IP)</SelectItem>
+                <SelectItem value="cloudflare">Cloudflare (trusts Cloudflare &amp; private hops)</SelectItem>
                 <SelectItem value="standard">Standard (X-Forwarded-For)</SelectItem>
                 <SelectItem value="none">None</SelectItem>
               </SelectContent>

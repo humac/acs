@@ -1,6 +1,6 @@
 /**
  * Category B: Employee Isolation (Conflict Testing)
- * Tests B-1 through B-8.
+ * Tests B-1 through B-9.
  */
 import { test, expect } from '../fixtures/auth.fixture.js';
 import { readFileSync } from 'fs';
@@ -94,5 +94,52 @@ test.describe('Employee Isolation', () => {
     // Should show empty state or no asset rows
     const rows = employeeOrphanPage.locator('table tbody tr');
     await expect(rows).toHaveCount(0);
+  });
+
+  test('B-9: employeeA cannot attest (change status of) empB asset via own attestation record', async ({ adminApi, employeeAApi }) => {
+    const state = loadState();
+    const empAAsset = state.assets.find(a => a.serial_number === 'E2E-SN-A001');
+    const empBAsset = state.assets.find(a => a.serial_number === 'E2E-SN-B001');
+
+    const created = await adminApi.post('/api/attestation/campaigns', {
+      name: `E2E B-9 isolation ${Date.now()}`,
+      start_date: new Date().toISOString(),
+      target_type: 'selected',
+      target_user_ids: [state.users.employeeA.id],
+    });
+    expect(created.ok).toBe(true);
+    const campaignId = created.body.campaignId;
+
+    try {
+      const started = await adminApi.post(`/api/attestation/campaigns/${campaignId}/start`);
+      expect(started.ok).toBe(true);
+
+      const mine = await employeeAApi.get('/api/attestation/my-attestations');
+      expect(mine.ok).toBe(true);
+      const record = mine.body.attestations.find(r => r.campaign_id === campaignId);
+      expect(record).toBeDefined();
+
+      const before = await adminApi.get(`/api/assets/${empBAsset.id}`);
+
+      // empA tries to mark empB's asset as lost through empA's own record
+      const attack = await employeeAApi.put(
+        `/api/attestation/records/${record.id}/assets/${empBAsset.id}`,
+        { attested_status: 'lost', notes: 'tampered by empA' }
+      );
+      expect(attack.status).toBe(403);
+
+      const after = await adminApi.get(`/api/assets/${empBAsset.id}`);
+      expect(after.body.status).toBe(before.body.status);
+      expect(after.body.notes || '').not.toContain('tampered by empA');
+
+      // Positive control: empA can still certify their own asset unchanged
+      const own = await employeeAApi.put(
+        `/api/attestation/records/${record.id}/assets/${empAAsset.id}`,
+        {}
+      );
+      expect(own.status).toBe(200);
+    } finally {
+      await adminApi.delete(`/api/attestation/campaigns/${campaignId}`);
+    }
   });
 });

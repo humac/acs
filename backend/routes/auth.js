@@ -344,7 +344,7 @@ export default function createAuthRouter(deps) {
 
       const { email, password } = req.body;
 
-      const user = await userDb.getByEmail(email);
+      const user = await userDb.getByEmailWithCredentials(email);
       if (!user) {
         return res.status(401).json({ error: 'Invalid credentials' });
       }
@@ -819,7 +819,7 @@ export default function createAuthRouter(deps) {
       }
 
       // Get current user
-      const user = await userDb.getById(req.user.id);
+      const user = await userDb.getByIdWithCredentials(req.user.id);
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
@@ -1023,7 +1023,7 @@ export default function createAuthRouter(deps) {
     try {
       const { newEmail, password } = req.body;
 
-      const user = await userDb.getById(req.user.id);
+      const user = await userDb.getByIdWithCredentials(req.user.id);
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }

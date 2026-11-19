@@ -33,7 +33,17 @@ export default function createMFARouter(deps) {
     pendingMFAEnrollments,
     mfaSessions,
     safeJsonParseArray,
+    // Rate limiters
+    mfaRateLimiter,
   } = deps;
+
+  // Fail closed: verify-login must never be mounted without brute-force protection
+  if (typeof mfaRateLimiter !== 'function') {
+    throw new Error('createMFARouter requires an mfaRateLimiter middleware');
+  }
+
+  const MFA_SESSION_TTL_MS = 5 * 60 * 1000;
+  const MFA_MAX_ATTEMPTS = 5;
 
   // ===== MFA Status =====
 
@@ -141,7 +151,7 @@ export default function createMFARouter(deps) {
       const { password } = req.body;
 
       // Verify password
-      const user = await userDb.getById(req.user.id);
+      const user = await userDb.getByIdWithCredentials(req.user.id);
       const isValid = await comparePassword(password, user.password_hash);
 
       if (!isValid) {
@@ -170,19 +180,36 @@ export default function createMFARouter(deps) {
 
   // ===== Verify MFA Login =====
 
-  router.post('/verify-login', requireFields('mfaSessionId', 'token'), async (req, res) => {
+  router.post('/verify-login', mfaRateLimiter, requireFields('mfaSessionId', 'token'), async (req, res) => {
     try {
       const { mfaSessionId, token, useBackupCode } = req.body;
 
-      // Get pending login
-      const pendingLogin = mfaSessions.get(mfaSessionId);
-
-      if (!pendingLogin) {
+      if (typeof mfaSessionId !== 'string' || typeof token !== 'string') {
         return res.status(400).json({ error: 'Invalid or expired MFA session' });
       }
 
+      // Get pending login (only login sessions carry a userId + createdAt)
+      const pendingLogin = mfaSessions.get(mfaSessionId);
+
+      if (!pendingLogin || !pendingLogin.userId || !pendingLogin.createdAt) {
+        return res.status(400).json({ error: 'Invalid or expired MFA session' });
+      }
+
+      if (Date.now() - pendingLogin.createdAt > MFA_SESSION_TTL_MS) {
+        mfaSessions.delete(mfaSessionId);
+        return res.status(400).json({ error: 'Invalid or expired MFA session' });
+      }
+
+      // Reserve this attempt before any await, so concurrent requests on the same
+      // session cannot all be verified before the cap takes effect.
+      pendingLogin.attempts = (pendingLogin.attempts || 0) + 1;
+      if (pendingLogin.attempts > MFA_MAX_ATTEMPTS) {
+        mfaSessions.delete(mfaSessionId);
+        return res.status(401).json({ error: 'Too many invalid codes. Please sign in again.' });
+      }
+
       // Get user
-      const user = await userDb.getById(pendingLogin.userId);
+      const user = await userDb.getByIdWithCredentials(pendingLogin.userId);
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
@@ -199,6 +226,11 @@ export default function createMFARouter(deps) {
       }
 
       if (!isValid) {
+        if (pendingLogin.attempts >= MFA_MAX_ATTEMPTS) {
+          // Force the user back through password login after repeated failures
+          mfaSessions.delete(mfaSessionId);
+          return res.status(401).json({ error: 'Too many invalid codes. Please sign in again.' });
+        }
         return res.status(401).json({ error: 'Invalid verification code' });
       }
 

@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join, resolve, isAbsolute } from 'path';
 import { mkdirSync, readFileSync, writeFileSync } from 'fs';
 import pg from 'pg';
+import { sanitizeUser } from './utils/sanitize-user.js';
 
 const { Pool } = pg;
 
@@ -3133,6 +3134,19 @@ export const auditDb = {
   }
 };
 
+// User rows returned by userDb never include credential fields
+// (password_hash, mfa_secret, mfa_backup_codes, oidc_sub) unless explicitly
+// requested via a *WithCredentials method.
+const mapUserRow = (row, { withCredentials = false } = {}) => {
+  if (!row) return null;
+  const mapped = {
+    ...row,
+    created_at: normalizeDates(row.created_at),
+    last_login: normalizeDates(row.last_login)
+  };
+  return withCredentials ? mapped : sanitizeUser(mapped);
+};
+
 export const userDb = {
   create: async (user) => {
     const now = new Date().toISOString();
@@ -3158,37 +3172,29 @@ export const userDb = {
   },
   getByEmail: async (email) => {
     const row = await dbGet('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [email]);
-    if (!row) return null;
-    return {
-      ...row,
-      created_at: normalizeDates(row.created_at),
-      last_login: normalizeDates(row.last_login)
-    };
+    return mapUserRow(row);
   },
   getById: async (id) => {
     const row = await dbGet('SELECT * FROM users WHERE id = ?', [id]);
-    if (!row) return null;
-    return {
-      ...row,
-      created_at: normalizeDates(row.created_at),
-      last_login: normalizeDates(row.last_login)
-    };
+    return mapUserRow(row);
+  },
+  // Credential-bearing lookups. Only for code that must check a password hash
+  // or MFA secret; never send these rows to a client.
+  getByEmailWithCredentials: async (email) => {
+    const row = await dbGet('SELECT * FROM users WHERE LOWER(email) = LOWER(?)', [email]);
+    return mapUserRow(row, { withCredentials: true });
+  },
+  getByIdWithCredentials: async (id) => {
+    const row = await dbGet('SELECT * FROM users WHERE id = ?', [id]);
+    return mapUserRow(row, { withCredentials: true });
   },
   getAll: async () => {
     const rows = await dbAll('SELECT * FROM users ORDER BY created_at DESC');
-    return rows.map((row) => ({
-      ...row,
-      created_at: normalizeDates(row.created_at),
-      last_login: normalizeDates(row.last_login)
-    }));
+    return rows.map((row) => mapUserRow(row));
   },
   getByManagerEmail: async (managerEmail) => {
     const rows = await dbAll('SELECT * FROM users WHERE manager_email = ?', [managerEmail]);
-    return rows.map((row) => ({
-      ...row,
-      created_at: normalizeDates(row.created_at),
-      last_login: normalizeDates(row.last_login)
-    }));
+    return rows.map((row) => mapUserRow(row));
   },
   updateRole: async (id, role) => dbRun('UPDATE users SET role = ? WHERE id = ?', [role, id]),
   updateLastLogin: async (id) => {
@@ -3213,12 +3219,7 @@ export const userDb = {
   updatePassword: async (id, passwordHash) => dbRun('UPDATE users SET password_hash = ? WHERE id = ?', [passwordHash, id]),
   getByOIDCSub: async (oidcSub) => {
     const row = await dbGet('SELECT * FROM users WHERE oidc_sub = ?', [oidcSub]);
-    if (!row) return null;
-    return {
-      ...row,
-      created_at: normalizeDates(row.created_at),
-      last_login: normalizeDates(row.last_login)
-    };
+    return mapUserRow(row);
   },
   createFromOIDC: async (userData) => {
     const now = new Date().toISOString();
@@ -3323,11 +3324,7 @@ export const userDb = {
     const placeholders = normalizedEmails.map(() => '?').join(',');
     const query = `SELECT * FROM users WHERE LOWER(email) IN (${placeholders})`;
     const rows = await dbAll(query, normalizedEmails);
-    return rows.map((row) => ({
-      ...row,
-      created_at: normalizeDates(row.created_at),
-      last_login: normalizeDates(row.last_login)
-    }));
+    return rows.map((row) => mapUserRow(row));
   },
   /**
    * Get all users with a specific role
@@ -3336,11 +3333,7 @@ export const userDb = {
    */
   getByRole: async (role) => {
     const rows = await dbAll('SELECT * FROM users WHERE role = ?', [role]);
-    return rows.map((row) => ({
-      ...row,
-      created_at: normalizeDates(row.created_at),
-      last_login: normalizeDates(row.last_login)
-    }));
+    return rows.map((row) => mapUserRow(row));
   },
   // Set email_verified to 1 (true) for a user
   setEmailVerified: async (id) => {

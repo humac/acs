@@ -5,6 +5,7 @@
 
 import { Router } from 'express';
 import { createChildLogger } from '../utils/logger.js';
+import { VALID_STATUSES } from '../utils/constants.js';
 
 const logger = createChildLogger({ module: 'attestation' });
 
@@ -72,6 +73,32 @@ export const getEligibleAssetsForCampaignUser = async ({
     assetsWithHistory,
     eligibleAssets
   };
+};
+
+/**
+ * Single-asset equivalent of getEligibleAssetsForCampaignUser: is `asset` one the
+ * campaign user is expected to attest? Same rules (owner email, campaign company
+ * scope, exclusion after a confirmed return) with one history lookup.
+ */
+export const isAssetEligibleForCampaignUser = async ({
+  campaign,
+  email,
+  asset,
+  attestationAssetDb,
+  excludeRecordId = null
+}) => {
+  if (!asset || !email || asset.employee_email !== email) {
+    return false;
+  }
+  const scopedCompanyIds = getCampaignCompanyIds(campaign);
+  if (scopedCompanyIds && !scopedCompanyIds.includes(asset.company_id)) {
+    return false;
+  }
+  const lastCertification = await attestationAssetDb.getLatestByAssetId(asset.id, excludeRecordId);
+  return !shouldExcludeAssetFromFutureAttestations({
+    ...asset,
+    last_certification_result: lastCertification || null
+  });
 };
 
 export const normalizePendingInviteTarget = (target, assetCount) => ({
@@ -997,17 +1024,50 @@ export default function createAttestationRouter(deps) {
       }
 
       const { attested_status, notes, returned_date } = req.body;
+
       const asset = await assetDb.getById(req.params.assetId);
-      const normalizedReturnedDate = attested_status === 'returned' ? sanitizeDateValue(returned_date) : null;
 
       if (!asset) {
         return res.status(404).json({ error: 'Asset not found' });
       }
 
+      // The asset must be one this record is attesting: owned by the record's user
+      // and in the campaign's company scope. Without this check any user with an
+      // attestation record could change the status of any asset by ID.
+      const campaign = await attestationCampaignDb.getById(record.campaign_id);
+      const recordUser = await userDb.getById(record.user_id);
+      if (!campaign || !recordUser) {
+        return res.status(404).json({ error: 'Attestation record not found' });
+      }
+      const isEligible = await isAssetEligibleForCampaignUser({
+        campaign,
+        email: recordUser.email,
+        asset,
+        attestationAssetDb,
+        excludeRecordId: record.id
+      });
+      if (!isEligible) {
+        return res.status(403).json({ error: 'Asset is not part of this attestation' });
+      }
+
+      // Status: case-insensitive. A missing status, or the asset's current status
+      // (even a legacy value), means "unchanged"; any change must be a valid status.
+      if (attested_status !== undefined && attested_status !== null && typeof attested_status !== 'string') {
+        return res.status(400).json({ error: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}` });
+      }
+      const currentStatus = typeof asset.status === 'string' ? asset.status.trim().toLowerCase() : null;
+      const requestedStatus = attested_status && attested_status.trim()
+        ? attested_status.trim().toLowerCase()
+        : currentStatus;
+      if (requestedStatus !== currentStatus && !VALID_STATUSES.includes(requestedStatus)) {
+        return res.status(400).json({ error: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}` });
+      }
+      const normalizedReturnedDate = requestedStatus === 'returned' ? sanitizeDateValue(returned_date) : null;
+
       await attestationAssetDb.create({
         attestation_record_id: record.id,
         asset_id: asset.id,
-        attested_status,
+        attested_status: requestedStatus,
         previous_status: asset.status,
         returned_date: normalizedReturnedDate,
         notes,
@@ -1022,18 +1082,18 @@ export default function createAttestationRouter(deps) {
         });
       }
 
-      const shouldUpdateReturnedDate = attested_status === 'returned' && asset.returned_date !== normalizedReturnedDate;
+      const shouldUpdateReturnedDate = requestedStatus === 'returned' && asset.returned_date !== normalizedReturnedDate;
 
       // Keep the live asset row aligned with the latest attestation details.
-      if ((attested_status && attested_status !== asset.status) || shouldUpdateReturnedDate) {
-        await assetDb.updateStatus(asset.id, attested_status, notes, normalizedReturnedDate);
+      if ((requestedStatus && requestedStatus !== currentStatus) || shouldUpdateReturnedDate) {
+        await assetDb.updateStatus(asset.id, requestedStatus, notes, normalizedReturnedDate);
 
         await auditDb.log(
           'update',
           'asset',
           asset.id,
           asset.asset_tag || asset.serial_number || 'Unknown',
-          `Updated asset status during attestation: ${asset.status} -> ${attested_status}`,
+          `Updated asset status during attestation: ${asset.status} -> ${requestedStatus}`,
           req.user.email
         );
       }
